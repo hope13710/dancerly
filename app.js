@@ -50,12 +50,16 @@ const demo = $('[data-demo]');
 const noteText = 'Land on the beat before the shoulder hits. Count “5-and-6” here.';
 const VIDEO_LENGTH = 72;
 const fmt = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${(seconds % 60).toFixed(1).padStart(4, '0')}`;
+const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const steps = [
-  { duration: 5500, render: (t) => ({ time: 8 + t * 10, playing: t < 0.96 }) },
-  { duration: 7000, render: (t) => ({ time: 18, typing: t > 0.08 && t < 0.82, typed: Math.min(1, (t - 0.1) / 0.6), posting: t > 0.72 && t < 0.82, posted: t >= 0.82 }) },
-  { duration: 6500, render: (t) => ({ time: 16 + ((t * 6500) / 1000 % 4), playing: true, speed: '0.5×', viewer: 'Dancer view · Maya', posted: true, replied: t > 0.55 }) },
-  { duration: 6500, render: (t) => ({ time: 18, version: 2, posted: true, replied: true, resolved: t > 0.45 }) }
+  { duration: 4500, render: (t) => ({ time: 8 + t * 10, playing: t < 0.96 }) },
+  { duration: 8500, render: (t) => ({ time: 18, sketch: clamp01((t - 0.05) / 0.28), sketching: t > 0.03 && t < 0.36, typing: t > 0.36 && t < 0.86, typed: clamp01((t - 0.38) / 0.4), posting: t > 0.8 && t < 0.86, posted: t >= 0.86 }) },
+  { duration: 6500, render: (t) => ({ time: 16 + ((t * 6500) / 1000 % 4), playing: true, speed: '0.5×', viewer: 'Dancer view · Maya', sketch: 1, mirrored: t > 0.12, posted: true, replied: t > 0.55 }) },
+  { duration: 5500, render: (t) => ({ time: 18, version: 2, sketch: 1, posted: true, replied: true, resolved: t > 0.45 }) }
 ];
+// Sketch strokes draw one after another: circle, arc, arrowhead.
+const sketchStrokes = demo ? $$('.sketch-stroke', demo) : [];
+const strokeShares = [0.45, 0.4, 0.15];
 const demoState = { step: 0, elapsed: 0, last: 0, paused: false, visible: true, frame: 0 };
 
 function paintDemo(stepIndex, t) {
@@ -67,6 +71,13 @@ function paintDemo(stepIndex, t) {
   demo.classList.toggle('is-posted', Boolean(s.posted));
   demo.classList.toggle('is-replied', Boolean(s.replied));
   demo.classList.toggle('is-resolved', Boolean(s.resolved));
+  demo.classList.toggle('is-sketching', Boolean(s.sketching));
+  demo.classList.toggle('is-mirrored', Boolean(s.mirrored));
+  let strokeStart = 0;
+  sketchStrokes.forEach((stroke, i) => {
+    stroke.style.strokeDashoffset = String(1 - clamp01(((s.sketch || 0) - strokeStart) / strokeShares[i]));
+    strokeStart += strokeShares[i];
+  });
   const pct = `${(s.time / VIDEO_LENGTH) * 100}%`;
   $('.track-fill', demo).style.width = pct;
   $('.scrubber', demo).style.left = pct;

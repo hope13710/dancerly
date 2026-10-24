@@ -29,7 +29,11 @@
 
 ## Phase 3 — deeper dance workflow
 - [ ] Add range notes and section looping.
-- [ ] Add frame stepping and drawing annotations.
+- [x] Mirror mode toggle in the review player (button + `M` shortcut) and in the landing demo.
+- [x] Landing demo shows sketch feedback attached to a note (step 02).
+- [ ] Real sketch tool in the workspace: draw on the paused frame and save the sketch with the note.
+- [ ] Mirror mode on real uploaded video (`<video>` with `scaleX(-1)`), remembered per viewer.
+- [ ] Add frame stepping.
 - [ ] Add version history and comparison.
 - [ ] Add custom note categories and review templates.
 - [ ] Add coach review queue filters and weekly email digest.
