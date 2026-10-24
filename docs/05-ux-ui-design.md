@@ -176,7 +176,8 @@
 | **Input / Textarea** | 기본 · 검색 · 노트 작성기 | focus 링 accent 2px · error · disabled | 레이블은 입력 위 |
 | **AI label chip** | 5개 (+ 사용자 정의 P2) | 기본 · 코치가 고친 상태 | ✦ 접두, 호버·길게 누르면 툴팁. 리포트·대시보드 전용 |
 | **Status pill** | Needs review · Re-submitted · Ready to close · Overdue | | 점 + 텍스트 |
-| **Role chip** | Dancer(핑크) · Coach(시안) · Assistant(회색) · Owner(accent) | | 아바타 옆 |
+| **Role chip** | Member(accent 연보라) · Leader(핑크) · Coach(시안) · Owner(accent) | | 작성자 이름 옆. Coach 노트는 배지로 구분 |
+| **Agree chip** | 👍 n agree | 내가 누름 · 안 누름 | 노트 카드 작성자 줄 오른쪽 |
 | **Avatar** | 24 · 32 · 40, 이니셜 / 사진 | 온라인 점 없음 (차분함) | 겹침 스택 최대 3 + "+n" |
 | **Note card** | 순간(▸) · 구간(⟷) · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · looping · "from V1" | 시간 칩(누르면 이동) + 카운트 + 본문(@멘션 칩) + 작성자 + ↻ Loop 버튼. **레이블 없음** |
 | **Note composer** | ▸ At 00:18 · ⟷ Range(Start/End) | typing · `@` 멘션 목록 · 라이브러리 `/` 팝업 · saving | 입력은 본문 하나. 포커스 시 영상 정지, 올린 뒤 포커스 해제. 하단 안내 "No label needed — AI sorts notes in your reports." |

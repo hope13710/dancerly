@@ -1,5 +1,7 @@
 # Looproom Product Build TODO
 
+Positioning: a feedback tool for **dance teams** — every member can give and receive notes; coaches are an optional role.
+
 Planning docs: `docs/README.md` (menu structure, service structure, functional spec with feature IDs, user flows, UX/UI, policy).
 
 ## Landing page
@@ -59,6 +61,9 @@ See `docs/product-plan.md` for the full spec.
 - [x] Review screen prototype: notes need no label (AI labels them in reports/dashboard), click a note or the timeline to jump, range notes via Start/End or `[` `]`, "Loop this part", @mentions limited to people on the project, keyboard shortcuts.
 - [ ] Persist notes, mentions and AI labels in the database; send mention notifications; let coaches correct an AI label from reports.
 - [ ] Drag on the timeline to mark a range.
+- [x] Team model on the landing page: rehearsal run-through demo with peer notes, @mention, 👍 agree, Team plan.
+- [ ] Workspace roles Owner · Leader · Coach · Member; Team / Private take visibility; 👍 agree and note hiding.
+- [ ] One app for everyone (sidebar on desktop, bottom tabs on phones) instead of separate coach/dancer apps.
 - [x] Landing demo shows sketch feedback attached to a note (step 02).
 - [ ] Real sketch tool in the workspace: draw on the paused frame and save the sketch with the note.
 - [ ] Mirror mode on real uploaded video (`<video>` with `scaleX(-1)`), remembered per viewer.

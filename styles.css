@@ -2373,13 +2373,6 @@ details p {
 [data-step="4"] .compare-labels {
   opacity: 1;
 }
-[data-step="4"] .dancer-ghost {
-  opacity: 0.38;
-  transform: translateX(-90px);
-}
-[data-step="4"] .video-frame .dancer-silhouette:not(.dancer-ghost) {
-  transform: translateX(90px);
-}
 .is-playing .dancer-silhouette .arm-left {
   animation: arm-left 0.9s ease-in-out infinite alternate;
 }
@@ -2754,13 +2747,7 @@ a.footer-status:hover {
   .hero-visual .floating-pill {
     display: none;
   }
-  [data-step="4"] .dancer-ghost {
-    transform: translateX(-70px);
-  }
-  [data-step="4"] .video-frame .dancer-silhouette:not(.dancer-ghost) {
-    transform: translateX(70px);
-  }
-  .demo-steps {
+      .demo-steps {
     grid-template-columns: 1fr 1fr;
     gap: 16px 14px;
   }
@@ -4131,4 +4118,117 @@ sup.cite {
 .report-labels-note {
   font-size: 10px;
   color: #8b929d;
+}
+
+/* ---------- Hero demo: team rehearsal ---------- */
+.frame-content.crew {
+  display: block;
+}
+.crew-dancer {
+  position: absolute;
+  left: calc(var(--x) - 50px);
+  top: var(--y);
+  transform: scale(var(--s));
+  transform-origin: 50% 0;
+}
+/* Maya is half a count late until Take 4 */
+.crew-dancer.is-off .arm-left {
+  transform: rotate(95deg);
+}
+.crew-dancer.is-off .arm-right {
+  transform: rotate(-100deg);
+}
+.is-playing .crew-dancer.is-off * {
+  animation-delay: -0.4s !important;
+}
+.is-synced .crew-dancer.is-off .arm-left {
+  transform: rotate(40deg);
+}
+.is-synced .crew-dancer.is-off .arm-right {
+  transform: rotate(-55deg);
+}
+.is-synced.is-playing .crew-dancer.is-off * {
+  animation-delay: 0s !important;
+}
+.crew-tag {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translateX(-50%);
+  font-size: 7.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: #e4e6f3;
+  background: rgba(20, 23, 29, 0.7);
+  padding: 2px 6px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+[data-step="2"] .crew-tag,
+[data-step="3"] .crew-tag {
+  opacity: 1;
+}
+/* Keep the names readable when the frame is mirrored */
+.is-mirrored .crew-tag {
+  transform: translateX(-50%) scaleX(-1);
+}
+.sync-badge {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: 12px;
+  background: rgba(79, 213, 156, 0.92);
+  color: #0d2b1f;
+  font-size: 9px;
+  font-weight: 750;
+  padding: 5px 8px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.is-resolved .sync-badge {
+  opacity: 1;
+}
+.agree-chip {
+  margin-left: auto;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #c9caff;
+  background: rgba(91, 92, 226, 0.22);
+  padding: 2px 6px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.is-agreed .agree-chip {
+  opacity: 1;
+  transform: none;
+}
+.note-card .note-author {
+  align-items: center;
+}
+.note-composer .note-meta {
+  align-items: center;
+  gap: 6px;
+}
+.note-card .mention {
+  color: #c9caff;
+  background: rgba(91, 92, 226, 0.25);
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: 650;
+}
+.agree-chip {
+  white-space: nowrap;
+}
+.person-avatar.team {
+  background: linear-gradient(135deg, #5b5ce2, #8f90ff);
+}
+.role-chip.team {
+  color: #4546b8;
+  background: rgba(91, 92, 226, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(91, 92, 226, 0.3);
 }

@@ -6,33 +6,34 @@
 
 ```mermaid
 flowchart LR
-  V([방문자]) --> L[랜딩페이지 /]
+  V([방문자 · 팀 리더]) --> L[랜딩페이지 /]
   L -->|Start free| SU[가입 /signup]
   L -->|Log in| LI[로그인 /login]
-  SU --> OB[코치 온보딩 /welcome]
-  OB --> CW[코치 웹 앱 /app]
-  LI --> CW
-  LI --> DM
+  SU --> OB[팀 만들기 /welcome]
+  OB --> APP[웹 앱 /app]
+  LI --> APP
 
-  INV([초대받은 댄서]) -->|초대 링크 /join/:code| JN[이름 입력]
-  JN --> DM[댄서 앱 /d]
+  INV([초대받은 팀원·코치]) -->|초대 링크 /join/:code| JN[이름 입력]
+  JN --> APP
 
-  CW -. 과제·노트 알림 .-> EM[(이메일·푸시)]
-  EM -. 딥링크 .-> DM
-  DM -. 제출·답글 알림 .-> EM
-  EM -. 딥링크 .-> CW
+  APP --> DESK[데스크톱: 사이드바]
+  APP --> MOB[휴대폰: 하단 탭]
 
-  CW -->|공유 링크| SH[게스트 보기 /s/:token]
+  APP -. 노트·멘션·새 테이크 알림 .-> EM[(이메일·푸시)]
+  EM -. 딥링크: 노트의 그 순간 .-> APP
+
+  APP -->|공유 링크| SH[게스트 보기 /s/:token]
   G([학부모·심사위원]) --> SH
 ```
 
 | 영역 | 사용자 | 기기 | 형태 |
 |---|---|---|---|
 | 랜딩페이지 | 방문자 | 전체 | 정적 사이트 |
-| 코치 웹 앱 | Owner · Coach · Assistant | 노트북 우선, 모바일 대응 | 사이드바 레이아웃 |
-| 댄서 앱 | Dancer | **휴대폰 우선** | 하단 탭 레이아웃 (PWA, 앱 설치 불필요) |
-| 게스트 보기 | Guest (학부모·심사위원) | 전체 | 읽기 전용 단일 화면 |
+| 웹 앱 (데스크톱) | **모든 역할** (Owner · Leader · Coach · Member) | 노트북 | 사이드바. 리허설 영상을 크게 보며 노트 작성 |
+| 웹 앱 (모바일) | **모든 역할** | 휴대폰 | 하단 탭 (PWA, 앱 설치 불필요). 멤버 대부분이 여기서 사용 |
+| 게스트 보기 | Guest | 전체 | 읽기 전용 단일 화면 |
 
+> 코치 앱과 댄서 앱을 나누지 않는다. **팀원 모두가 같은 앱**에서 피드백을 주고받고, 역할에 따라 관리 메뉴만 더 보인다.
 > 한 사람이 여러 역할일 수 있다. 예: 코치이면서 다른 코치에게 배우는 댄서.
 > 상단 계정 메뉴의 **역할·워크스페이스 전환**으로 이동한다.
 
@@ -106,13 +107,13 @@ flowchart TB
 
 ---
 
-## 3. 코치 웹 앱 (`/app`)
+## 3. 웹 앱 — 데스크톱 (`/app`)
 
 ### 3-1. 메뉴 트리
 
 ```mermaid
 flowchart LR
-  APP((코치 웹 앱)) --> HOME[Home]
+  APP((웹 앱 데스크톱)) --> HOME[Home]
   APP --> INBOX[Inbox]
   APP --> RQ[Review queue]
   APP --> PJ[Projects]
@@ -201,13 +202,13 @@ flowchart LR
 
 ---
 
-## 4. 댄서 앱 (`/d`, 모바일 우선)
+## 4. 웹 앱 — 모바일 하단 탭 (`/app`, 휴대폰)
 
 ### 4-1. 메뉴 트리
 
 ```mermaid
 flowchart LR
-  DA((댄서 앱)) --> T[Today]
+  DA((웹 앱 모바일)) --> T[Today]
   DA --> FB[Feedback]
   DA --> UP[＋ Upload]
   DA --> RC[Recap]
@@ -215,16 +216,16 @@ flowchart LR
 
   T --> T1[할 일 · 마감 과제]
   T --> T2[새 피드백]
-  FB --> F1[Open]
-  FB --> F2[Practicing]
-  FB --> F3[Resolved]
+  FB --> F1[For me · 나에게 온 노트]
+  FB --> F2[By me · 내가 쓴 노트]
+  FB --> F3[Team · 프로젝트 전체 노트]
   FB --> PV[[노트 보기 · 루프 · 거울모드]]
   UP --> U1[과제 선택]
   U1 --> U2[영상 선택 · 업로드]
   RC --> R1[Last class / This week / This month]
   RC --> R2[코치 · 프로젝트 필터]
   ME --> M1[내 성장 기록]
-  ME --> M2[내 코치 · 그룹]
+  ME --> M2[내 팀 · 프로젝트]
   ME --> M3[Account settings]
 ```
 
@@ -232,11 +233,11 @@ flowchart LR
 
 | 탭 | 아이콘 | 내용 | 배지 |
 |---|---|---|---|
-| **Today** | ⌂ | 오늘 할 일 (마감 과제, 새 노트, 다시 올릴 영상) | — |
-| **Feedback** | ◫ | 받은 노트 전체. Open · Practicing · Resolved 탭 | 새 노트 수 |
-| **＋** | 가운데 큰 버튼 | 영상 올리기 (과제 선택 → 카메라 롤) | — |
+| **Today** | ⌂ | 새 리허설 영상(아직 안 본 테이크), 나에게 온 노트, 마감 과제 | — |
+| **Feedback** | ◫ | For me(나에게 온·멘션된 노트) · By me(내가 쓴 노트, 해결 처리) · Team(프로젝트 전체) | 새 노트 수 |
+| **＋** | 가운데 큰 버튼 | 영상 올리기 (프로젝트·과제 선택 → 카메라 롤) | — |
 | **Recap** | ✦ | 내 AI 리캡 생성·보기 | — |
-| **Me** | ○ | 성장 기록, 내 코치·그룹, 계정 | — |
+| **Me** | ○ | 성장 기록, 내 팀·프로젝트, 계정 | — |
 
 > 원칙: 알림·초대 링크를 누르면 **해당 노트의 그 순간**으로 바로 열린다 (3탭 이내 규칙).
 
@@ -261,7 +262,7 @@ flowchart LR
 | `/signup`, `/login` | 가입·로그인 | 전체 |
 | `/welcome` | 코치 온보딩 | 신규 코치 |
 | `/join/:inviteCode` | 초대 수락 | 초대받은 사람 |
-| `/app` | 코치 Home | Owner·Coach·Assistant |
+| `/app` | Home (데스크톱) · Today (모바일) | 모든 멤버 |
 | `/app/inbox` | Inbox | 〃 |
 | `/app/queue` | Review queue | 〃 |
 | `/app/review/:submissionId?v=2&t=18.0&note=:id` | Video review | 〃 |
@@ -272,11 +273,9 @@ flowchart LR
 | `/app/people/dancers/:id` | 댄서 프로필 | 〃 |
 | `/app/insights/(dashboard\|reports\|library)` | Insights | Owner·Coach (Assistant는 보기만) |
 | `/app/settings/:section` | 워크스페이스 설정 | Owner (일부 Coach) |
-| `/d` | 댄서 Today | Dancer |
-| `/d/feedback`, `/d/feedback/:noteId` | 피드백 / 노트 순간 | Dancer |
-| `/d/upload?assignment=:id` | 업로드 | Dancer |
-| `/d/recap` | 리캡 | Dancer |
-| `/d/me` | 내 정보 | Dancer |
+| `/app/feedback/:noteId` | 노트의 그 순간 (모바일·데스크톱 공통) | 프로젝트 멤버 |
+| `/app/upload?project=:id` | 업로드 | 프로젝트 멤버 |
+| `/app/recap` | 내 리캡 | 모든 멤버 |
 | `/account` | 내 계정 설정 (공통) | 로그인 사용자 |
 | `/s/:token` | 게스트 보기 | 링크 소지자 |
 
@@ -286,18 +285,18 @@ flowchart LR
 
 ## 7. 역할별 메뉴 노출
 
-| 메뉴 | Owner | Coach | Assistant | Dancer | Guest |
+| 메뉴 | Owner | Leader | Coach | Member | Guest |
 |---|---|---|---|---|---|
-| Home | ✓ | ✓ | ✓ | Today | — |
-| Inbox | ✓ | ✓ | ✓ | (Today에 통합) | — |
-| Review queue | ✓ | ✓ | ✓ | — | — |
-| Projects | ✓ | ✓ | 보기·노트만 | 참여 프로젝트의 Overview·Count sheet만 | — |
-| People | ✓ | ✓ | 보기만 | 내 코치·그룹만 | — |
-| Insights › Dashboard | ✓ | ✓ | 보기만 | 내 기록만 (Me) | — |
-| Insights › Reports | ✓ | ✓ | 초안만 | 내 Recap만 | 공유된 리포트만 |
-| Correction library | ✓ | ✓ | 사용만 | — | — |
-| Settings › Workspace·Members·Billing | ✓ | — | — | — | — |
-| Settings › Notifications·Privacy·AI | ✓ | 보기만 | — | — | — |
+| Home / Today | ✓ | ✓ | ✓ | ✓ | — |
+| Inbox | ✓ | ✓ | ✓ | ✓ (모바일은 Today에 통합) | — |
+| Review queue (새 테이크) | ✓ | ✓ | ✓ | ✓ 내가 속한 프로젝트 | — |
+| Projects | ✓ | ✓ | ✓ | 초대받은 프로젝트 (보기·노트) | — |
+| People | ✓ | ✓ | ✓ | 같은 팀원 보기 | — |
+| Insights › Dashboard | ✓ | ✓ | ✓ | 내 기록 + 팀 요약 | — |
+| Insights › Reports | ✓ | ✓ | ✓ | 내 Recap | 공유된 리포트만 |
+| Note library | ✓ | ✓ | ✓ | 사용 | — |
+| Settings › Team·Members·Billing | ✓ | Members만 | — | — | — |
+| Settings › Notifications·Privacy·AI | ✓ | 보기 | — | — | — |
 | Account settings | ✓ | ✓ | ✓ | ✓ | — |
 
 ---

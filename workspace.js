@@ -8,9 +8,9 @@ const state = {
   // Notes are plain text: no label to pick while reviewing. AI labels them later, in reports and the dashboard.
   // `end` is null for a single moment, or a second mark for a range.
   notes: [
-    { id: 'timing', start: 18, end: null, body: 'Land on the beat before the shoulder hits. Try counting “5-and-6” here.', author: 'Alex Lee', status: 'Open' },
+    { id: 'timing', start: 16, end: 20, body: '@Maya Chen we split on “5-and-6” — let’s hit the shoulder together.', author: 'Jordan Smith', status: 'Open' },
     { id: 'pathway', start: 42, end: 48, body: 'Keep the arm pathway wider through this transition. @Sora Kim can you check her arms in Thursday’s class too?', author: 'Alex Lee', status: 'Practicing' },
-    { id: 'energy', start: 63, end: null, body: 'This shape is working. Keep that same level of intent through the final count.', author: 'Alex Lee', status: 'Resolved' }
+    { id: 'energy', start: 63, end: null, body: 'Back row is late into the final shape. Let’s all watch Riko’s count here.', author: 'Maya Chen', status: 'Resolved' }
   ],
   inboxUnread: 3,
   mirror: false
@@ -53,12 +53,15 @@ function renderReviews() {
 
 // ---------- Video review ----------
 // People invited to this project: the only ones you can @mention in a note.
+// Anyone on the project can write notes, coach or member.
 const projectMembers = [
-  { name: 'Sora Kim', role: 'Coach', initials: 'SK' },
-  { name: 'Riko Kato', role: 'Assistant', initials: 'RK' },
-  { name: 'Maya Chen', role: 'Dancer', initials: 'MC' },
-  { name: 'Jordan Smith', role: 'Dancer', initials: 'JS' }
+  { name: 'Maya Chen', role: 'Member', initials: 'MC' },
+  { name: 'Jordan Smith', role: 'Member', initials: 'JS' },
+  { name: 'Riko Kato', role: 'Leader', initials: 'RK' },
+  { name: 'Sam Lee', role: 'Member', initials: 'SL' },
+  { name: 'Sora Kim', role: 'Coach', initials: 'SK' }
 ];
+const roleOf = (name) => name === 'Alex Lee' ? 'Coach' : projectMembers.find((m) => m.name === name)?.role || 'Member';
 const review = { t: 18, duration: 72, playing: false, speed: 1, loop: null, videoUrl: null, mode: 'point', rangeStart: null, rangeEnd: null, frame: 0, last: 0 };
 const speeds = [1, 0.75, 0.5, 0.25];
 const fmt = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -75,12 +78,12 @@ function noteCard(note) {
   return `<div class="detail-note ${state.selectedNote === note.id ? 'selected' : ''} ${looping ? 'looping' : ''}" data-note-id="${note.id}" tabindex="0">
     <div class="note-line"><button class="note-time" data-seek-note="${note.id}" title="Jump to ${noteTime(note)}">${note.end === null ? '▸' : '⟷'} ${noteTime(note)}</button><span class="note-state state-${note.status.toLowerCase()}">${note.status}</span></div>
     <p>${withMentions(note.body)}</p>
-    <div class="note-foot"><small>${note.author}</small><button class="note-loop ${looping ? 'on' : ''}" data-loop-note="${note.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : note.end === null ? 'Loop ±2s' : 'Loop this part'}</button></div>
+    <div class="note-foot"><small>${note.author} <span class="role-tag role-${roleOf(note.author).toLowerCase()}">${roleOf(note.author)}</span></small><button class="note-loop ${looping ? 'on' : ''}" data-loop-note="${note.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : note.end === null ? 'Loop ±2s' : 'Loop this part'}</button></div>
   </div>`;
 }
 
 function renderReviewDetail() {
-  return `<div class="review-detail-top"><button class="back-button" data-view-button="reviews">← Back to reviews</button><div><h1 class="review-detail-title">Week 04 — Chorus timing</h1><div class="review-detail-meta">Showcase 2026 · Maya Chen · Version 2 · Uploaded 12 min ago</div></div></div>
+  return `<div class="review-detail-top"><button class="back-button" data-view-button="reviews">← Back to reviews</button><div><h1 class="review-detail-title">Showcase 2026 — Full run-through</h1><div class="review-detail-meta">Commercial Team · Take 3 · uploaded by Riko · 12 min ago · 5 members can add notes</div></div></div>
     <div class="review-player-layout"><div class="player-column">
       <div class="player-video" data-player-video>${review.videoUrl ? `<video src="${review.videoUrl}" playsinline data-video></video>` : '<div class="demo-dancer"><span class="head"></span><span class="body"></span><span class="arm arm-one"></span><span class="arm arm-two"></span><span class="leg leg-one"></span><span class="leg leg-two"></span></div>'}<span class="player-overlay-label"><b class="mirror-badge">⇋ Mirrored</b><span data-time-overlay></span></span><button class="pause-control" data-action="play" aria-label="Play or pause (Space)"></button></div>
       <div class="player-timeline"><span>00:00</span><div class="timeline-line" data-timeline title="Click to jump"><span class="timeline-loop" data-timeline-loop></span><span class="timeline-draft" data-timeline-draft></span><span class="timeline-progress" data-progress></span><span data-markers></span><span class="timeline-head" data-head></span></div><span data-duration>${fmt(review.duration)}</span></div>
@@ -91,7 +94,7 @@ function renderReviewDetail() {
       <form class="composer" data-composer>
         <div class="composer-mode" role="tablist"><button type="button" data-mode="point" role="tab">▸ At <span data-composer-point></span></button><button type="button" data-mode="range" role="tab">⟷ Range</button></div>
         <div class="composer-range" data-composer-range><button type="button" data-set="start">Start <b data-range-start></b></button><span>→</span><button type="button" data-set="end">End <b data-range-end></b></button><small>or press [ and ]</small></div>
-        <div class="composer-field"><textarea data-composer-input rows="2" placeholder="Write a correction… type @ to mention someone"></textarea><div class="mention-menu" data-mention-menu role="listbox" hidden></div></div>
+        <div class="composer-field"><textarea data-composer-input rows="2" placeholder="Write a note for the team… type @ to mention someone"></textarea><div class="mention-menu" data-mention-menu role="listbox" hidden></div></div>
         <div class="composer-foot"><small>No label needed — AI sorts notes in your reports.</small><button type="submit" class="composer-submit">Pin note ↵</button></div>
       </form>
       <div class="detail-footer"><span>Version 2 of 2</span><button data-action="mark-resolved">Resolve selected ✓</button></div>

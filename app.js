@@ -47,15 +47,15 @@ $$('[data-cta]').forEach((cta) => cta.addEventListener('click', () => track('cta
 // ---------- Hero product demo ----------
 // Four scripted steps, ~25s per loop. Each step renders from its local progress (0 → 1).
 const demo = $('[data-demo]');
-const noteText = 'Land on the beat before the shoulder hits. Count “5-and-6” here.';
+const noteText = '@Maya we split on “5-and-6” — let’s hit the shoulder together.';
 const VIDEO_LENGTH = 72;
 const fmt = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${(seconds % 60).toFixed(1).padStart(4, '0')}`;
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const steps = [
-  { duration: 4500, render: (t) => ({ time: 8 + t * 10, playing: t < 0.96 }) },
-  { duration: 8500, render: (t) => ({ time: 18, sketch: clamp01((t - 0.05) / 0.28), sketching: t > 0.03 && t < 0.36, typing: t > 0.36 && t < 0.86, typed: clamp01((t - 0.38) / 0.4), posting: t > 0.8 && t < 0.86, posted: t >= 0.86 }) },
-  { duration: 6500, render: (t) => ({ time: 16 + ((t * 6500) / 1000 % 4), playing: true, speed: '0.5×', viewer: 'Dancer view · Maya', sketch: 1, mirrored: t > 0.12, posted: true, replied: t > 0.55 }) },
-  { duration: 5500, render: (t) => ({ time: 18, version: 2, sketch: 1, posted: true, replied: true, resolved: t > 0.45 }) }
+  { duration: 4500, render: (t) => ({ time: 8 + t * 10, playing: t < 0.96, viewer: 'Team · 5 members' }) },
+  { duration: 8500, render: (t) => ({ time: 18, viewer: 'Jordan · Teammate', sketch: clamp01((t - 0.05) / 0.28), sketching: t > 0.03 && t < 0.36, typing: t > 0.36 && t < 0.86, typed: clamp01((t - 0.38) / 0.4), posting: t > 0.8 && t < 0.86, posted: t >= 0.86 }) },
+  { duration: 6500, render: (t) => ({ time: 16 + ((t * 6500) / 1000 % 4), playing: true, speed: '0.5×', viewer: 'Maya’s view', sketch: 1, mirrored: t > 0.12, posted: true, agreed: t > 0.3, replied: t > 0.55 }) },
+  { duration: 5500, render: (t) => ({ time: 8 + t * 12, playing: true, version: 4, synced: true, viewer: 'Team · 5 members', posted: true, agreed: true, replied: true, resolved: t > 0.45 }) }
 ];
 // Sketch strokes draw one after another: circle, arc, arrowhead.
 const sketchStrokes = demo ? $$('.sketch-stroke', demo) : [];
@@ -73,6 +73,8 @@ function paintDemo(stepIndex, t) {
   demo.classList.toggle('is-resolved', Boolean(s.resolved));
   demo.classList.toggle('is-sketching', Boolean(s.sketching));
   demo.classList.toggle('is-mirrored', Boolean(s.mirrored));
+  demo.classList.toggle('is-agreed', Boolean(s.agreed));
+  demo.classList.toggle('is-synced', Boolean(s.synced));
   let strokeStart = 0;
   sketchStrokes.forEach((stroke, i) => {
     stroke.style.strokeDashoffset = String(1 - clamp01(((s.sketch || 0) - strokeStart) / strokeShares[i]));
@@ -84,8 +86,8 @@ function paintDemo(stepIndex, t) {
   $('[data-demo-time]', demo).textContent = fmt(s.time);
   $('[data-demo-play]', demo).textContent = s.playing ? 'Ⅱ' : '▶';
   $('[data-demo-speed]', demo).textContent = s.speed || '1×';
-  $('[data-demo-viewer]', demo).textContent = s.viewer || 'Coach view';
-  $('[data-demo-version]', demo).textContent = s.version || 1;
+  $('[data-demo-viewer]', demo).textContent = s.viewer;
+  $('[data-demo-version]', demo).textContent = s.version || 3;
   $('[data-demo-count]', demo).textContent = s.posted ? 1 : 0;
   $('[data-demo-state]', demo).textContent = s.resolved ? 'Resolved ✓' : 'Open';
   $('[data-demo-typed]', demo).textContent = noteText.slice(0, Math.max(0, Math.round((s.typed || 0) * noteText.length)));
@@ -146,22 +148,22 @@ $('[data-demo-trigger]')?.addEventListener('click', () => {
 const reports = {
   dancer: {
     class: {
-      scope: 'Tue, Oct 22 · 4 notes from Alex Lee',
+      scope: 'Tue, Oct 22 · 4 notes from 2 teammates',
       worked: ['What you worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
       todo: ['What to do next', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Keep the elbow above the wrist through the transition.', 2, 'pathway']]],
       landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
       recurring: ['Keeps coming up', []]
     },
     week: {
-      scope: 'Oct 19 – 25 · 9 notes from Alex Lee',
+      scope: 'Oct 19 – 25 · 9 notes from 3 teammates',
       worked: ['What you worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
       todo: ['What to do next', [['00:18', 'Count “5-and-6” through the chorus hit — record one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
       landed: ['What landed', [['Your wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
-      recurring: ['Keeps coming up', [['Rushing the “and” counts — noted 3 weeks in a row.', 5, 'timing']]]
+      recurring: ['Keeps coming up', [['Rushing the “and” counts — flagged by 3 teammates, 3 weeks in a row.', 5, 'timing']]]
     },
     month: {
-      scope: 'October · 31 notes from Alex Lee and Sora Kim',
-      worked: ['What you worked on', 'Timing early in the month; by week 4 your coaches shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
+      scope: 'October · 31 notes from 5 teammates',
+      worked: ['What you worked on', 'Timing early in the month; by week 4 your team’s notes shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
       todo: ['What to do next', [['01:20', 'Bridge: play with the half-time feel instead of hitting every count.', 27, 'musicality']]],
       landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
       recurring: ['Keeps coming up', [['Rushing the “and” counts — still open in the chorus.', 5, 'timing']]]
@@ -169,23 +171,23 @@ const reports = {
   },
   coach: {
     class: {
-      scope: 'Tue, Oct 22 · 4 of your notes',
+      scope: 'Tue, Oct 22 · 4 notes from the team',
       worked: ['What Maya worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
-      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Elbow above the wrist through the transition.', 2, 'pathway']]],
+      todo: ['Next steps from the team', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Elbow above the wrist through the transition.', 2, 'pathway']]],
       landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
       recurring: ['Worth a look', []]
     },
     week: {
-      scope: 'Oct 19 – 25 · 9 of your notes',
+      scope: 'Oct 19 – 25 · 9 notes from the team',
       worked: ['What Maya worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
-      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” through the chorus hit — one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
+      todo: ['Next steps from the team', [['00:18', 'Count “5-and-6” through the chorus hit — one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
       landed: ['What landed', [['Wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
-      recurring: ['Worth a look', [['Rushing the “and” counts, 3 weeks in a row — also open for 3 other dancers.', 5, 'timing']]]
+      recurring: ['Worth a look', [['Rushing the “and” counts — 3 teammates agree, and it’s open for 3 other members too.', 5, 'timing']]]
     },
     month: {
-      scope: 'October · 31 notes from you and Sora Kim',
+      scope: 'October · 31 notes from the team',
       worked: ['What Maya worked on', 'Timing early in the month; by week 4 the focus shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
-      todo: ['Next steps you gave', [['01:20', 'Bridge: half-time feel instead of hitting every count.', 27, 'musicality']]],
+      todo: ['Next steps from the team', [['01:20', 'Bridge: half-time feel instead of hitting every count.', 27, 'musicality']]],
       landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
       recurring: ['Worth a look', [['Rushing the “and” counts — still open. Consider making it Tuesday’s focus.', 5, 'timing']]]
     }
@@ -195,13 +197,13 @@ const audiences = {
   dancer: {
     kind: 'Your recap',
     status: 'Generated by you · just now',
-    people: [['MC', 'dancer', 'Generated by', 'Maya Chen', 'Dancer', true], ['AL', 'coach', 'From notes by', 'Alex Lee', 'Coach', false]],
-    actions: '<button type="button" class="ghost">Share with coach</button><button type="button" class="primary" data-report-generate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>Regenerate</button>'
+    people: [['MC', 'dancer', 'Generated by', 'Maya Chen', 'Member', true], ['JS', 'team', 'From notes by', 'Jordan, Alex & Riko', '3 teammates', false]],
+    actions: '<button type="button" class="ghost">Share with team</button><button type="button" class="primary" data-report-generate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>Regenerate</button>'
   },
   coach: {
-    kind: 'Coach report',
+    kind: 'Team report',
     status: 'Draft · waiting for your review',
-    people: [['AL', 'coach', 'Prepared by', 'Alex Lee', 'Coach', true], ['MC', 'dancer', 'For', 'Maya Chen', 'Dancer', false]],
+    people: [['AL', 'coach', 'Prepared by', 'Alex Lee', 'Coach', true], ['MC', 'dancer', 'For', 'Maya Chen', 'Member', false]],
     actions: '<button type="button" class="ghost">Edit</button><button type="button" class="primary">Review &amp; send ↗</button>'
   }
 };

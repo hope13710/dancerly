@@ -70,6 +70,9 @@ erDiagram
   SUBMISSION ||--o{ NOTE : "carries"
   NOTE ||--o| SKETCH : has
   NOTE ||--o{ REPLY : has
+  NOTE ||--o{ NOTE_REACTION : "👍"
+  PROJECT ||--o{ PROJECT_MEMBER : invites
+  USER ||--o{ PROJECT_MEMBER : joins
   NOTE ||--o| NOTE_LABEL : "AI가 분류"
   NOTE ||--o{ NOTE_MENTION : mentions
   USER ||--o{ NOTE_MENTION : "is mentioned"
@@ -84,13 +87,15 @@ erDiagram
 
   USER { uuid id string name string email "nullable: 댄서는 이름만으로 시작" string locale string timezone }
   WORKSPACE { uuid id string name string plan string default_locale }
-  MEMBERSHIP { uuid user_id uuid workspace_id enum role "owner|coach|assistant|dancer" }
+  MEMBERSHIP { uuid user_id uuid workspace_id enum role "owner|leader|coach|member" }
+  PROJECT_MEMBER { uuid project_id uuid user_id }
+  NOTE_REACTION { uuid note_id uuid user_id enum kind "agree" }
   PROJECT { uuid id string title enum template date show_date enum status }
   TRACK { uuid id float bpm "자동 감지" float offset_sec string source }
   SECTION { uuid id string name int start_count int end_count enum focus }
   ASSIGNMENT { uuid id string title text brief datetime due_at enum status }
   SUBMISSION { uuid id uuid assignment_id uuid dancer_id enum board_status }
-  VERSION { uuid id int number datetime uploaded_at enum processing }
+  VERSION { uuid id int number datetime uploaded_at enum processing enum visibility "team|private" uuid uploaded_by }
   MEDIA_ASSET { uuid id string storage_key string playback_id float duration json waveform }
   NOTE { uuid id float t_start float t_end "null이면 순간 노트" text body enum status uuid author_id string lang }
   NOTE_LABEL { uuid note_id enum label float confidence enum source "ai|coach" }
@@ -276,15 +281,15 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  O[Owner] -->|모든 권한 + 결제| WS[(Workspace)]
-  C[Coach] -->|프로젝트·과제·노트·리포트| WS
-  AS[Assistant] -->|노트 작성, 초안 리포트| WS
-  D[Dancer] -->|내 제출·내게 온 노트·그룹 공지| WS
+  O[Owner] -->|모든 권한 + 결제| WS[(Team space)]
+  LD[Leader] -->|프로젝트·멤버 관리, 노트 정리| WS
+  C[Coach] -->|멤버 권한 + Coach 배지, 팀 리포트| WS
+  M[Member] -->|프로젝트 영상 보기·올리기<br/>노트·스케치·멘션·👍| PJ[(초대받은 Project)]
   G[Guest] -->|공유 링크 범위만| SL[(Share link)]
 ```
 
 - DB에서 **행 단위 권한(RLS)** 으로 강제한다. 프론트엔드 숨김만으로 막지 않는다.
-- 댄서는 **다른 댄서의 제출·노트를 볼 수 없다** (그룹 공지 노트 제외).
+- 멤버는 **초대받은 프로젝트의 Team 범위 영상과 노트**를 모두 본다. 다른 프로젝트와 남의 Private take는 볼 수 없다.
 - AI 리캡 입력도 같은 권한 필터를 거친 노트만 사용한다.
 
 ---

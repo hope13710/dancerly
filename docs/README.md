@@ -1,6 +1,6 @@
 # Looproom 서비스 기획 문서
 
-> 댄스 코치와 댄서를 위한 영상 피드백 · 프로젝트 · 성장 기록 SaaS
+> **댄스팀이 리허설 영상에 서로 피드백을 주고받는** 영상 피드백 · 프로젝트 · 성장 기록 SaaS. 코치는 있어도 되고 없어도 된다.
 > 기준: 현재 랜딩페이지(`index.html`), 워크스페이스 프로토타입(`/app`), [`product-plan.md`](product-plan.md)
 
 ## 문서 목록
@@ -8,7 +8,7 @@
 | # | 문서 | 내용 | 주 독자 |
 |---|---|---|---|
 | 0 | [product-plan.md](product-plan.md) | 제품 전략: 핵심 기능 3가지, 해자, 출시 순서 | 창업팀 |
-| 1 | [01-menu-structure.md](01-menu-structure.md) | **메뉴 구조도**: 랜딩·코치 웹·댄서 모바일, URL 맵, 역할별 메뉴 | 기획·디자인 |
+| 1 | [01-menu-structure.md](01-menu-structure.md) | **메뉴 구조도**: 랜딩·웹 앱(데스크톱·모바일), URL 맵, 역할별 메뉴 | 기획·디자인 |
 | 2 | [02-service-structure.md](02-service-structure.md) | **서비스 구조도**: 개념 구조, 데이터 모델, 시스템 구성, 핵심 시퀀스 | 개발·기획 |
 | 3 | [03-functional-spec.md](03-functional-spec.md) | **기능 정의서**: 기능 ID, 우선순위, 인수 조건, 예외 처리 | 개발·QA |
 | 4 | [04-user-flows.md](04-user-flows.md) | **사용자 플로우**: 가입·초대·리뷰 루프·리포트 | 디자인·기획 |
@@ -25,7 +25,10 @@
 
 | 개념 | 화면 표기 (EN) | 설명 | 예시 |
 |---|---|---|---|
-| 워크스페이스 | Workspace | 코치 또는 스튜디오의 공간. 결제 단위 | Alex Lee Studio |
+| 팀 공간 | Team space (Workspace) | 한 팀(크루·동아리·스튜디오)의 공간. 결제 단위 | Commercial Team |
+| 역할 | Role | Owner · Leader · Coach · Member · Guest. **누구나 노트를 쓸 수 있다** | Jordan (Member) |
+| 동의 | Agree (👍) | 다른 사람 노트에 같은 의견 표시. 반복 대신 동의 | 👍 2 agree |
+| 테이크 | Take | 리허설 영상 한 번의 촬영 (= Version) | Full run · Take 3 |
 | 프로젝트 | Project | 하나의 목표 단위 (수업·쇼케이스·대회) | Showcase 2026 |
 | 그룹 | Group | 함께 배우는 댄서 묶음 | Commercial Team |
 | 과제 | **Assignment** | 코치가 낸 "영상 올려줘" 요청. 마감일이 있음 | Week 04 — Chorus timing |
@@ -39,9 +42,9 @@
 | 카운트 | Count | 8카운트 단위 위치 표기 | Verse 3×8, count 5 |
 | 카운트 시트 | Count sheet | 작품을 구간·카운트로 나눈 표 | Intro 1–4×8 |
 | 리뷰 대기열 | Review queue | 코치가 봐야 할 제출 목록 (모든 프로젝트 통합) | 8 to review |
-| 교정 라이브러리 | Correction library | 코치가 자주 쓰는 노트 저장소 | "Land on the beat…" |
+| 노트 라이브러리 | Note library | 팀이 자주 쓰는 노트 저장소 | "Land on the beat…" |
 | 리캡 | **Recap** | 댄서가 직접 만드는 AI 요약 | Your recap · This week |
-| 코치 리포트 | Coach report | 코치가 검토 후 보내는 AI 요약 | Weekly digest |
+| 팀 리포트 | Team report | 리더·코치가 검토 후 팀원에게 보내는 AI 요약 | Weekly digest |
 | 인사이트 | Insights | 대시보드 + 리포트 메뉴 | |
 
 ### 상태 이름
@@ -73,3 +76,6 @@
 | 9 | Groups 메뉴 | **People** (Dancers / Groups / Coaches 탭) + **댄서 프로필**(성장 기록) | 코치는 "그룹"보다 "사람" 단위로 생각함. 댄서 프로필이 락인의 중심 |
 | 10 | 설정이 한 화면 | **내 설정(Account)** 과 **워크스페이스 설정** 분리 | 댄서는 워크스페이스 설정을 볼 일이 없음 |
 | 11 | 노트를 쓸 때 카테고리(Timing 등)를 직접 고름 | **레이블 없이 글만 쓰고, AI가 나중에 분류**해 리포트·대시보드에서만 표시. 틀리면 그 화면에서 고칠 수 있음 | 리뷰 중 가장 귀찮은 단계 제거. 리뷰 속도가 곧 리텐션 |
+| 12 | 코치 → 댄서 한 방향 피드백 | **팀원 누구나 서로 피드백** (코치는 팀의 한 역할). 랜딩 예시도 1인 영상 → **팀 런스루 영상 + 여러 팀원의 노트** | 코치 없는 크루·동아리까지 시장 확대, 팀원 모두가 활성 사용자, 팀 단위 바이럴 |
+| 13 | 코치용 앱 / 댄서용 앱 분리 | **하나의 앱**: 데스크톱은 사이드바, 휴대폰은 하단 탭. 역할에 따라 관리 메뉴만 추가 | 같은 사람이 피드백을 주고받으므로 화면을 나눌 이유가 없음 |
+| 14 | 플랜 이름 Coach | **Team** ($12/월, 팀 3개 · 멤버 40명 ⚠️), Free는 1팀 · 10명 ⚠️ | 결제자가 팀 리더로 바뀜. 팀은 보통 8–20명 |
