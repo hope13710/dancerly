@@ -35,6 +35,8 @@ See `docs/product-plan.md` for the full spec.
 - [ ] Correction library: save and reuse frequent notes with `/`.
 
 ## Phase 3 — AI reports
+- [x] Landing: AI report preview with For dancers (self-generated recap) / For coaches (review & send) modes.
+- [ ] Dancer self-serve "My recap": period × coach/project × category, private by default, share with coach, checklist → note status Practicing.
 - [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
 - [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.
 - [ ] Coach briefing before class (top recurring issues, stalled dancers).

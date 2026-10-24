@@ -214,22 +214,38 @@
           <div class="platform-copy">
             <div class="eyebrow"><span class="eyebrow-dot"></span>AI reports</div>
             <h2>Your feedback, summarized.<br /><em>Never invented.</em></h2>
-            <p>Looproom reads the notes you already wrote and turns them into a clear recap for each dancer: what they worked on, what to do next, and what finally landed.</p>
-            <ul class="platform-points">
-              <li><b>Grounded in your notes</b> Every line links back to the note — and the exact moment — it came from.</li>
-              <li><b>You stay the coach</b> Review and edit every report before it’s sent. The AI never judges the dancing itself.</li>
-              <li><b>In every dancer’s language</b> Write in English, and Maya reads it in Korean, Japanese, or Spanish.</li>
+            <p>Looproom turns the notes coaches already wrote into a clear recap: what was worked on, what to do next, and what finally landed. Dancers generate their own whenever they need it. Coaches prepare, review, and send.</p>
+            <ul class="platform-points ai-points">
+              <li class="pt-dancer"><b>Dancers: generate your own recap</b> Before class or practice, see what every coach told you — last class, this week, or this month. Private to you unless you share it.</li>
+              <li class="pt-coach"><b>Coaches: review, then send</b> Prepare a report for one dancer or the whole group, edit anything, and send it as a weekly digest.</li>
+              <li><b>Grounded, never invented</b> Every line links to the note — and the exact moment — it came from. Delivered in each dancer’s language.</li>
             </ul>
           </div>
-          <div class="product-mock report-mock" data-report aria-label="Example AI report built from coach notes">
-            <div class="report-tabs" role="tablist" aria-label="Report period">
-              <button role="tab" type="button" data-report-tab="class" aria-selected="false">Last class</button>
-              <button role="tab" type="button" data-report-tab="week" aria-selected="true">This week</button>
-              <button role="tab" type="button" data-report-tab="month" aria-selected="false">This month</button>
+          <div class="ai-stage">
+            <div class="ai-audience" role="tablist" aria-label="Who is the report for">
+              <button role="tab" type="button" data-audience-tab="dancer" aria-selected="true"><span class="aud-dot"></span>For dancers <small>Generate your own</small></button>
+              <button role="tab" type="button" data-audience-tab="coach" aria-selected="false"><span class="aud-dot"></span>For coaches <small>Review &amp; send</small></button>
             </div>
-            <div class="report-head"><span class="mini-avatar avatar-orange">MC</span><div><b data-report-title>Maya Chen · This week</b><small data-report-source>Oct 19 – 25 · Built from 9 notes by Alex Lee</small></div><span class="report-ai">✦ AI draft</span></div>
-            <div class="report-body" data-report-body></div>
-            <div class="report-foot"><span>Every line links to its source note</span><span class="report-actions"><i>Edit</i><b>Send to Maya ↗</b></span></div>
+            <div class="report-mock" data-report data-audience="dancer" aria-label="Example AI report built from coach notes">
+              <div class="report-glow" aria-hidden="true"></div>
+              <div class="report-card">
+                <div class="report-topline">
+                  <span class="report-kind"><svg class="sparkle" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="sparkle-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="sg-1" /><stop offset="0.55" stop-color="#fff" /><stop offset="1" class="sg-2" /></linearGradient></defs><path fill="url(#sparkle-grad)" d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg><svg class="sparkle sparkle-mini" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg><b data-report-kind>Your recap</b></span>
+                  <span class="report-status" data-report-status>Generated just now</span>
+                </div>
+                <div class="report-people" data-report-people></div>
+                <div class="report-controls">
+                  <div class="report-tabs" role="tablist" aria-label="Report period">
+                    <button role="tab" type="button" data-report-tab="class" aria-selected="false">Last class</button>
+                    <button role="tab" type="button" data-report-tab="week" aria-selected="true">This week</button>
+                    <button role="tab" type="button" data-report-tab="month" aria-selected="false">This month</button>
+                  </div>
+                  <span class="report-scope" data-report-source></span>
+                </div>
+                <div class="report-body" data-report-body aria-live="polite"></div>
+                <div class="report-foot"><span class="report-grounded">⛓ Every line links to its source note</span><span class="report-actions" data-report-actions></span></div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -263,7 +279,7 @@
         </section>
         <section class="faq section-pad" id="faq"><div class="faq-heading"><div class="eyebrow"><span class="eyebrow-dot"></span>Questions, answered</div><h2>Good to know<br /><em>before you start.</em></h2></div><div class="faq-list">
             <details open><summary>Why not just use group chat and a shared drive?<span>+</span></summary><p>They’re great for talking, not for coaching. A note in chat isn’t attached to the moment, the next take lands in a new thread, and nothing tells you which corrections actually landed. Looproom keeps the video, the note, and the next version together.</p></details>
-            <details><summary>Does the AI give feedback on our dancing?<span>+</span></summary><p>No. AI reports only summarize what you and your coaches wrote — every line links back to its source note, and you review each report before it’s sent. The coaching stays yours.</p></details>
+            <details><summary>Does the AI give feedback on our dancing?<span>+</span></summary><p>No. AI reports only summarize notes your coaches actually wrote, and every line links back to its source note. Dancers can generate their own recap anytime; reports that coaches send are reviewed by the coach first. The coaching stays human.</p></details>
             <details><summary>What does the dashboard measure?<span>+</span></summary><p>By default, practice and feedback activity: submissions, section loops, notes by category, and how many takes a correction took to fix. Motion signals such as timing against the beat are an opt-in beta, calculated from the video and only compared with a dancer’s own previous takes.</p></details>
             <details><summary>Who is Looproom for?<span>+</span></summary><p>Online dance coaches, choreographers, performance team leaders, and small studios that review practice videos between sessions.</p></details>
             <details><summary>Do my dancers need to install anything?<span>+</span></summary><p>No. Dancers join from your invite link in their phone’s browser. They can watch your notes and sketches, jump to the timestamp, loop the section in mirror mode, reply, and upload their next take from the camera roll.</p></details>
