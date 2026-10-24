@@ -142,13 +142,13 @@ $('[data-demo-trigger]')?.addEventListener('click', () => {
   track('demo_play', { variant: heroVariant });
 });
 
-// ---------- AI report preview ----------
-// Sample reports. The same notes, written for whoever asked: dancers read "you", coaches read "Maya".
-// Every line cites the coach note it came from, just like the real thing will.
-const reports = {
-  dancer: {
+// ---------- AI recap preview ----------
+// One feature: anyone can generate a recap, just for themselves or for the whole project.
+// Every line cites the note it came from; labels are added by the AI, never picked by the writer.
+const recaps = {
+  me: {
     class: {
-      scope: 'Tue, Oct 22 · 4 notes from 2 teammates',
+      scope: 'Tue, Oct 22 rehearsal · 4 notes from 2 teammates',
       worked: ['What you worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
       todo: ['What to do next', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Keep the elbow above the wrist through the transition.', 2, 'pathway']]],
       landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
@@ -157,87 +157,77 @@ const reports = {
     week: {
       scope: 'Oct 19 – 25 · 9 notes from 3 teammates',
       worked: ['What you worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
-      todo: ['What to do next', [['00:18', 'Count “5-and-6” through the chorus hit — record one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
-      landed: ['What landed', [['Your wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
+      todo: ['What to do next', [['00:16', 'Hit the shoulder together with Jordan on “5-and-6” — record one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
+      landed: ['What landed', [['Your wider arm pathway at 00:42 — fixed in Take 4.', 3, 'pathway']]],
       recurring: ['Keeps coming up', [['Rushing the “and” counts — flagged by 3 teammates, 3 weeks in a row.', 5, 'timing']]]
     },
     month: {
       scope: 'October · 31 notes from 5 teammates',
       worked: ['What you worked on', 'Timing early in the month; by week 4 your team’s notes shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
       todo: ['What to do next', [['01:20', 'Bridge: play with the half-time feel instead of hitting every count.', 27, 'musicality']]],
-      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
+      landed: ['What landed', [['8 of 11 timing notes resolved, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
       recurring: ['Keeps coming up', [['Rushing the “and” counts — still open in the chorus.', 5, 'timing']]]
     }
   },
-  coach: {
+  project: {
     class: {
-      scope: 'Tue, Oct 22 · 4 notes from the team',
-      worked: ['What Maya worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
-      todo: ['Next steps from the team', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Elbow above the wrist through the transition.', 2, 'pathway']]],
-      landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
-      recurring: ['Worth a look', []]
+      scope: 'Tue, Oct 22 rehearsal · 14 notes from 5 members',
+      worked: ['What the team worked on', 'Chorus formation spacing and landing the “5-and-6” hit together.', [1, 4], ['timing', 'pathway']],
+      todo: ['Next steps for the team', [['00:16', 'Hit the shoulder together on “5-and-6” — Maya and Jordan are split.', 1, 'timing'], ['00:42', 'Back row: keep the spacing wider through the turn.', 4, 'pathway']]],
+      landed: ['What landed', [['Intro entrance clean for all five.', 3, 'timing']]],
+      recurring: ['Keeps coming up', []]
     },
     week: {
-      scope: 'Oct 19 – 25 · 9 notes from the team',
-      worked: ['What Maya worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
-      todo: ['Next steps from the team', [['00:18', 'Count “5-and-6” through the chorus hit — one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
-      landed: ['What landed', [['Wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
-      recurring: ['Worth a look', [['Rushing the “and” counts — 3 teammates agree, and it’s open for 3 other members too.', 5, 'timing']]]
+      scope: 'Oct 19 – 25 · 37 notes from 5 members',
+      worked: ['What the team worked on', 'Timing in the chorus, spacing in the turn, and energy through the last eight.', [1, 4, 9], ['timing', 'pathway', 'energy']],
+      todo: ['Next steps for the team', [['00:16', 'Hit “5-and-6” together — 3 members flagged it.', 1, 'timing'], ['01:03', 'Everyone holds the final shape a full two counts.', 9, 'energy']]],
+      landed: ['What landed', [['Turn spacing at 00:42 — fixed in Take 4.', 4, 'pathway']]],
+      recurring: ['Keeps coming up', [['Rushing the “and” counts — 4 members, 3 weeks in a row.', 5, 'timing']]]
     },
     month: {
-      scope: 'October · 31 notes from the team',
-      worked: ['What Maya worked on', 'Timing early in the month; by week 4 the focus shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
-      todo: ['Next steps from the team', [['01:20', 'Bridge: half-time feel instead of hitting every count.', 27, 'musicality']]],
-      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
-      recurring: ['Worth a look', [['Rushing the “and” counts — still open. Consider making it Tuesday’s focus.', 5, 'timing']]]
+      scope: 'October · 112 notes from 5 members',
+      worked: ['What the team worked on', 'Early notes were mostly timing; by week 4 the team moved on to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
+      todo: ['Next steps for the team', [['01:20', 'Bridge: try the half-time feel together.', 27, 'musicality']]],
+      landed: ['What landed', [['19 of 24 timing notes resolved, most within two takes.', 14, 'timing'], ['Intro formation clean since week 2.', 9, 'pathway']]],
+      recurring: ['Keeps coming up', [['Rushing the “and” counts — still open in the chorus.', 5, 'timing']]]
     }
   }
 };
-const audiences = {
-  dancer: {
-    kind: 'Your recap',
-    status: 'Generated by you · just now',
-    people: [['MC', 'dancer', 'Generated by', 'Maya Chen', 'Member', true], ['JS', 'team', 'From notes by', 'Jordan, Alex & Riko', '3 teammates', false]],
-    actions: '<button type="button" class="ghost">Share with team</button><button type="button" class="primary" data-report-generate><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>Regenerate</button>'
-  },
-  coach: {
-    kind: 'Team report',
-    status: 'Draft · waiting for your review',
-    people: [['AL', 'coach', 'Prepared by', 'Alex Lee', 'Coach', true], ['MC', 'dancer', 'For', 'Maya Chen', 'Member', false]],
-    actions: '<button type="button" class="ghost">Edit</button><button type="button" class="primary">Review &amp; send ↗</button>'
-  }
+const sparkleIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>';
+const scopes = {
+  me: { kind: 'Your recap', people: [['MC', 'dancer', 'Generated by', 'Maya Chen', 'Member', true], ['JS', 'team', 'From notes by', 'Jordan, Alex & Riko', '3 teammates', false]] },
+  project: { kind: 'Project recap', people: [['MC', 'dancer', 'Generated by', 'Maya Chen', 'Member', true], ['S6', 'team', 'Covers', 'Showcase 2026', '5 members', false]] }
 };
 const reportEl = $('[data-report]');
 const reportSection = $('#ai-reports');
-const reportView = { audience: 'dancer', period: 'week' };
+const reportView = { scope: 'me', period: 'week' };
 const cite = (n) => `<sup class="cite">[${n}]</sup>`;
-// Coaches write notes without labels; the AI adds them here, in the report.
 const aiTag = (label) => `<span class="ai-tag t-${label}">${label[0].toUpperCase()}${label.slice(1)}</span>`;
 const person = ([initials, role, label, name, roleLabel, author]) => `<div class="person ${author ? 'is-author' : ''}"><span class="person-avatar ${role}">${initials}</span><span><small>${label}</small><b>${name}</b><i class="role-chip ${role}">${roleLabel}</i></span></div>`;
 
 function renderReport() {
-  const aud = audiences[reportView.audience];
-  const r = reports[reportView.audience][reportView.period];
-  const list = ([, items], cls, icon) => `<ul class="${cls}">${items.map((item) => item.length === 3 ? `<li><i>${icon}</i><span>${item[0]}${cite(item[1])}${aiTag(item[2])}</span></li>` : `<li><i>${icon}</i><span><span class="ts">${item[0]}</span> ${item[1]}${cite(item[2])}${aiTag(item[3])}</span></li>`).join('')}</ul>`;
-  reportEl.dataset.audience = reportView.audience;
-  reportSection.dataset.audience = reportView.audience;
-  $('[data-report-kind]', reportEl).textContent = aud.kind;
-  $('[data-report-status]', reportEl).textContent = aud.status;
-  $('[data-report-people]', reportEl).innerHTML = `${person(aud.people[0])}<span class="people-arrow" aria-hidden="true">${reportView.audience === 'dancer' ? '←' : '→'}</span>${person(aud.people[1])}`;
+  const scope = scopes[reportView.scope];
+  const r = recaps[reportView.scope][reportView.period];
+  const list = ([, items], cls, icon) => `<ul class="${cls}">${items.map(([time, text, n, label]) => `<li><i>${icon}</i><span><span class="ts">${time}</span> ${text}${cite(n)}${aiTag(label)}</span></li>`).join('')}</ul>`;
+  const plain = ([, items], cls, icon) => `<ul class="${cls}">${items.map(([text, n, label]) => `<li><i>${icon}</i><span>${text}${cite(n)}${aiTag(label)}</span></li>`).join('')}</ul>`;
+  reportSection.dataset.scope = reportView.scope;
+  $('[data-report-kind]', reportEl).textContent = scope.kind;
+  $('[data-report-status]', reportEl).textContent = 'Generated by you · just now';
+  $('[data-report-people]', reportEl).innerHTML = `${person(scope.people[0])}<span class="people-arrow" aria-hidden="true">←</span>${person(scope.people[1])}`;
   $('[data-report-source]', reportEl).textContent = r.scope;
-  $('[data-report-actions]', reportEl).innerHTML = aud.actions;
+  $('[data-report-actions]', reportEl).innerHTML = `<button type="button" class="ghost">Share to project</button><button type="button" class="primary" data-report-generate>${sparkleIcon}Regenerate</button>`;
   $('[data-report-body]', reportEl).innerHTML = `
     <div class="report-skeleton" aria-hidden="true"><em>✦ Reading ${r.scope.split('· ')[1]}…</em><span></span><span></span><span></span><span></span><span></span></div>
     <div class="report-block"><h4>${r.worked[0]}</h4><p>${r.worked[1]}${r.worked[2].map(cite).join('')}</p><div class="ai-tags">${r.worked[3].map(aiTag).join('')}</div></div>
     <div class="report-block"><h4>${r.todo[0]}</h4>${list(r.todo, 'report-todo', '☐')}</div>
-    <div class="report-block"><h4>${r.landed[0]}</h4>${list(r.landed, 'report-landed', '✓')}</div>
-    ${r.recurring[1].length ? `<div class="report-block"><h4>${r.recurring[0]}</h4>${list(r.recurring, 'report-recurring', '⚠')}</div>` : ''}`;
+    <div class="report-block"><h4>${r.landed[0]}</h4>${plain(r.landed, 'report-landed', '✓')}</div>
+    ${r.recurring[1].length ? `<div class="report-block"><h4>${r.recurring[0]}</h4>${plain(r.recurring, 'report-recurring', '⚠')}</div>` : ''}`;
   $$('[data-report-tab]', reportEl).forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.reportTab === reportView.period)));
-  $$('[data-audience-tab]').forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.audienceTab === reportView.audience)));
+  $$('[data-scope-tab]').forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.scopeTab === reportView.scope)));
   $('[data-report-generate]', reportEl)?.addEventListener('click', () => generateReport());
 }
 
-// A short "reading your notes" shimmer before the report appears, like the real generation step.
+// A short "reading your notes" shimmer before the recap appears, like the real generation step.
 let generateTimer;
 function generateReport(changes = {}) {
   Object.assign(reportView, changes);
@@ -253,11 +243,11 @@ if (reportEl) {
   renderReport();
   $$('[data-report-tab]', reportEl).forEach((tab) => tab.addEventListener('click', () => {
     generateReport({ period: tab.dataset.reportTab });
-    track('report_tab', { period: tab.dataset.reportTab, audience: reportView.audience });
+    track('recap_period', { period: tab.dataset.reportTab, scope: reportView.scope });
   }));
-  $$('[data-audience-tab]').forEach((tab) => tab.addEventListener('click', () => {
-    generateReport({ audience: tab.dataset.audienceTab });
-    track('report_audience', { audience: tab.dataset.audienceTab });
+  $$('[data-scope-tab]').forEach((tab) => tab.addEventListener('click', () => {
+    generateReport({ scope: tab.dataset.scopeTab });
+    track('recap_scope', { scope: tab.dataset.scopeTab });
   }));
 }
 

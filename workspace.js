@@ -53,15 +53,15 @@ function renderReviews() {
 
 // ---------- Video review ----------
 // People invited to this project: the only ones you can @mention in a note.
-// Anyone on the project can write notes, coach or member.
+// Two roles only: the project owner (who created it) and members. Everyone can write notes.
 const projectMembers = [
+  { name: 'Riko Kato', role: 'Owner', initials: 'RK' },
   { name: 'Maya Chen', role: 'Member', initials: 'MC' },
   { name: 'Jordan Smith', role: 'Member', initials: 'JS' },
-  { name: 'Riko Kato', role: 'Leader', initials: 'RK' },
   { name: 'Sam Lee', role: 'Member', initials: 'SL' },
-  { name: 'Sora Kim', role: 'Coach', initials: 'SK' }
+  { name: 'Sora Kim', role: 'Member', initials: 'SK' }
 ];
-const roleOf = (name) => name === 'Alex Lee' ? 'Coach' : projectMembers.find((m) => m.name === name)?.role || 'Member';
+const roleOf = (name) => projectMembers.find((m) => m.name === name)?.role || 'Member';
 const review = { t: 18, duration: 72, playing: false, speed: 1, loop: null, videoUrl: null, mode: 'point', rangeStart: null, rangeEnd: null, frame: 0, last: 0 };
 const speeds = [1, 0.75, 0.5, 0.25];
 const fmt = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;

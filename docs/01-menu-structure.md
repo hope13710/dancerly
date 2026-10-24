@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart LR
-  V([방문자 · 팀 리더]) --> L[랜딩페이지 /]
+  V([방문자]) --> L[랜딩페이지 /]
   L -->|Start free| SU[가입 /signup]
   L -->|Log in| LI[로그인 /login]
   SU --> OB[팀 만들기 /welcome]
@@ -29,7 +29,7 @@ flowchart LR
 | 영역 | 사용자 | 기기 | 형태 |
 |---|---|---|---|
 | 랜딩페이지 | 방문자 | 전체 | 정적 사이트 |
-| 웹 앱 (데스크톱) | **모든 역할** (Owner · Leader · Coach · Member) | 노트북 | 사이드바. 리허설 영상을 크게 보며 노트 작성 |
+| 웹 앱 (데스크톱) | **모든 사람** (Owner · Member) | 노트북 | 사이드바. 리허설 영상을 크게 보며 노트 작성 |
 | 웹 앱 (모바일) | **모든 역할** | 휴대폰 | 하단 탭 (PWA, 앱 설치 불필요). 멤버 대부분이 여기서 사용 |
 | 게스트 보기 | Guest | 전체 | 읽기 전용 단일 화면 |
 
@@ -87,10 +87,10 @@ flowchart TB
 | 6 | For coaches | `#features` | 스케치·노트 | Explore the coach workspace |
 | 7 | Projects | `#projects` | 시즌 단위 관리 | — |
 | 8 | Progress dashboard | `#dashboard` | 데이터 가치 | — |
-| 9 | AI reports | `#ai-reports` | 댄서 리캡 / 코치 리포트 | — |
+| 9 | AI recaps | `#ai-reports` | Just me / Whole project 리캡 | — |
 | 10 | Memory | `#memory` | 쓸수록 좋아지는 이유 (락인) | — |
 | 11 | Trust | — | 개인정보·보안 | — |
-| 12 | Pricing | `#pricing` | Free · Coach · Studio 대기 | Start free |
+| 12 | Pricing | `#pricing` | Free · Team · Studio 대기 | Start free |
 | 13 | First session | `#first-session` | 가입 후 4단계 안내 (마찰 감소) | — |
 | 14 | FAQ | `#faq` | 반론 처리 | — |
 | 15 | Sign up | `#signup` | 이메일 가입 | Review your first video free |
@@ -143,20 +143,19 @@ flowchart LR
   P3 --> AS[Assignment 상세]
   AS --> RV
 
-  PP --> D1[Dancers]
+  PP --> D1[Members]
   PP --> D2[Groups]
-  PP --> D3[Coaches]
-  D1 --> DP[댄서 프로필]
+  D1 --> DP[멤버 프로필]
 
   IN --> N1[Dashboard]
-  IN --> N2[Reports]
-  IN --> N3[Correction library]
+  IN --> N2[Recaps]
+  IN --> N3[Note library]
 
   ST --> S1[Workspace]
   ST --> S2[Members & roles]
   ST --> S3[Notifications]
   ST --> S4[Privacy & storage]
-  ST --> S5[AI & reports]
+  ST --> S5[AI & recaps]
   ST --> S6[Billing]
 ```
 
@@ -164,11 +163,11 @@ flowchart LR
 
 | 1단계 | 2단계 | 3단계 / 탭 | 설명 |
 |---|---|---|---|
-| **Home** | 오늘 할 일 | | 리뷰할 제출, 마감 임박 과제, 멈춰 있는 댄서 |
-| | 시작 체크리스트 | | 첫 주에만 표시: 워크스페이스 · 첫 영상 · 첫 노트 · 댄서 초대 |
+| **Home** | 오늘 할 일 | | 아직 안 본 새 테이크, 나에게 온·멘션된 노트, 마감 과제 |
+| | 시작 체크리스트 | | 첫 주에만 표시: 팀 공간 · 첫 리허설 영상 · 첫 노트 · 팀원 초대 |
 | | 최근 활동 | | 제출·답글·해결 기록 |
 | **Inbox** | All · Mentions · Submissions | | 알림 모음. 읽음/안 읽음 |
-| **Review queue** | Needs review · Re-submitted · Overdue | | 모든 프로젝트의 제출을 한 줄로. 여기서 바로 리뷰 화면으로 |
+| **Review queue** | New takes · Mentions me · Overdue | | 내가 속한 프로젝트의 새 테이크를 한 줄로. 여기서 바로 리뷰 화면으로 |
 | | → **Video review** | Notes · Versions · Compare | 플레이어 + 노트·스케치 + 버전 비교 |
 | **Projects** | 프로젝트 목록 | | 카드 목록, ＋ New from template |
 | | 프로젝트 상세 | Overview | 목표, 일정, 참여 댄서, 음악 |
@@ -177,17 +176,16 @@ flowchart LR
 | | | Pages | 자유 문서 (블록 에디터, @링크) |
 | | | Calendar | 리허설·마감 |
 | | → Assignment 상세 | Submissions · Brief · Settings | 과제 설명, 제출 현황 |
-| **People** | Dancers | | 댄서 목록 → **댄서 프로필**(버전·노트·해결 기록, 리캡 생성) |
+| **People** | Members | | 멤버 목록 → **멤버 프로필**(테이크·받은 노트·해결 기록, 리캡 생성) |
 | | Groups | | 그룹 목록, 초대 링크 |
-| | Coaches | | 공동 코치·어시스턴트 |
-| **Insights** | Dashboard | Group · Dancer · Category | 연습 신호 · 피드백 신호 · 동작 신호(Beta) |
-| | Reports | Drafts · Sent · Schedule | 코치 리포트 작성·검토·발송, 주간 다이제스트 예약 |
-| | Correction library | | 자주 쓰는 노트, AI 레이블 이름 관리 |
+| **Insights** | Dashboard | Project · Member · AI label | 연습 신호 · 피드백 신호 · 동작 신호(Beta) |
+| | Recaps | Mine · Shared to project | AI 리캡 생성(Just me / Whole project), 프로젝트에 공유된 리캡 모음 |
+| | Note library | | 팀이 자주 쓰는 노트, AI 레이블 이름 관리 |
 | **Settings** | Workspace | | 이름, 로고, 언어, 시간대 |
-| | Members & roles | | 역할 변경, 초대 관리 |
+| | Members | | 초대·내보내기, Owner 넘기기 (Owner만) |
 | | Notifications | | 워크스페이스 기본 알림 |
 | | Privacy & storage | | 보관 기간, 공유 링크 허용, 동작 분석(Beta) 허용 |
-| | AI & reports | | 댄서 셀프 리캡 허용, 자동 번역, AI 학습 옵트인 |
+| | AI & recaps | | 주간 자동 리캡, 자동 번역, AI 학습 옵트인 (Owner만) |
 | | Billing | | 플랜, 결제 수단, 영수증 |
 
 ### 3-3. 전역 요소 (모든 화면)
@@ -271,8 +269,8 @@ flowchart LR
 | `/app/assignments/:id` | 과제 상세 | 〃 |
 | `/app/people/(dancers\|groups\|coaches)` | People | 〃 |
 | `/app/people/dancers/:id` | 댄서 프로필 | 〃 |
-| `/app/insights/(dashboard\|reports\|library)` | Insights | Owner·Coach (Assistant는 보기만) |
-| `/app/settings/:section` | 워크스페이스 설정 | Owner (일부 Coach) |
+| `/app/insights/(dashboard\|recaps\|library)` | Insights | 모든 멤버 |
+| `/app/settings/:section` | 팀 공간·프로젝트 설정 | Owner |
 | `/app/feedback/:noteId` | 노트의 그 순간 (모바일·데스크톱 공통) | 프로젝트 멤버 |
 | `/app/upload?project=:id` | 업로드 | 프로젝트 멤버 |
 | `/app/recap` | 내 리캡 | 모든 멤버 |
@@ -285,19 +283,20 @@ flowchart LR
 
 ## 7. 역할별 메뉴 노출
 
-| 메뉴 | Owner | Leader | Coach | Member | Guest |
-|---|---|---|---|---|---|
-| Home / Today | ✓ | ✓ | ✓ | ✓ | — |
-| Inbox | ✓ | ✓ | ✓ | ✓ (모바일은 Today에 통합) | — |
-| Review queue (새 테이크) | ✓ | ✓ | ✓ | ✓ 내가 속한 프로젝트 | — |
-| Projects | ✓ | ✓ | ✓ | 초대받은 프로젝트 (보기·노트) | — |
-| People | ✓ | ✓ | ✓ | 같은 팀원 보기 | — |
-| Insights › Dashboard | ✓ | ✓ | ✓ | 내 기록 + 팀 요약 | — |
-| Insights › Reports | ✓ | ✓ | ✓ | 내 Recap | 공유된 리포트만 |
-| Note library | ✓ | ✓ | ✓ | 사용 | — |
-| Settings › Team·Members·Billing | ✓ | Members만 | — | — | — |
-| Settings › Notifications·Privacy·AI | ✓ | 보기 | — | — | — |
-| Account settings | ✓ | ✓ | ✓ | ✓ | — |
+역할은 Owner(방장)와 Member 둘뿐이다. **메뉴는 똑같고, Owner에게만 관리 항목이 더 보인다.**
+
+| 메뉴 | Owner | Member | Guest |
+|---|---|---|---|
+| Home / Today | ✓ | ✓ | — |
+| Inbox | ✓ | ✓ (모바일은 Today에 통합) | — |
+| Review queue | ✓ | ✓ | — |
+| Projects | ✓ + 설정·보관·삭제 | ✓ 초대받은 프로젝트 | — |
+| People | ✓ + 내보내기·Owner 넘기기 | ✓ 보기 | — |
+| Insights › Dashboard | ✓ | ✓ | — |
+| Insights › Recaps | ✓ | ✓ | 공유된 리캡만 |
+| Note library | ✓ | ✓ | — |
+| Settings › Team·Members·Billing·AI | ✓ | — | — |
+| Account settings | ✓ | ✓ | — |
 
 ---
 

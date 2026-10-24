@@ -12,7 +12,7 @@
 | 1 | **The moment first** | 피드백은 항상 영상의 그 순간과 함께 | 노트 카드를 누르면 무조건 그 시점 재생. 시간 옆에 카운트 |
 | 2 | **Three taps to feedback** | 댄서는 알림에서 피드백까지 3탭 이내 | 딥링크, 이름만으로 참여, 하단 탭 |
 | 3 | **Never a blank page** | 빈 화면은 다음 행동을 알려주는 화면 | 샘플, 템플릿, 빈 상태 버튼 |
-| 4 | **Coach stays the coach** | AI는 정리만, 판단은 사람 | 출처 인용, 검토 후 발송, "AI summary" 표기 |
+| 4 | **People give the feedback** | AI는 정리만, 판단은 사람 | 출처 인용, 만든 사람만 보다가 공유, "AI summary" 표기 |
 | 5 | **Progress, not ranking** | 다른 사람과 비교하지 않음 | 지표는 "지난번 대비", 순위표 없음 |
 | 6 | **Calm by default** | 알림·색·움직임은 꼭 필요할 때만 | 노트 알림 묶음 발송, 강조색은 화면당 하나 |
 | 7 | **Private feels private** | 비공개임이 화면에서 느껴져야 함 | 공유 범위 항상 표시 (🔒 Only you and Alex) |
@@ -31,7 +31,7 @@
 | 업로드 실패 | Error 500 | The upload stopped. We’ll resume when you’re back online. |
 | 빈 대기열 | No data | You’re all caught up. New submissions will show up here. |
 | 리캡 노트 없음 | Nothing found | No notes from your coaches this week yet. |
-| 한도 도달 | Limit exceeded | Your free plan includes 5 dancers. Start a free Coach trial to invite more. |
+| 한도 도달 | Limit exceeded | Your free plan includes 10 members. Start a free Team trial to invite more. |
 | 삭제 확인 | Are you sure? | Delete this video? Its 4 notes and 1 sketch will be deleted too. |
 | 해결 축하 | Resolved | Correction landed ✓ |
 
@@ -77,12 +77,11 @@
 | Technique | `#E58FB0` | `#B4386A` | `#FDE8F0` | Form, alignment, and execution |
 | 사용자 정의 | 8색 팔레트에서 선택 | | | 코치가 직접 입력 |
 
-**AI 리포트** (만든 사람에 따라 구분)
+**AI 리캡** (하나의 팔레트)
 
 | 모드 | 그라데이션 | 진한 텍스트 | 쓰는 곳 |
 |---|---|---|---|
-| 댄서 리캡 | `#A78BFA → #F472B6` | `#7C3AED → #DB2777` | 리캡 카드 테두리, ✦ 아이콘, 생성 버튼 |
-| 코치 리포트 | `#22D3EE → #6366F1` | `#0891B2 → #4F46E5` | 리포트 카드, 발송 버튼 |
+| AI 리캡 (Just me · Whole project 공통) | `#A78BFA → #F472B6` | `#7C3AED → #DB2777` | 리캡 카드 테두리, ✦ 아이콘, 생성 버튼, AI 레이블 |
 
 > AI 그라데이션은 **AI가 만든 결과물에만** 쓴다. 일반 버튼·배지에 쓰지 않는다 (AI임이 한눈에 보이도록).
 
@@ -176,7 +175,7 @@
 | **Input / Textarea** | 기본 · 검색 · 노트 작성기 | focus 링 accent 2px · error · disabled | 레이블은 입력 위 |
 | **AI label chip** | 5개 (+ 사용자 정의 P2) | 기본 · 코치가 고친 상태 | ✦ 접두, 호버·길게 누르면 툴팁. 리포트·대시보드 전용 |
 | **Status pill** | Needs review · Re-submitted · Ready to close · Overdue | | 점 + 텍스트 |
-| **Role chip** | Member(accent 연보라) · Leader(핑크) · Coach(시안) · Owner(accent) | | 작성자 이름 옆. Coach 노트는 배지로 구분 |
+| **Role chip** | Owner(핑크) · Member(연보라) | | 작성자 이름 옆. 역할은 두 개뿐 |
 | **Agree chip** | 👍 n agree | 내가 누름 · 안 누름 | 노트 카드 작성자 줄 오른쪽 |
 | **Avatar** | 24 · 32 · 40, 이니셜 / 사진 | 온라인 점 없음 (차분함) | 겹침 스택 최대 3 + "+n" |
 | **Note card** | 순간(▸) · 구간(⟷) · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · looping · "from V1" | 시간 칩(누르면 이동) + 카운트 + 본문(@멘션 칩) + 작성자 + ↻ Loop 버튼. **레이블 없음** |
@@ -194,7 +193,7 @@
 | **Empty state** | 일러스트 없음, 아이콘 + 한 줄 + 버튼 | | "Never a blank page" |
 | **Skeleton** | 리스트 · 카드 · AI shimmer | | AI는 테마색 shimmer + "Reading n notes…" |
 | **Upload bar** | 상단 고정 진행 | uploading · paused · processing · done · failed | 화면 이동해도 유지 |
-| **AI report card** | 댄서 리캡 · 코치 리포트 | generating · ready · draft · sent | 밝은 유리 카드, 모드별 그라데이션 테두리, ✦ 26px |
+| **AI recap card** | Just me · Whole project (같은 디자인) | generating · ready · private · shared | 밝은 유리 카드, 모드별 그라데이션 테두리, ✦ 26px |
 | **Command palette** | ⌘K | 검색 · 명령 · 최근 | 키보드 전용 동작 |
 | **Toggle** | on/off | | 설정 |
 | **Checklist item** | 리캡 할 일 | unchecked · checked(→ Practicing) | 타임스탬프 칩 포함 |
@@ -349,17 +348,18 @@ Status In rehearsal · Show Nov 14 · Music 112 BPM (auto) · MC JS RK +9
 - 데이터 부족(2주 미만): "Your dashboard fills in as your dancers submit. Check back after the first week." + 체크리스트.
 - 동작 신호(Beta)는 별도 카드, 옵트인 전에는 설명 + [Learn more]만.
 
-### S10. Recap (댄서) / Reports (코치)
+### S10. Recap (모든 멤버)
 
-- 랜딩 AI 리포트 카드와 동일한 컴포넌트.
-- **댄서**: 상단에 기간 세그먼트 + 코치 필터 → [✦ Generate my recap] → shimmer → 결과. 결과 아래 "Share with coach".
-- **코치**: Drafts · Sent · Schedule 탭. 초안 열기 → 문장 단위 편집(문장 호버 시 ✎ · 🗑) → [Send] / [Send all].
-- 항상 표시: "AI summary of your coaches’ notes" + 각 문장 [n].
+- 랜딩 AI 리캡 카드와 동일한 컴포넌트, **한 종류**.
+- 상단: 범위 세그먼트 **Just me / Whole project** → 기간 세그먼트(Last rehearsal · This week · This month · Custom) → [✦ Generate] → shimmer → 결과.
+- 결과 아래: [Share to project] [✦ Regenerate]. 공유 전에는 "Only you can see this" 표시.
+- Insights › Recaps: Mine / Shared to project 탭.
+- 항상 표시: "AI summary of your team’s notes" + 각 문장 [n] + ✦ AI 레이블.
 
-### S11. 댄서 프로필 (코치 화면)
+### S11. 멤버 프로필
 
 ```
-MC Maya Chen  Dancer · Commercial Team · since Sep 2026     [✦ Generate report] [Message]
+MC Maya Chen  Member · Commercial Team · since Sep 2026     [✦ Generate recap] [Message]
 [Timeline●] [Notes] [Versions] [Reports]
 Oct 22  V2 Week 04 — 2 notes resolved ✓
 Oct 19  V1 Week 04 — 3 notes (Timing 2, Pathway 1)

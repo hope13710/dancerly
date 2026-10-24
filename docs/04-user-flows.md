@@ -2,14 +2,14 @@
 
 ## 1. 페르소나
 
-| | **Riko Kato** · 팀 리더 ⭐ 주 고객 | **Maya Chen** · 팀원 | **Alex Lee** · 코치 | **Jin Park** · 스튜디오 원장 |
+| | **Riko Kato** · 팀 리더 → Owner ⭐ 주 고객 | **Maya Chen** · 팀원 → Member | **Alex Lee** · 코치 → Member | **Jin Park** · 학원 원장 → 팀 공간 Owner |
 |---|---|---|---|---|
 | 상황 | 대학 댄스 동아리 공연팀 리더, 12명, 코치 없음 | 커머셜 팀 소속, 쇼케이스 준비 | 팀 2곳을 봐주는 안무가 | 강사 5명, 수강생 120명 |
 | 기기 | 노트북 + 휴대폰 | **휴대폰만** | 노트북으로 리뷰 | 노트북 |
 | 지금 쓰는 것 | 단톡방에 런스루 영상, 각자 음성·텍스트로 피드백 | 단톡방, 카메라 롤 | 단톡방 + 드라이브 | 단톡방, 엑셀 |
 | 불편 | 피드백이 채팅에 묻힘, 누가 누구에게 한 말인지 모름, 같은 말 반복 | 내 얘기인지 모름, 어디를 고치라는지 모름 | 같은 말 반복, 팀원끼리 한 말을 모름 | 강사별 차이, 학부모에게 성장 보여주기 어려움 |
 | Looproom에서 원하는 것 | 런스루 하나에 모두의 피드백을 모으고, 다음 런에서 고쳐졌는지 확인 | 나에게 온 노트만 모아 보고, 내 파트 반복 연습 | 팀원 노트 위에 코치 의견 더하기 | 스튜디오 전체 현황, 학부모 리포트 |
-| 결제 | **Team 플랜** | 무료 | 무료 (팀이 초대) 또는 자기 팀 공간 | Studio 플랜 |
+| 결제 | **Team 플랜** | 무료 | 무료 (팀이 Member로 초대) | Studio 플랜 |
 
 ## 2. 활성화 기준 (Aha moment)
 
@@ -159,22 +159,19 @@ flowchart TD
 
 ---
 
-## F7. 코치 주간 리포트 (검토 후 발송)
+## F7. 주간 자동 리캡 (프로젝트)
 
 ```mermaid
 flowchart TD
-  A[매주 일요일 18:00 현지 시간<br/>예약 생성] --> B[Insights › Reports › Drafts]
-  B --> C[Inbox 알림: 12 weekly reports ready to review]
-  C --> D[리포트 열기]
-  D --> E{수정?}
-  E -->|문장 편집·삭제| F[저장]
-  E -->|그대로| G
-  F --> G[Send / Send all]
-  G --> H[댄서 언어로 번역 → 푸시·이메일]
-  H --> I[열람·체크리스트 완료 → 대시보드]
+  A[Owner가 프로젝트 설정에서<br/>Weekly recap 켜기] --> B[매주 일요일 18:00 현지 시간]
+  B --> C[Whole project · This week 리캡 생성]
+  C --> D[프로젝트 피드에 게시]
+  D --> E[멤버에게 알림 · 각자 언어로 번역]
+  E --> F[멤버가 열람 → Just me 리캡으로 내 할 일 확인]
+  F --> G[체크리스트 완료 → 대시보드]
 ```
 
-옵션: 4주 연속 수정 없이 보냈다면 "Send automatically from now on?" 제안.
+검토·발송 단계는 없다. 모든 문장에 출처가 있고, 틀린 문장은 누구나 신고 → 다시 생성할 수 있다.
 
 ---
 
@@ -200,7 +197,7 @@ flowchart TD
 flowchart TD
   A[Free: 6번째 댄서 초대 시도] --> B[안내 시트<br/>'Your free plan includes 5 dancers.']
   B --> C{선택}
-  C -->|Start 14-day Coach trial| D[카드 없이 체험 시작]
+  C -->|Start 14-day Team trial| D[카드 없이 체험 시작]
   C -->|Upgrade| E[Stripe Checkout]
   C -->|Not now| F[초대 보류 · 기존 데이터 유지]
   D --> G[초대 완료]

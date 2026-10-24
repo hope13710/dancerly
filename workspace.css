@@ -390,11 +390,7 @@
   color: #c4c5ff;
   background: rgba(170, 171, 255, 0.14);
 }
-.role-tag.role-coach {
-  color: #67e8f9;
-  background: rgba(34, 211, 238, 0.13);
-}
-.role-tag.role-leader {
+.role-tag.role-owner {
   color: #f9a8d4;
   background: rgba(244, 114, 182, 0.14);
 }

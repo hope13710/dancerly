@@ -45,7 +45,7 @@ See `docs/product-plan.md` for the full spec.
 - [ ] Correction library: save and reuse frequent notes with `/`.
 
 ## Phase 3 — AI reports
-- [x] Landing: AI report preview with For dancers (self-generated recap) / For coaches (review & send) modes.
+- [x] Landing: one AI Recap with Just me / Whole project scopes (coach reports removed).
 - [ ] Dancer self-serve "My recap": period × coach/project × category, private by default, share with coach, checklist → note status Practicing.
 - [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
 - [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.
@@ -62,7 +62,7 @@ See `docs/product-plan.md` for the full spec.
 - [ ] Persist notes, mentions and AI labels in the database; send mention notifications; let coaches correct an AI label from reports.
 - [ ] Drag on the timeline to mark a range.
 - [x] Team model on the landing page: rehearsal run-through demo with peer notes, @mention, 👍 agree, Team plan.
-- [ ] Workspace roles Owner · Leader · Coach · Member; Team / Private take visibility; 👍 agree and note hiding.
+- [ ] Workspace roles Owner (방장) · Member only; Team / Private take visibility; 👍 agree and note hiding by the owner.
 - [ ] One app for everyone (sidebar on desktop, bottom tabs on phones) instead of separate coach/dancer apps.
 - [x] Landing demo shows sketch feedback attached to a note (step 02).
 - [ ] Real sketch tool in the workspace: draw on the paused frame and save the sketch with the note.

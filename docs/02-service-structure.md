@@ -18,7 +18,7 @@ flowchart TB
   NT --> RP[Reply]
   GR -. 참여 .-> PJ
   GR -. 대상 .-> AS
-  NT -. 근거 .-> RPT[Recap · Coach report]
+  NT -. 근거 .-> RPT[AI Recap]
   NT -. 집계 .-> DB[Dashboard]
   VR -. 연습 로그 .-> DB
 ```
@@ -31,15 +31,15 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  A[과제 생성<br/>Coach] --> B[영상 제출<br/>Dancer]
-  B --> C[노트·스케치<br/>Coach]
-  C --> D[루프·거울모드 연습<br/>Dancer · Practicing]
-  D --> E[새 버전 제출<br/>Dancer]
-  E --> F{고쳐졌나?<br/>Coach}
+  A[리허설 테이크 업로드<br/>아무 멤버] --> B[팀원들이 보기]
+  B --> C[노트·스케치·멘션·👍<br/>아무 멤버]
+  C --> D[루프·거울모드 연습<br/>멘션된 사람 · Practicing]
+  D --> E[다음 테이크 업로드]
+  E --> F{고쳐졌나?<br/>노트 쓴 사람}
   F -- 예 --> G[Resolved ✓]
   F -- 아니오 --> C
   G --> H[대시보드·리캡에 기록]
-  H -. 다음 수업 초점 .-> A
+  H -. 다음 리허설 초점 .-> A
 ```
 
 North Star Metric: **주간 해결된 노트 수 (Notes resolved / week)**
@@ -87,7 +87,7 @@ erDiagram
 
   USER { uuid id string name string email "nullable: 댄서는 이름만으로 시작" string locale string timezone }
   WORKSPACE { uuid id string name string plan string default_locale }
-  MEMBERSHIP { uuid user_id uuid workspace_id enum role "owner|leader|coach|member" }
+  MEMBERSHIP { uuid user_id uuid workspace_id enum role "owner|member" }
   PROJECT_MEMBER { uuid project_id uuid user_id }
   NOTE_REACTION { uuid note_id uuid user_id enum kind "agree" }
   PROJECT { uuid id string title enum template date show_date enum status }
@@ -103,7 +103,7 @@ erDiagram
   SKETCH { uuid id json strokes float frame_t }
   REPLY { uuid id uuid author_id text body }
   PRACTICE_EVENT { uuid id enum type "loop|replay|mirror|mark_practicing" float seconds datetime at }
-  REPORT { uuid id enum kind "recap|coach" enum period json scope json body enum status uuid generated_by uuid for_user }
+  REPORT { uuid id enum scope "me|project" enum period json body enum status "private|shared" uuid generated_by uuid project_id }
   REPORT_CITATION { uuid report_id uuid note_id string sentence_key }
   LIBRARY_ITEM { uuid id text body int uses }
   SHARE_LINK { uuid id string token datetime expires_at json scope }
@@ -212,13 +212,13 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-  actor D as Dancer
+  actor D as Maya (Member)
   participant W as 웹 앱
   participant U as 업로드(tus)
   participant M as 영상 처리
   participant A as API
-  actor C as Coach
-  D->>W: ＋ → 과제 선택 → 영상 선택
+  actor C as 다른 멤버
+  D->>W: ＋ → 프로젝트·과제 선택 → 영상 선택
   W->>A: 업로드 세션 요청 (submission, version 번호)
   A-->>W: 업로드 URL
   W->>U: 청크 업로드 (끊기면 이어서)
@@ -227,50 +227,50 @@ sequenceDiagram
   M->>M: HLS 변환 · 썸네일 · 파형 · BPM
   M->>A: 처리 완료 (Ready)
   A->>A: 이전 버전의 Open 노트를 새 버전에 연결
-  A-->>D: 푸시 "Version 2 is ready"
-  A-->>C: Inbox + 대기열 "Maya submitted Version 2"
+  A-->>D: 푸시 "Take 4 is ready"
+  A-->>C: Inbox + 대기열 "Maya uploaded Take 4"
 ```
 
 ### 5-2. 노트 → 연습 → 해결
 
 ```mermaid
 sequenceDiagram
-  actor C as Coach
+  actor C as Jordan (Member)
   participant A as API
-  actor D as Dancer
-  C->>A: 00:16–00:20 구간에 노트 + 스케치 (레이블 없음, @Sora 멘션)
+  actor D as Maya (Member)
+  C->>A: 00:16–00:20 구간에 노트 + 스케치 (레이블 없음, @Maya 멘션)
   A-->>A: (비동기) AI가 노트 본문으로 레이블 분류 → NOTE_LABEL
-  A-->>C: @Sora에게 멘션 알림
-  A-->>D: 알림 (딥링크: /d/feedback/:note?t=18)
+  A-->>D: 멘션 알림 (딥링크: /app/feedback/:note?t=16)
   D->>A: 노트 열기 · 구간 루프 · 거울모드 (연습 로그)
   D->>A: "Practicing" 표시 · 답글
   A-->>C: 답글 알림
-  D->>A: Version 2 업로드
-  C->>A: V2의 00:18 확인 → Resolve
+  D->>A: Take 4 업로드
+  C->>A: Take 4의 00:16 확인 → Resolve (노트 쓴 사람)
   A-->>D: "Correction landed ✓"
 ```
 
-### 5-3. AI 리캡 생성 (댄서 셀프)
+### 5-3. AI 리캡 생성 (누구나)
 
 ```mermaid
 sequenceDiagram
-  actor D as Dancer
+  actor D as 아무 멤버
   participant W as 웹 앱
   participant A as API
   participant Q as 작업 큐
   participant L as LLM
-  D->>W: Recap → This week → Generate
-  W->>A: 생성 요청 (기간, 코치·프로젝트 필터)
-  A->>A: 권한 필터: 이 댄서에게 온 노트 + 그룹 공지만
+  D->>W: Recap → Just me / Whole project → This week → Generate
+  W->>A: 생성 요청 (범위, 기간, 프로젝트)
+  A->>A: 권한 필터: 이 사람이 볼 수 있는 노트만 (Just me면 나에게 온·멘션된 노트)
   A->>A: 캐시 확인 (새 노트 없으면 기존 결과 반환)
   A->>Q: 생성 작업
   Q->>L: 노트 목록(ID 포함) + 출력 스키마
   L-->>Q: 섹션별 문장 + source_note_ids
   Q->>Q: 근거 검증: ID가 입력에 있는지, 없으면 문장 제거
-  Q->>Q: 댄서 언어로 번역 (필요 시)
+  Q->>Q: 보는 사람 언어로 번역 (필요 시)
   Q->>A: 저장 (report + citations)
   A-->>W: 결과 (스트리밍)
-  W-->>D: 리캡 표시 · 각 문장 → 원본 노트 링크
+  W-->>D: 리캡 표시(만든 사람만) · 각 문장 → 원본 노트 링크
+  D->>A: (선택) Share to project → 프로젝트 피드 게시
 ```
 
 ---
@@ -281,9 +281,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  O[Owner] -->|모든 권한 + 결제| WS[(Team space)]
-  LD[Leader] -->|프로젝트·멤버 관리, 노트 정리| WS
-  C[Coach] -->|멤버 권한 + Coach 배지, 팀 리포트| WS
+  O[Owner 방장] -->|멤버 권한 + 초대·내보내기·설정·노트 숨기기·결제| WS[(Team space)]
   M[Member] -->|프로젝트 영상 보기·올리기<br/>노트·스케치·멘션·👍| PJ[(초대받은 Project)]
   G[Guest] -->|공유 링크 범위만| SL[(Share link)]
 ```
