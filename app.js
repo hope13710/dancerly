@@ -140,6 +140,61 @@ $('[data-demo-trigger]')?.addEventListener('click', () => {
   track('demo_play', { variant: heroVariant });
 });
 
+// ---------- AI report preview ----------
+// Sample reports. Every line cites the coach note it came from, just like the real thing will.
+const reports = {
+  class: {
+    title: 'Maya Chen · Last class',
+    source: 'Tue, Oct 22 · Built from 4 notes by Alex Lee',
+    worked: 'Chorus timing and the arm pathway into the turn.',
+    cites: [1, 2],
+    todo: [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1], ['00:42', 'Keep the elbow above the wrist through the transition.', 2]],
+    landed: [['Clean entrance on count 1 of the intro.', 3]],
+    recurring: []
+  },
+  week: {
+    title: 'Maya Chen · This week',
+    source: 'Oct 19 – 25 · Built from 9 notes by Alex Lee',
+    worked: 'Chorus timing, wider arm pathways, and holding energy through the last eight.',
+    cites: [1, 3, 6],
+    todo: [['00:18', 'Count “5-and-6” through the chorus hit — record one take at 0.5×.', 1], ['01:03', 'Hold the final shape for a full two counts.', 6]],
+    landed: [['Wider arm pathway at 00:42 — resolved in Version 2.', 3]],
+    recurring: [['Rushing the “and” counts — noted 3 weeks in a row.', 5]]
+  },
+  month: {
+    title: 'Maya Chen · This month',
+    source: 'October · Built from 31 notes by Alex Lee and Sora Kim',
+    worked: 'Most notes were about timing early in the month; by week 4 the focus shifted to musicality in the bridge.',
+    cites: [2, 14, 27],
+    todo: [['01:20', 'Bridge: play with the half-time feel instead of hitting every count.', 27]],
+    landed: [['8 of 11 timing corrections fixed, most within two takes.', 14], ['Intro pathways clean since week 2.', 9]],
+    recurring: [['Rushing the “and” counts — still open in the chorus.', 5]]
+  }
+};
+const reportEl = $('[data-report]');
+const cite = (n) => `<sup class="cite">[${n}]</sup>`;
+function renderReport(key) {
+  const r = reports[key];
+  const list = (items, cls, icon) => `<ul class="${cls}">${items.map(([a, b, c]) => c === undefined ? `<li><i>${icon}</i><span>${a}${cite(b)}</span></li>` : `<li><i>${icon}</i><span><span class="ts">${a}</span> ${b}${cite(c)}</span></li>`).join('')}</ul>`;
+  $('[data-report-title]', reportEl).textContent = r.title;
+  $('[data-report-source]', reportEl).textContent = r.source;
+  $('[data-report-body]', reportEl).innerHTML = `
+    <div class="report-block"><h4>What you worked on</h4><p>${r.worked}${r.cites.map(cite).join('')}</p></div>
+    <div class="report-block"><h4>What to do next</h4>${list(r.todo, 'report-todo', '☐')}</div>
+    <div class="report-block"><h4>What landed</h4>${list(r.landed, 'report-landed', '✓')}</div>
+    ${r.recurring.length ? `<div class="report-block"><h4>Keeps coming up</h4>${list(r.recurring, 'report-recurring', '⚠')}</div>` : ''}`;
+  $$('[data-report-tab]', reportEl).forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.reportTab === key)));
+}
+if (reportEl) {
+  renderReport('week');
+  $$('[data-report-tab]', reportEl).forEach((tab) => tab.addEventListener('click', () => {
+    const body = $('[data-report-body]', reportEl);
+    body.classList.add('is-switching');
+    setTimeout(() => { renderReport(tab.dataset.reportTab); body.classList.remove('is-switching'); }, 150);
+    track('report_tab', { period: tab.dataset.reportTab });
+  }));
+}
+
 // ---------- Page interactions ----------
 $$('.workflow-step').forEach((step) => {
   step.addEventListener('mouseenter', () => {

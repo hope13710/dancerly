@@ -27,6 +27,22 @@
 - [ ] Add Stripe plan entitlements and billing portal.
 - [ ] Replace seeded demo data with database-backed queries and mutations.
 
+## Phase 2.5 — projects and progress dashboard
+See `docs/product-plan.md` for the full spec.
+- [x] Landing: Projects, Progress dashboard, AI reports, and "gets better the longer you coach" sections.
+- [ ] Projects: templates, count sheet (BPM → eight-count grid on the timeline), review board, pages with @links to notes.
+- [ ] Dashboard: practice signals (submissions, loops, practice time) and feedback signals (notes by category, takes to fix, recurring corrections).
+- [ ] Correction library: save and reuse frequent notes with `/`.
+
+## Phase 3 — AI reports
+- [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
+- [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.
+- [ ] Coach briefing before class (top recurring issues, stalled dancers).
+
+## Phase 3.5 — motion signals (opt-in beta)
+- [ ] Pose estimation + beat detection: timing vs beat, extension, symmetry — compared only with the dancer's own previous takes.
+- [ ] Guardian consent flow for minors before any motion analysis.
+
 ## Phase 3 — deeper dance workflow
 - [ ] Add range notes and section looping.
 - [x] Mirror mode toggle in the review player (button + `M` shortcut) and in the landing demo.
