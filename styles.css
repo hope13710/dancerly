@@ -4060,3 +4060,75 @@ sup.cite {
     box-shadow: 0 1px 0 rgba(23, 25, 28, 0.06), 0 8px 20px rgba(23, 25, 28, 0.05);
   }
 }
+
+/* ---------- Unlabeled notes: labels only appear in AI views ---------- */
+.hero-visual .marker-a {
+  display: none;
+}
+.is-posted .loop-range {
+  opacity: 1;
+}
+.feature-list {
+  list-style: none;
+  margin: 0 0 30px;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  max-width: 440px;
+}
+.feature-list li {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #6f7682;
+  padding-left: 16px;
+  border-left: 2px solid #dcdcfb;
+}
+.feature-list b {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+}
+.ai-labeled {
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #7c3aed;
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.16), rgba(244, 114, 182, 0.16));
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+.ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.ai-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ai-tag::before {
+  content: "✦";
+  font-size: 8px;
+  opacity: 0.7;
+}
+.ai-tag.t-timing { color: #b2611f; background: #fff1e3; }
+.ai-tag.t-pathway { color: #3a6fc4; background: #e7f0ff; }
+.ai-tag.t-energy { color: #5b5ce2; background: #ededff; }
+.ai-tag.t-musicality { color: #16845b; background: #e4f7ee; }
+.ai-tag.t-technique { color: #b4386a; background: #fde8f0; }
+.report-block li .ai-tag {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.report-labels-note {
+  font-size: 10px;
+  color: #8b929d;
+}

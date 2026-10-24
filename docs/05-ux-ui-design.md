@@ -66,9 +66,9 @@
 | danger | `#C2410C` | `#FFEDE5` | 실패, 삭제 |
 | info / new | `#5B5CE2` | `#EDEDFF` | New activity |
 
-**노트 카테고리** (모든 화면에서 동일)
+**AI 레이블** (리포트·대시보드에서만 사용. 노트 작성기·노트 카드에는 쓰지 않음)
 
-| 카테고리 | 점·막대 | 칩 텍스트 | 칩 배경 | 툴팁 (한 줄 설명) |
+| 레이블 | 차트 색 | 칩 텍스트 | 칩 배경 | 툴팁 (한 줄 설명) |
 |---|---|---|---|---|
 | Timing | `#F3AE7A` | `#B2611F` | `#FFF1E3` | Landing on the right count |
 | Pathway | `#8FB4F2` | `#3A6FC4` | `#E7F0FF` | Where the body travels and the lines it draws |
@@ -174,14 +174,16 @@
 | **Button** | primary(dark) · secondary(outline) · ghost · danger · **ai**(그라데이션) | default · hover(-1px 이동) · pressed · disabled · loading(스피너) | 높이 sm 32 · md 40 · lg 48 |
 | **Icon button** | 기본 · 토글(on) | 툴팁 필수 | 거울모드 ⇋, 루프 ↻ |
 | **Input / Textarea** | 기본 · 검색 · 노트 작성기 | focus 링 accent 2px · error · disabled | 레이블은 입력 위 |
-| **Category chip** | 5개 + 사용자 정의 | 기본 · 선택 | 호버·길게 누르면 툴팁 |
+| **AI label chip** | 5개 (+ 사용자 정의 P2) | 기본 · 코치가 고친 상태 | ✦ 접두, 호버·길게 누르면 툴팁. 리포트·대시보드 전용 |
 | **Status pill** | Needs review · Re-submitted · Ready to close · Overdue | | 점 + 텍스트 |
 | **Role chip** | Dancer(핑크) · Coach(시안) · Assistant(회색) · Owner(accent) | | 아바타 옆 |
 | **Avatar** | 24 · 32 · 40, 이니셜 / 사진 | 온라인 점 없음 (차분함) | 겹침 스택 최대 3 + "+n" |
-| **Note card** | 순간 · 구간 · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · "from V1" | 시간 + 카운트 + 카테고리 + 본문 + 작성자 + 답글 수 |
-| **Note composer** | 순간 · 구간 | typing · 라이브러리 `/` 팝업 · saving | 카테고리 기본값 = 마지막 사용 |
+| **Note card** | 순간(▸) · 구간(⟷) · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · looping · "from V1" | 시간 칩(누르면 이동) + 카운트 + 본문(@멘션 칩) + 작성자 + ↻ Loop 버튼. **레이블 없음** |
+| **Note composer** | ▸ At 00:18 · ⟷ Range(Start/End) | typing · `@` 멘션 목록 · 라이브러리 `/` 팝업 · saving | 입력은 본문 하나. 포커스 시 영상 정지, 올린 뒤 포커스 해제. 하단 안내 "No label needed — AI sorts notes in your reports." |
+| **Mention menu** | 작성기 위 팝업 | 첫 항목 선택됨 · ↑↓ 이동 | 머리글 "People on {project}", 아바타 + 이름 + 역할 |
 | **Player** | 코치(풀 컨트롤) · 댄서(간단) · 비교(2분할) | loading(썸네일+스피너) · processing · error | 영상 영역은 항상 dark |
-| **Timeline** | 기본 · 카운트 눈금 | 노트 점(카테고리 색) · 구간 막대 · 루프 구간 · 재생 헤드 | 점 호버 → 노트 미리보기 |
+| **Timeline** | 기본 · 카운트 눈금 | 순간 노트 점 · 구간 노트 막대 · 작성 중 구간 미리보기(보라) · 반복 구간(주황) · 재생 헤드 | 클릭으로 이동, 점·막대 클릭 → 노트 선택 |
+| **Loop chip** | 툴바 | 반복 중일 때만 | "↻ Looping 00:42–00:48 ✕" |
 | **Sketch toolbar** | 펜 · 원 · 화살표 · 지우기 · 되돌리기 · 색 3 | 선택 도구 강조 | 영상 좌상단 플로팅 |
 | **Board card** | 제출 카드 | 상태 컬럼별 | 댄서 아바타 + 버전 + Open 노트 수 |
 | **Table** | 기본 · 카운트 시트 | 행 호버 · 선택 | 모바일: 카드로 전환 |
@@ -200,10 +202,10 @@
 
 ```
 ┌────────────────────────────────────────────┐
-│ 00:18 · Verse 3×8 · 5   [TIMING] ✎   Open  │ ← 시간 · 카운트 · 카테고리 · 스케치 · 상태
+│ ▸ 00:18 · Verse 3×8 · 5      ✎        Open  │ ← 시간 칩(탭하면 이동) · 카운트 · 스케치 · 상태
 │ Land on the beat before the shoulder hits. │ ← 본문 (최대 4줄, 더보기)
 │ Count “5-and-6” here.                      │
-│ AL Alex Lee · 2h          💬 1   ↻ 12 loops │ ← 작성자 · 답글 · 연습 횟수
+│ AL Alex Lee · 2h   💬 1    [↻ Loop ±2s]    │ ← 작성자 · 답글 · 반복 버튼 (구간 노트는 "Loop this part")
 └────────────────────────────────────────────┘
  선택 시: 왼쪽 2px accent 바 + 배경 강조, 영상이 그 순간으로 이동
 ```
@@ -265,8 +267,8 @@ Review queue                                 Filter: All groups ▾  Project ▾
 ├───────────────────────────────────────────────┤ └─────────────────────────┘ │
 │ 1×8 · 2×8 · 3×8 · 4×8 …   (카운트 눈금)        │                             │
 │ ──●────◆━━━━━━──────────────────── 01:12      │ ┌ Note at 00:18.0 ────────┐ │
-│ ▶  0.5×  ↻ Loop  ⇋ Mirror     00:18.0 · 3×8·5 │ │ [Timing▾] ✎ Sketch  / lib│ │
-│                         [N Note] [D Sketch]   │ │ Type a correction…      │ │
+│ ▶  0.5×  ↻ Looping 00:42–00:48 ✕   00:18.0 ⇋ │ │ [▸ At 00:18][⟷ Range] ✎  │ │
+│                         [N Note] [D Sketch]   │ │ Write… type @ to mention│ │
 └───────────────────────────────────────────────┤ │            [Pin note ↵] │ │
                                                 │ └─────────────────────────┘ │
                                                 │ [Resolve R]  [Done reviewing]│
@@ -379,7 +381,7 @@ Focus over time: Timing ▇▇▇▅▃▂  Musicality ▁▁▂▃▅
 | `←` `→` | 5초 이동 | `[` `]` | 구간 시작·끝 |
 | `,` `.` | 프레임 이동 | `R` | 선택 노트 해결 |
 | `M` | 거울모드 | `↑` `↓` | 이전·다음 노트 |
-| `1`–`5` | 카테고리 선택 (작성 중) | `Shift+N` | 다음 제출 |
+| `Esc` | 반복 해제 · 입력창 나가기 | `Shift+N` | 다음 제출 |
 | `⌘K` | 명령 팔레트 | `?` | 단축키 도움말 |
 
 모바일 제스처: 영상 더블탭 ±5초, 길게 누르기 0.5× 임시 재생, 노트 시트 위로 스와이프 펼치기.
@@ -389,7 +391,7 @@ Focus over time: Timing ▇▇▇▅▃▂  Musicality ▁▁▂▃▅
 ## 8. 접근성 (WCAG 2.1 AA)
 
 - 텍스트 대비 4.5:1 이상 (`--soft`는 본문 금지).
-- 색만으로 정보 전달 금지: 카테고리는 **색 + 글자**, 상태는 **아이콘 + 글자**.
+- 색만으로 정보 전달 금지: AI 레이블은 **색 + 글자**, 상태는 **아이콘 + 글자**, 순간·구간 노트는 **▸ · ⟷ 기호 + 시간**.
 - 모든 기능 키보드로 가능, 포커스 링 항상 보임.
 - 영상 컨트롤·토글에 `aria-pressed`, 탭에 `role="tab"`, 리포트 생성 결과는 `aria-live="polite"`.
 - 음성 노트 자동 자막, 스케치에는 노트 본문이 대체 텍스트 역할.

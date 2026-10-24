@@ -181,7 +181,7 @@ flowchart LR
 | | Coaches | | 공동 코치·어시스턴트 |
 | **Insights** | Dashboard | Group · Dancer · Category | 연습 신호 · 피드백 신호 · 동작 신호(Beta) |
 | | Reports | Drafts · Sent · Schedule | 코치 리포트 작성·검토·발송, 주간 다이제스트 예약 |
-| | Correction library | | 자주 쓰는 노트, 카테고리 관리 |
+| | Correction library | | 자주 쓰는 노트, AI 레이블 이름 관리 |
 | **Settings** | Workspace | | 이름, 로고, 언어, 시간대 |
 | | Members & roles | | 역할 변경, 초대 관리 |
 | | Notifications | | 워크스페이스 기본 알림 |

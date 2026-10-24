@@ -147,47 +147,47 @@ const reports = {
   dancer: {
     class: {
       scope: 'Tue, Oct 22 · 4 notes from Alex Lee',
-      worked: ['What you worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2]],
-      todo: ['What to do next', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1], ['00:42', 'Keep the elbow above the wrist through the transition.', 2]]],
-      landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3]]],
+      worked: ['What you worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
+      todo: ['What to do next', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Keep the elbow above the wrist through the transition.', 2, 'pathway']]],
+      landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
       recurring: ['Keeps coming up', []]
     },
     week: {
       scope: 'Oct 19 – 25 · 9 notes from Alex Lee',
-      worked: ['What you worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6]],
-      todo: ['What to do next', [['00:18', 'Count “5-and-6” through the chorus hit — record one take at 0.5×.', 1], ['01:03', 'Hold the final shape for a full two counts.', 6]]],
-      landed: ['What landed', [['Your wider arm pathway at 00:42 — resolved in Version 2.', 3]]],
-      recurring: ['Keeps coming up', [['Rushing the “and” counts — noted 3 weeks in a row.', 5]]]
+      worked: ['What you worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
+      todo: ['What to do next', [['00:18', 'Count “5-and-6” through the chorus hit — record one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
+      landed: ['What landed', [['Your wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
+      recurring: ['Keeps coming up', [['Rushing the “and” counts — noted 3 weeks in a row.', 5, 'timing']]]
     },
     month: {
       scope: 'October · 31 notes from Alex Lee and Sora Kim',
-      worked: ['What you worked on', 'Timing early in the month; by week 4 your coaches shifted to musicality in the bridge.', [2, 14, 27]],
-      todo: ['What to do next', [['01:20', 'Bridge: play with the half-time feel instead of hitting every count.', 27]]],
-      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14], ['Intro pathways clean since week 2.', 9]]],
-      recurring: ['Keeps coming up', [['Rushing the “and” counts — still open in the chorus.', 5]]]
+      worked: ['What you worked on', 'Timing early in the month; by week 4 your coaches shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
+      todo: ['What to do next', [['01:20', 'Bridge: play with the half-time feel instead of hitting every count.', 27, 'musicality']]],
+      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
+      recurring: ['Keeps coming up', [['Rushing the “and” counts — still open in the chorus.', 5, 'timing']]]
     }
   },
   coach: {
     class: {
       scope: 'Tue, Oct 22 · 4 of your notes',
-      worked: ['What Maya worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2]],
-      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1], ['00:42', 'Elbow above the wrist through the transition.', 2]]],
-      landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3]]],
+      worked: ['What Maya worked on', 'Chorus timing and the arm pathway into the turn.', [1, 2], ['timing', 'pathway']],
+      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” out loud until the shoulder hit lands on 6.', 1, 'timing'], ['00:42', 'Elbow above the wrist through the transition.', 2, 'pathway']]],
+      landed: ['What landed', [['Clean entrance on count 1 of the intro.', 3, 'timing']]],
       recurring: ['Worth a look', []]
     },
     week: {
       scope: 'Oct 19 – 25 · 9 of your notes',
-      worked: ['What Maya worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6]],
-      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” through the chorus hit — one take at 0.5×.', 1], ['01:03', 'Hold the final shape for a full two counts.', 6]]],
-      landed: ['What landed', [['Wider arm pathway at 00:42 — resolved in Version 2.', 3]]],
-      recurring: ['Worth a look', [['Rushing the “and” counts, 3 weeks in a row — also open for 3 other dancers.', 5]]]
+      worked: ['What Maya worked on', 'Chorus timing, wider arm pathways, and holding energy through the last eight.', [1, 3, 6], ['timing', 'pathway', 'energy']],
+      todo: ['Next steps you gave', [['00:18', 'Count “5-and-6” through the chorus hit — one take at 0.5×.', 1, 'timing'], ['01:03', 'Hold the final shape for a full two counts.', 6, 'energy']]],
+      landed: ['What landed', [['Wider arm pathway at 00:42 — resolved in Version 2.', 3, 'pathway']]],
+      recurring: ['Worth a look', [['Rushing the “and” counts, 3 weeks in a row — also open for 3 other dancers.', 5, 'timing']]]
     },
     month: {
       scope: 'October · 31 notes from you and Sora Kim',
-      worked: ['What Maya worked on', 'Timing early in the month; by week 4 the focus shifted to musicality in the bridge.', [2, 14, 27]],
-      todo: ['Next steps you gave', [['01:20', 'Bridge: half-time feel instead of hitting every count.', 27]]],
-      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14], ['Intro pathways clean since week 2.', 9]]],
-      recurring: ['Worth a look', [['Rushing the “and” counts — still open. Consider making it Tuesday’s focus.', 5]]]
+      worked: ['What Maya worked on', 'Timing early in the month; by week 4 the focus shifted to musicality in the bridge.', [2, 14, 27], ['timing', 'musicality']],
+      todo: ['Next steps you gave', [['01:20', 'Bridge: half-time feel instead of hitting every count.', 27, 'musicality']]],
+      landed: ['What landed', [['8 of 11 timing corrections fixed, most within two takes.', 14, 'timing'], ['Intro pathways clean since week 2.', 9, 'pathway']]],
+      recurring: ['Worth a look', [['Rushing the “and” counts — still open. Consider making it Tuesday’s focus.', 5, 'timing']]]
     }
   }
 };
@@ -209,12 +209,14 @@ const reportEl = $('[data-report]');
 const reportSection = $('#ai-reports');
 const reportView = { audience: 'dancer', period: 'week' };
 const cite = (n) => `<sup class="cite">[${n}]</sup>`;
+// Coaches write notes without labels; the AI adds them here, in the report.
+const aiTag = (label) => `<span class="ai-tag t-${label}">${label[0].toUpperCase()}${label.slice(1)}</span>`;
 const person = ([initials, role, label, name, roleLabel, author]) => `<div class="person ${author ? 'is-author' : ''}"><span class="person-avatar ${role}">${initials}</span><span><small>${label}</small><b>${name}</b><i class="role-chip ${role}">${roleLabel}</i></span></div>`;
 
 function renderReport() {
   const aud = audiences[reportView.audience];
   const r = reports[reportView.audience][reportView.period];
-  const list = ([, items], cls, icon) => `<ul class="${cls}">${items.map(([a, b, c]) => c === undefined ? `<li><i>${icon}</i><span>${a}${cite(b)}</span></li>` : `<li><i>${icon}</i><span><span class="ts">${a}</span> ${b}${cite(c)}</span></li>`).join('')}</ul>`;
+  const list = ([, items], cls, icon) => `<ul class="${cls}">${items.map((item) => item.length === 3 ? `<li><i>${icon}</i><span>${item[0]}${cite(item[1])}${aiTag(item[2])}</span></li>` : `<li><i>${icon}</i><span><span class="ts">${item[0]}</span> ${item[1]}${cite(item[2])}${aiTag(item[3])}</span></li>`).join('')}</ul>`;
   reportEl.dataset.audience = reportView.audience;
   reportSection.dataset.audience = reportView.audience;
   $('[data-report-kind]', reportEl).textContent = aud.kind;
@@ -224,7 +226,7 @@ function renderReport() {
   $('[data-report-actions]', reportEl).innerHTML = aud.actions;
   $('[data-report-body]', reportEl).innerHTML = `
     <div class="report-skeleton" aria-hidden="true"><em>✦ Reading ${r.scope.split('· ')[1]}…</em><span></span><span></span><span></span><span></span><span></span></div>
-    <div class="report-block"><h4>${r.worked[0]}</h4><p>${r.worked[1]}${r.worked[2].map(cite).join('')}</p></div>
+    <div class="report-block"><h4>${r.worked[0]}</h4><p>${r.worked[1]}${r.worked[2].map(cite).join('')}</p><div class="ai-tags">${r.worked[3].map(aiTag).join('')}</div></div>
     <div class="report-block"><h4>${r.todo[0]}</h4>${list(r.todo, 'report-todo', '☐')}</div>
     <div class="report-block"><h4>${r.landed[0]}</h4>${list(r.landed, 'report-landed', '✓')}</div>
     ${r.recurring[1].length ? `<div class="report-block"><h4>${r.recurring[0]}</h4>${list(r.recurring, 'report-recurring', '⚠')}</div>` : ''}`;

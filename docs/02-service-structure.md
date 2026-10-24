@@ -70,6 +70,9 @@ erDiagram
   SUBMISSION ||--o{ NOTE : "carries"
   NOTE ||--o| SKETCH : has
   NOTE ||--o{ REPLY : has
+  NOTE ||--o| NOTE_LABEL : "AI가 분류"
+  NOTE ||--o{ NOTE_MENTION : mentions
+  USER ||--o{ NOTE_MENTION : "is mentioned"
   NOTE }o--o| SECTION : "located in"
   USER ||--o{ PRACTICE_EVENT : logs
   NOTE ||--o{ PRACTICE_EVENT : "practiced"
@@ -89,13 +92,15 @@ erDiagram
   SUBMISSION { uuid id uuid assignment_id uuid dancer_id enum board_status }
   VERSION { uuid id int number datetime uploaded_at enum processing }
   MEDIA_ASSET { uuid id string storage_key string playback_id float duration json waveform }
-  NOTE { uuid id float t_start float t_end enum category text body enum status uuid author_id string lang }
+  NOTE { uuid id float t_start float t_end "null이면 순간 노트" text body enum status uuid author_id string lang }
+  NOTE_LABEL { uuid note_id enum label float confidence enum source "ai|coach" }
+  NOTE_MENTION { uuid note_id uuid user_id }
   SKETCH { uuid id json strokes float frame_t }
   REPLY { uuid id uuid author_id text body }
   PRACTICE_EVENT { uuid id enum type "loop|replay|mirror|mark_practicing" float seconds datetime at }
   REPORT { uuid id enum kind "recap|coach" enum period json scope json body enum status uuid generated_by uuid for_user }
   REPORT_CITATION { uuid report_id uuid note_id string sentence_key }
-  LIBRARY_ITEM { uuid id text body enum category int uses }
+  LIBRARY_ITEM { uuid id text body int uses }
   SHARE_LINK { uuid id string token datetime expires_at json scope }
   NOTIFICATION { uuid id enum type json payload datetime read_at }
   SUBSCRIPTION { string stripe_customer string plan enum status }
@@ -103,6 +108,8 @@ erDiagram
 
 **설계 메모**
 - `NOTE.t_start / t_end`: 초 단위 저장. 화면에서는 `TRACK.bpm`과 `offset`으로 **카운트 표기로 변환**한다 (저장은 시간, 표시는 카운트).
+- `NOTE_LABEL`: 노트 작성 직후 AI가 비동기로 분류한다. 코치가 리포트·대시보드에서 고치면 `source=coach`로 바뀌고 다시 덮어쓰지 않는다. 화면 표시 기준: 신뢰도 0.6 미만이면 "Unlabeled".
+- `NOTE_MENTION`: 멘션 가능한 사람은 **그 프로젝트에 초대된 사람**으로 제한한다 (워크스페이스 전체 아님).
 - `NOTE.lang`: 작성 언어. 번역문은 캐시 테이블에 따로 둔다 (원문 보존).
 - `PRACTICE_EVENT`: 대시보드의 연습 신호 원천. 개인 식별 가능한 데이터이므로 보관 기간 정책 적용.
 - 동작 신호(Beta)는 `MOTION_METRIC` 테이블로 분리하고, 워크스페이스 옵트인·보호자 동의가 있을 때만 생성.
@@ -226,7 +233,9 @@ sequenceDiagram
   actor C as Coach
   participant A as API
   actor D as Dancer
-  C->>A: 00:18에 노트 + 스케치 (Timing)
+  C->>A: 00:16–00:20 구간에 노트 + 스케치 (레이블 없음, @Sora 멘션)
+  A-->>A: (비동기) AI가 노트 본문으로 레이블 분류 → NOTE_LABEL
+  A-->>C: @Sora에게 멘션 알림
   A-->>D: 알림 (딥링크: /d/feedback/:note?t=18)
   D->>A: 노트 열기 · 구간 루프 · 거울모드 (연습 로그)
   D->>A: "Practicing" 표시 · 답글
@@ -288,9 +297,9 @@ flowchart LR
 | 연습 | `loop_played` (구간, 횟수, 초) | 댄서 플레이어 | 구간 루프 횟수, 연습 시간 |
 | 연습 | `mirror_toggled`, `speed_changed` | 플레이어 | 연습 방식 분포 |
 | 연습 | `note_marked_practicing` | 노트 | 연습 중 노트 수 |
-| 피드백 | `note_created` (카테고리) | 코치 리뷰 | 카테고리별 노트 수·추이 |
+| 피드백 | `note_created` → `note_labeled` (AI 레이블) | 코치 리뷰 → 비동기 분류 | 레이블별 노트 수·추이 |
 | 피드백 | `note_resolved` (버전 번호) | 코치 리뷰 | 해결률, **해결까지 걸린 버전 수** |
-| 피드백 | 같은 카테고리·구간 노트가 3주 이상 반복 | 배치 집계 | **반복되는 교정** |
+| 피드백 | 같은 레이블·구간 노트가 3주 이상 반복 | 배치 집계 | **반복되는 교정** |
 | 동작 (Beta) | `motion_analyzed` | 분석 워커 | 박자 대비 오차(ms), 동작 크기, 대칭 |
 | 리포트 | `recap_generated`, `report_sent`, `report_opened`, `todo_checked` | 리포트 | 생성 빈도, 열람률, 체크리스트 완료율 |
 

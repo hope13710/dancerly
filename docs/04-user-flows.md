@@ -33,7 +33,7 @@ flowchart TD
   E --> F[웰컴 3문항<br/>코칭 형태 · 댄서 수 · 장르]
   F --> G[샘플 리허설 리뷰가 열린 상태]
   G --> H[코치마크: 영상 멈추고 N]
-  H --> I[첫 노트 작성 + 카테고리]
+  H --> I[첫 노트 작성<br/>글만 쓰면 됨 · 레이블 없음]
   I --> J[🎉 Your first note is pinned]
   J --> K{다음 단계}
   K -->|Upload your own video| L[업로드]
