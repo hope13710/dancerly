@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f8fa" />
+  <meta name="description" content="Looproom workspace — review dance practice with your team." />
+  <title>Looproom workspace</title>
+  <link rel="icon" href="/logo.svg" />
+  <link rel="stylesheet" href="/workspace.css" />
+</head>
+<body>
+  <div class="workspace-app" data-app>
+    <aside class="app-sidebar" data-sidebar>
+      <div class="sidebar-top">
+        <a class="app-brand" href="/" aria-label="Looproom home"><span class="app-brand-mark"><i></i><i></i><i></i></span><span>looproom</span></a>
+        <button class="workspace-switcher" type="button" data-workspace-switcher><span class="workspace-avatar">AL</span><span class="workspace-switcher-copy"><b>Alex Lee Studio</b><small>Personal workspace</small></span><span class="chevron">⌄</span></button>
+      </div>
+      <nav class="app-nav" aria-label="Workspace navigation">
+        <span class="nav-label">WORKSPACE</span>
+        <button class="nav-item active" data-view="home"><span class="nav-icon">⌂</span><span>Home</span></button>
+        <button class="nav-item" data-view="reviews"><span class="nav-icon">◫</span><span>Reviews</span><span class="nav-count">4</span></button>
+        <button class="nav-item" data-view="groups"><span class="nav-icon">◌</span><span>Groups</span></button>
+        <button class="nav-item" data-view="inbox"><span class="nav-icon">□</span><span>Inbox</span><span class="nav-dot"></span></button>
+        <button class="nav-item" data-view="progress"><span class="nav-icon">↗</span><span>Progress</span></button>
+        <span class="nav-label nav-label-spaced">MANAGE</span>
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+      </nav>
+      <div class="sidebar-bottom"><div class="help-card"><span class="help-icon">?</span><div><b>Need a hand?</b><small>See how Looproom works</small></div><span class="help-arrow">↗</span></div><div class="user-row"><span class="user-avatar">AL</span><span><b>Alex Lee</b><small>Coach</small></span><button class="user-menu" aria-label="Account menu">•••</button></div></div>
+    </aside>
+    <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+    <main class="app-main">
+      <header class="app-header"><button class="mobile-menu-button" aria-label="Open navigation" data-open-sidebar>☰</button><div class="breadcrumbs"><span>Alex Lee Studio</span><b>/</b><strong data-breadcrumb>Home</strong></div><div class="header-actions"><button class="header-icon-button" aria-label="Search" data-toast-action="Search is coming next.">⌕</button><button class="header-icon-button notification-button" aria-label="Notifications" data-view-button="inbox">◔<span></span></button><button class="header-user"><span class="user-avatar small">AL</span><span>Alex</span><span>⌄</span></button></div></header>
+      <div class="app-content" data-content></div>
+    </main>
+    <div class="workspace-toast" data-toast></div>
+  </div>
+  <input class="visually-hidden" type="file" accept="video/mp4,video/quicktime,video/webm" data-video-input />
+  <script src="/workspace.js" defer></script>
+</body>
+</html>
