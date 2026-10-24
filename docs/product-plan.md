@@ -1,5 +1,7 @@
 # Looproom 제품 기획: 핵심 기능 3가지
 
+> 상세 기획(메뉴 구조도·서비스 구조도·기능 정의서·플로우·UX/UI·정책)은 [docs/README.md](README.md)에서 시작한다.
+
 > 대상: 창업팀, 디자이너, 개발자
 > 범위: ① 영상 업로드·피드백 ② 프로젝트 관리 + 데이터 대시보드 ③ AI 분석 리포트
 > 원칙: 가짜 지표·후기 없이, 실제 사용 데이터가 쌓일수록 강해지는 제품
@@ -80,7 +82,7 @@ Workspace (코치 / 스튜디오)
  └─ Project (쇼케이스 2026, 주간 수업, 대회 준비…)
      ├─ Overview      : 목표, 일정, 참여 댄서, 음악
      ├─ Count sheet   : 8카운트 단위 구간표 (구간·카운트·포커스·기준 영상·상태)
-     ├─ Reviews board : To submit → In review → Practicing → Fixed (칸반)
+     ├─ Assignments board : To submit → In review → Practicing → Fixed (칸반, 상태 자동)
      ├─ Pages         : 자유 문서 (블록 에디터, @멘션으로 노트·영상·댄서 연결)
      └─ Calendar      : 리허설·마감일
 ```

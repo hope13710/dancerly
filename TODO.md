@@ -1,5 +1,7 @@
 # Looproom Product Build TODO
 
+Planning docs: `docs/README.md` (menu structure, service structure, functional spec with feature IDs, user flows, UX/UI, policy).
+
 ## Landing page
 - [x] English-first hero with “Give better dance feedback, right where it happens.” and `Start free` / `Watch how it works` CTAs.
 - [x] Problem section, four-step workflow, Video Review product preview, coach/team benefits, privacy/trust, pricing preview, FAQ, final CTA, and footer.
@@ -18,6 +20,12 @@
 - [x] Settings with workspace, notification, privacy, retention, and billing entry points.
 - [x] Mobile navigation drawer and responsive review layout.
 - [x] Clear front-end prototype boundary: seeded demo data is local to the browser; no real auth, database, storage, or billing yet.
+
+## Prototype alignment with the planning docs
+- [ ] Coach sidebar: Home · Inbox · Review queue · Projects · People · Insights · Settings (`docs/01-menu-structure.md`).
+- [ ] Separate mobile dancer app at `/d` with bottom tabs: Today · Feedback · ＋ · Recap · Me.
+- [ ] Rename "Reviews" to Assignments in the workspace; note status Open → Practicing → Resolved.
+- [ ] Raise app text to 12px minimum and unify tokens (`docs/05-ux-ui-design.md` §3).
 
 ## Phase 2 — real SaaS foundations
 - [ ] Add authentication and workspace membership using managed server/database services.
