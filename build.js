@@ -5,5 +5,6 @@ const files = ['index.html', 'workspace.html', 'app.js', 'workspace.js', 'styles
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 await Promise.all(files.map((file) => cp(file, `dist/${file}`)));
+await cp('app', 'dist/app', { recursive: true });
 await cp('public', 'dist', { recursive: true });
-console.log(`Built ${files.length} files into dist/`);
+console.log(`Built ${files.length} files and the app/ folder into dist/`);

@@ -30,9 +30,15 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 - [ ] Raise app text to 12px minimum and unify tokens (`docs/05-ux-ui-design.md` §3).
 
 ## Phase 2 — real SaaS foundations
-- [ ] Add authentication and workspace membership using managed server/database services.
-- [ ] Add persistent users, workspaces, groups, reviews, submissions, notes, replies, and notifications.
-- [ ] Add private video storage, upload processing, signed playback URLs, and retention rules.
+Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
+- [x] Supabase auth: email magic link + Google button, sign-up with name, profile on first visit.
+- [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
+- [x] Videos and takes (auto-numbered), private `takes` bucket, signed playback URLs.
+- [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.
+- [x] Row level security on every table, tested with three simulated users.
+- [ ] Configure Site URL / redirect URLs and Google in the Supabase dashboard (see docs/07).
+- [ ] Custom SMTP before launch; resumable uploads (tus) with progress; HLS transcoding and thumbnails.
+- [ ] Mention notifications, Inbox, retention rules.
 - [ ] Add real email/in-app notifications and permission checks.
 - [ ] Add Stripe plan entitlements and billing portal.
 - [ ] Replace seeded demo data with database-backed queries and mutations.

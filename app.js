@@ -283,10 +283,7 @@ $('[data-signup-form]')?.addEventListener('submit', (event) => {
   if (!email) return;
   track('signup_submit', { variant: heroVariant });
   form.classList.add('is-loading');
-  $('[data-form-message]').textContent = 'Creating your private workspace…';
-  // Prototype: no backend yet, so the email only travels to the workspace in this browser session.
-  try { sessionStorage.setItem('looproom:signup-email', email); } catch {}
-  setTimeout(() => { location.href = '/app?welcome=1'; }, 700);
+  location.href = `/app/login?mode=signup&email=${encodeURIComponent(email)}`;
 });
 
 const header = $('[data-header]');
