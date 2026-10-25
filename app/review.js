@@ -1,4 +1,4 @@
-import { cols } from './client.js';
+import { cols, schema } from './client.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
@@ -8,6 +8,7 @@ import { offsetByMusic, follow } from './compare.js';
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
 import { reviewTips, explainPrivate, track, seen, markSeen } from './onboarding.js';
+import { shiftBetween, alignTake } from './align.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
@@ -16,7 +17,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
     sb.from('projects').select(cols('id, title, is_sample')).eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
-    sb.from('takes').select('id, number, storage_path, created_at, uploaded_by, count_start').eq('video_id', videoId).order('number'),
+    sb.from('takes').select(cols('id, number, storage_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
@@ -46,6 +47,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
   const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  // Carried notes someone answered “Not yet” on for this take.
+  try { r.notYet = new Set(JSON.parse(localStorage.getItem(`looproom:notYet:${take.id}`) || '[]')); } catch { r.notYet = new Set(); }
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
@@ -127,7 +130,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       .select('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, note_reactions(user_id), note_replies(id, author_id, body, created_at)')
       .eq('video_id', videoId).order('t_start');
     if (error) return toast(friendlyError(error), 'error');
-    r.notes = data.map((n) => ({ ...n, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), note_replies: [...(n.note_replies || [])].sort((a, b) => a.created_at.localeCompare(b.created_at)) }));
+    r.notes = data.map((n) => {
+      // A note from another take moves to the same moment in this one, when the takes are lined up.
+      const shift = n.take_id === take.id ? 0 : shiftBetween(takes.find((t) => t.id === n.take_id), take);
+      const move = (t) => (t === null ? null : Math.max(0, Number(t) + (shift || 0)));
+      return { ...n, t_start: move(n.t_start), t_end: move(n.t_end), shifted: Boolean(shift), unaligned: shift === null, note_replies: [...(n.note_replies || [])].sort((a, b) => a.created_at.localeCompare(b.created_at)) };
+    });
     paintNotes();
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
@@ -136,7 +144,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // "3·5" next to the time when the video has counts (each take keeps its own count 1).
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
   const noteCount = (n) => {
-    const c = countAt(n.t_start, r.counts.bpm, takeCountStart(n.take_id));
+    const c = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
     return c ? `<span class="count-tag" title="Eight ${c.eight}, count ${c.count}">${countLabel(c)}</span>` : '';
   };
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention">@${esc(m.name)}</span>`), esc(text));
@@ -157,7 +165,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const agrees = n.note_reactions.length;
       const iAgree = n.note_reactions.some((x) => x.user_id === me.id);
       const looping = r.loop?.id === n.id;
-      const from = n.take_id !== take.id ? `<span class="from">from Take ${takeNo[n.take_id]}</span>` : '';
+      const carried = n.take_id !== take.id;
+      const from = carried ? `<span class="from" ${n.unaligned ? 'title="Time may be off: this take isn’t lined up with the earlier one yet"' : ''}>from Take ${takeNo[n.take_id]}${n.unaligned ? ' ≈' : ''}</span>` : '';
+      // Watching a new take is when fixes get noticed: ask right on the note.
+      const ask = carried && n.status !== 'resolved' && canResolve(n) && !r.notYet.has(n.id)
+        ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="mini ok" data-status="resolved" data-id="${n.id}">✓ Yes</button><button class="mini" data-notyet="${n.id}">Not yet</button></div>` : '';
       const statusBtn = n.status === 'resolved'
         ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '')
         : `${n.status === 'open' ? `<button class="mini" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}${canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">Resolve ✓</button>` : ''}`;
@@ -168,6 +180,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
         <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
+        ${ask}
         <div class="note-foot"><span class="who">${avatar(nameOf(n.author_id), n.author_id, 'xs')}${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
           <button class="mini ${looping ? 'on' : ''}" data-loop="${n.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>
@@ -560,6 +573,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Note actions (one delegated listener) ----------
   async function onClick(e) {
     if (e.target.closest('.thread input, .reply-form')) return;
+    const notYet = e.target.closest('[data-notyet]');
+    if (notYet) {
+      r.notYet.add(notYet.dataset.notyet);
+      try { localStorage.setItem(`looproom:notYet:${take.id}`, JSON.stringify([...r.notYet])); } catch {}
+      return paintNotes();
+    }
     const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-thread],[data-delete-reply],[data-note]');
     if (!el || !view.contains(el)) return;
     const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.thread || el.dataset.note;
@@ -805,6 +824,16 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const closeTips = reviewTips({ isOwner: isOwner || project.is_sample });
   setMode('point');
   await loadNotes();
+  // A later take that isn't lined up with Take 1 yet: line it up by the music in the background, then re-place notes.
+  if (schema.align && take.number > 1 && take.align == null && !project.is_sample) {
+    setTimeout(async () => {
+      try {
+        const urlFirst = await takeUrl(takes[0].storage_path);
+        const align = await alignTake({ take, first: takes[0], urlFirst, urlTake: signed.signedUrl });
+        if (align !== null && document.contains(videoEl)) { take.align = align; loadNotes(); }
+      } catch {}
+    }, 2500);
+  }
   r.frame = requestAnimationFrame(tick);
   // Opened from Inbox, Feedback, or Home: select that note and go to its moment.
   const wantedNote = new URLSearchParams(location.search).get('note');

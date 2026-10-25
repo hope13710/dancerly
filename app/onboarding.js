@@ -30,6 +30,7 @@ export async function openSample({ from = 'unknown' } = {}) {
   if (error) return toast(friendlyError(error), 'error');
   track('sample_opened', { from });
   await ctx.refreshNav();
+  if (from === 'insights') return ctx.navigate(`/app/insights?project=${projectId}`);
   // Straight to the review: that's where the product makes sense.
   const { data: video } = await sb.from('videos').select('id').eq('project_id', projectId).order('created_at').limit(1).maybeSingle();
   ctx.navigate(video ? `/app/p/${projectId}/v/${video.id}?take=1` : `/app/p/${projectId}`);
@@ -64,7 +65,7 @@ const TEAMS = [
   ['school', 'School or club team', 'Spring Concert {year}', '{year} 축제 무대'],
   ['studio', 'Studio or academy', 'Recital {year}', '{year} 발표회'],
   ['comp', 'Competition team', 'Competition Set {year}', '{year} 대회 준비'],
-  ['solo', 'Just me', 'My practice', '내 연습']
+  ['solo', 'Just me, practicing', 'My practice', '내 연습']
 ];
 
 export async function renderWelcome() {

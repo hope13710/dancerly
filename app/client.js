@@ -13,12 +13,18 @@ export const GOOGLE_ENABLED = false;
 
 // Columns added for first-run guidance (migration 018). Until the database has them, queries leave them out
 // and the guidance stays off, so the rest of the app keeps working.
-export const schema = { firstRun: true };
+// Same for take alignment (migration 019).
+export const schema = { firstRun: true, align: true };
+const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const { error } = await sb.from('projects').select('is_sample').limit(1);
-  schema.firstRun = !(error && /is_sample|42703|does not exist/i.test(`${error.code} ${error.message}`));
+  const [a, b] = await Promise.all([sb.from('projects').select('is_sample').limit(1), sb.from('takes').select('align').limit(1)]);
+  schema.firstRun = !missing(a.error);
+  schema.align = !missing(b.error);
 }
-export const cols = (list) => (schema.firstRun ? list : list.replace(/,\s*(is_sample|onboarding)\b/g, '').replace(/\b(is_sample|onboarding),\s*/g, ''));
+export function cols(list) {
+  const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align'])];
+  return drop.reduce((s, c) => s.replace(new RegExp(`,\\s*${c}\\b`, 'g'), '').replace(new RegExp(`\\b${c},\\s*`, 'g'), ''), list);
+}
 
 export const TAKE_BUCKET = 'takes';
 export const MAX_TAKE_BYTES = 50 * 1024 * 1024;
