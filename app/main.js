@@ -132,7 +132,7 @@ function renderLogin() {
       event.preventDefault();
       const email = form.email.value.trim();
       const password = form.password.value;
-      const name = form.name?.value.trim();
+      const name = form.elements.namedItem('name')?.value.trim(); // form.name is the form's own name attribute, not the field
       const button = form.querySelector('button[type="submit"]');
       const label = button.textContent;
       button.disabled = true;
