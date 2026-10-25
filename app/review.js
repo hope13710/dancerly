@@ -63,7 +63,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <span class="player-badge"><b class="mirror-badge">⇋ Mirrored</b><span data-time-overlay>00:00.0</span></span>
           <button class="big-play" data-play aria-label="Play or pause (Space)">▶</button>
         </div>
-        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Click to jump"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
+        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
         <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
       </div>
       <aside class="notes-col">
@@ -184,7 +184,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     paintPlayer();
   }
   function paintPlayer() {
-    const t = videoEl.currentTime || 0;
+    const t = scrub.active ? scrub.at : videoEl.currentTime || 0;
     $$('[data-play]').forEach((b) => { b.textContent = videoEl.paused ? '▶' : 'Ⅱ'; });
     $('[data-player]').classList.toggle('playing', !videoEl.paused);
     $('[data-player]').classList.toggle('mirrored', r.mirror);
@@ -308,11 +308,48 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   $('[data-ab]').addEventListener('click', abLoop);
   $('[data-loop-range]').addEventListener('click', () => loopPart(r.rangeStart, r.rangeEnd));
   $('[data-loopchip]').addEventListener('click', (e) => { if (e.target.closest('[data-clearloop]')) setLoop(null); });
-  $('[data-track]').addEventListener('click', (e) => {
-    if (e.target.closest('[data-seek]')) return;
-    const box = $('[data-track]').getBoundingClientRect();
-    seek(((e.clientX - box.left) / box.width) * duration());
+  // Scrubbing: press anywhere on the bar and drag (mouse or finger). Playback pauses while dragging and resumes after.
+  const track = $('[data-track]');
+  const scrub = { active: false, resume: false, frame: 0, at: 0 };
+  const timeAt = (x) => { const box = track.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - box.left) / box.width)) * duration(); };
+  const applyScrub = () => {
+    scrub.frame = 0;
+    if (videoEl.fastSeek && scrub.active) videoEl.fastSeek(scrub.at); else videoEl.currentTime = scrub.at;
+    paintPlayer();
+  };
+  track.addEventListener('pointerdown', (e) => {
+    if (e.button > 0 || e.target.closest('[data-seek]') || !duration()) return;
+    e.preventDefault();
+    try { track.setPointerCapture(e.pointerId); } catch {}
+    scrub.active = true;
+    scrub.resume = !videoEl.paused;
+    videoEl.pause();
+    track.classList.add('scrubbing');
+    scrub.at = timeAt(e.clientX);
+    applyScrub();
   });
+  track.addEventListener('pointermove', (e) => {
+    if (!scrub.active) return;
+    scrub.at = timeAt(e.clientX);
+    // Show the new position right away; the video catches up once per frame.
+    $('[data-tfill]').style.width = pct(scrub.at);
+    $('[data-thead]').style.left = pct(scrub.at);
+    $('[data-cur]').textContent = fmt(scrub.at);
+    if (!scrub.frame) scrub.frame = requestAnimationFrame(applyScrub);
+  });
+  const endScrub = (e) => {
+    if (!scrub.active) return;
+    scrub.active = false;
+    track.classList.remove('scrubbing');
+    if (e?.clientX !== undefined && e.type === 'pointerup') scrub.at = timeAt(e.clientX);
+    cancelAnimationFrame(scrub.frame);
+    scrub.frame = 0;
+    videoEl.currentTime = scrub.at; // exact frame at release
+    paintPlayer();
+    if (scrub.resume) play(true);
+  };
+  track.addEventListener('pointerup', endScrub);
+  track.addEventListener('pointercancel', endScrub);
 
   // ---------- Note actions (one delegated listener) ----------
   async function onClick(e) {

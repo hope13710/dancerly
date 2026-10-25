@@ -4453,3 +4453,19 @@ td.ref .play {
     height: 50px;
   }
 }
+
+/* ---------- Scrubbing the timeline ---------- */
+.track {
+  touch-action: none;
+}
+.track::before {
+  inset: -12px 0;
+}
+.track.scrubbing .t-head {
+  width: 17px;
+  height: 17px;
+}
+.track.scrubbing .t-fill,
+.track.scrubbing .t-head {
+  transition: none;
+}
