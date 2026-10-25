@@ -850,7 +850,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (videoEl.readyState >= 1) jump(); else videoEl.addEventListener('loadedmetadata', jump, { once: true });
   } else {
     // ?t=42 opens at that second (count sheet references, shared moments).
-    const at = Number(new URLSearchParams(location.search).get('t'));
+    // &from=<take> means the time was read off that take: move it to the same moment in this one when they're lined up.
+    const params = new URLSearchParams(location.search);
+    const from = takes.find((t) => t.id === params.get('from'));
+    const at = Number(params.get('t')) + ((from && shiftBetween(from, take)) || 0);
     if (at > 0) { const go = () => seek(at); if (videoEl.readyState >= 1) go(); else videoEl.addEventListener('loadedmetadata', go, { once: true }); }
   }
 

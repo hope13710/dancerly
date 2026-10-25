@@ -59,7 +59,7 @@ export function projectHead({ project, members }, tab, actions = '') {
       <div class="head-actions">${project.is_sample ? actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '') : actions}</div>
     </header>
     ${project.is_sample ? sampleBanner() : ''}
-    ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['counts', 'Count sheet', `${base}/counts`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+    ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
 }
 
 // Sample projects say so on every tab, and can be removed in one step.

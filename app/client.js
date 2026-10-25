@@ -14,12 +14,18 @@ export const GOOGLE_ENABLED = false;
 // Columns added for first-run guidance (migration 018). Until the database has them, queries leave them out
 // and the guidance stays off, so the rest of the app keeps working.
 // Same for take alignment (migration 019).
-export const schema = { firstRun: true, align: true };
+// And which take a count sheet reference came from (migration 020).
+export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b] = await Promise.all([sb.from('projects').select('is_sample').limit(1), sb.from('takes').select('align').limit(1)]);
+  const [a, b, c] = await Promise.all([
+    sb.from('projects').select('is_sample').limit(1),
+    sb.from('takes').select('align').limit(1),
+    sb.from('count_sheet_rows').select('take_id').limit(1)
+  ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
+  schema.sheetTake = !missing(c.error);
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align'])];

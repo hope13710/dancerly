@@ -2990,6 +2990,10 @@ ul.todo.compact li {
   font-weight: 650;
   color: var(--accent-dark);
 }
+/* In panel headers the generic `.panel-head p` margin used to win and glue the label to the headline. */
+.panel-head .ai-label {
+  margin: 0 0 8px;
+}
 .ai-label span {
   color: var(--muted);
   font-weight: 500;
