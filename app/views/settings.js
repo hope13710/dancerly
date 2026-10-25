@@ -62,6 +62,9 @@ export async function renderSettings(section = 'account') {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Log out</h2><p class="muted">Signs you out on this device.</p></div><button class="btn" data-signout-here>Log out</button></div>
+      </section>
+      <section class="panel danger-zone">
+        <div class="panel-head"><div><h2>Delete account</h2><p class="muted">Permanently delete your account, your videos, and your feedback. You’ll decide what happens to the projects you manage, and can download your data first.</p></div><a class="btn danger-outline" href="/app/account/delete" data-link>Delete account…</a></div>
       </section>`,
       wire() {
         $('[data-name-form]').addEventListener('submit', async (event) => {

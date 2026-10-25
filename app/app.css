@@ -5273,3 +5273,133 @@ body.is-guest .topbar {
   color: inherit;
   text-decoration: underline;
 }
+
+/* ---------- Account deletion ---------- */
+.form-note {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.btn.danger-outline {
+  border-color: #f3c3ae;
+  color: var(--danger);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.btn.danger-outline:hover {
+  background: #fff3ee;
+}
+.btn.danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.danger-zone {
+  border-color: #f6d6c8;
+}
+.me-delete {
+  text-align: center;
+  margin: 18px 0 0;
+  font-size: 13px;
+}
+.me-delete a {
+  color: var(--muted);
+}
+.delete-account .da-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.delete-account h3 {
+  margin: 4px 0 6px;
+  font-size: 14px;
+}
+.delete-account ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.da-gone {
+  color: var(--danger);
+}
+.da-stays {
+  color: var(--ok);
+}
+.da-projects {
+  display: grid;
+  gap: 10px;
+}
+.da-project {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+.da-project.deleting {
+  border-color: #f3c3ae;
+  background: #fff8f5;
+}
+.da-project-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.da-project-head small {
+  color: var(--muted);
+}
+.da-choice,
+.da-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.da-choice > span {
+  flex: 0 1 auto;
+}
+.da-choice:not(:has(select)) > span {
+  flex: 1;
+}
+.da-choice select {
+  margin-left: 4px;
+  min-width: 0;
+  max-width: 220px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+}
+.da-reasons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+.da-confirm .field input {
+  width: 100%;
+}
+.da-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .delete-account .da-columns,
+  .da-reasons {
+    grid-template-columns: 1fr;
+  }
+  .danger-zone .panel-head {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .da-choice:has(select) {
+    flex-wrap: wrap;
+  }
+}

@@ -5,6 +5,7 @@ import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome } from './onboarding.js';
+import { renderDeleteAccount } from './views/delete-account.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
 import { renderFeedback } from './views/feedback.js';
@@ -46,6 +47,7 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },
   { re: /^\/app\/welcome\/?$/, render: renderWelcome },
+  { re: /^\/app\/account\/delete\/?$/, render: renderDeleteAccount },
   { re: /^\/app\/queue\/?$/, render: renderQueue },
   { re: /^\/app\/calendar\/?$/, render: () => renderCalendar(null) },
   { re: /^\/app\/recaps\/([0-9a-f-]{36})\/?$/, render: renderRecap },
@@ -271,6 +273,8 @@ function renderLogin() {
   // Shown once: an error that came back from an email link or Google (captured at startup).
   let notice = state.authError ? friendlyError({ message: state.authError }) : null;
   state.authError = null;
+  // Right after an account is deleted (the sign-out can draw this screen more than once, so it's time-based).
+  const farewell = (state.farewellUntil || 0) > Date.now();
   renderChrome();
   const paint = (email = params.get('email') || '') => {
     const signup = mode === 'signup';
@@ -280,6 +284,7 @@ function renderLogin() {
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
         <h1>${signup ? 'Start your team’s space' : 'Welcome back'}</h1>
         <p class="muted">${signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
+        ${farewell ? '<p class="form-note" role="status">Your account has been deleted. Thanks for rehearsing with us.</p>' : ''}
         ${notice ? `<p class="form-error" role="alert">${esc(notice)}</p>` : ''}
         ${GOOGLE_ENABLED ? '<button type="button" class="btn google" data-google><span class="g">G</span> Continue with Google</button><div class="or"><span>or with email</span></div>' : ''}
         <form data-auth-form>
@@ -527,6 +532,7 @@ function renderMe() {
     <div class="list-group">
       <button data-me-signout class="danger-text"><span>Log out</span></button>
     </div>
+    <p class="me-delete"><a href="/app/account/delete" data-link>Delete account</a></p>
   </section>`;
   $('[data-me-signout]').addEventListener('click', signOut);
   refreshUnread();
