@@ -28,8 +28,8 @@
           <a href="#faq">FAQ</a>
         </nav>
         <div class="header-actions">
-          <a class="login-link" href="/app/login">Log in</a>
-          <a class="button button-small button-dark" href="#signup" data-cta="header">Start free <span aria-hidden="true">↗</span></a>
+          <a class="login-link" href="/app/login" data-cta="header_login">Log in</a>
+          <a class="button button-small button-dark" href="/app/login?mode=signup" data-cta="header">Start free <span aria-hidden="true">↗</span></a>
           <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" data-menu-toggle><span></span><span></span></button>
         </div>
         <div class="mobile-menu" data-mobile-menu>
@@ -38,7 +38,10 @@
           <a href="#compare">Why Looproom</a>
           <a href="#pricing">Pricing</a>
           <a href="#faq">FAQ</a>
-          <a href="#signup" class="button button-dark">Start free <span aria-hidden="true">↗</span></a>
+          <div class="mobile-menu-auth">
+            <a href="/app/login" class="button button-outline" data-cta="menu_login">Log in</a>
+            <a href="/app/login?mode=signup" class="button button-dark" data-cta="menu_signup">Sign up free</a>
+          </div>
         </div>
       </header>
 
@@ -49,7 +52,7 @@
             <h1 data-hero-title><span>Every correction.</span> <span>Every count.</span> <em>Every version.</em></h1>
             <p class="hero-lede" data-hero-lede>Everyone on your team pins feedback to the exact moment of every rehearsal, so the next run comes out cleaner.</p>
             <div class="hero-actions">
-              <a class="button button-dark button-large" href="#signup" data-cta="hero_primary">Review your first video free <span aria-hidden="true">↗</span></a>
+              <a class="button button-dark button-large" href="/app/login?mode=signup" data-cta="hero_primary">Review your first video free <span aria-hidden="true">↗</span></a>
               <button class="text-button demo-trigger" type="button" data-demo-trigger><span class="play-icon">▶</span> Watch the 25-second demo</button>
             </div>
             <ul class="hero-assurances" aria-label="What you get">
@@ -275,8 +278,8 @@
         <section class="pricing section-pad" id="pricing">
           <div class="pricing-intro"><div class="eyebrow"><span class="eyebrow-dot"></span>Simple pricing</div><h2>Start free.<br /><em>Upgrade when it sticks.</em></h2><p>Run the full feedback loop with your first team. No sales call, no credit card, no complicated rollout.</p></div>
           <div class="pricing-cards">
-            <div class="pricing-card"><div class="price-top"><span class="plan-name">FREE</span></div><div class="price"><span>$</span>0<small>/ forever</small></div><p>Try the whole loop with one team before you commit.</p><div class="price-divider"></div><ul><li><span>✓</span> 1 team, up to 10 members</li><li><span>✓</span> Unlimited takes per video</li><li><span>✓</span> Timestamped notes and replies</li><li><span>✓</span> Take history and mirror mode</li><li><span>✓</span> 1 project, 2-week dashboard</li><li><span>✓</span> 3 AI recaps a month</li></ul><a href="#signup" class="plan-link" data-cta="pricing_free">Start free <span>↗</span></a></div>
-            <div class="pricing-card pricing-card-featured"><div class="price-top"><span class="plan-name">TEAM</span><span class="plan-badge">FOR REHEARSING TEAMS</span></div><div class="price"><span>$</span>12<small>/ month</small></div><p>For teams and coaches who rehearse every week.</p><div class="price-divider"></div><ul><li><span>✓</span> 3 teams, up to 40 members</li><li><span>✓</span> Unlimited videos, takes, and notes</li><li><span>✓</span> Section loops, range notes, team note library</li><li><span>✓</span> Unlimited projects and templates</li><li><span>✓</span> Full-history progress dashboard</li><li><span>✓</span> Unlimited AI recaps</li><li><span>✓</span> Sketch feedback on the frame</li></ul><a href="#signup" class="plan-link plan-link-dark" data-cta="pricing_team">Start free, upgrade later <span>↗</span></a></div>
+            <div class="pricing-card"><div class="price-top"><span class="plan-name">FREE</span></div><div class="price"><span>$</span>0<small>/ forever</small></div><p>Try the whole loop with one team before you commit.</p><div class="price-divider"></div><ul><li><span>✓</span> 1 team, up to 10 members</li><li><span>✓</span> Unlimited takes per video</li><li><span>✓</span> Timestamped notes and replies</li><li><span>✓</span> Take history and mirror mode</li><li><span>✓</span> 1 project, 2-week dashboard</li><li><span>✓</span> 3 AI recaps a month</li></ul><a href="/app/login?mode=signup" class="plan-link" data-cta="pricing_free">Start free <span>↗</span></a></div>
+            <div class="pricing-card pricing-card-featured"><div class="price-top"><span class="plan-name">TEAM</span><span class="plan-badge">FOR REHEARSING TEAMS</span></div><div class="price"><span>$</span>12<small>/ month</small></div><p>For teams and coaches who rehearse every week.</p><div class="price-divider"></div><ul><li><span>✓</span> 3 teams, up to 40 members</li><li><span>✓</span> Unlimited videos, takes, and notes</li><li><span>✓</span> Section loops, range notes, team note library</li><li><span>✓</span> Unlimited projects and templates</li><li><span>✓</span> Full-history progress dashboard</li><li><span>✓</span> Unlimited AI recaps</li><li><span>✓</span> Sketch feedback on the frame</li></ul><a href="/app/login?mode=signup" class="plan-link plan-link-dark" data-cta="pricing_team">Start free, upgrade later <span>↗</span></a></div>
           </div>
           <p class="pricing-footnote">Prices in USD, billed monthly. Running a studio or several crews? Studio adds unlimited teams, studio-wide dashboards, and parent-ready monthly reports. <a href="#signup" data-cta="pricing_studio">Join the waitlist</a>.</p>
         </section>
@@ -301,11 +304,11 @@
             <details><summary>Who can see our videos? Can we delete them?<span>+</span></summary><p>Only people you invite to your workspace. There are no public profiles and nothing is searchable. You can delete any video or review at any time, and export everything whenever you want. We don’t use your videos or notes to train AI models unless you explicitly opt in.</p></details>
             <details><summary>How does billing work outside the US?<span>+</span></summary><p>Plans are priced in USD and billed monthly by card. Your bank handles currency conversion. You can start on the free plan without a card.</p></details>
           </div></section>
-        <section class="signup section-pad" id="signup"><div class="signup-inner"><div class="signup-orbit orbit-one"></div><div class="signup-orbit orbit-two"></div><div class="eyebrow"><span class="eyebrow-dot"></span>Ready when your next take is</div><h2>Make the next<br /><em>correction count.</em></h2><p>Start a private space for your team. We’ll email you a sign-in link — no password to remember.</p><form class="signup-form" data-signup-form><label class="sr-only" for="email">Your email</label><input id="email" type="email" placeholder="you@example.com" required /><button class="button button-light" type="submit" data-cta="signup">Review your first video free <span aria-hidden="true">↗</span></button></form><ul class="signup-assurances"><li>✓ No credit card</li><li>✓ Free for your first team</li><li>✓ Private by default</li></ul><p class="founding-note"><b>Early access.</b> Your team will be one of our founding teams — tell us what to build next and we’ll answer you directly.</p><div class="form-message" data-form-message role="status"></div></div></section>
+        <section class="signup section-pad" id="signup"><div class="signup-inner"><div class="signup-orbit orbit-one"></div><div class="signup-orbit orbit-two"></div><div class="eyebrow"><span class="eyebrow-dot"></span>Ready when your next take is</div><h2>Make the next<br /><em>correction count.</em></h2><p>Start a private space for your team. Sign up with your email and a password, confirm once, and you’re in.</p><form class="signup-form" data-signup-form><label class="sr-only" for="email">Your email</label><input id="email" type="email" placeholder="you@example.com" required /><button class="button button-light" type="submit" data-cta="signup">Review your first video free <span aria-hidden="true">↗</span></button></form><ul class="signup-assurances"><li>✓ No credit card</li><li>✓ Free for your first team</li><li>✓ Private by default</li></ul><p class="founding-note"><b>Early access.</b> Your team will be one of our founding teams — tell us what to build next and we’ll answer you directly.</p><div class="form-message" data-form-message role="status"></div></div></section>
       </main>
       <footer class="site-footer section-pad"><div class="footer-top"><a class="brand brand-footer" href="#top"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>looproom</span></a><p>Better feedback for the next take.</p><div class="footer-columns"><div><span>PRODUCT</span><a href="#workflow">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a></div><div><span>RESOURCES</span><a href="#faq">FAQ</a><a href="#signup">Start free</a><a href="#compare">Why Looproom</a></div><div><span>LEGAL</span><a href="#signup">Privacy</a><a href="#signup">Terms</a></div></div></div><div class="footer-bottom"><span>© 2026 Looproom</span><span>Made for the next take.</span><a class="footer-status" href="/demo">Open the workspace demo →</a></div></footer>
     </div>
-    <div class="mobile-cta" data-mobile-cta><a class="button button-dark" href="#signup" data-cta="mobile_sticky">Review your first video free <span aria-hidden="true">↗</span></a></div>
+    <div class="mobile-cta" data-mobile-cta><a class="button button-dark" href="/app/login?mode=signup" data-cta="mobile_sticky">Review your first video free <span aria-hidden="true">↗</span></a></div>
     <div class="toast" data-toast role="status"></div>
     <script src="/app.js" defer></script>
   </body>
