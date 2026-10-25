@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
-import { startTranslating } from './i18n.js';
+import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome } from './onboarding.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
@@ -256,6 +256,8 @@ async function renameMe() {
 }
 
 // ---------- Sign in / sign up ----------
+// The version of the Terms and Privacy Policy people agree to at sign-up (their effective date).
+const TERMS_VERSION = '2026-10-25';
 // Only ever send people back inside the app after signing in.
 const safeNext = (next) => (next && /^\/app(\/|$|\?)/.test(next) && !next.startsWith('//') ? next : '/app');
 
@@ -287,10 +289,13 @@ function renderLogin() {
             <span class="password"><input name="password" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="${signup ? 8 : 1}" required /><button type="button" class="reveal" data-reveal aria-label="Show password">Show</button></span>
           </label>
           ${signup ? '' : '<button type="button" class="link-btn" data-forgot>Forgot password?</button>'}
+          ${signup ? `<label class="consent"><input type="checkbox" name="consent" required /><span data-no-i18n>${isKo
+            ? '만 14세 이상이며, <a href="/terms" target="_blank" rel="noopener">이용약관</a>과 <a href="/privacy" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의해요.'
+            : 'I’m 14 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.'}</span></label>` : ''}
           <button class="btn primary wide" type="submit">${signup ? 'Create account' : 'Log in'}</button>
           <p class="form-error" data-form-error role="alert" hidden></p>
         </form>
-        <p class="fine">By continuing you agree to the Terms and Privacy Policy.</p>
+        ${signup ? '' : '<p class="fine"><a href="/terms" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></p>'}
       </div>
     </section>`;
     const form = $('[data-auth-form]');
@@ -312,7 +317,7 @@ function renderLogin() {
       button.textContent = signup ? 'Creating…' : 'Logging in…';
       const done = (message) => { button.disabled = false; button.textContent = label; showError(message); };
       if (signup) {
-        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name, signup_source: new URLSearchParams(location.search).get('ref') || undefined } } });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name, signup_source: new URLSearchParams(location.search).get('ref') || undefined, terms_version: TERMS_VERSION, terms_accepted_at: new Date().toISOString(), age_confirmed: '14+' } } });
         if (error) return done(friendlyError(error));
         // Supabase answers an already-registered email with an empty user instead of an error.
         if (data.user && !data.user.identities?.length) return done('That email already has an account. Log in instead — or use “Forgot password?” if you never set one.');

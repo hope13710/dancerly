@@ -847,6 +847,8 @@ export const KO = {
   'Open the sample project': '샘플 프로젝트 열기',
   'Not sure where to start?': '어디서부터 할지 고민된다면?',
   'Explore a sample project': '샘플 프로젝트 둘러보기',
+  'Terms of Service': '이용약관',
+  'Privacy Policy': '개인정보 처리방침',
   // ---------- 인사이트 ----------
   'What to work on next, from your team’s feedback': '팀 피드백으로 보는 다음 연습 포인트',
   'You’re looking at sample data.': '샘플 데이터로 보고 있어요.',

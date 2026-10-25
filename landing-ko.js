@@ -9,6 +9,8 @@ export const LANDING_KO = {
   'Insights': '리포트',
   'Pricing': '요금',
   'FAQ': '자주 묻는 질문',
+  'Terms': '이용약관',
+  'Privacy': '개인정보 처리방침',
   'Log in': '로그인',
   'Log out': '로그아웃',
   'Start free': '무료로 시작하기',

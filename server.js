@@ -12,6 +12,7 @@ const resolveRequestPath = (requestPath) => {
   if (requestPath === '/demo' || requestPath === '/demo/') return 'app/index.html';
   // The real app is a single page: every /app route without a file extension loads app/index.html.
   if (/^\/app(\/[^.]*)?$/.test(requestPath)) return 'app/index.html';
+  if (requestPath === '/terms' || requestPath === '/privacy') return `${requestPath.slice(1)}.html`;
   if (requestPath === '/manus-routes.json') return 'public/manus-routes.json';
   // The build copies public/ to the site root; locally, serve it from there.
   if (requestPath.startsWith('/samples/')) return `public${requestPath}`;
