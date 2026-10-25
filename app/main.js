@@ -232,7 +232,7 @@ async function renderProject(projectId) {
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
       return `<a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
         <span class="video-thumb">▶</span>
-        <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length ? `Take ${takes[0].number} · ${timeAgo(takes[0].created_at)}` : 'No takes yet'}</small></span>
+        <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
         <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
       </a>`;
     }).join('')}</div>`
@@ -244,10 +244,29 @@ async function renderProject(projectId) {
   $('[data-project-menu]').addEventListener('click', () => projectMenu(project, isOwner));
 }
 
+// Words that don't tell two videos apart ("take 2", "v3", "final", dates).
+const titleWords = (title) => title.toLowerCase().replace(/\b(take|v|ver|version)\s*\d+\b|\b(final|new|again|retake)\b|\d{1,4}[./-]\d{1,2}([./-]\d{1,4})?/g, ' ')
+  .split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1);
+
+// Is this upload probably another take of a video that's already here?
+function suggestStack(title, videos, lastViewedId) {
+  const words = new Set(titleWords(title));
+  let best = null;
+  for (const v of videos) {
+    const other = new Set(titleWords(v.title));
+    const shared = [...words].filter((w) => other.has(w)).length;
+    const score = shared / Math.max(1, Math.min(words.size, other.size));
+    if (score >= 0.6 && (!best || score > best.score)) best = { video: v, score };
+  }
+  if (best) return best.video;
+  // No title match: offer the video they were just looking at, if it's still here.
+  return videos.find((v) => v.id === lastViewedId) || null;
+}
+
 async function createVideo(projectId) {
   const values = await dialog({
     title: 'New video',
-    body: 'One video holds every take of the same piece — Take 1, Take 2, and so on.',
+    body: 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
     fields: [
       { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true },
       { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }
@@ -257,11 +276,34 @@ async function createVideo(projectId) {
   if (!values) return;
   const problem = checkTakeFile(values.file);
   if (problem) return toast(problem, 'error');
+  const { data: existing } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId);
+  let lastViewed = null;
+  try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
+  const match = suggestStack(values.title, existing || [], lastViewed);
+  if (match) {
+    const next = (match.takes[0]?.count ?? 0) + 1;
+    const choice = await dialog({
+      title: `Is this a new take of “${match.title}”?`,
+      body: `It would become <b>Take ${next}</b>, and notes that aren’t fixed yet will carry over so your team can check what changed.`,
+      confirm: `Yes, add as Take ${next}`,
+      extra: 'No, it’s a new video'
+    });
+    if (!choice) return;
+    if (!choice.extra) {
+      try {
+        const added = await withUploadBar(`${match.title} · Take ${next}`, (stage) => uploadTake({ projectId, videoId: match.id, file: values.file, onStage: stage }));
+        toast(`Take ${added.number} is up. Open notes came along.`);
+        return navigate(`/app/p/${projectId}/v/${match.id}?take=${added.number}`);
+      } catch (err) {
+        return toast(friendlyError(err), 'error');
+      }
+    }
+  }
   const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title }).select('id').single();
   if (error) return toast(friendlyError(error), 'error');
   try {
     await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
-    toast('Take 1 is up. Pin your first note.');
+    toast('Uploaded. Pause on a moment and pin your first note.');
     navigate(`/app/p/${projectId}/v/${video.id}`);
   } catch (err) {
     await sb.from('videos').delete().eq('id', video.id);

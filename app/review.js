@@ -13,6 +13,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
   setCrumbs([['Projects', '/app'], [project.title, `/app/p/${projectId}`], [video.title]]);
   const base = `/app/p/${projectId}/v/${videoId}`;
+  // Remembered so a later upload from the project page can offer to stack onto this video.
+  try { localStorage.setItem(`looproom:lastVideo:${projectId}`, videoId); } catch {}
   const isOwner = members.some((m) => m.user_id === me.id && m.role === 'owner');
   const nameOf = (id) => members.find((m) => m.user_id === id)?.name || 'Former member';
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
@@ -34,7 +36,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('')}<button class="btn small" data-upload>+ New take</button></div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button></div>
     </header>
     <div class="review-layout">
       <div class="player-col">
@@ -110,8 +112,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   function paintSummary() {
     const earlierResolved = r.notes.filter((n) => takeNo[n.take_id] < take.number && n.status === 'resolved').length;
     const open = visibleNotes().filter((n) => n.status !== 'resolved').length;
-    $('[data-summary]').innerHTML = take.number === 1
-      ? `<b>Take 1</b> · <span class="open">${open} open</span>`
+    // With a single take there is nothing to compare yet, so keep it to the open count.
+    $('[data-summary]').innerHTML = takes.length === 1
+      ? `<span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
       : `<b>Take ${take.number}</b> · <span class="ok">✓ ${earlierResolved} resolved from earlier takes</span> · <span class="open">${open} still open</span>`;
   }
 

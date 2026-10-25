@@ -282,6 +282,13 @@ Review queue                                 Filter: All groups ▾  Project ▾
                                                 └─────────────────────────────┘
 ```
 - 데스크톱 2단(영상 1.5 : 노트 0.7), 태블릿·모바일은 영상 위·노트 아래.
+- **테이크 표시 규칙**: 테이크가 1개면 상단에 테이크 탭·"Take 1"·비교 요약을 보이지 않고 [↑ Upload a new take] 버튼만. 2개 이상이 되면 Take 1 · 2 · 3 전환과 "Take 3 · ✓ n resolved · n still open" 요약이 나타난다.
+- **업로드 자동 제안 시트** (프로젝트 화면에서 새 비디오를 올릴 때, 비슷한 비디오가 있으면):
+  ```
+  Is this a new take of “Full run-through”?
+  It would become Take 4, and notes that aren’t fixed yet will carry over.
+  [No, it’s a new video]                [Yes, add as Take 4]
+  ```
 - 로딩: 썸네일 + 노트 목록 먼저. 처리 중: "Processing your video… notes are ready below."
 - 오류: "This video couldn’t be played." [Try again] [Ask dancer to re-upload]
 
