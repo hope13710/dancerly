@@ -71,6 +71,7 @@ $('[data-signout]').addEventListener('click', async () => {
   state.profile = null;
   navigate('/app/login');
 });
+$('[data-password]').addEventListener('click', () => { $('[data-account-menu]').hidden = true; navigate('/app/reset'); });
 $('[data-rename]').addEventListener('click', async () => {
   const values = await dialog({ title: 'Your name', fields: [{ name: 'name', label: 'Shown to your team', value: state.profile.display_name, max: 60, required: true }] });
   if (!values?.name) return;
@@ -265,7 +266,7 @@ function renderReset() {
     return;
   }
   view.innerHTML = `<section class="auth"><form class="auth-card" data-reset-form>
-    <h1>Set a new password</h1>
+    <h1>${state.recovering ? 'Set a new password' : 'Change password'}</h1>
     <p class="muted">For <b>${esc(state.session.user.email || '')}</b>. You’ll use it to log in from now on.</p>
     <label class="field"><span>New password <small>8+ characters</small></span>
       <span class="password"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" class="reveal" data-reveal aria-label="Show password">Show</button></span>
