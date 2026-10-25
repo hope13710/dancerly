@@ -125,7 +125,8 @@ export async function renderSettings(section = 'account') {
   }
 
   async function plan() {
-    const { data } = await sb.from('project_members').select('project_id, projects(project_members(count))').eq('user_id', state.session.user.id).eq('role', 'owner');
+    const { data: rows } = await sb.from('project_members').select('project_id, projects(is_sample, project_members(count))').eq('user_id', state.session.user.id).eq('role', 'owner');
+    const data = (rows || []).filter((m) => !m.projects?.is_sample);
     const owned = data?.length || 0;
     const largest = Math.max(0, ...(data || []).map((m) => m.projects?.project_members?.[0]?.count ?? 1));
     const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;

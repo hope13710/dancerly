@@ -5,22 +5,26 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUp
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
+import { memberWelcome } from '../onboarding.js';
+
+// Under every file picker: what makes a rehearsal video easy to give feedback on.
+const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
 
 export async function renderProjects() {
   const { view, setCrumbs } = ctx;
   setCrumbs([['Projects']]);
   const { data: projects, error } = await sb.from('projects')
-    .select('id, title, image_url, created_at, project_members(count), videos(count)')
+    .select('id, title, image_url, is_sample, created_at, project_members(count), videos(count)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><h1>Projects</h1><p class="muted sub">One project per goal — a showcase, a competition, or weekly practice.</p></div><button class="btn primary" data-new-project>+ New project</button></header>
     ${projects.length ? `<div class="cards">${projects.map((p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
         ${projectMark(p)}
-        <h3>${esc(p.title)}</h3>
+        <h3>${esc(p.title)}${p.is_sample ? ' <span class="tag sample-tag">Sample</span>' : ''}</h3>
         <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
       </a>`).join('')}</div>`
-    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', '<button class="btn primary" data-new-project>+ New project</button>')}
+    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', '<button class="btn primary" data-new-project>+ New project</button><button class="btn" data-open-sample>Explore a sample first</button>')}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -36,7 +40,7 @@ export async function createProject() {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select('id, title, image_url, created_at, created_by').eq('id', projectId).single(),
+    sb.from('projects').select('id, title, image_url, is_sample, created_at, created_by').eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -51,9 +55,17 @@ export function projectHead({ project, members }, tab, actions = '') {
       <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
       </div></div>
-      <div class="head-actions">${actions}</div>
+      <div class="head-actions">${project.is_sample ? actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '') : actions}</div>
     </header>
+    ${project.is_sample ? sampleBanner() : ''}
     ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['counts', 'Count sheet', `${base}/counts`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+}
+
+// Sample projects say so on every tab, and can be removed in one step.
+export function sampleBanner() {
+  return `<div class="sample-banner" role="note"><span class="sample-dot" aria-hidden="true">✦</span>
+    <p><b>This is a sample project.</b> <span>Only you can see it. Play the videos, leave notes, try the tools — nothing here reaches anyone.</span></p>
+    <span class="sample-actions"><button class="btn small primary" data-sample-own>Start my own project</button><button class="btn small ghost" data-delete-sample>Delete sample</button></span></div>`;
 }
 
 export async function renderProject(projectId) {
@@ -75,10 +87,18 @@ export async function renderProject(projectId) {
         <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
       </a>`;
     }).join('')}</div>`
-    : empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', '<button class="btn primary" data-new-video>+ New video</button>')}
+    : p.isOwner
+      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', '<button class="btn primary" data-new-video>+ New video</button><button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>')
+      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
-  $('[data-invite]').addEventListener('click', () => showInvite(projectId, p.project.title));
+  $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
+  // People who just joined get a short welcome once.
+  const mine = p.members.find((m) => m.user_id === p.me);
+  if (!p.isOwner && (ctx.state.justJoined === projectId || (mine?.joined_at && Date.now() - new Date(mine.joined_at) < 3 * 86400000))) {
+    ctx.state.justJoined = null;
+    memberWelcome(projectId, p.project, p.members);
+  }
   paintThumbs(videos.map((v) => [...v.takes].sort((a, b) => b.number - a.number)[0]).filter(Boolean));
 }
 
@@ -133,7 +153,7 @@ export async function renderProjectPeople(projectId) {
     <p class="fine left">Owners can rename or delete the project and remove people. Everyone can upload, leave notes, and invite.</p>
     ${groupsSection(p, groups)}
   </section>`;
-  $('[data-invite]').addEventListener('click', () => showInvite(projectId, p.project.title));
+  $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
   wireGroups(projectId, p, groups, () => renderProjectPeople(projectId));
   $$('[data-member]').forEach((b) => b.addEventListener('click', async () => {
     const m = p.members.find((x) => x.user_id === b.dataset.member);
@@ -210,6 +230,7 @@ export async function renderProjectSettings(projectId) {
   });
   $$('[data-copy-link]').forEach((b) => b.addEventListener('click', async () => {
     const link = `${location.origin}/app/join/${b.dataset.copyLink}`;
+    window.dataLayer?.push({ event: 'invite_link_shared', via: 'copy' });
     try { await navigator.clipboard.writeText(link); toast('Invite link copied.'); } catch { toast(link); }
   }));
   $$('[data-revoke]').forEach((b) => b.addEventListener('click', async () => {
@@ -265,7 +286,7 @@ export async function createVideo(projectId, { request = null } = {}) {
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
     fields: [
       { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : '' },
-      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · big phone videos are shrunk on your device first' }
+      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT }
     ],
     confirm: 'Upload'
   });
@@ -318,7 +339,7 @@ async function resubmit(projectId, video) {
   const values = await dialog({
     title: `Upload Take ${next}`,
     body: `You already submitted <b>${esc(video.title)}</b>. This becomes Take ${next}, and notes that aren’t fixed yet come along.`,
-    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · big phone videos are shrunk on your device first' }],
+    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT }],
     confirm: `Upload Take ${next}`
   });
   if (!values) return;
@@ -333,16 +354,22 @@ async function resubmit(projectId, video) {
   }
 }
 
-export async function showInvite(projectId, title) {
-  // Reuse a live invite link if there is one, so everyone shares the same link.
+// Reuse a live invite link if there is one, so everyone shares the same link.
+export async function inviteLink(projectId) {
   let { data: invite } = await sb.from('project_invites').select('code, expires_at').eq('project_id', projectId).eq('revoked', false)
     .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (!invite) {
     const { data, error } = await sb.from('project_invites').insert({ project_id: projectId }).select('code, expires_at').single();
-    if (error) return toast(friendlyError(error), 'error');
+    if (error) throw error;
     invite = data;
   }
-  const link = `${location.origin}/app/join/${invite.code}`;
+  return { link: `${location.origin}/app/join/${invite.code}`, expires_at: invite.expires_at };
+}
+
+export async function showInvite(projectId, title) {
+  let invite;
+  try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
+  const { link } = invite;
   const el = document.createElement('dialog');
   el.className = 'dialog';
   el.innerHTML = `<div class="dialog-card"><h2>Invite your team</h2><p>Anyone with this link can join <b>${esc(title)}</b> with just their name and email. It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
@@ -352,6 +379,7 @@ export async function showInvite(projectId, title) {
   el.showModal();
   el.querySelector('input').select();
   el.querySelector('[data-copy]').addEventListener('click', async () => {
+    window.dataLayer?.push({ event: 'invite_link_shared', via: 'copy' });
     try { await navigator.clipboard.writeText(link); toast('Invite link copied.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
   });
   el.querySelector('[data-close]').addEventListener('click', () => el.close());

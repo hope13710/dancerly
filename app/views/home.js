@@ -5,6 +5,7 @@ import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindCla
 import { homeRecapCard } from './recaps.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
+import { needsWelcome, onboarding, saveOnboarding } from '../onboarding.js';
 
 function greeting() {
   const h = new Date().getHours();
@@ -16,7 +17,12 @@ export async function renderHome() {
   setCrumbs([['Home']]);
   const me = state.session.user.id;
   await state.projectsReady;
-  const [recapCard, dueFromMe, toReview, { data: upcoming }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }] = await Promise.all([
+  if (needsWelcome()) return ctx.navigate('/app/welcome', { replace: true });
+  // The sample doesn't count toward getting started.
+  const sample = state.projects.find((p) => p.is_sample);
+  const real = state.projects.filter((p) => !p.is_sample);
+  const notSample = (q) => (sample ? q.neq('project_id', sample.id) : q);
+  const [recapCard, dueFromMe, toReview, { data: upcoming }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }, { count: myTakes }, { count: myReplies }, { count: myViews }] = await Promise.all([
     homeRecapCard(),
     myOpenRequests(),
     unseenVideos(),
@@ -24,8 +30,11 @@ export async function renderHome() {
     notesForMe(me, { limit: 50 }),
     sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)').order('created_at', { ascending: false }).limit(12),
     sb.from('notes').select(NOTE_SELECT).order('created_at', { ascending: false }).limit(12),
-    sb.from('notes').select('id', { count: 'exact', head: true }).eq('author_id', me),
-    sb.from('project_members').select('user_id').neq('user_id', me).limit(1)
+    notSample(sb.from('notes').select('id', { count: 'exact', head: true }).eq('author_id', me)),
+    notSample(sb.from('project_members').select('user_id').neq('user_id', me)).limit(1),
+    notSample(sb.from('takes').select('id', { count: 'exact', head: true }).eq('uploaded_by', me)),
+    sb.from('note_replies').select('id', { count: 'exact', head: true }).eq('author_id', me),
+    sb.from('video_views').select('video_id', { count: 'exact', head: true }).eq('user_id', me)
   ]);
   const todo = forMe.filter((n) => n.status !== 'resolved');
   // One timeline of takes and notes, newest first.
@@ -35,14 +44,23 @@ export async function renderHome() {
   ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10);
   const names = await namesFor([...todo.slice(0, 5).map((n) => n.author_id), ...activity.map((a) => a.who)]);
 
-  const steps = [
-    ['Create a project', state.projects.length > 0, 'project'],
-    ['Upload a rehearsal video', (takes || []).length > 0, 'video'],
-    ['Pin your first note', (myNotes || 0) > 0, state.projects[0] ? `/app/p/${state.projects[0].id}` : null],
+  // Leaders set things up; people who were invited mostly watch, practice, and send their own videos.
+  const owned = real.filter((p) => p.created_by === me);
+  const leader = owned.length > 0 || !real.length;
+  const firstReal = (owned[0] || real[0])?.id;
+  const steps = leader ? [
+    ['Create a project', real.length > 0, 'project'],
+    ['Upload a rehearsal video', (myTakes || 0) > 0, 'video'],
+    ['Pin your first note', (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null],
     ['Invite a teammate', (roster || []).length > 0, 'invite']
+  ] : [
+    ['Watch a team video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
+    ['Check feedback for you', !todo.length, todo.length ? '/app/feedback' : null],
+    ['Upload your video', (myTakes || 0) > 0, dueFromMe[0] ? `/app/p/${dueFromMe[0].project_id}/requests/${dueFromMe[0].id}` : 'video'],
+    ['Reply or leave a note', (myReplies || 0) + (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null]
   ];
   const done = steps.filter((s) => s[1]).length;
-  let hideChecklist = done === steps.length;
+  let hideChecklist = done === steps.length || Boolean(onboarding().checklist_hidden);
   try { hideChecklist ||= localStorage.getItem('looproom:checklist') === 'hidden'; } catch {}
 
   const first = esc(state.profile.display_name.split(' ')[0]);
@@ -67,6 +85,7 @@ export async function renderHome() {
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
       <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
+      ${leader ? `<p class="checklist-sample">${sample ? `Want to see a finished example? <a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : 'Not sure where to start? <button type="button" class="link-btn" data-open-sample="home">Explore a sample project</button>'}</p>` : ''}
     </section>`}
     <div class="home-grid">
       <section class="panel">
@@ -93,7 +112,7 @@ export async function renderHome() {
   // Opening from Home walks the same queue as the Review queue page.
   try { sessionStorage.setItem(QUEUE_KEY, JSON.stringify(toReview.map((v) => `/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}`))); } catch {}
   $('[data-hide-checklist]')?.addEventListener('click', () => {
-    try { localStorage.setItem('looproom:checklist', 'hidden'); } catch {}
+    saveOnboarding({ checklist_hidden: true });
     $('.checklist').remove();
   });
   view.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => ctx.startAction(b.dataset.step)));

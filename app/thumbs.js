@@ -1,6 +1,6 @@
 // Video thumbnails: one still per take, saved next to the video in the private bucket.
 // Made on the uploader's device right after an upload; older takes get one the first time someone opens the list.
-import { sb, TAKE_BUCKET } from './client.js';
+import { sb, TAKE_BUCKET, isPublicMedia, publicMediaUrl } from './client.js';
 
 // Grabs a frame about 1 second in (or 10% for short clips) and returns a JPEG blob, or null if the browser can't decode it.
 export function grabStill(src, { width = 480 } = {}) {
@@ -51,9 +51,11 @@ export async function saveThumb(take, blob) {
 // Signed URLs for a batch of thumbnail paths: { path: url }.
 export async function thumbUrls(paths) {
   const unique = [...new Set(paths.filter(Boolean))];
-  if (!unique.length) return {};
-  const { data } = await sb.storage.from(TAKE_BUCKET).createSignedUrls(unique, 60 * 60 * 6);
-  return Object.fromEntries((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+  const bundled = Object.fromEntries(unique.filter(isPublicMedia).map((p) => [p, publicMediaUrl(p)]));
+  const stored = unique.filter((p) => !isPublicMedia(p));
+  if (!stored.length) return bundled;
+  const { data } = await sb.storage.from(TAKE_BUCKET).createSignedUrls(stored, 60 * 60 * 6);
+  return { ...bundled, ...Object.fromEntries((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl])) };
 }
 
 // Fills in missing stills one or two at a time; calls back with an object URL as each one is ready.
@@ -62,6 +64,7 @@ export async function backfillThumbs(takes, onReady) {
   const worker = async () => {
     while (queue.length) {
       const take = queue.shift();
+      if (isPublicMedia(take.storage_path)) continue;
       const { data } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(take.storage_path, 600);
       if (!data?.signedUrl) continue;
       const blob = await grabStill(data.signedUrl);

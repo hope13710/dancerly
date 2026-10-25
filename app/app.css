@@ -4809,3 +4809,268 @@ body.is-guest .topbar {
 .sketch-bar button {
   white-space: nowrap;
 }
+
+/* ---------- First run: sample project, welcome steps, tips ---------- */
+.sample-tag {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.side-projects a > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-tag {
+  flex: none;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.sample-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  border: 1px solid #dcdcfa;
+}
+.sample-banner p {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #34366e;
+}
+.sample-banner b {
+  color: var(--accent-dark);
+}
+.sample-dot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 13px;
+}
+.sample-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.empty .btn + .btn {
+  margin-left: 8px;
+}
+.checklist-sample {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.checklist-sample .link-btn {
+  display: inline;
+  margin: 0;
+  font-weight: 650;
+}
+.welcome-card {
+  width: min(460px, 100%);
+}
+.welcome-card h1 {
+  margin-top: 14px;
+}
+.welcome-card .chips {
+  margin: 0 0 16px;
+  gap: 8px;
+}
+.welcome-card .chip {
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.welcome-card .chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.welcome-card > .btn.wide + .btn.wide {
+  margin-top: 8px;
+}
+.welcome-card .copy-row {
+  margin-bottom: 10px;
+}
+.welcome-share {
+  margin-bottom: 8px;
+}
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.steps i {
+  width: 28px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--line);
+}
+.steps i.done,
+.steps i.now {
+  background: var(--accent);
+}
+.steps small {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.welcome-alt {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 16px;
+}
+.welcome-alt .link-btn {
+  margin: 0;
+}
+.welcome-alt .link-btn[data-skip],
+.welcome-alt .link-btn[data-later] {
+  color: var(--muted);
+}
+.film-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.film-tips li {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 2px;
+}
+.film-tips b {
+  font-size: 13px;
+}
+.film-tips span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.welcome-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  gap: 12px;
+}
+.welcome-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.welcome-list b {
+  display: block;
+  font-size: 14px;
+}
+.welcome-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.wl-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+.fine.left {
+  text-align: left;
+}
+.coach {
+  position: fixed;
+  z-index: 60;
+  background: var(--dark);
+  color: #fff;
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: coach-in 0.2s ease-out;
+}
+.coach small {
+  color: #a5a9b4;
+  font-size: 11px;
+  font-weight: 650;
+}
+.coach b {
+  display: block;
+  margin: 2px 0 4px;
+  font-size: 15px;
+}
+.coach p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #d6d9e0;
+}
+.coach div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.coach .btn.ghost {
+  color: #c4c8d2;
+}
+.coach-target {
+  position: relative;
+  z-index: 2;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+@keyframes coach-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@media (max-width: 600px) {
+  .sample-banner {
+    flex-wrap: wrap;
+  }
+  .sample-actions {
+    width: 100%;
+  }
+  .sample-actions .btn {
+    flex: 1;
+  }
+  .empty .btn + .btn {
+    margin: 8px 0 0;
+  }
+  .empty .btn {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+:lang(ko) .welcome-card,
+:lang(ko) .welcome-dialog,
+:lang(ko) .coach,
+:lang(ko) .sample-banner {
+  word-break: keep-all;
+}

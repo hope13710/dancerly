@@ -3,6 +3,7 @@ import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { startTranslating } from './i18n.js';
+import { renderWelcome } from './onboarding.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
 import { renderFeedback } from './views/feedback.js';
@@ -43,6 +44,7 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/?$/, render: renderProjectRequests },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },
+  { re: /^\/app\/welcome\/?$/, render: renderWelcome },
   { re: /^\/app\/queue\/?$/, render: renderQueue },
   { re: /^\/app\/calendar\/?$/, render: () => renderCalendar(null) },
   { re: /^\/app\/recaps\/([0-9a-f-]{36})\/?$/, render: renderRecap },
@@ -145,7 +147,7 @@ function paintNav() {
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   $('[data-side-projects]').innerHTML = state.projects.length
-    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}>${projectMark(p, 'xs')}<span>${esc(p.title)}</span></a>`).join('')
+    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}>${projectMark(p, 'xs')}<span>${esc(p.title)}</span>${p.is_sample ? '<em class="side-tag">Sample</em>' : ''}</a>`).join('')
     : '<p class="side-empty">No projects yet</p>';
 }
 
@@ -177,7 +179,7 @@ async function startAction(kind) {
 // The project list behind the sidebar and the New menu.
 async function refreshNav() {
   if (!state.session) return;
-  const { data } = await sb.from('projects').select('id, title, image_url').order('created_at', { ascending: false });
+  const { data } = await sb.from('projects').select('id, title, image_url, is_sample, created_by').order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
   if (state.profile) paintNav();
@@ -547,7 +549,8 @@ async function renderJoin(code) {
     if (!state.profile) return renderName();
     const { data: projectId, error: joinErr } = await sb.rpc('accept_invite', { p_code: code });
     if (joinErr) return toast(friendlyError(joinErr), 'error');
-    toast(`Welcome to ${invite.project_title}.`);
+    // The project page greets them with what to do first.
+    state.justJoined = projectId;
     navigate(`/app/p/${projectId}`);
   });
 }
@@ -556,7 +559,7 @@ async function renderJoin(code) {
 async function loadProfile() {
   if (!state.session) { state.profile = null; return; }
   const user = state.session.user;
-  let { data } = await sb.from('profiles').select('id, display_name, avatar_url').eq('id', user.id).maybeSingle();
+  let { data } = await sb.from('profiles').select('id, display_name, avatar_url, onboarding').eq('id', user.id).maybeSingle();
   // A name typed at sign-up travels in the magic link; save it the first time we see this person.
   const pending = user.user_metadata?.display_name;
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());

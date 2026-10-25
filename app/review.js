@@ -1,4 +1,4 @@
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, TAKE_BUCKET, avatar } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
@@ -6,13 +6,14 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
+import { reviewTips, explainPrivate, track, seen, markSeen } from './onboarding.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
 // The review screen: one video, its takes, and the team's notes on them.
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select('id, title').eq('id', projectId).single(),
+    sb.from('projects').select('id, title, is_sample').eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select('id, number, storage_path, created_at, uploaded_by, count_start').eq('video_id', videoId).order('number'),
     loadMembers(projectId)
@@ -40,8 +41,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const wanted = Number(new URLSearchParams(location.search).get('take'));
   const take = takes.find((t) => t.number === wanted) || takes[takes.length - 1];
   const takeNo = Object.fromEntries(takes.map((t) => [t.id, t.number]));
-  const { data: signed, error: sErr } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(take.storage_path, 60 * 60 * 3);
-  if (sErr) throw sErr;
+  const signed = { signedUrl: await takeUrl(take.storage_path) };
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
   const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
@@ -50,7 +50,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button><button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button></div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}</div>
     </header>
     <div class="review-layout">
       <div class="player-col">
@@ -442,8 +442,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   async function loadCompare(key) {
     const src = r.compare.options.find((o) => o.key === key);
     if (!src) return;
-    const { data, error } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(src.storage_path, 60 * 60 * 3);
-    if (error) return toast(friendlyError(error), 'error');
+    let data;
+    try { data = { signedUrl: await takeUrl(src.storage_path) }; } catch (error) { return toast(friendlyError(error), 'error'); }
     r.compare.src = src;
     r.compare.url = data.signedUrl;
     video2.src = data.signedUrl;
@@ -751,6 +751,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     paintMentions();
     r.selected = note.id;
     await loadNotes();
+    if (!seen('first_note')) { markSeen('first_note'); track('first_note', { sample: Boolean(project.is_sample), private: Boolean(privateTo) }); }
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
     toast(recipient
       ? `Private note pinned. Only ${recipient.split(' ')[0]} can see it.`
@@ -794,6 +795,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   wireUpload();
   $('[data-merge]')?.addEventListener('click', mergeInto);
   $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
+  // The first private note: say who will see it.
+  $('[data-visibility]').addEventListener('change', async (e) => {
+    if (!e.target.value) return;
+    const name = members.find((m) => m.user_id === e.target.value)?.name || '';
+    if (!(await explainPrivate(name))) e.target.value = '';
+  });
+  const closeTips = reviewTips({ isOwner: isOwner || project.is_sample });
   setMode('point');
   await loadNotes();
   r.frame = requestAnimationFrame(tick);
@@ -852,6 +860,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
 
   return () => {
+    closeTips();
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);

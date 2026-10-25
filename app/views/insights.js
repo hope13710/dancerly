@@ -30,6 +30,9 @@ export async function renderInsights() {
   let notesQ = sb.from('notes').select('id, project_id, video_id, author_id, status, created_at, resolved_at, videos(title), takes(uploaded_by)').order('created_at', { ascending: false }).limit(5000);
   let takesQ = sb.from('takes').select('id, project_id, video_id, uploaded_by, created_at').limit(5000);
   if (project) { notesQ = notesQ.eq('project_id', project); takesQ = takesQ.eq('project_id', project); }
+  // Sample projects are for trying things out, not for counting.
+  const sample = state.projects.find((p) => p.is_sample);
+  if (sample && project !== sample.id) { notesQ = notesQ.neq('project_id', sample.id); takesQ = takesQ.neq('project_id', sample.id); }
   const [{ data: notes, error }, { data: takes, error: tErr }] = await Promise.all([notesQ, takesQ]);
   if (error || tErr) throw error || tErr;
 

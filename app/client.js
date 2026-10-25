@@ -13,13 +13,23 @@ export const GOOGLE_ENABLED = false;
 
 export const TAKE_BUCKET = 'takes';
 export const MAX_TAKE_BYTES = 50 * 1024 * 1024;
+// Sample-project media ships with the site: paths starting with "public:" are served from here, not storage.
+const PUBLIC_PREFIX = 'public:';
+export async function takeUrl(path, seconds = 60 * 60 * 3) {
+  if (String(path).startsWith(PUBLIC_PREFIX)) return location.origin + path.slice(PUBLIC_PREFIX.length);
+  const { data, error } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(path, seconds);
+  if (error) throw error;
+  return data.signedUrl;
+}
+export const isPublicMedia = (path) => String(path || '').startsWith(PUBLIC_PREFIX);
+export const publicMediaUrl = (path) => location.origin + path.slice(PUBLIC_PREFIX.length);
 export const TAKE_TYPES = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
 
 // ---------- Small DOM helpers shared by every view ----------
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 export const esc = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-export const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+export const initials = (name) => String(name || '?').trim().split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
 
 // Profile photos, remembered as profiles load, so any avatar can show a face instead of initials.
 export const photos = new Map();
