@@ -1,3 +1,4 @@
+import { cols, detectSchema } from './client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, avatar, projectMark, rememberPhotos } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
@@ -179,7 +180,7 @@ async function startAction(kind) {
 // The project list behind the sidebar and the New menu.
 async function refreshNav() {
   if (!state.session) return;
-  const { data } = await sb.from('projects').select('id, title, image_url, is_sample, created_by').order('created_at', { ascending: false });
+  const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by')).order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
   if (state.profile) paintNav();
@@ -559,7 +560,7 @@ async function renderJoin(code) {
 async function loadProfile() {
   if (!state.session) { state.profile = null; return; }
   const user = state.session.user;
-  let { data } = await sb.from('profiles').select('id, display_name, avatar_url, onboarding').eq('id', user.id).maybeSingle();
+  let { data } = await sb.from('profiles').select(cols('id, display_name, avatar_url, onboarding')).eq('id', user.id).maybeSingle();
   // A name typed at sign-up travels in the magic link; save it the first time we see this person.
   const pending = user.user_metadata?.display_name;
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());
@@ -598,6 +599,7 @@ startTranslating();
 (async () => {
   const { data } = await sb.auth.getSession();
   state.session = data.session;
+  await detectSchema();
   await loadProfile();
   // A failed magic link or Google sign-in lands here with the reason in the URL; keep it for the login page.
   const hashParams = new URLSearchParams(location.hash.slice(1));

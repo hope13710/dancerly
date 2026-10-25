@@ -1,5 +1,6 @@
 // Settings: your account, what you get notified about, the projects you're in, and your plan.
 import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
+import { cols } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
 
@@ -125,7 +126,7 @@ export async function renderSettings(section = 'account') {
   }
 
   async function plan() {
-    const { data: rows } = await sb.from('project_members').select('project_id, projects(is_sample, project_members(count))').eq('user_id', state.session.user.id).eq('role', 'owner');
+    const { data: rows } = await sb.from('project_members').select(cols('project_id, projects(is_sample, project_members(count))')).eq('user_id', state.session.user.id).eq('role', 'owner');
     const data = (rows || []).filter((m) => !m.projects?.is_sample);
     const owned = data?.length || 0;
     const largest = Math.max(0, ...(data || []).map((m) => m.projects?.project_members?.[0]?.count ?? 1));

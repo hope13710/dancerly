@@ -1,3 +1,4 @@
+import { cols } from './client.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
@@ -13,7 +14,7 @@ const SPEEDS = [1, 0.75, 0.5, 0.25];
 // The review screen: one video, its takes, and the team's notes on them.
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select('id, title, is_sample').eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample')).eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select('id, number, storage_path, created_at, uploaded_by, count_start').eq('video_id', videoId).order('number'),
     loadMembers(projectId)

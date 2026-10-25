@@ -1,6 +1,6 @@
 // First-run guidance: the leader's three-step start, the sample project, a welcome for people who were invited,
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
-import { sb, $, $$, esc, toast, friendlyError, dialog } from './client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, schema } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang, isKo, t } from './i18n.js';
 import { inviteLink, createVideo } from './views/project.js';
@@ -11,6 +11,7 @@ export const track = (event, props = {}) => { try { (window.dataLayer ||= []).pu
 
 export const onboarding = () => ctx.state.profile?.onboarding || {};
 export async function saveOnboarding(patch) {
+  if (!schema.firstRun) return;
   const next = { ...onboarding(), ...patch };
   ctx.state.profile.onboarding = next;
   await sb.from('profiles').update({ onboarding: next }).eq('id', ctx.state.session.user.id);
@@ -20,10 +21,11 @@ export const seen = (key) => Boolean(onboarding().seen?.[key]);
 export const markSeen = (key) => saveOnboarding({ seen: { ...(onboarding().seen || {}), [key]: true } });
 
 // New leaders with nothing yet start here instead of an empty Home.
-export const needsWelcome = () => !onboarding().welcome && !ctx.state.projects.length;
+export const needsWelcome = () => schema.firstRun && !onboarding().welcome && !ctx.state.projects.length;
 
 // ---------- The sample project ----------
 export async function openSample({ from = 'unknown' } = {}) {
+  if (!schema.firstRun) return toast('The sample project isn’t available yet. Try again soon.');
   const { data: projectId, error } = await sb.rpc('create_sample_project', { p_lang: getLang(), p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
   if (error) return toast(friendlyError(error), 'error');
   track('sample_opened', { from });
@@ -160,7 +162,7 @@ export async function renderWelcome() {
 // ---------- Invited: a short welcome the first time they open a project ----------
 export async function memberWelcome(projectId, project, members) {
   const me = ctx.state.session.user.id;
-  if (project.is_sample || seen(`welcome:${projectId}`)) return;
+  if (!schema.firstRun || project.is_sample || seen(`welcome:${projectId}`)) return;
   markSeen(`welcome:${projectId}`);
   const owner = members.find((m) => m.role === 'owner');
   const [forMe, requests, { data: latest }] = await Promise.all([
@@ -199,7 +201,7 @@ export async function memberWelcome(projectId, project, members) {
 // In the sample, everyone sees the leader's tips (they're the one setting things up).
 export function reviewTips({ isOwner }) {
   const key = isOwner ? 'tips:review:lead' : 'tips:review:member';
-  if (seen(key)) return () => {};
+  if (!schema.firstRun || seen(key)) return () => {};
   const tips = isOwner
     ? [
       ['[data-track]', 'Pause on a moment', 'Tap or drag the timeline to find a moment, pause, and type what you see.'],
@@ -270,7 +272,7 @@ export function reviewTips({ isOwner }) {
 
 // The first time someone sends a private note: who sees it, in one line.
 export async function explainPrivate(name) {
-  if (seen('private')) return true;
+  if (!schema.firstRun || seen('private')) return true;
   const ok = await dialog({
     title: 'Private feedback',
     body: `Only you and <b>${esc(name)}</b> will see this note and its replies. It doesn’t show up for the rest of the team, in AI recaps for others, or on shared links.`,

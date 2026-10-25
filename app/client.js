@@ -11,6 +11,15 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 // Turn on after enabling the Google provider in Supabase (Authentication → Sign In / Providers).
 export const GOOGLE_ENABLED = false;
 
+// Columns added for first-run guidance (migration 018). Until the database has them, queries leave them out
+// and the guidance stays off, so the rest of the app keeps working.
+export const schema = { firstRun: true };
+export async function detectSchema() {
+  const { error } = await sb.from('projects').select('is_sample').limit(1);
+  schema.firstRun = !(error && /is_sample|42703|does not exist/i.test(`${error.code} ${error.message}`));
+}
+export const cols = (list) => (schema.firstRun ? list : list.replace(/,\s*(is_sample|onboarding)\b/g, '').replace(/\b(is_sample|onboarding),\s*/g, ''));
+
 export const TAKE_BUCKET = 'takes';
 export const MAX_TAKE_BYTES = 50 * 1024 * 1024;
 // Sample-project media ships with the site: paths starting with "public:" are served from here, not storage.

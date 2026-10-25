@@ -1,5 +1,5 @@
 // Home: what needs you today, what changed, and how to get started.
-import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
+import { sb, $, esc, initials, timeAgo, avatar, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass } from './shared.js';
 import { homeRecapCard } from './recaps.js';
@@ -85,7 +85,7 @@ export async function renderHome() {
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
       <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
-      ${leader ? `<p class="checklist-sample">${sample ? `Want to see a finished example? <a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : 'Not sure where to start? <button type="button" class="link-btn" data-open-sample="home">Explore a sample project</button>'}</p>` : ''}
+      ${leader && schema.firstRun ? `<p class="checklist-sample">${sample ? `Want to see a finished example? <a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : 'Not sure where to start? <button type="button" class="link-btn" data-open-sample="home">Explore a sample project</button>'}</p>` : ''}
     </section>`}
     <div class="home-grid">
       <section class="panel">

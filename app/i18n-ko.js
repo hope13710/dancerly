@@ -847,6 +847,7 @@ export const KO = {
   'Open the sample project': '샘플 프로젝트 열기',
   'Not sure where to start?': '어디서부터 할지 고민된다면?',
   'Explore a sample project': '샘플 프로젝트 둘러보기',
+  'The sample project isn’t available yet. Try again soon.': '샘플 프로젝트를 아직 열 수 없어요. 잠시 후 다시 시도해 주세요.',
 };
 
 // Phrases with numbers or names in them. First match wins.

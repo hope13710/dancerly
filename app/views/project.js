@@ -1,6 +1,7 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
+import { cols, schema } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
@@ -14,7 +15,7 @@ export async function renderProjects() {
   const { view, setCrumbs } = ctx;
   setCrumbs([['Projects']]);
   const { data: projects, error } = await sb.from('projects')
-    .select('id, title, image_url, is_sample, created_at, project_members(count), videos(count)')
+    .select(cols('id, title, image_url, is_sample, created_at, project_members(count), videos(count)'))
     .order('created_at', { ascending: false });
   if (error) throw error;
   view.innerHTML = `<section class="page">
@@ -24,7 +25,7 @@ export async function renderProjects() {
         <h3>${esc(p.title)}${p.is_sample ? ' <span class="tag sample-tag">Sample</span>' : ''}</h3>
         <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
       </a>`).join('')}</div>`
-    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', '<button class="btn primary" data-new-project>+ New project</button><button class="btn" data-open-sample>Explore a sample first</button>')}
+    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -40,7 +41,7 @@ export async function createProject() {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select('id, title, image_url, is_sample, created_at, created_by').eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -88,7 +89,7 @@ export async function renderProject(projectId) {
       </a>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', '<button class="btn primary" data-new-video>+ New video</button><button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>')
+      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${schema.firstRun ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
