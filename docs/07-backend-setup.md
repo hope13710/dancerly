@@ -7,7 +7,7 @@ DB 스키마·권한·저장소는 `supabase/migrations/`에 있고 이미 적�
 
 | 영역 | 내용 |
 |---|---|
-| 인증 | 이메일 매직링크(비밀번호 없음), Google 로그인 버튼 |
+| 인증 | 이메일 + 비밀번호. 가입 때 한 번만 이메일 인증(코드 또는 링크). 비밀번호 재설정. Google 버튼은 `GOOGLE_ENABLED`로 숨김 |
 | 테이블 | `profiles` · `projects` · `project_members`(owner/member) · `project_invites` · `videos` · `takes` · `notes` · `note_mentions` · `note_reactions` |
 | 권한 | 모든 테이블 RLS. 초대받은 프로젝트만 보임. 노트 해결은 작성자·방장만, 연습 중 표시는 누구나 |
 | 저장소 | 비공개 버킷 `takes` (MP4·MOV·WebM, 파일당 50MB). 같은 프로젝트 멤버만 재생 |
@@ -25,16 +25,20 @@ API로는 바꿀 수 없어서 [Supabase 대시보드](https://supabase.com/dash
   - `https://<배포 주소>/app/**`
   - `http://localhost:3000/app/**` (로컬 개발용)
 
-이 설정이 없으면 매직링크를 눌렀을 때 Site URL 기본값(localhost)으로 이동합니다.
+이 설정이 없으면 인증·재설정 링크를 눌렀을 때 Site URL 기본값(localhost)으로 이동합니다.
 
 ### ② Google 로그인 (선택)
 **Authentication → Sign In / Providers → Google**을 켜고 Google Cloud의 OAuth Client ID·Secret을 넣습니다.
 Google Cloud 쪽 승인된 리디렉션 URI: `https://egkwjdwfzuslyrhuzkmq.supabase.co/auth/v1/callback`
-켜기 전에는 "Continue with Google"을 누르면 오류 안내가 나옵니다.
+켠 뒤 `app/client.js`의 `GOOGLE_ENABLED`를 `true`로 바꾸면 버튼이 보입니다.
 
 ### ③ 이메일 발송 (출시 전 필수)
 기본 메일 서버는 **시간당 발송 수가 아주 적고** 테스트용입니다. 출시 전에 **Authentication → Emails → SMTP Settings**에서 Resend·Postmark 같은 발송 서비스를 연결하세요.
-메일 문구는 **Email Templates → Magic Link**에서 바꿀 수 있습니다.
+**Email Templates**에서 아래 두 템플릿 본문에 코드 `{{ .Token }}`을 넣어야 앱 화면에서 코드로 인증할 수 있습니다(링크만 있으면 메일 앱 브라우저에서만 로그인되는 문제가 생김).
+- **Confirm signup**: `<p>인증 코드: <b>{{ .Token }}</b></p>` + 기존 `{{ .ConfirmationURL }}` 링크
+- **Reset Password**: `<p>재설정 코드: <b>{{ .Token }}</b></p>` + 기존 링크
+
+**Sign In / Providers → Email**에서 *Confirm email*은 켜 둡니다(가입 시 1회 인증). 최소 비밀번호 길이는 8자로 맞추는 것을 권장합니다.
 
 ### ④ 파일 크기 (요금제)
 무료 플랜은 파일당 최대 50MB라 버킷도 50MB로 맞췄습니다. Pro 플랜으로 올리면 `storage.buckets`의 `file_size_limit`을 늘리고, 이어올리기(tus) 업로드로 바꾸는 것을 권장합니다.

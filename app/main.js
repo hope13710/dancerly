@@ -2,11 +2,12 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, upload
 import { mountReview } from './review.js';
 
 const view = $('[data-view]');
-const state = { session: null, profile: null, cleanup: null, authError: null };
+const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false };
 
 // ---------- Routing ----------
 const routes = [
   { re: /^\/app\/login\/?$/, render: renderLogin, open: true },
+  { re: /^\/app\/reset\/?$/, render: renderReset, open: true },
   { re: /^\/app\/join\/([a-f0-9]{6,64})\/?$/, render: renderJoin, open: true },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/v\/([0-9a-f-]{36})\/?$/, render: (projectId, videoId) => mountReview({ projectId, videoId, me: state.session.user, view, navigate, setCrumbs }) },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/?$/, render: renderProject },
@@ -87,72 +88,129 @@ const safeNext = (next) => (next && /^\/app(\/|$|\?)/.test(next) && !next.starts
 function renderLogin() {
   const params = new URLSearchParams(location.search);
   const next = safeNext(params.get('next'));
+  if (state.session && state.recovering) return navigate('/app/reset', { replace: true });
   if (state.session && state.profile) return navigate(next, { replace: true });
   if (state.session) return renderName();
   let mode = params.get('mode') === 'signup' ? 'signup' : 'login';
-  // Shown once: an error that came back from a magic link or Google (captured at startup).
-  const redirectError = state.authError ? friendlyError({ message: state.authError }) : null;
+  // Shown once: an error that came back from an email link or Google (captured at startup).
+  let notice = state.authError ? friendlyError({ message: state.authError }) : null;
   state.authError = null;
   renderChrome();
-  const paint = () => {
+  const paint = (email = params.get('email') || '') => {
+    const signup = mode === 'signup';
     view.innerHTML = `<section class="auth">
       <div class="auth-card">
         <a class="auth-brand" href="/"><span class="brand-mark"><i></i><i></i><i></i></span>looproom</a>
-        <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${mode === 'signup'}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${mode === 'login'}">Log in</button></div>
-        <h1>${mode === 'signup' ? 'Start your team’s space' : 'Welcome back'}</h1>
-        <p class="muted">${mode === 'signup' ? 'Free for your first team. No credit card, no password.' : 'We’ll email you a 6-digit code — no password to remember.'}</p>
-        ${redirectError ? `<p class="form-error" role="alert">${esc(redirectError)}</p>` : ''}
+        <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
+        <h1>${signup ? 'Start your team’s space' : 'Welcome back'}</h1>
+        <p class="muted">${signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
+        ${notice ? `<p class="form-error" role="alert">${esc(notice)}</p>` : ''}
         ${GOOGLE_ENABLED ? '<button type="button" class="btn google" data-google><span class="g">G</span> Continue with Google</button><div class="or"><span>or with email</span></div>' : ''}
         <form data-auth-form>
-          ${mode === 'signup' ? '<label class="field"><span>Your name</span><input name="name" autocomplete="name" maxlength="60" required placeholder="Maya Chen" /></label>' : ''}
-          <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com" value="${esc(params.get('email') || '')}" /></label>
-          <button class="btn primary wide" type="submit">${mode === 'signup' ? 'Create account' : 'Email me a log-in code'}</button>
+          ${signup ? '<label class="field"><span>Your name</span><input name="name" autocomplete="name" maxlength="60" required placeholder="Maya Chen" /></label>' : ''}
+          <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com" value="${esc(email)}" /></label>
+          <label class="field"><span>Password${signup ? ' <small>8+ characters</small>' : ''}</span>
+            <span class="password"><input name="password" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="${signup ? 8 : 1}" required /><button type="button" class="reveal" data-reveal aria-label="Show password">Show</button></span>
+          </label>
+          ${signup ? '' : '<button type="button" class="link-btn" data-forgot>Forgot password?</button>'}
+          <button class="btn primary wide" type="submit">${signup ? 'Create account' : 'Log in'}</button>
           <p class="form-error" data-form-error role="alert" hidden></p>
         </form>
         <p class="fine">By continuing you agree to the Terms and Privacy Policy.</p>
       </div>
     </section>`;
-    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; paint(); }));
+    const form = $('[data-auth-form]');
+    $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; notice = null; paint(form.email.value.trim()); }));
+    $('[data-reveal]').addEventListener('click', (event) => togglePassword(form.password, event.currentTarget));
+    $('[data-forgot]')?.addEventListener('click', () => renderForgot(form.email.value.trim()));
     $('[data-google]')?.addEventListener('click', async () => {
       const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${next}` } });
       if (error) showError(friendlyError(error));
     });
-    $('[data-auth-form]').addEventListener('submit', async (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const form = event.currentTarget;
       const email = form.email.value.trim();
+      const password = form.password.value;
       const name = form.name?.value.trim();
       const button = form.querySelector('button[type="submit"]');
+      const label = button.textContent;
       button.disabled = true;
-      button.textContent = 'Sending…';
-      const { error } = await sb.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${location.origin}${next}`, shouldCreateUser: true, data: name ? { display_name: name } : undefined }
-      });
-      if (error) {
-        button.disabled = false;
-        button.textContent = mode === 'signup' ? 'Create account' : 'Email me a log-in code';
-        return showError(friendlyError(error));
+      button.textContent = signup ? 'Creating…' : 'Logging in…';
+      const done = (message) => { button.disabled = false; button.textContent = label; showError(message); };
+      if (signup) {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name } } });
+        if (error) return done(friendlyError(error));
+        // Supabase answers an already-registered email with an empty user instead of an error.
+        if (data.user && !data.user.identities?.length) return done('That email already has an account. Log in instead — or use “Forgot password?” if you never set one.');
+        if (!data.session) renderCheckInbox(email, next, 'signup');
+        return; // With a session, onAuthStateChange takes over.
       }
-      renderCheckInbox(email, name, next);
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (!error) return;
+      if (/not confirmed/i.test(error.message)) {
+        await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${location.origin}${next}` } });
+        return renderCheckInbox(email, next, 'signup');
+      }
+      done(friendlyError(error));
     });
   };
   const showError = (message) => { const el = $('[data-form-error]'); el.textContent = message; el.hidden = false; };
   paint();
 }
 
-function renderCheckInbox(email, name, next) {
+function togglePassword(input, button) {
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  button.textContent = show ? 'Hide' : 'Show';
+  button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+}
+
+function renderForgot(email = '') {
+  renderChrome();
+  view.innerHTML = `<section class="auth"><form class="auth-card" data-forgot-form>
+    <h1>Reset your password</h1>
+    <p class="muted">We’ll email you a code to set a new one. Also works if you joined before Looproom had passwords.</p>
+    <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required value="${esc(email)}" placeholder="you@example.com" /></label>
+    <button class="btn primary wide" type="submit">Email me a code</button>
+    <p class="form-error" data-form-error role="alert" hidden></p>
+    <button type="button" class="btn ghost wide" data-back-login>Back to log in</button>
+  </form></section>`;
+  const form = $('[data-forgot-form]');
+  form.email.focus();
+  $('[data-back-login]').addEventListener('click', () => renderLogin());
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    const value = form.email.value.trim();
+    const { error } = await sb.auth.resetPasswordForEmail(value, { redirectTo: `${location.origin}/app/reset` });
+    if (error) {
+      button.disabled = false;
+      button.textContent = 'Email me a code';
+      const el = $('[data-form-error]');
+      el.textContent = friendlyError(error);
+      el.hidden = false;
+      return;
+    }
+    renderCheckInbox(value, '/app/reset', 'recovery');
+  });
+}
+
+// One email per account lifetime (confirming sign-up), plus password resets.
+function renderCheckInbox(email, next, purpose) {
+  const recovery = purpose === 'recovery';
   view.innerHTML = `<section class="auth"><div class="auth-card center">
     <div class="inbox-icon">✉</div>
-    <h1>Check your inbox</h1>
-    <p class="muted">We sent an email to <b>${esc(email)}</b>. Type the 6-digit code here — or open the link on this device.</p>
+    <h1>${recovery ? 'Check your inbox' : 'Confirm your email'}</h1>
+    <p class="muted">We sent an email to <b>${esc(email)}</b>. Type the code here — or open the link on this device.${recovery ? '' : ' You only do this once; after that, log in with your password.'}</p>
     <form class="code-form" data-code-form>
-      <label class="sr-only" for="otp">6-digit code</label>
+      <label class="sr-only" for="otp">Code from the email</label>
       <input id="otp" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" maxlength="8" placeholder="123456" required />
-      <button class="btn primary" type="submit">Log in</button>
+      <button class="btn primary" type="submit">${recovery ? 'Continue' : 'Confirm'}</button>
     </form>
     <p class="form-error" data-code-error role="alert" hidden></p>
-    <p class="fine">Codes and links work once and expire after an hour. Opening the link in your mail app logs you in there, not here.</p>
+    <p class="fine">Codes and links work once and expire after an hour. Opening the link in your mail app confirms it there, not here.</p>
     <button class="btn wide" data-resend disabled>Resend in <span data-count>60</span>s</button>
     <button class="btn ghost wide" data-other>Use a different email</button>
   </div></section>`;
@@ -161,30 +219,81 @@ function renderCheckInbox(email, name, next) {
     left -= 1;
     const b = $('[data-resend]');
     if (!b) return clearInterval(timer);
-    if (left <= 0) { clearInterval(timer); b.disabled = false; b.textContent = 'Resend the link'; } else $('[data-count]').textContent = left;
+    if (left <= 0) { clearInterval(timer); b.disabled = false; b.textContent = 'Resend the email'; } else $('[data-count]').textContent = left;
   }, 1000);
   $('[data-resend]').addEventListener('click', async () => {
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}${next}`, data: name ? { display_name: name } : undefined } });
+    const { error } = recovery
+      ? await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/app/reset` })
+      : await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${location.origin}${next}` } });
     toast(error ? friendlyError(error) : 'Sent again. Check spam if it’s not there.', error ? 'error' : 'info');
   });
-  $('[data-other]').addEventListener('click', () => { clearInterval(timer); renderLogin(); });
+  $('[data-other]').addEventListener('click', () => { clearInterval(timer); recovery ? renderForgot() : renderLogin(); });
   $('#otp').focus();
   $('[data-code-form]').addEventListener('submit', async (event) => {
     event.preventDefault();
     const button = event.currentTarget.querySelector('button');
+    const label = button.textContent;
     button.disabled = true;
     button.textContent = 'Checking…';
-    // Signing in here (not in the mail app's browser) is what keeps you logged in on this device.
-    const { error } = await sb.auth.verifyOtp({ email, token: event.currentTarget.code.value.trim(), type: 'email' });
+    if (recovery) state.recovering = true;
+    // Verifying here (not in the mail app's browser) is what signs you in on this device.
+    const { error } = await sb.auth.verifyOtp({ email, token: event.currentTarget.code.value.trim(), type: recovery ? 'recovery' : 'signup' });
     if (error) {
+      state.recovering = false;
       button.disabled = false;
-      button.textContent = 'Log in';
+      button.textContent = label;
       const el = $('[data-code-error]');
       el.textContent = friendlyError(error);
       el.hidden = false;
+      return;
     }
+    clearInterval(timer);
+    if (recovery) navigate('/app/reset', { replace: true });
   });
   return () => clearInterval(timer);
+}
+
+function renderReset() {
+  renderChrome();
+  if (!state.session) {
+    view.innerHTML = `<section class="auth"><div class="auth-card center">
+      <h1>This reset link has expired</h1>
+      <p class="muted">Each link and code works once. Ask for a new one.</p>
+      <button class="btn primary wide" data-new>Send a new code</button>
+    </div></section>`;
+    $('[data-new]').addEventListener('click', () => renderForgot());
+    return;
+  }
+  view.innerHTML = `<section class="auth"><form class="auth-card" data-reset-form>
+    <h1>Set a new password</h1>
+    <p class="muted">For <b>${esc(state.session.user.email || '')}</b>. You’ll use it to log in from now on.</p>
+    <label class="field"><span>New password <small>8+ characters</small></span>
+      <span class="password"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" class="reveal" data-reveal aria-label="Show password">Show</button></span>
+    </label>
+    <button class="btn primary wide" type="submit">Save password</button>
+    <p class="form-error" data-form-error role="alert" hidden></p>
+  </form></section>`;
+  const form = $('[data-reset-form]');
+  form.password.focus();
+  $('[data-reveal]').addEventListener('click', (event) => togglePassword(form.password, event.currentTarget));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const { error } = await sb.auth.updateUser({ password: form.password.value });
+    if (error) {
+      button.disabled = false;
+      button.textContent = 'Save password';
+      const el = $('[data-form-error]');
+      el.textContent = friendlyError(error);
+      el.hidden = false;
+      return;
+    }
+    state.recovering = false;
+    toast('Password saved. Use it next time you log in.');
+    navigate('/app', { replace: true });
+  });
 }
 
 // First visit after signing in: everyone needs a name teammates will recognise.
@@ -449,6 +558,8 @@ async function loadProfile() {
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {
   // Supabase callbacks must stay synchronous; do the follow-up work on the next tick.
+  // A password-reset link signs you in just long enough to choose a new password.
+  if (event === 'PASSWORD_RECOVERY') state.recovering = true;
   const changed = (session?.user.id || null) !== (state.session?.user.id || null);
   state.session = session;
   if (booted && changed && (event === 'SIGNED_IN' || event === 'SIGNED_OUT')) setTimeout(async () => { await loadProfile(); route(); }, 0);
@@ -462,6 +573,7 @@ sb.auth.onAuthStateChange((event, session) => {
   const hashParams = new URLSearchParams(location.hash.slice(1));
   const search = new URLSearchParams(location.search);
   state.authError = hashParams.get('error_description') || search.get('error_description');
+  if (hashParams.get('type') === 'recovery') state.recovering = true;
   // Tidy the URL after a magic-link or Google redirect.
   if (location.hash.includes('access_token') || state.authError || search.has('code')) history.replaceState({}, '', location.pathname);
   if (state.session && state.profile && location.pathname.startsWith('/app/login')) {

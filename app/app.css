@@ -1403,3 +1403,35 @@ a {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+.password {
+  position: relative;
+  display: block;
+}
+.password input {
+  width: 100%;
+  padding-right: 64px;
+}
+.password .reveal {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: 0;
+  background: none;
+  padding: 6px 8px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.link-btn {
+  display: block;
+  margin: -4px 0 12px auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}

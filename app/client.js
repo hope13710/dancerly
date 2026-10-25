@@ -47,6 +47,10 @@ export function friendlyError(error) {
   if (wait) return `Wait ${wait[1]} seconds before asking for another email.`;
   if (/email rate limit/i.test(msg)) return 'We’ve hit the email limit for now. Try again a little later — or use the code from an email you already have.';
   if (/invalid or has expired|otp_expired|token has expired|token not found/i.test(msg)) return 'That link or code was already used or has expired. Each one works once — ask for a new one below.';
+  if (/invalid login credentials/i.test(msg)) return 'Email or password doesn’t match. Joined before passwords? Use “Forgot password?” to set one.';
+  if (/user already registered/i.test(msg)) return 'That email already has an account. Log in instead.';
+  if (/password should be|weak password/i.test(msg)) return 'Pick a longer password — at least 8 characters, ideally mixing letters and numbers.';
+  if (/should be different from the old/i.test(msg)) return 'That’s your current password. Choose a new one.';
   if (/provider is not enabled/i.test(msg)) return 'Google sign-in isn’t turned on yet. Use your email for now.';
   if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and try again.';
   if (/Failed to fetch|NetworkError|network/i.test(msg)) return 'Can’t reach Looproom. Check your connection and try again.';

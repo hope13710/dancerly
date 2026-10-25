@@ -150,7 +150,7 @@ flowchart TB
 
   subgraph Core[코어 백엔드]
     API[API 서버<br/>인증 · 권한 · 비즈니스 로직]
-    AUTH[Auth<br/>매직링크 · Google · Apple]
+    AUTH[Auth<br/>이메일+비밀번호 · Google]
     DB[(Postgres<br/>행 단위 권한 RLS)]
     Q[[작업 큐]]
     RT[Realtime<br/>노트·답글 실시간]
