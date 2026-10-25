@@ -4,6 +4,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMe
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead, createVideo } from './project.js';
 import { empty } from './shared.js';
+import { loadGroups } from './groups.js';
 
 const STATUS = {
   missing: ['Not submitted', ''],
@@ -44,7 +45,7 @@ export function submissionsFor(request, members, videos) {
 
 async function loadRequests(projectId) {
   const [{ data: requests, error }, { data: videos, error: vErr }] = await Promise.all([
-    sb.from('requests').select('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, request_assignees(user_id)').eq('project_id', projectId).order('created_at', { ascending: false }),
+    sb.from('requests').select('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, audience, repeat_weekly, request_assignees(user_id)').eq('project_id', projectId).order('created_at', { ascending: false }),
     sb.from('videos').select('id, title, created_by, request_id, takes(id, number, created_at), notes(status, author_id)').eq('project_id', projectId).not('request_id', 'is', null)
   ]);
   if (error || vErr) throw error || vErr;
@@ -72,7 +73,7 @@ export async function renderProjectRequests(projectId) {
       return `<a class="row request-row" href="${base}/${r.id}" data-link>
         <span class="row-main">
           <span class="row-title">${esc(r.title)}</span>
-          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${mine ? ` · You: ${STATUS[mine.state][0].toLowerCase()}` : ''}</span>
+          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : r.audience ? esc(r.audience) : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${r.repeat_weekly ? ' · ↻ weekly' : ''}${mine ? ` · You: ${STATUS[mine.state][0].toLowerCase()}` : ''}</span>
         </span>
         <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">›</span></span>
       </a>`;
@@ -84,8 +85,9 @@ export async function renderProjectRequests(projectId) {
 
 // ---------- New / edit ----------
 export async function newRequest(projectId) {
-  const [members, { data: videos }] = await Promise.all([
+  const [members, groups, { data: videos }] = await Promise.all([
     loadMembers(projectId),
+    loadGroups(projectId),
     sb.from('videos').select('id, title').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   const me = ctx.state.session.user.id;
@@ -101,17 +103,25 @@ export async function newRequest(projectId) {
       <label class="field"><span>Due date <small>optional</small></span><input type="date" name="date" value="${nextFri.toISOString().slice(0, 10)}" /></label>
       <label class="field"><span>Time</span><input type="time" name="time" value="18:00" /></label>
     </div>
-    <div class="field"><span>Who it’s for</span><div class="choices">
-      <label><input type="radio" name="who" value="all" checked /><b>Everyone</b><small>All ${members.length} on the project</small></label>
+    <label class="check-row"><input type="checkbox" name="weekly" /> <span><b>Repeat every week</b><small>When it’s due, it closes and next week’s opens for the same people.</small></span></label>
+    <div class="field"><span>Who it’s for</span><div class="choices ${groups.length ? 'three' : ''}">
+      <label><input type="radio" name="who" value="all" checked /><b>Everyone</b><small>All ${members.length - 1} others on the project</small></label>
+      ${groups.length ? '<label><input type="radio" name="who" value="groups" /><b>Groups</b><small>One or more groups</small></label>' : ''}
       <label><input type="radio" name="who" value="some" /><b>Choose people</b><small>Only the people you pick</small></label>
     </div></div>
+    ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
     <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" /><span class="avatar xs">${esc(initials(m.name))}</span>${esc(m.name)}</label>`).join('') || '<p class="muted">Invite people to the project first.</p>'}</div>
     ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${videos.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Send request</button></div>
   </form>`;
   document.body.append(el);
   const form = el.querySelector('form');
-  form.querySelectorAll('[name=who]').forEach((r) => r.addEventListener('change', () => { el.querySelector('[data-pick]').hidden = form.querySelector('[name=who]:checked').value !== 'some'; }));
+  form.querySelectorAll('[name=who]').forEach((r) => r.addEventListener('change', () => {
+    const who = form.querySelector('[name=who]:checked').value;
+    el.querySelector('[data-pick]').hidden = who !== 'some';
+    const pg = el.querySelector('[data-pick-groups]');
+    if (pg) pg.hidden = who !== 'groups';
+  }));
   el.showModal();
   form.elements.namedItem('title').focus();
   const values = await new Promise((resolve) => el.addEventListener('close', () => {
@@ -121,16 +131,24 @@ export async function newRequest(projectId) {
       brief: f.namedItem('brief').value,
       date: f.namedItem('date').value,
       time: f.namedItem('time').value || '23:59',
-      some: form.querySelector('[name=who]:checked').value === 'some',
+      who: form.querySelector('[name=who]:checked').value,
       people: $$('[name=person]:checked', form).map((x) => x.value),
+      groups: $$('[name=group]:checked', form).map((x) => x.value),
+      weekly: f.namedItem('weekly').checked,
       reference: f.namedItem('reference')?.value || null
     } : null);
     el.remove();
   }));
   if (!values?.title) return;
-  if (values.some && !values.people.length) return toast('Pick at least one person, or choose Everyone.', 'error');
+  if (values.who === 'some' && !values.people.length) return toast('Pick at least one person, or choose Everyone.', 'error');
+  if (values.who === 'groups' && !values.groups.length) return toast('Pick at least one group.', 'error');
+  if (values.weekly && !values.date) return toast('A weekly request needs a due date.', 'error');
   const due = values.date ? new Date(`${values.date}T${values.time}`).toISOString() : null;
-  const { data: rid, error } = await sb.rpc('create_request', { p_project: projectId, p_title: values.title, p_brief: values.brief, p_due: due, p_assignees: values.some ? values.people : [], p_reference: values.reference });
+  const { data: rid, error } = await sb.rpc('create_request_v2', {
+    p_project: projectId, p_title: values.title, p_brief: values.brief, p_due: due,
+    p_assignees: values.who === 'some' ? values.people : [], p_groups: values.who === 'groups' ? values.groups : [],
+    p_reference: values.reference, p_repeat_weekly: values.weekly
+  });
   if (error) return toast(friendlyError(error), 'error');
   toast('Request sent.');
   ctx.navigate(`/app/p/${projectId}/requests/${rid}`);
@@ -156,7 +174,7 @@ export async function renderRequest(projectId, requestId) {
     <header class="page-head"><div>
       <p class="eyebrow">Request${r.status === 'closed' ? ' · Closed' : ''}</p>
       <h1>${esc(r.title)}</h1>
-      <p class="muted sub"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · from ${esc(author)} · ${timeAgo(r.created_at)}</p>
+      <p class="muted sub"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · for ${r.everyone ? 'everyone' : esc(r.audience || `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`)}${r.repeat_weekly ? ' · <span class="tag">↻ Repeats weekly</span>' : ''} · from ${esc(author)} · ${timeAgo(r.created_at)}</p>
     </div>
     <div class="head-actions">
       ${mine && r.status === 'active' ? `<button class="btn primary" data-submit>${mine.video ? `Upload Take ${(mine.latest?.number || 0) + 1}` : 'Submit your video'}</button>` : ''}
@@ -200,7 +218,10 @@ export async function renderRequest(projectId, requestId) {
       extra: r.status === 'active' ? 'Close request' : 'Reopen request'
     });
     if (!values) return;
-    if (values.extra) return setStatus(r.status === 'active' ? 'closed' : 'active');
+    if (values.extra) {
+      if (r.repeat_weekly && r.status === 'active') await sb.from('requests').update({ repeat_weekly: false }).eq('id', r.id);
+      return setStatus(r.status === 'active' ? 'closed' : 'active');
+    }
     const { error } = await sb.from('requests').update({ title: values.title, due_at: values.due ? new Date(values.due).toISOString() : null }).eq('id', r.id);
     if (error) return toast(friendlyError(error), 'error');
     renderRequest(projectId, requestId);

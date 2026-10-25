@@ -2,6 +2,7 @@
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, checkTakeFile, loadMembers } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
+import { loadGroups, groupsSection, wireGroups } from './groups.js';
 
 export async function renderProjects() {
   const { view, setCrumbs } = ctx;
@@ -101,7 +102,7 @@ export async function renderProjectNotes(projectId) {
 
 export async function renderProjectPeople(projectId) {
   const { view, setCrumbs } = ctx;
-  const p = await loadProject(projectId);
+  const [p, groups] = await Promise.all([loadProject(projectId), loadGroups(projectId)]);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['People']]);
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'people', '<button class="btn primary" data-invite>Invite people</button>')}
@@ -111,8 +112,10 @@ export async function renderProjectPeople(projectId) {
         ${p.isOwner && m.user_id !== p.me ? `<button class="btn ghost small icon" data-member="${m.user_id}" aria-label="Manage ${esc(m.name)}">•••</button>` : ''}</span>
     </div>`).join('')}</div>
     <p class="fine left">Owners can rename or delete the project and remove people. Everyone can upload, leave notes, and invite.</p>
+    ${groupsSection(p, groups)}
   </section>`;
   $('[data-invite]').addEventListener('click', () => showInvite(projectId, p.project.title));
+  wireGroups(projectId, p, groups, () => renderProjectPeople(projectId));
   $$('[data-member]').forEach((b) => b.addEventListener('click', async () => {
     const m = p.members.find((x) => x.user_id === b.dataset.member);
     const choice = await dialog({ title: m.name, body: `Make <b>${esc(m.name)}</b> the owner of ${esc(p.project.title)}? You’ll stay on as a member.`, confirm: 'Make owner', extra: 'Remove from project' });

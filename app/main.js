@@ -11,6 +11,8 @@ import { renderProjectRecaps, renderRecap, renderMyRecaps } from './views/recaps
 import { renderProjectRequests, renderRequest, newRequest } from './views/requests.js';
 import { renderQueue } from './views/queue.js';
 import { renderCalendar, editEvent } from './views/calendar.js';
+import { openSearch } from './views/search.js';
+import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 
 const view = $('[data-view]');
@@ -205,6 +207,8 @@ async function newVideo(project = null) {
   if (values?.project) createVideo(values.project);
 }
 $$('[data-new]').forEach((b) => b.addEventListener('click', openNew));
+$$('[data-search]').forEach((b) => b.addEventListener('click', openSearch));
+if (/Mac|iPhone|iPad/.test(navigator.platform)) $$('[data-kbd]').forEach((k) => { k.textContent = '⌘K'; });
 
 // Wide screens can tuck the sidebar away; remembered per browser.
 try { document.body.classList.toggle('side-hidden', localStorage.getItem('looproom:side') === 'hidden'); } catch {}
@@ -546,6 +550,21 @@ async function loadProfile() {
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());
   state.profile = data || null;
 }
+
+// What the ⌘K palette can do besides searching.
+ctx.commands = [
+  { label: 'Upload a video', hint: 'New video or take', run: () => newVideo(state.projects.find((p) => p.id === currentProjectId()) || null) },
+  { label: 'Request a video', hint: 'Ask people for a video by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
+  { label: 'New recap', hint: 'Summary by AI', run: () => newRecap({ projectId: currentProjectId() }) },
+  { label: 'Add to calendar', hint: 'Rehearsal or show', run: () => editEvent({ projectId: currentProjectId() }) },
+  { label: 'New project', run: () => createProject() },
+  { label: 'Go to Inbox', run: () => navigate('/app/inbox') },
+  { label: 'Go to Review queue', run: () => navigate('/app/queue') },
+  { label: 'Go to Feedback', run: () => navigate('/app/feedback') },
+  { label: 'Go to Calendar', run: () => navigate('/app/calendar') },
+  { label: 'Go to Insights', run: () => navigate('/app/insights') },
+  { label: 'Go to Settings', run: () => navigate('/app/settings') }
+];
 
 Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut });
 

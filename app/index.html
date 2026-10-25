@@ -16,6 +16,7 @@
         <button class="icon-btn" data-side-toggle aria-label="Hide sidebar" title="Hide sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9 4.5v15"/></svg></button>
       </div>
       <button class="btn primary side-new" data-new><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
+      <button class="side-search" data-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search</span><kbd data-kbd>Ctrl K</kbd></button>
       <nav class="side-nav">
         <a href="/app" data-link data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
         <a href="/app/inbox" data-link data-nav="inbox"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5 6.2 5.6A1.5 1.5 0 0 1 7.6 4.5h8.8a1.5 1.5 0 0 1 1.4 1.1L20 13.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18z"/><path d="M4 13.5h4.5l1 2h5l1-2H20"/></svg><span>Inbox</span><span class="badge" data-unread hidden></span></a>
@@ -45,6 +46,7 @@
         <a class="brand" href="/app" data-link aria-label="Looproom home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>looproom</span></a>
         <a class="back-link" href="/app" data-link data-back hidden></a>
         <nav class="crumbs" data-crumbs aria-label="Breadcrumb"></nav>
+        <button class="icon-btn bell search-btn" data-search aria-label="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button>
         <a class="icon-btn bell" href="/app/inbox" data-link data-bell aria-label="Inbox" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="badge" data-unread hidden></span></a>
       </header>
       <main data-view aria-live="polite"><div class="loading">Loading…</div></main>
