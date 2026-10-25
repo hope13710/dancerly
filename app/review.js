@@ -250,7 +250,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     ab.textContent = r.abStart !== null ? `↻ Set B · from ${fmt(r.abStart)}` : abOn ? '↻ A–B on' : '↻ A–B';
     ab.setAttribute('aria-pressed', String(r.abStart !== null || abOn));
     $('[data-loop-range]').hidden = !(r.mode === 'range' && r.rangeStart !== null && r.rangeEnd !== null);
-    $('[data-loopchip]').innerHTML = r.loop ? `↻ Looping ${fmt(r.loop.start)}–${fmt(r.loop.end)} <button type="button" data-clearloop aria-label="Stop looping">✕</button>` : '';
+    // Repainted every frame, so only touch the chip when it changes — replacing it mid-click swallowed the ✕.
+    const chip = r.loop ? `↻ Looping ${fmt(r.loop.start)}–${fmt(r.loop.end)} <button type="button" data-clearloop aria-label="Stop looping">✕</button>` : '';
+    if (chip !== r.loopChip) { r.loopChip = chip; $('[data-loopchip]').innerHTML = chip; }
     const draft = $('[data-tdraft]');
     const showDraft = r.mode === 'range' && r.rangeStart !== null;
     draft.hidden = !showDraft;

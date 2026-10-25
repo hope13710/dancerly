@@ -21,40 +21,41 @@ function median(values) {
 const duration = (ms) => (ms === null ? '—' : ms < 3600000 ? `${Math.max(1, Math.round(ms / 60000))}m` : ms < DAY ? `${Math.round(ms / 3600000)}h` : `${(ms / DAY).toFixed(ms < 10 * DAY ? 1 : 0)}d`);
 const snippet = (text, n = 90) => (text.length > n ? `${text.slice(0, n)}…` : text);
 
-// Where notes sit along one video, in eights when the video has counts, otherwise in 5-second steps.
-// Notes from earlier takes are moved onto the latest take when the takes are lined up.
+// Where notes sit along one video, in steps of a few seconds on the latest take's timeline — the same clock as the
+// player. Short videos get 5-second squares, longer ones 10 or 15 so a row stays readable. When the video has counts,
+// each square also says which eight it starts in. Notes from earlier takes move onto the latest take when lined up.
 function hotSpots(video, notes, takesOfVideo) {
   const latest = takesOfVideo.reduce((a, b) => (b.number > a.number ? b : a), takesOfVideo[0]);
-  const bpm = video.bpm === null || video.bpm === undefined ? null : Number(video.bpm);
-  const start = latest?.count_start === null || latest?.count_start === undefined ? null : Number(latest.count_start);
-  const byEight = Boolean(bpm && start !== null);
-  const size = byEight ? (8 * 60) / bpm : 5;
-  const origin = byEight ? start : 0;
-  const binOf = (t) => (byEight ? Math.floor((t - origin) / size + 1e-6) + 1 : Math.floor(t / size + 1e-6)); // eights count from 1; 0 = before count 1
   let unaligned = 0;
-  const bins = new Map();
-  for (const n of notes) {
-    const from = takesOfVideo.find((t) => t.id === n.take_id);
-    let shift = shiftBetween(from, latest);
+  const spans = notes.map((n) => {
+    let shift = shiftBetween(takesOfVideo.find((t) => t.id === n.take_id), latest);
     if (shift === null) { shift = 0; unaligned += 1; }
-    const a = Number(n.t_start) + shift;
-    // A range ends where the next part begins, so its last instant doesn't count as the next eight.
+    const a = Math.max(0, Number(n.t_start) + shift);
+    // A range ends where the next part begins, so its last instant doesn't count toward the next square.
     const b = n.t_end === null ? a : Math.max(a, Number(n.t_end) + shift - 0.01);
-    for (let i = binOf(Math.max(0, a)); i <= binOf(Math.max(0, b)); i += 1) {
-      const bin = bins.get(i) || { i, open: 0, fixed: 0 };
+    return { n, a, b };
+  });
+  const end = Math.max(20, ...spans.map((x) => x.b));
+  const size = end <= 75 ? 5 : end <= 180 ? 10 : 15;
+  const binOf = (t) => Math.floor(t / size + 1e-6);
+  const bins = new Map();
+  for (const { n, a, b } of spans) {
+    for (let i = binOf(a); i <= binOf(b); i += 1) {
+      const bin = bins.get(i) || { open: 0, fixed: 0 };
       bin[n.status === 'resolved' ? 'fixed' : 'open'] += 1;
       bins.set(i, bin);
     }
   }
-  const first = byEight ? Math.min(1, ...bins.keys()) : 0;
-  const last = Math.max(byEight ? 4 : 3, ...bins.keys());
+  const bpm = video.bpm === null || video.bpm === undefined ? null : Number(video.bpm);
+  const one = latest?.count_start === null || latest?.count_start === undefined ? null : Number(latest.count_start);
+  const eightAt = (t) => (bpm && one !== null && t >= one ? Math.floor((t - one) / ((8 * 60) / bpm) + 1e-6) + 1 : null);
   const cells = [];
-  for (let i = first; i <= last; i += 1) {
-    const at = byEight ? Math.max(0, origin + (i - 1) * size) : i * size;
-    cells.push({ ...(bins.get(i) || { i, open: 0, fixed: 0 }), at, label: byEight ? (i < 1 ? 'Intro' : `Eight ${i}`) : fmt(at), short: byEight ? (i < 1 ? '·' : String(i)) : fmt(at) });
+  for (let i = 0; i <= binOf(end); i += 1) {
+    const at = i * size;
+    cells.push({ ...(bins.get(i) || { open: 0, fixed: 0 }), at, eight: eightAt(at), label: `${fmt(at)}–${fmt(at + size)}`, short: fmt(at) });
   }
   const top = cells.reduce((a, c) => (c.open > a.open ? c : a), cells[0]);
-  return { video, latest, byEight, cells, top: top?.open ? top : null, unaligned, open: notes.filter((n) => n.status !== 'resolved').length };
+  return { video, latest, size, cells, top: top?.open ? top : null, unaligned, open: notes.filter((n) => n.status !== 'resolved').length };
 }
 
 export async function renderInsights() {
@@ -160,10 +161,10 @@ export async function renderInsights() {
   const lines = [];
   const hottest = spots.filter((s) => s.top).sort((a, b) => b.top.open - a.top.open)[0];
   // Full sentences in both languages here: names and titles sit inside them, so they can't be swapped piece by piece.
-  const spotLabel = (c) => (isKo ? (c.label === 'Intro' ? '인트로' : c.label.replace(/^Eight (\d+)$/, '$1에잇')) : c.label);
+  const spotLabel = (c) => c.label;
   if (hottest) lines.push({ icon: '◎', html: isKo
     ? `미해결 피드백이 가장 많은 곳: <b>${esc(hottest.video.title)}</b> · <b>${spotLabel(hottest.top)}</b> (${hottest.top.open}개)`
-    : `Most open feedback: <b>${esc(hottest.video.title)}</b> · <b>${hottest.top.label}</b> (${hottest.top.open} open)`, href: spotLink(hottest, hottest.top), cta: 'Loop it' });
+    : `Most open feedback: <b>${esc(hottest.video.title)}</b> · <b>${hottest.top.label}</b> (${hottest.top.open} open)`, href: spotLink(hottest, hottest.top), cta: 'Watch it' });
   if (stuck.length) lines.push({ icon: '⏳', html: isKo
     ? `피드백 <b>${stuck.length}개</b>가 ${STUCK_DAYS}일 넘게 그대로예요`
     : `<b>${stuck.length}</b> ${stuck.length === 1 ? 'note has' : 'notes have'} been open for ${STUCK_DAYS}+ days`, href: '#stuck', cta: 'See them' });
@@ -213,13 +214,12 @@ export async function renderInsights() {
     </section>
 
     ${spots.length ? `<section class="panel heat-panel">
-      <div class="panel-head"><div><h2>Where feedback piles up</h2><p class="muted">Each square is ${spots.some((s) => s.byEight) ? 'an eight (or 5 seconds when a video has no counts)' : '5 seconds of the video'}. Darker means more notes still open. Tap one to loop it.</p></div>
+      <div class="panel-head"><div><h2>Where feedback piles up</h2><p class="muted">Each square is a few seconds of the video. Darker means more notes still open. Tap one to jump there.</p></div>
         <div class="legend"><span><i class="key heat-open"></i>Open</span><span><i class="key heat-fixed"></i>Fixed</span></div></div>
       <div class="heat-list">${spots.map((s) => `<div class="heat-row">
-        <div class="heat-head"><a href="/app/p/${s.video.project_id}/v/${s.video.id}" data-link>${esc(s.video.title)}</a><small data-no-i18n>${isKo ? `${s.open ? `미해결 ${s.open}개` : '모두 해결'}${s.top ? ` · ${spotLabel(s.top)}에 가장 많아요` : ''}` : `${s.open ? `${s.open} open` : 'All fixed'}${s.top ? ` · most at ${s.top.label}` : ''}`}</small></div>
-        <div class="heat" style="--n:${s.cells.length}">${s.cells.map((c, i) => `<a class="heat-cell" href="${spotLink(s, c)}" data-link style="--o:${(c.open / heatMax).toFixed(2)};--f:${(c.fixed / heatMax).toFixed(2)}" title="${c.label}: ${c.open} open, ${c.fixed} fixed" aria-label="${c.label}: ${c.open} open, ${c.fixed} fixed">${i % Math.ceil(s.cells.length / 12) === 0 ? `<span>${c.short}</span>` : ''}${c.open ? `<b>${c.open}</b>` : ''}</a>`).join('')}</div>
+        <div class="heat-head"><a href="/app/p/${s.video.project_id}/v/${s.video.id}" data-link>${esc(s.video.title)}</a><small data-no-i18n>${isKo ? `${s.open ? `미해결 ${s.open}개` : '모두 해결'}${s.top ? ` · ${spotLabel(s.top)}에 가장 많아요` : ''} · 한 칸 ${s.size}초` : `${s.open ? `${s.open} open` : 'All fixed'}${s.top ? ` · most at ${s.top.label}` : ''} · ${s.size}s per square`}</small></div>
+        <div class="heat" style="--n:${s.cells.length}">${s.cells.map((c, i) => `<a class="heat-cell" href="${spotLink(s, c)}" data-link style="--o:${(c.open / heatMax).toFixed(2)};--f:${(c.fixed / heatMax).toFixed(2)}" title="${c.label}${c.eight ? ` · ${isKo ? `${c.eight}에잇` : `Eight ${c.eight}`}` : ''}: ${c.open} open, ${c.fixed} fixed" aria-label="${c.label}: ${c.open} open, ${c.fixed} fixed">${i % Math.ceil(s.cells.length / 12) === 0 ? `<span>${c.short}</span>` : ''}${c.open ? `<b>${c.open}</b>` : ''}</a>`).join('')}</div>
         ${s.unaligned ? `<p class="fine left">${s.unaligned} ${s.unaligned === 1 ? 'note' : 'notes'} from earlier takes placed by time only — opening the latest take lines them up.</p>` : ''}
-        ${s.byEight ? '' : '<p class="fine left">Set the BPM and count 1 on this video to see it in eights.</p>'}
       </div>`).join('')}</div>
     </section>` : ''}
 
