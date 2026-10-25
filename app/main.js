@@ -46,6 +46,11 @@ async function route() {
 // ---------- Header ----------
 function setCrumbs(items) {
   $('[data-crumbs]').innerHTML = items.map(([label, href]) => href ? `<a href="${href}" data-link>${esc(label)}</a>` : `<b>${esc(label)}</b>`).join('<i>/</i>');
+  // On phones the breadcrumb is hidden; a back link to the nearest parent takes its place.
+  const parent = [...items].reverse().find(([, href]) => href);
+  const back = $('[data-back]');
+  back.hidden = !parent;
+  if (parent) { back.href = parent[1]; back.textContent = `← ${parent[0]}`; }
 }
 function renderChrome() {
   const signedIn = Boolean(state.session && state.profile);
@@ -237,6 +242,7 @@ async function renderProject(projectId) {
       </a>`;
     }).join('')}</div>`
     : `<div class="empty"><div class="empty-icon">▶</div><h2>Add your first rehearsal video</h2><p>Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.</p><button class="btn primary" data-new-video>+ New video</button></div>`}
+    <button class="fab" data-new-video aria-label="Upload a new video"><span aria-hidden="true">＋</span></button>
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $('[data-invite]').addEventListener('click', () => showInvite(projectId, project.title));

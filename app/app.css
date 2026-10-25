@@ -1324,3 +1324,54 @@ a {
   font-weight: 400;
   background: var(--surface);
 }
+
+/* ---------- Phones: back link instead of breadcrumbs, floating upload button ---------- */
+.back-link {
+  display: none;
+  min-width: 0;
+  max-width: 55vw;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px 4px;
+}
+.fab {
+  display: none;
+}
+@media (max-width: 600px) {
+  .topbar .brand span:last-child {
+    display: none;
+  }
+  .back-link:not([hidden]) {
+    display: block;
+  }
+  .fab {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 18px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 30;
+    width: 58px;
+    height: 58px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--dark);
+    color: #fff;
+    font-size: 26px;
+    box-shadow: 0 12px 28px rgba(20, 23, 29, 0.3);
+  }
+  .fab:active {
+    transform: scale(0.96);
+  }
+  .page {
+    padding-bottom: 110px;
+  }
+  .toast {
+    bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+}
