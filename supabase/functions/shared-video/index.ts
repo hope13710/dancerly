@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   let notes: unknown[] = [];
   if (share.include_notes) {
     // Private notes (to one person) are never shown to guests.
-    const { data } = await admin.from("notes").select("id, body, t_start, t_end, status, author_id, take_id").eq("video_id", video.id).is("private_to", null).order("t_start");
+    const { data } = await admin.from("notes").select("id, body, t_start, t_end, status, author_id, take_id, sketch").eq("video_id", video.id).is("private_to", null).order("t_start");
     // Notes on this take, plus anything from earlier takes that isn't fixed — the same view the team sees.
     const { data: takes } = await admin.from("takes").select("id, number").eq("video_id", video.id);
     const num = Object.fromEntries((takes ?? []).map((t: { id: string; number: number }) => [t.id, t.number]));
@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
     const ids = [...new Set(visible.map((n: { author_id: string }) => n.author_id))];
     const { data: people } = ids.length ? await admin.from("profiles").select("id, display_name").in("id", ids) : { data: [] };
     const name = Object.fromEntries((people ?? []).map((p: { id: string; display_name: string }) => [p.id, p.display_name]));
-    notes = visible.map((n: { id: string; body: string; t_start: number; t_end: number | null; status: string; author_id: string }) => ({
-      id: n.id, body: n.body, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), status: n.status, author: name[n.author_id] ?? "A teammate",
+    notes = visible.map((n: { id: string; body: string; t_start: number; t_end: number | null; status: string; author_id: string; sketch: unknown }) => ({
+      id: n.id, body: n.body, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), status: n.status, author: name[n.author_id] ?? "A teammate", sketch: n.sketch ?? null,
     }));
   }
   admin.from("video_shares").update({ views: share.views + 1 }).eq("token", token).then(() => {});

@@ -4178,3 +4178,168 @@ td.ref .play {
 .lock {
   font-size: 12px;
 }
+
+/* ---------- Sketches on the frame ---------- */
+.sketch-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.player.mirrored .sketch-layer {
+  transform: scaleX(-1);
+}
+.player.drawing .sketch-layer {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+  outline: 1px dashed rgba(255, 255, 255, 0.35);
+  outline-offset: -1px;
+}
+.player.drawing .big-play {
+  display: none;
+}
+.player-badge {
+  z-index: 3;
+}
+.sketch-bar {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 10px;
+  background: rgba(20, 23, 29, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-width: calc(100% - 16px);
+}
+.sketch-bar[hidden] {
+  display: none;
+}
+.sketch-group {
+  display: flex;
+  gap: 2px;
+  padding-right: 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+.sketch-bar button {
+  min-width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: #dbe0f0;
+  font-size: 15px;
+}
+.sketch-bar button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.sketch-bar button[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.sketch-bar .swatch {
+  min-width: 26px;
+  display: grid;
+  place-items: center;
+}
+.sketch-bar .swatch::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+.sketch-bar .swatch[aria-pressed='true']::before {
+  box-shadow: 0 0 0 2px #14171d, 0 0 0 4px var(--c);
+}
+.sketch-bar .sketch-done {
+  padding: 0 12px;
+  background: #fff;
+  color: #14171d;
+  font-size: 13px;
+  font-weight: 650;
+}
+.sketch-bar .sketch-done:hover {
+  background: #e9ebf0;
+}
+.draw-btn[aria-pressed='true'] {
+  background: rgba(91, 92, 226, 0.18);
+  color: #c9caff;
+}
+.sketch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #c9caff;
+  white-space: nowrap;
+}
+.sketch-chip[hidden] {
+  display: none;
+}
+.sketch-chip button {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+.sketch-tag {
+  font-size: 11px;
+  color: #c9caff;
+  background: rgba(91, 92, 226, 0.16);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+@media (max-width: 720px) {
+  .sketch-bar {
+    bottom: 8px;
+    gap: 4px;
+    padding: 4px;
+  }
+  .sketch-group {
+    padding-right: 4px;
+  }
+  .sketch-bar button {
+    min-width: 30px;
+    height: 30px;
+  }
+  .sketch-bar .swatch {
+    min-width: 24px;
+  }
+}
+.composer-foot {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.composer-foot .btn.primary {
+  margin-left: auto;
+}
+.composer-foot .draw-btn {
+  border: 1px solid #3e4757;
+  border-radius: 8px;
+  background: #232935;
+  color: #e3e6ed;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.guest-player {
+  position: relative;
+}
+.guest-player .guest-video {
+  display: block;
+}
+.player {
+  scroll-margin-top: 72px;
+}

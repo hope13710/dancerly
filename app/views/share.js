@@ -1,6 +1,7 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
 import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL } from '../client.js';
 import { ctx } from '../ctx.js';
+import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 
 function copyRow(value) {
   return `<div class="copy-row"><input readonly value="${esc(value)}" /><button class="btn primary" type="button" data-copy="${esc(value)}">Copy</button></div>`;
@@ -72,15 +73,38 @@ export async function renderShared(token) {
   view.innerHTML = `<section class="page guest">
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
-      <video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video>
+      <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg></div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
-        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
+        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · ✎ sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
     <p class="fine guest-foot">Shared from <a href="/">Looproom</a> — timestamped feedback for dance teams.</p>
   </section>`;
   const video = $('[data-video]');
-  $$('[data-seek]').forEach((b) => b.addEventListener('click', () => { video.currentTime = Math.max(0, Number(b.dataset.seek) - 1); video.play(); }));
-  return () => document.body.classList.remove('is-guest');
+  $$('[data-seek]').forEach((b) => b.addEventListener('click', () => {
+    const n = data.notes.find((x) => String(x.t_start) === b.dataset.seek && x.sketch);
+    // A note with a sketch stops on its frame so the drawing can be read.
+    if (n) { video.pause(); video.currentTime = Number(b.dataset.seek); } else { video.currentTime = Math.max(0, Number(b.dataset.seek) - 1); video.play(); }
+  }));
+  // Sketches show over the video at their moment, like in the team's review.
+  const layer = $('[data-sketch-layer]');
+  const sketched = data.notes.filter((n) => n.sketch);
+  let shownKey = '';
+  const paint = (force) => {
+    const shown = sketched.filter((n) => sketchShowsAt(n, video.currentTime));
+    const key = shown.map((n) => n.id).join();
+    if (key === shownKey && !force) return;
+    shownKey = key;
+    paintSketches(layer, shown.map((n) => n.sketch));
+  };
+  const place = () => { placeLayer(layer, video); paint(true); };
+  let frame = 0;
+  const loop = () => { paint(false); frame = requestAnimationFrame(loop); };
+  if (sketched.length) {
+    video.addEventListener('loadedmetadata', place);
+    window.addEventListener('resize', place);
+    frame = requestAnimationFrame(loop);
+  }
+  return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', place); document.body.classList.remove('is-guest'); };
 }
 
 // ---------- Calendar subscription ----------
