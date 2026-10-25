@@ -1375,3 +1375,31 @@ a {
     bottom: calc(90px + env(safe-area-inset-bottom));
   }
 }
+.code-form {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.code-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.code-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.18);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

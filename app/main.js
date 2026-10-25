@@ -1,8 +1,8 @@
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, checkTakeFile, loadMembers } from './client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, checkTakeFile, loadMembers, GOOGLE_ENABLED } from './client.js';
 import { mountReview } from './review.js';
 
 const view = $('[data-view]');
-const state = { session: null, profile: null, cleanup: null };
+const state = { session: null, profile: null, cleanup: null, authError: null };
 
 // ---------- Routing ----------
 const routes = [
@@ -90,9 +90,9 @@ function renderLogin() {
   if (state.session && state.profile) return navigate(next, { replace: true });
   if (state.session) return renderName();
   let mode = params.get('mode') === 'signup' ? 'signup' : 'login';
-  // Errors from a failed Google or magic-link redirect come back in the URL.
-  const hash = new URLSearchParams(location.hash.slice(1));
-  const redirectError = params.get('error_description') || hash.get('error_description');
+  // Shown once: an error that came back from a magic link or Google (captured at startup).
+  const redirectError = state.authError ? friendlyError({ message: state.authError }) : null;
+  state.authError = null;
   renderChrome();
   const paint = () => {
     view.innerHTML = `<section class="auth">
@@ -100,21 +100,20 @@ function renderLogin() {
         <a class="auth-brand" href="/"><span class="brand-mark"><i></i><i></i><i></i></span>looproom</a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${mode === 'signup'}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${mode === 'login'}">Log in</button></div>
         <h1>${mode === 'signup' ? 'Start your team’s space' : 'Welcome back'}</h1>
-        <p class="muted">${mode === 'signup' ? 'Free for your first team. No credit card, no password.' : 'We’ll email you a link — no password to remember.'}</p>
+        <p class="muted">${mode === 'signup' ? 'Free for your first team. No credit card, no password.' : 'We’ll email you a 6-digit code — no password to remember.'}</p>
         ${redirectError ? `<p class="form-error" role="alert">${esc(redirectError)}</p>` : ''}
-        <button type="button" class="btn google" data-google><span class="g">G</span> Continue with Google</button>
-        <div class="or"><span>or with email</span></div>
+        ${GOOGLE_ENABLED ? '<button type="button" class="btn google" data-google><span class="g">G</span> Continue with Google</button><div class="or"><span>or with email</span></div>' : ''}
         <form data-auth-form>
           ${mode === 'signup' ? '<label class="field"><span>Your name</span><input name="name" autocomplete="name" maxlength="60" required placeholder="Maya Chen" /></label>' : ''}
           <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com" value="${esc(params.get('email') || '')}" /></label>
-          <button class="btn primary wide" type="submit">${mode === 'signup' ? 'Create account' : 'Email me a log-in link'}</button>
+          <button class="btn primary wide" type="submit">${mode === 'signup' ? 'Create account' : 'Email me a log-in code'}</button>
           <p class="form-error" data-form-error role="alert" hidden></p>
         </form>
         <p class="fine">By continuing you agree to the Terms and Privacy Policy.</p>
       </div>
     </section>`;
     $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; paint(); }));
-    $('[data-google]').addEventListener('click', async () => {
+    $('[data-google]')?.addEventListener('click', async () => {
       const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${next}` } });
       if (error) showError(friendlyError(error));
     });
@@ -132,7 +131,7 @@ function renderLogin() {
       });
       if (error) {
         button.disabled = false;
-        button.textContent = mode === 'signup' ? 'Create account' : 'Email me a log-in link';
+        button.textContent = mode === 'signup' ? 'Create account' : 'Email me a log-in code';
         return showError(friendlyError(error));
       }
       renderCheckInbox(email, name, next);
@@ -146,7 +145,14 @@ function renderCheckInbox(email, name, next) {
   view.innerHTML = `<section class="auth"><div class="auth-card center">
     <div class="inbox-icon">✉</div>
     <h1>Check your inbox</h1>
-    <p class="muted">We sent a link to <b>${esc(email)}</b>. Open it on this device to continue. It works for one hour.</p>
+    <p class="muted">We sent an email to <b>${esc(email)}</b>. Type the 6-digit code here — or open the link on this device.</p>
+    <form class="code-form" data-code-form>
+      <label class="sr-only" for="otp">6-digit code</label>
+      <input id="otp" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required />
+      <button class="btn primary" type="submit">Log in</button>
+    </form>
+    <p class="form-error" data-code-error role="alert" hidden></p>
+    <p class="fine">Codes and links work once and expire after an hour. Opening the link in your mail app logs you in there, not here.</p>
     <button class="btn wide" data-resend disabled>Resend in <span data-count>60</span>s</button>
     <button class="btn ghost wide" data-other>Use a different email</button>
   </div></section>`;
@@ -162,6 +168,22 @@ function renderCheckInbox(email, name, next) {
     toast(error ? friendlyError(error) : 'Sent again. Check spam if it’s not there.', error ? 'error' : 'info');
   });
   $('[data-other]').addEventListener('click', () => { clearInterval(timer); renderLogin(); });
+  $('#otp').focus();
+  $('[data-code-form]').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Checking…';
+    // Signing in here (not in the mail app's browser) is what keeps you logged in on this device.
+    const { error } = await sb.auth.verifyOtp({ email, token: event.currentTarget.code.value.trim(), type: 'email' });
+    if (error) {
+      button.disabled = false;
+      button.textContent = 'Log in';
+      const el = $('[data-code-error]');
+      el.textContent = friendlyError(error);
+      el.hidden = false;
+    }
+  });
   return () => clearInterval(timer);
 }
 
@@ -436,8 +458,12 @@ sb.auth.onAuthStateChange((event, session) => {
   const { data } = await sb.auth.getSession();
   state.session = data.session;
   await loadProfile();
+  // A failed magic link or Google sign-in lands here with the reason in the URL; keep it for the login page.
+  const hashParams = new URLSearchParams(location.hash.slice(1));
+  const search = new URLSearchParams(location.search);
+  state.authError = hashParams.get('error_description') || search.get('error_description');
   // Tidy the URL after a magic-link or Google redirect.
-  if (location.hash.includes('access_token') || new URLSearchParams(location.search).has('code')) history.replaceState({}, '', location.pathname);
+  if (location.hash.includes('access_token') || state.authError || search.has('code')) history.replaceState({}, '', location.pathname);
   if (state.session && state.profile && location.pathname.startsWith('/app/login')) {
     history.replaceState({}, '', safeNext(new URLSearchParams(location.search).get('next')));
   }

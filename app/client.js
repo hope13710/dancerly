@@ -8,6 +8,9 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 
+// Turn on after enabling the Google provider in Supabase (Authentication → Sign In / Providers).
+export const GOOGLE_ENABLED = false;
+
 export const TAKE_BUCKET = 'takes';
 export const MAX_TAKE_BYTES = 50 * 1024 * 1024;
 export const TAKE_TYPES = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
@@ -40,6 +43,11 @@ export function toast(message, kind = 'info') {
 // Supabase errors are often technical; keep the useful part and say what to do.
 export function friendlyError(error) {
   const msg = error?.message || String(error || 'Something went wrong.');
+  const wait = msg.match(/after (\d+) seconds/i);
+  if (wait) return `Wait ${wait[1]} seconds before asking for another email.`;
+  if (/email rate limit/i.test(msg)) return 'We’ve hit the email limit for now. Try again a little later — or use the code from an email you already have.';
+  if (/invalid or has expired|otp_expired|token has expired|token not found/i.test(msg)) return 'That link or code was already used or has expired. Each one works once — ask for a new one below.';
+  if (/provider is not enabled/i.test(msg)) return 'Google sign-in isn’t turned on yet. Use your email for now.';
   if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and try again.';
   if (/Failed to fetch|NetworkError|network/i.test(msg)) return 'Can’t reach Looproom. Check your connection and try again.';
   if (/JWT|not authenticated|session/i.test(msg)) return 'Your session ended. Log in again.';
