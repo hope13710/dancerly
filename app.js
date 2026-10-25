@@ -217,7 +217,7 @@ function renderReport() {
   $('[data-report-source]', reportEl).textContent = r.scope;
   $('[data-report-actions]', reportEl).innerHTML = `<button type="button" class="ghost pin ${reportView.pinned ? 'on' : ''}" data-report-pin aria-pressed="${reportView.pinned}" title="Pin to the top of Recaps">📌 ${reportView.pinned ? 'Pinned' : 'Pin'}</button><button type="button" class="ghost">Share to project</button><button type="button" class="primary" data-report-generate>${sparkleIcon}Regenerate</button>`;
   $('[data-report-body]', reportEl).innerHTML = `
-    <div class="report-skeleton" aria-hidden="true"><em>✦ Reading ${r.scope.split('· ')[1]}…</em><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="report-skeleton" aria-hidden="true"><em>Writing your recap from ${r.scope.split('· ')[1]}…</em><span></span><span></span><span></span><span></span><span></span></div>
     <div class="report-block"><h4>${r.worked[0]}</h4><p>${r.worked[1]}${r.worked[2].map(cite).join('')}</p><div class="ai-tags">${r.worked[3].map(aiTag).join('')}</div></div>
     <div class="report-block"><h4>${r.todo[0]}</h4>${list(r.todo, 'report-todo', '☐')}</div>
     <div class="report-block"><h4>${r.landed[0]}</h4>${plain(r.landed, 'report-landed', '✓')}</div>
@@ -249,6 +249,12 @@ function generateReport(changes = {}) {
 
 if (reportEl) {
   renderReport();
+  // Demo feedback: one answer at a time, like the app.
+  $$('[data-report-feedback]', reportEl).forEach((b) => b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    $$('[data-report-feedback]', reportEl).forEach((x) => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', String(on));
+  }));
   $$('[data-report-tab]', reportEl).forEach((tab) => tab.addEventListener('click', () => {
     generateReport({ period: tab.dataset.reportTab });
     track('recap_period', { period: tab.dataset.reportTab, scope: reportView.scope });
