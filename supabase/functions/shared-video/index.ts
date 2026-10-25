@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
 
   let notes: unknown[] = [];
   if (share.include_notes) {
-    const { data } = await admin.from("notes").select("id, body, t_start, t_end, status, author_id, take_id").eq("video_id", video.id).order("t_start");
+    // Private notes (to one person) are never shown to guests.
+    const { data } = await admin.from("notes").select("id, body, t_start, t_end, status, author_id, take_id").eq("video_id", video.id).is("private_to", null).order("t_start");
     // Notes on this take, plus anything from earlier takes that isn't fixed — the same view the team sees.
     const { data: takes } = await admin.from("takes").select("id, number").eq("video_id", video.id);
     const num = Object.fromEntries((takes ?? []).map((t: { id: string; number: number }) => [t.id, t.number]));

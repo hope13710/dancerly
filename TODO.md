@@ -44,6 +44,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Guest share link for a video (`/app/s/:token`, `shared-video` function, expiry, turn off) and calendar subscription feed (`calendar-feed` function, webcal).
 - [x] Project Pages (Markdown docs, autosave, live preview, pin).
 - [x] Uploads: on-device shrink to 720p H.264 (Mediabunny/WebCodecs, keeps AAC audio, up to 15 min), TUS resumable upload (6 MB chunks, auto-retry, resume after reload via IndexedDB + same file), can't-play notice for HEVC on unsupported browsers.
+- [x] Note replies (threads, live, Inbox "replied") and private notes (coach → one member: only the two see it, kept out of project recaps and guest links; personal recaps using them can't be shared). Tested in `supabase/tests/private_notes_test.sql`.
 - [ ] Needs the owner's setup: email/push delivery (SMTP, VAPID keys), billing, leaked-password protection (Auth settings).
 - [ ] Later: weekly auto-recap, recap translation, request announcement notes, per-sentence recap feedback.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
@@ -51,7 +52,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.
 - [x] Row level security on every table, tested with three simulated users.
 - [ ] Configure Site URL / redirect URLs and Google in the Supabase dashboard (see docs/07).
-- [ ] Custom SMTP before launch; resumable uploads (tus) with progress; HLS transcoding and thumbnails.
+- [ ] Custom SMTP before launch; HLS transcoding and thumbnails.
 - [ ] Mention notifications, Inbox, retention rules.
 - [x] Takes stay in the data but show only when a video has 2+ takes; upload suggests stacking onto a matching video.
 - [x] Merge a video into another as its next takes, notes included ("Merge into…" on the review screen; creator or owner).

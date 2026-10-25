@@ -11,6 +11,7 @@ const SECTIONS = [
 const KINDS = [
   ['mention', 'Someone @mentions you', 'In a note on any video.'],
   ['note_on_your_video', 'Notes on your videos', 'On a video you added or a take you uploaded.'],
+  ['reply', 'Replies', 'When someone replies to a note you wrote or a thread you’re in.'],
   ['new_take', 'New takes', 'Whenever a teammate uploads to one of your projects.'],
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],

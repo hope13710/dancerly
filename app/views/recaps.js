@@ -18,7 +18,7 @@ export function sparkle(cls = '') {
 }
 const FRESH_KEY = 'looproom:fresh-recap';
 
-const SELECT = 'id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, created_at, projects(title), videos(title), recap_pins(user_id)';
+const SELECT = 'id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, has_private, created_at, projects(title), videos(title), recap_pins(user_id)';
 
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const periodLabel = (r) => (r.period === 'custom' ? `${day(r.period_start)} – ${day(r.period_end)}` : PERIODS[r.period]);
@@ -260,7 +260,8 @@ export async function renderRecap(recapId) {
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
       <footer class="recap-actions">
         <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">📌 ${pinned ? 'Pinned' : 'Pin'}</button>
-        ${mine && !r.shared_at ? '<button class="btn small" data-share>Share to project</button>' : ''}
+        ${mine && !r.shared_at && !r.has_private ? '<button class="btn small" data-share>Share to project</button>' : ''}
+        ${mine && r.has_private ? '<span class="pill" title="Private notes stay between the two people, so this recap stays yours">🔒 Uses private notes · can’t be shared</span>' : ''}
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${mine ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}

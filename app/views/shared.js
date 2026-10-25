@@ -1,7 +1,7 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
 import { sb, esc, initials, fmt, timeAgo } from '../client.js';
 
-export const NOTE_SELECT = 'id, project_id, video_id, take_id, t_start, t_end, body, status, author_id, created_at, resolved_at, takes(number), videos(title), projects(title), note_reactions(user_id)';
+export const NOTE_SELECT = 'id, project_id, video_id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, takes(number), videos(title), projects(title), note_reactions(user_id), note_replies(count)';
 
 // Opens the review on that take with the note selected and the video at its moment.
 export const noteHref = (n) => `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}`;
@@ -23,10 +23,10 @@ export function noteRow(n, names, { showAuthor = true, showProject = true } = {}
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
     ${showAuthor ? `<span class="avatar sm" title="${esc(author)}">${esc(initials(author))}</span>` : ''}
     <span class="row-main">
-      <span class="row-title">${esc(n.body)}</span>
+      <span class="row-title">${n.private_to ? '<span class="lock" title="Private: only the two of you">🔒</span> ' : ''}${esc(n.body)}</span>
       <span class="row-meta">${showAuthor ? `<b>${esc(author)}</b> · ` : ''}<span class="time-tag">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
     </span>
-    <span class="row-side">${agrees ? `<span class="agree-count" title="${agrees} agree">👍 ${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>
+    <span class="row-side">${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">💬 ${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">👍 ${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>
   </a>`;
 }
 
@@ -50,11 +50,10 @@ export async function notesForMe(me, { limit = 200 } = {}) {
     sb.from('takes').select('id').eq('uploaded_by', me),
     sb.from('note_mentions').select('note_id').eq('user_id', me)
   ]);
-  const parts = [];
+  const parts = [`private_to.eq.${me}`]; // private notes addressed to you
   if (vids?.length) parts.push(`video_id.in.(${vids.map((v) => v.id).join(',')})`);
   if (takes?.length) parts.push(`take_id.in.(${takes.map((t) => t.id).join(',')})`);
   if (mentions?.length) parts.push(`id.in.(${mentions.map((m) => m.note_id).join(',')})`);
-  if (!parts.length) return [];
   const { data, error } = await sb.from('notes').select(NOTE_SELECT).or(parts.join(',')).neq('author_id', me).order('created_at', { ascending: false }).limit(limit);
   if (error) throw error;
   return data;

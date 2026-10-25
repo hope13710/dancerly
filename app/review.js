@@ -40,7 +40,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const { data: signed, error: sErr } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(take.storage_path, 60 * 60 * 3);
   if (sErr) throw sErr;
 
-  const r = { notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  const r = { openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
@@ -65,7 +65,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">▸ At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">⟷ Range</button></div>
           <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>→</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small></div>
           <div class="composer-field"><textarea data-input rows="2" maxlength="2000" placeholder="What should change at this moment? Type @ to mention someone"></textarea><div class="mention-menu" data-mentions role="listbox" hidden></div></div>
-          <div class="composer-foot"><small>No label needed — AI sorts notes in recaps.</small><button class="btn primary small" type="submit">Pin note ↵</button></div>
+          <div class="composer-foot"><label class="visibility"><span class="sr-only">Who can see this note</span><select data-visibility>
+            <option value="">👥 Whole team</option>
+            ${members.filter((m) => m.user_id !== me.id).sort((a, b) => (b.user_id === take.uploaded_by) - (a.user_id === take.uploaded_by)).map((m) => `<option value="${m.user_id}">🔒 Only ${esc(m.name)}${m.user_id === take.uploaded_by ? ' (in this take)' : ''}</option>`).join('')}
+          </select></label><button class="btn primary small" type="submit">Pin note ↵</button></div>
         </form>
       </aside>
     </div>
@@ -86,10 +89,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Notes ----------
   async function loadNotes() {
     const { data, error } = await sb.from('notes')
-      .select('id, take_id, t_start, t_end, body, status, author_id, created_at, resolved_at, note_reactions(user_id)')
+      .select('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, note_reactions(user_id), note_replies(id, author_id, body, created_at)')
       .eq('video_id', videoId).order('t_start');
     if (error) return toast(friendlyError(error), 'error');
-    r.notes = data.map((n) => ({ ...n, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end) }));
+    r.notes = data.map((n) => ({ ...n, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), note_replies: [...(n.note_replies || [])].sort((a, b) => a.created_at.localeCompare(b.created_at)) }));
     paintNotes();
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
@@ -102,6 +105,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const notes = visibleNotes();
     const list = $('[data-list]');
     if (!list) return;
+    // Keep half-typed replies (and focus) across live refreshes.
+    const drafts = Object.fromEntries([...list.querySelectorAll('[data-reply-form]')].map((f) => [f.dataset.replyForm, f.elements.namedItem('reply').value]));
+    const focused = document.activeElement?.closest?.('[data-reply-form]')?.dataset.replyForm;
+    queueMicrotask(() => {
+      for (const [id, value] of Object.entries(drafts)) { const input = list.querySelector(`[data-reply-form="${id}"] input`); if (input && value) input.value = value; }
+      if (focused) list.querySelector(`[data-reply-form="${focused}"] input`)?.focus();
+    });
     list.innerHTML = notes.length ? notes.map((n) => {
       const agrees = n.note_reactions.length;
       const iAgree = n.note_reactions.some((x) => x.user_id === me.id);
@@ -110,7 +120,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const statusBtn = n.status === 'resolved'
         ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '')
         : `${n.status === 'open' ? `<button class="mini" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}${canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">Resolve ✓</button>` : ''}`;
-      return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''}" data-note="${n.id}">
+      const other = n.private_to ? (n.author_id === me.id ? n.private_to : n.author_id) : null;
+      const replies = n.note_replies || [];
+      const open = r.openThreads.has(n.id);
+      return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''}" data-note="${n.id}">
+        ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
         <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${from}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
         <div class="note-foot"><span class="who"><span class="avatar xs">${esc(initials(nameOf(n.author_id)))}</span>${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
@@ -118,8 +132,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <button class="mini ${looping ? 'on' : ''}" data-loop="${n.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}">👍 ${agrees || ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
           ${statusBtn}
+          <button class="mini ${open ? 'on' : ''}" data-thread="${n.id}" aria-expanded="${open}">💬 ${replies.length ? replies.length : 'Reply'}</button>
           ${canResolve(n) ? `<button class="mini ghost" data-delete="${n.id}" aria-label="Delete note">🗑</button>` : ''}
         </div>
+        ${open ? `<div class="thread">
+          ${replies.map((rp) => `<div class="reply"><span class="avatar xs">${esc(initials(nameOf(rp.author_id)))}</span><div><p><b>${esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
+          <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
+        </div>` : ''}
       </article>`;
     }).join('') : '<p class="notes-empty">No notes on this take yet. Pause on a moment and write what should change.</p>';
     paintMarkers(notes);
@@ -198,11 +217,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   // ---------- Note actions (one delegated listener) ----------
   async function onClick(e) {
-    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-note]');
+    if (e.target.closest('.thread input, .reply-form')) return;
+    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-thread],[data-delete-reply],[data-note]');
     if (!el || !view.contains(el)) return;
-    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.note;
+    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.thread || el.dataset.note;
     const note = r.notes.find((n) => n.id === id);
     if (!note) return;
+    if (el.dataset.thread) {
+      if (r.openThreads.has(id)) r.openThreads.delete(id); else r.openThreads.add(id);
+      paintNotes();
+      if (r.openThreads.has(id)) view.querySelector(`[data-reply-form="${id}"] input`)?.focus();
+      return;
+    }
+    if (el.dataset.deleteReply) {
+      const { error } = await sb.from('note_replies').delete().eq('id', el.dataset.deleteReply);
+      if (error) return toast(friendlyError(error), 'error');
+      return loadNotes();
+    }
     if (el.dataset.seek) { r.selected = id; seek(note.t_end === null ? Math.max(0, note.t_start - 1) : note.t_start, { start: true }); paintNotes(); return; }
     if (el.dataset.loop) return setLoop(note);
     if (el.dataset.agree) {
@@ -229,6 +260,24 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (!e.target.closest('button')) { r.selected = id; paintNotes(); }
   }
   view.addEventListener('click', onClick);
+
+  // Replies: one line, Enter sends. Private threads stay between the two people (enforced by the database).
+  async function onReply(e) {
+    const form = e.target.closest('[data-reply-form]');
+    if (!form) return;
+    e.preventDefault();
+    const field = form.elements.namedItem('reply');
+    const body = field.value.trim();
+    if (!body) return field.focus();
+    field.disabled = true;
+    const { error } = await sb.from('note_replies').insert({ note_id: form.dataset.replyForm, body });
+    field.disabled = false;
+    if (error) return toast(friendlyError(error), 'error');
+    field.value = '';
+    await loadNotes();
+    view.querySelector(`[data-reply-form="${form.dataset.replyForm}"] input`)?.focus();
+  }
+  view.addEventListener('submit', onReply);
 
   // ---------- Composer: a moment or a range, @mentions, no labels ----------
   const input = $('[data-input]');
@@ -292,10 +341,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       end = r.rangeEnd;
     }
     pinning = true;
-    const { data: note, error } = await sb.from('notes').insert({ take_id: take.id, t_start: start.toFixed(2), t_end: end === null ? null : end.toFixed(2), body }).select('id').single();
+    const privateTo = $('[data-visibility]').value || null;
+    const { data: note, error } = await sb.from('notes').insert({ take_id: take.id, t_start: start.toFixed(2), t_end: end === null ? null : end.toFixed(2), body, private_to: privateTo }).select('id').single();
     pinning = false;
     if (error) return toast(friendlyError(error), 'error');
-    const mentioned = members.filter((m) => m.user_id !== me.id && body.includes(`@${m.name}`));
+    // In a private note only the recipient can be mentioned (they're notified anyway).
+    const mentioned = members.filter((m) => m.user_id !== me.id && body.includes(`@${m.name}`) && (!privateTo || m.user_id === privateTo));
     if (mentioned.length) await sb.from('note_mentions').insert(mentioned.map((m) => ({ note_id: note.id, user_id: m.user_id })));
     input.value = '';
     input.blur();
@@ -303,7 +354,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     paintMentions();
     r.selected = note.id;
     await loadNotes();
-    toast(`Note pinned at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
+    const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
+    toast(recipient
+      ? `Private note pinned. Only ${recipient.split(' ')[0]} can see it.`
+      : `Note pinned at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
   }
 
   // ---------- Keyboard ----------
@@ -331,6 +385,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   let reloadTimer;
   const channel = sb.channel(`notes:${videoId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `video_id=eq.${videoId}` }, () => { clearTimeout(reloadTimer); reloadTimer = setTimeout(loadNotes, 300); })
+    // Replies can't be filtered by video, so reload only when one belongs to a note shown here.
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'note_replies' }, (payload) => {
+      const noteId = payload.new?.note_id || payload.old?.note_id;
+      if (!noteId || r.notes.some((n) => n.id === noteId)) { clearTimeout(reloadTimer); reloadTimer = setTimeout(loadNotes, 300); }
+    })
     .subscribe();
 
   wireUpload();
@@ -397,6 +456,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);
     view.removeEventListener('click', onClick);
+    view.removeEventListener('submit', onReply);
     sb.removeChannel(channel);
     videoEl.pause();
   };

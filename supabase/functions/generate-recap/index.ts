@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
   // ---------- Notes the caller can see ----------
   let q = asUser.from("notes")
-    .select("id, body, status, t_start, t_end, author_id, created_at, updated_at, video_id, take_id, takes(number, uploaded_by), videos(title, created_by), note_reactions(user_id), note_mentions(user_id)")
+    .select("id, body, status, t_start, t_end, author_id, private_to, created_at, updated_at, video_id, take_id, takes(number, uploaded_by), videos(title, created_by), note_reactions(user_id), note_mentions(user_id)")
     .eq("project_id", project_id)
     .gte("created_at", start.toISOString())
     .lte("created_at", end.toISOString())
@@ -111,9 +111,11 @@ Deno.serve(async (req) => {
   if (notesErr) return json({ error: notesErr.message }, 500);
   // deno-lint-ignore no-explicit-any
   let notes = (rawNotes ?? []) as any[];
+  // Private notes (coach → one student) never go into a project recap; a personal recap may use them but can't be shared.
+  if (scope === "project") notes = notes.filter((n) => !n.private_to);
   if (scope === "me") {
     notes = notes.filter((n) =>
-      n.author_id === me || n.takes?.uploaded_by === me || n.videos?.created_by === me ||
+      n.author_id === me || n.private_to === me || n.takes?.uploaded_by === me || n.videos?.created_by === me ||
       (n.note_mentions ?? []).some((m: { user_id: string }) => m.user_id === me));
   }
   if (!notes.length) return json({ empty: true, message: "No notes in this period yet." });
@@ -205,6 +207,7 @@ Deno.serve(async (req) => {
     note_count: notes.length,
     content,
     sources: sources.filter((s) => cited.has(s.ref)),
+    has_private: sources.some((s, i) => cited.has(s.ref) && notes[i].private_to),
     model: response.model ?? MODEL,
   }).select("*").single();
   if (saveErr) return json({ error: saveErr.message }, 500);
