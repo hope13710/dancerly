@@ -3,6 +3,8 @@ import { sb, $, esc, initials, timeAgo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe } from './shared.js';
 import { homeRecapCard } from './recaps.js';
+import { myOpenRequests, dueLabel } from './requests.js';
+import { unseenVideos, QUEUE_KEY } from './queue.js';
 
 function greeting() {
   const h = new Date().getHours();
@@ -13,8 +15,12 @@ export async function renderHome() {
   const { state, view, setCrumbs } = ctx;
   setCrumbs([['Home']]);
   const me = state.session.user.id;
-  const [recapCard, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }] = await Promise.all([
+  await state.projectsReady;
+  const [recapCard, dueFromMe, toReview, { data: upcoming }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }] = await Promise.all([
     homeRecapCard(),
+    myOpenRequests(),
+    unseenVideos(),
+    state.projects.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, location, projects(title)').in('project_id', state.projects.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
     notesForMe(me, { limit: 50 }),
     sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)').order('created_at', { ascending: false }).limit(12),
     sb.from('notes').select(NOTE_SELECT).order('created_at', { ascending: false }).limit(12),
@@ -43,6 +49,20 @@ export async function renderHome() {
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><p class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${greeting()}, ${first}</h1></div></header>
     ${recapCard.html}
+    <div class="home-strip">
+      <section class="panel">
+        <div class="panel-head"><div><h2>Due from you</h2><p class="muted">Videos you were asked for</p></div></div>
+        ${dueFromMe.length ? `<div class="list flush">${dueFromMe.slice(0, 3).map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link><span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due ${r.due_at && new Date(r.due_at) < new Date() ? 'overdue' : ''}">${esc(dueLabel(r.due_at))}</span></span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing due. 🎉</p>'}
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h2>To review</h2><p class="muted">New takes you haven’t watched</p></div>${toReview.length ? `<a class="link" href="/app/queue" data-link>Queue (${toReview.length}) →</a>` : ''}</div>
+        ${toReview.length ? `<div class="list flush">${toReview.slice(0, 3).map((v) => `<a class="row" href="/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}" data-link data-review-link><span class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-meta">${v.latest.number === 1 ? 'New video' : `Take ${v.latest.number}`} · ${timeAgo(v.latest.created_at)}</span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">You’re all caught up.</p>'}
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Coming up</h2><p class="muted">Rehearsals and shows</p></div><a class="link" href="/app/calendar" data-link>Calendar →</a></div>
+        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<a class="row" href="/app/p/${e.project_id}/calendar" data-link><span class="cal-dot k-${e.kind}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
+      </section>
+    </div>
     ${hideChecklist ? '' : `<section class="panel checklist">
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
@@ -70,6 +90,8 @@ export async function renderHome() {
   </section>`;
 
   recapCard.wire();
+  // Opening from Home walks the same queue as the Review queue page.
+  try { sessionStorage.setItem(QUEUE_KEY, JSON.stringify(toReview.map((v) => `/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}`))); } catch {}
   $('[data-hide-checklist]')?.addEventListener('click', () => {
     try { localStorage.setItem('looproom:checklist', 'hidden'); } catch {}
     $('.checklist').remove();

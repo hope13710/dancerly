@@ -8,6 +8,9 @@ import { renderPeople, renderPerson } from './views/people.js';
 import { renderInsights } from './views/insights.js';
 import { renderSettings } from './views/settings.js';
 import { renderProjectRecaps, renderRecap, renderMyRecaps } from './views/recaps.js';
+import { renderProjectRequests, renderRequest, newRequest } from './views/requests.js';
+import { renderQueue } from './views/queue.js';
+import { renderCalendar, editEvent } from './views/calendar.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 
 const view = $('[data-view]');
@@ -23,6 +26,11 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/notes\/?$/, render: renderProjectNotes },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/people\/?$/, render: renderProjectPeople },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/?$/, render: renderProjectRequests },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },
+  { re: /^\/app\/queue\/?$/, render: renderQueue },
+  { re: /^\/app\/calendar\/?$/, render: () => renderCalendar(null) },
   { re: /^\/app\/recaps\/([0-9a-f-]{36})\/?$/, render: renderRecap },
   { re: /^\/app\/me\/recaps\/?$/, render: renderMyRecaps },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/settings\/?$/, render: renderProjectSettings },
@@ -59,11 +67,14 @@ async function route() {
   }
   if (!match.r.open && !state.profile) return renderName();
   renderChrome();
-  refreshNav();
+  // Views that list projects wait on this; the sidebar repaints when it lands.
+  state.projectsReady = refreshNav();
   if (state.profile) refreshUnread();
   view.innerHTML = '<div class="loading">Loading…</div>';
   try {
     state.cleanup = (await match.r.render(...match.m.slice(1))) || null;
+    // Phones: keep the current tab in view when a tab row scrolls sideways.
+    document.querySelector('.tabs a[aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   } catch (error) {
     view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><a class="btn" href="/app" data-link>Back to Home</a></div>`;
   }
@@ -110,11 +121,13 @@ function paintNav() {
     feedback: under('/app/feedback'),
     people: under('/app/people'),
     insights: under('/app/insights'),
+    queue: under('/app/queue'),
+    calendar: under('/app/calendar'),
     settings: under('/app/settings') || path === '/app/reset',
     'all-projects': path === '/app/projects',
     projects: path === '/app/projects' || Boolean(projectId),
     // Places only reachable from Me on a phone keep the Me tab lit.
-    me: ['/app/me', '/app/inbox', '/app/people', '/app/insights', '/app/settings', '/app/reset'].some(under)
+    me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/insights', '/app/settings', '/app/reset'].some(under)
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   $('[data-side-projects]').innerHTML = state.projects.length
@@ -161,12 +174,23 @@ async function openNew() {
   const project = state.projects.find((p) => p.id === projectId);
   const actions = [
     { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A rehearsal or run-through' },
+    { value: 'request', label: 'Request a video', hint: project ? `From people in ${project.title}, by a date` : 'Ask people for a video by a date' },
+    { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
     { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
   ];
   const choice = await actionSheet({ title: 'Create', actions });
   if (choice === 'project') return createProject();
   if (choice === 'invite') return showInvite(project.id, project.title);
+  if (choice === 'event') return editEvent({ projectId: project?.id || null });
+  if (choice === 'request') {
+    const target = project || (state.projects.length === 1 ? state.projects[0] : null);
+    if (target) return newRequest(target.id);
+    if (!state.projects.length) { toast('Requests belong to a project. Create one first.'); return createProject(); }
+    const values = await dialog({ title: 'Request in which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: state.projects.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
+    if (values?.project) newRequest(values.project);
+    return;
+  }
   if (choice === 'video') newVideo(project);
 }
 
@@ -462,6 +486,8 @@ function renderMe() {
     </div>
     <div class="list-group">
       ${row('/app/inbox', 'Inbox', '<span class="badge" data-unread hidden></span>')}
+      ${row('/app/queue', 'Review queue')}
+      ${row('/app/calendar', 'Calendar')}
       ${row('/app/me/recaps', '✦ My recaps')}
       ${row(`/app/people/${user.id}`, 'My activity')}
     </div>

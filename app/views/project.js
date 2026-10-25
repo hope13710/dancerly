@@ -50,7 +50,7 @@ export function projectHead({ project, members }, tab, actions = '') {
       </div>
       <div class="head-actions">${actions}</div>
     </header>
-    ${tabs([['videos', 'Videos', base], ['notes', 'Notes', `${base}/notes`], ['recaps', 'Recaps', `${base}/recaps`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+    ${tabs([['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
 }
 
 export async function renderProject(projectId) {
@@ -221,12 +221,17 @@ function suggestStack(title, videos, lastViewedId) {
   return videos.find((v) => v.id === lastViewedId) || null;
 }
 
-export async function createVideo(projectId) {
+// request: answer a request. Your first upload becomes your submission; later ones are its next takes.
+export async function createVideo(projectId, { request = null } = {}) {
+  if (request) {
+    const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
+    if (mine) return resubmit(projectId, mine);
+  }
   const values = await dialog({
-    title: 'New video',
-    body: 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
+    title: request ? `Submit: ${request.title}` : 'New video',
+    body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
     fields: [
-      { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true },
+      { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : '' },
       { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }
     ],
     confirm: 'Upload'
@@ -237,7 +242,7 @@ export async function createVideo(projectId) {
   const { data: existing } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId);
   let lastViewed = null;
   try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
-  const match = suggestStack(values.title, existing || [], lastViewed);
+  const match = request ? null : suggestStack(values.title, existing || [], lastViewed);
   if (match) {
     const next = (match.takes[0]?.count ?? 0) + 1;
     const choice = await dialog({
@@ -257,7 +262,7 @@ export async function createVideo(projectId) {
       }
     }
   }
-  const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title }).select('id').single();
+  const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title, ...(request ? { request_id: request.id } : {}) }).select('id').single();
   if (error) return toast(friendlyError(error), 'error');
   try {
     await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
@@ -265,6 +270,27 @@ export async function createVideo(projectId) {
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
   } catch (err) {
     await sb.from('videos').delete().eq('id', video.id);
+    toast(friendlyError(err), 'error');
+  }
+}
+
+// Already submitted to this request: the new file becomes the next take of that video.
+async function resubmit(projectId, video) {
+  const next = (video.takes[0]?.count ?? 0) + 1;
+  const values = await dialog({
+    title: `Upload Take ${next}`,
+    body: `You already submitted <b>${esc(video.title)}</b>. This becomes Take ${next}, and notes that aren’t fixed yet come along.`,
+    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }],
+    confirm: `Upload Take ${next}`
+  });
+  if (!values) return;
+  const problem = checkTakeFile(values.file);
+  if (problem) return toast(problem, 'error');
+  try {
+    const added = await withUploadBar(`${video.title} · Take ${next}`, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
+    toast(`Take ${added.number} is up.`);
+    ctx.navigate(`/app/p/${projectId}/v/${video.id}?take=${added.number}`);
+  } catch (err) {
     toast(friendlyError(err), 'error');
   }
 }

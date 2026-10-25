@@ -17,6 +17,7 @@ const duration = (ms) => (ms === null ? '—' : ms < 3600000 ? `${Math.max(1, Ma
 export async function renderInsights() {
   const { state, view, setCrumbs, navigate } = ctx;
   setCrumbs([['Insights']]);
+  await state.projectsReady;
   const params = new URLSearchParams(location.search);
   const days = RANGES.some(([d]) => d === params.get('range')) ? Number(params.get('range')) : 30;
   const project = params.get('project') || '';

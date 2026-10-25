@@ -14,7 +14,8 @@ const KINDS = [
   ['new_take', 'New takes', 'Whenever a teammate uploads to one of your projects.'],
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
-  ['recap_shared', 'Recaps shared with you', 'When a teammate shares an AI recap to a project.']
+  ['recap_shared', 'Recaps shared with you', 'When a teammate shares an AI recap to a project.'],
+  ['request', 'Video requests', 'When someone asks you for a video, and their reminders.']
 ];
 // Matches the pricing page. Not enforced yet; shown so teams know where they stand.
 const FREE = { projects: 1, members: 10 };

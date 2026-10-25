@@ -17,6 +17,7 @@ const STATUSES = [
 export async function renderFeedback() {
   const { state, view, setCrumbs, navigate } = ctx;
   setCrumbs([['Feedback']]);
+  await state.projectsReady;
   const me = state.session.user.id;
   const params = new URLSearchParams(location.search);
   const which = VIEWS.some(([k]) => k === params.get('view')) ? params.get('view') : 'for-me';

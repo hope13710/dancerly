@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo } from '../clie
 import { ctx } from '../ctx.js';
 import { noteTime, tabs, empty, pageHead, namesFor } from './shared.js';
 
-const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
+const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 
 const VERB = {
   mention: 'mentioned you',
@@ -20,6 +20,8 @@ function describe(item, names) {
   const project = esc(item.projects?.title || '');
   if (item.kind === 'joined') return `${who} joined <b>${project}</b>`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
+  if (item.kind === 'request_new') return `${who} asked you for a video: <b>${esc(item.requests?.title || '')}</b>`;
+  if (item.kind === 'request_reminder') return `${who} reminded you: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
   if (item.kind === 'mention') return `${who} mentioned you on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   return `${who} ${VERB[item.kind]} <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
@@ -28,6 +30,7 @@ function describe(item, names) {
 function hrefFor(item) {
   if (item.kind === 'joined') return `/app/p/${item.project_id}/people`;
   if (item.kind === 'recap_shared') return `/app/recaps/${item.recap_id}`;
+  if (item.request_id) return `/app/p/${item.project_id}/requests/${item.request_id}`;
   if (item.notes) return `/app/p/${item.project_id}/v/${item.notes.video_id}?take=${item.notes.takes?.number ?? ''}&note=${item.note_id}`;
   if (item.takes) return `/app/p/${item.project_id}/v/${item.takes.video_id}?take=${item.takes.number}`;
   return `/app/p/${item.project_id}`;
@@ -46,7 +49,7 @@ export async function renderInbox() {
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open.
-  const live = items.filter((i) => i.kind === 'joined' || i.notes || i.takes || i.recaps);
+  const live = items.filter((i) => i.kind === 'joined' || i.notes || i.takes || i.recaps || i.requests);
   const names = await namesFor(live.map((i) => i.actor_id));
 
   view.innerHTML = `<section class="page narrow-wide">

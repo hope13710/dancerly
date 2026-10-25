@@ -1,12 +1,14 @@
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, loadMembers, TAKE_BUCKET } from './client.js';
 
+import { nextInQueue } from './views/queue.js';
+
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
 // The review screen: one video, its takes, and the team's notes on them.
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
     sb.from('projects').select('id, title').eq('id', projectId).single(),
-    sb.from('videos').select('id, title, created_by').eq('id', videoId).eq('project_id', projectId).single(),
+    sb.from('videos').select('id, title, created_by, request_id, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select('id, number, storage_path, created_at, uploaded_by').eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
@@ -26,6 +28,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     return null;
   }
 
+  // Opening a video counts as having seen it (Review queue).
+  sb.from('video_views').upsert({ user_id: me.id, video_id: videoId, seen_at: new Date().toISOString() }).then(() => {});
+  const queue = nextInQueue(projectId, videoId);
+
   const wanted = Number(new URLSearchParams(location.search).get('take'));
   const take = takes.find((t) => t.number === wanted) || takes[takes.length - 1];
   const takeNo = Object.fromEntries(takes.map((t) => [t.id, t.number]));
@@ -36,7 +42,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
-      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
+      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
+      ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}</div>
     </header>
     <div class="review-layout">
@@ -293,6 +300,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Keyboard ----------
   function onKey(e) {
     if (e.target.closest('input, textarea, dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.shiftKey && e.key.toLowerCase() === 'n' && queue?.next) { e.preventDefault(); navigate(queue.next); return; }
     const notes = visibleNotes();
     const step = (dir) => {
       const i = notes.findIndex((n) => n.id === r.selected);
