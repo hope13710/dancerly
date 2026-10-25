@@ -2970,360 +2970,219 @@ ul.todo.compact li {
   }
 }
 
-/* ---------- AI identity: the same violet → pink language as the landing recap ---------- */
-.ai-frame {
-  --g1: #a78bfa;
-  --g2: #f472b6;
-  --g3: #818cf8;
-  position: relative;
-  isolation: isolate;
-  border-radius: 20px;
-}
-/* A slowly travelling gradient hairline: the one cue that says "AI made this". */
-.ai-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: linear-gradient(120deg, var(--g1), var(--g2), var(--g3), var(--g1));
-  background-size: 300% 300%;
-  animation: ai-border 8s linear infinite;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-@keyframes ai-border {
-  to {
-    background-position: 300% 0;
-  }
-}
-.ai-glow {
-  position: absolute;
-  inset: 6% -3% -4%;
-  z-index: -1;
-  border-radius: 40px;
-  background:
-    radial-gradient(45% 45% at 15% 20%, var(--g1), transparent 70%),
-    radial-gradient(50% 50% at 88% 80%, var(--g2), transparent 70%),
-    radial-gradient(35% 35% at 70% 15%, var(--g3), transparent 70%);
-  filter: blur(42px);
-  opacity: 0.32;
-  pointer-events: none;
-}
-.ai-glass {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(120% 70% at 100% 0%, rgba(244, 114, 182, 0.1), transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.78));
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  backdrop-filter: blur(22px) saturate(1.4);
-  box-shadow: 0 30px 60px -24px rgba(40, 42, 90, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-.ai-glass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(23, 25, 28, 0.06) 1px, transparent 1px);
-  background-size: 16px 16px;
-  mask-image: linear-gradient(180deg, #000, transparent 40%);
-  -webkit-mask-image: linear-gradient(180deg, #000, transparent 40%);
-}
-.ai-glass > * {
-  position: relative;
-}
-.recap-card.ai-glass {
-  border: 0;
-  border-radius: 20px;
-}
-.ai-gradient-text {
-  background: linear-gradient(90deg, #7c3aed, #db2777);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+/* ---------- AI output: quiet and honest ----------
+   Conventions from established design systems: the sparkle never appears without words ("Summary by AI"),
+   it marks the group once rather than every line, no special gradients or motion, sources are visible,
+   and there is a plain reminder to check them. */
 .ai-spark {
-  width: 22px;
-  height: 22px;
+  width: 14px;
+  height: 14px;
   flex: none;
-  filter: drop-shadow(0 0 4px rgba(244, 114, 182, 0.55)) drop-shadow(0 0 10px rgba(167, 139, 250, 0.45));
-  animation: ai-twinkle 2.8s ease-in-out infinite;
+  color: var(--accent);
 }
-.ai-spark.twin {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  left: 18px;
-  top: -5px;
-  animation-delay: 1.1s;
-}
-.ai-spark.big {
-  width: 44px;
-  height: 44px;
-}
-.ai-spark.tiny {
-  width: 12px;
-  height: 12px;
-  vertical-align: -1px;
-  animation: none;
-  filter: none;
-}
-@keyframes ai-twinkle {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    transform: scale(0.82) rotate(18deg);
-    opacity: 0.75;
-  }
-}
-.ai-kind {
-  position: relative;
-  display: inline-flex;
+.ai-label {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.ai-kind.small {
-  margin-bottom: 6px;
-}
-.ai-kind.small .ai-spark {
-  width: 16px;
-  height: 16px;
-}
-.ai-kind span {
-  color: var(--muted);
-  letter-spacing: 0.06em;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12px;
   font-weight: 650;
+  color: var(--accent-dark);
 }
-.ai-topline {
+.ai-label span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.recap-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(20, 23, 29, 0.04), 0 8px 24px rgba(20, 23, 29, 0.04);
+}
+.recap-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.recap-headline {
+  margin: 4px 0 10px !important;
+}
+.recap-card .chip.ai {
+  border-color: var(--line);
+  background: var(--bg);
+  color: #3b4048;
+  font-weight: 600;
+}
+.recap-card .recap-section h3 {
+  color: var(--muted);
+}
+.recap-card .cite {
+  background: #eef0f4;
+  color: #3b4048;
+}
+.recap-card .cite:hover,
+.recap-card .cite:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.recap-sources {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 13px;
+}
+.recap-sources summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #3b4048;
+}
+.recap-sources ol {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.recap-sources li {
+  display: flex;
+  gap: 10px;
+}
+.recap-sources a {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.recap-sources a:hover {
+  background: var(--bg);
+}
+.src-n {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 7px;
+  border-radius: 5px;
+  background: #eef0f4;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3b4048;
+  flex: none;
+}
+.recap-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
-}
-.ai-made {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9d4b8b;
-  background: rgba(244, 114, 182, 0.1);
-  border-radius: 999px;
-  padding: 4px 10px;
-}
-.recap-headline {
-  margin: 14px 0 10px !important;
-}
-.recap-card .recap-meta {
-  margin-bottom: 2px;
-}
-.recap-card .chip.ai {
-  border-color: rgba(167, 139, 250, 0.45);
-  background: rgba(167, 139, 250, 0.12);
-  color: #6d28d9;
-}
-.recap-card .recap-section h3 {
-  color: #8a5aa8;
-}
-.recap-card .recap-section ul:not(.todo) li::before {
-  background: linear-gradient(135deg, var(--g1), var(--g2));
-}
-.recap-card .cite {
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(244, 114, 182, 0.2));
-  color: #7c2d6f;
-}
-.recap-card .cite:hover {
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.38), rgba(244, 114, 182, 0.38));
-}
-.recap-card ul.todo input {
-  accent-color: #8b5cf6;
+  margin-top: 14px;
 }
 .ai-disclaimer {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }
-.cite-pop {
-  border-color: rgba(167, 139, 250, 0.4);
-  box-shadow: 0 16px 40px rgba(76, 29, 149, 0.16);
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
 }
-
-/* First open after generating: the recap writes itself in. */
-.ai-frame.is-fresh .recap-headline {
-  background: linear-gradient(90deg, var(--ink) 0 40%, #8b5cf6 50%, #ec4899 55%, var(--ink) 65% 100%);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: ai-sweep 1.6s ease-out forwards;
+.feedback span {
+  margin-right: 4px;
 }
-@keyframes ai-sweep {
+.feedback .icon-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.feedback .icon-btn.on,
+.feedback .icon-btn:hover {
+  filter: none;
+  opacity: 1;
+  background: var(--accent-soft);
+}
+/* Just generated: one short fade, nothing more. */
+.recap-card.is-fresh .recap-body {
+  animation: ai-fade 0.4s ease-out;
+}
+@keyframes ai-fade {
   from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: 0 0;
+    opacity: 0;
+    transform: translateY(4px);
   }
 }
-.ai-frame.is-fresh .recap-section,
-.ai-frame.is-fresh .recap-section li {
-  opacity: 0;
-  transform: translateY(6px);
-  filter: blur(3px);
-  animation: ai-in 0.5s ease-out forwards;
-  animation-delay: calc(0.35s + var(--i, 0) * 90ms);
-}
-@keyframes ai-in {
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-}
-
-/* Generating */
 .recap-busy {
-  background: rgba(247, 248, 250, 0.72);
+  background: rgba(247, 248, 250, 0.75);
+  backdrop-filter: blur(2px);
 }
-.recap-busy .busy-card {
-  width: min(360px, calc(100vw - 32px));
-  border-radius: 20px;
-  padding: 0;
-  background: none;
-  border: 0;
-  box-shadow: none;
-  display: block;
-}
-.busy-card .ai-glass {
-  border-radius: 20px;
-  padding: 28px 26px 24px;
+.busy-card {
   display: grid;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
+  gap: 4px;
+  width: min(360px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px 20px;
+  box-shadow: var(--shadow);
 }
 .busy-card b {
-  font-size: 17px;
+  font-size: 16px;
 }
 .busy-card small {
   color: var(--muted);
-  min-height: 1.4em;
-}
-.busy-card small.swap {
-  animation: ai-in 0.35s ease-out;
-}
-.busy-orb {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(244, 114, 182, 0.22), rgba(167, 139, 250, 0.12) 55%, transparent 70%);
-}
-.busy-orb .ai-spark.big {
-  animation: ai-spin 2.4s ease-in-out infinite;
-}
-.busy-orb .ai-spark.twin {
-  left: auto;
-  right: 10px;
-  top: 8px;
-  width: 14px;
-  height: 14px;
-}
-@keyframes ai-spin {
-  50% {
-    transform: scale(0.85) rotate(45deg);
-  }
-  100% {
-    transform: rotate(90deg);
-  }
 }
 .ai-skeleton {
   display: grid;
   gap: 8px;
-  width: 100%;
   margin-top: 14px;
 }
 .ai-skeleton span {
   height: 9px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, rgba(23, 25, 28, 0.06) 20%, rgba(244, 114, 182, 0.22) 50%, rgba(23, 25, 28, 0.06) 80%);
+  border-radius: 5px;
+  background: linear-gradient(90deg, #eef0f4 25%, #e2e4ea 50%, #eef0f4 75%);
   background-size: 200% 100%;
-  animation: ai-shimmer 1.1s linear infinite;
+  animation: ai-shimmer 1.2s linear infinite;
 }
 .ai-skeleton span:nth-child(2) {
-  width: 84%;
+  width: 86%;
 }
 .ai-skeleton span:nth-child(3) {
-  width: 66%;
-}
-.ai-skeleton span:nth-child(4) {
-  width: 76%;
+  width: 64%;
 }
 @keyframes ai-shimmer {
   to {
     background-position: -200% 0;
   }
 }
-
-/* Home card and list marks */
-.recap-teaser.ai-frame {
-  border-color: transparent;
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(244, 114, 182, 0.1), transparent 60%),
-    radial-gradient(90% 80% at 0% 100%, rgba(167, 139, 250, 0.1), transparent 60%),
-    var(--surface);
-  border-radius: var(--radius);
-}
-.recap-teaser.ai-frame::after {
-  border-radius: var(--radius);
-}
-.recap-teaser .ai-glow {
-  opacity: 0.18;
-}
-.recap-teaser ul.todo .todo-dot {
-  border-color: #c4b5fd;
-}
-.recap-teaser ul.todo .todo-dot.done {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+.recap-teaser {
+  border-color: var(--line);
+  background: var(--surface);
 }
 .spark-mark {
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.16), rgba(244, 114, 182, 0.16));
+  background: var(--accent-soft);
 }
 .spark-mark .ai-spark {
-  width: 15px;
-  height: 15px;
-  animation: none;
+  width: 13px;
+  height: 13px;
 }
-
+@media (max-width: 600px) {
+  .recap-foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .ai-frame::after,
-  .ai-spark,
-  .busy-orb .ai-spark.big,
+  .recap-card.is-fresh .recap-body,
   .ai-skeleton span {
     animation: none;
-  }
-  .ai-frame.is-fresh .recap-headline,
-  .ai-frame.is-fresh .recap-section,
-  .ai-frame.is-fresh .recap-section li {
-    animation: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
-    color: inherit;
-    background: none;
   }
 }
