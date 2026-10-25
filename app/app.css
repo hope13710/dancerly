@@ -4087,3 +4087,21 @@ td.ref .play {
     font-size: 26px;
   }
 }
+.cant-play {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: rgba(20, 23, 29, 0.92);
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cant-play span {
+  max-width: 440px;
+  color: #c9cdd6;
+}

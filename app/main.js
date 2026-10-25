@@ -1,4 +1,5 @@
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, uploadTake, withUploadBar, checkTakeFile, loadMembers, GOOGLE_ENABLED } from './client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED } from './client.js';
+import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { renderHome } from './views/home.js';

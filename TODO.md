@@ -43,6 +43,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Project Overview (goal, music, show countdown, stats) and Count sheet (sections, counts, focus, reference moment, Learning/Practicing/Clean). Review opens at `?t=`.
 - [x] Guest share link for a video (`/app/s/:token`, `shared-video` function, expiry, turn off) and calendar subscription feed (`calendar-feed` function, webcal).
 - [x] Project Pages (Markdown docs, autosave, live preview, pin).
+- [x] Uploads: on-device shrink to 720p H.264 (Mediabunny/WebCodecs, keeps AAC audio, up to 15 min), TUS resumable upload (6 MB chunks, auto-retry, resume after reload via IndexedDB + same file), can't-play notice for HEVC on unsupported browsers.
 - [ ] Needs the owner's setup: email/push delivery (SMTP, VAPID keys), billing, leaked-password protection (Auth settings).
 - [ ] Later: weekly auto-recap, recap translation, request announcement notes, per-sentence recap feedback.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.

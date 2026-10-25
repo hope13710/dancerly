@@ -1,4 +1,5 @@
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, loadMembers, TAKE_BUCKET } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, TAKE_BUCKET } from './client.js';
+import { uploadTake, checkTakeFile } from './upload.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
@@ -24,7 +25,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
   if (!takes.length) {
-    view.innerHTML = `<section class="page"><div class="empty"><div class="empty-icon">▶</div><h2>No takes yet</h2><p>Upload the first take of “${esc(video.title)}”.</p><button class="btn primary" data-upload>Upload Take 1</button></div></section><input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
+    view.innerHTML = `<section class="page"><div class="empty"><div class="empty-icon">▶</div><h2>No takes yet</h2><p>Upload the first take of “${esc(video.title)}”. If an upload stopped, pick the same file again — it continues where it left off.</p><button class="btn primary" data-upload>Upload Take 1</button></div></section><input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
     wireUpload();
     return null;
   }
@@ -72,6 +73,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   <input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
 
   const videoEl = $('[data-video]');
+  // Some browsers can't decode certain phone formats (older iPhone HEVC uploads). Say so instead of showing a black box.
+  const cantPlay = () => {
+    if ($('[data-cant-play]')) return;
+    $('[data-player]').insertAdjacentHTML('beforeend', `<div class="cant-play" data-cant-play><b>This take can’t play in this browser.</b><span>It was recorded in a format (often iPhone HEVC) this browser doesn’t support. Open it in Safari, or ask ${esc(nameOf(take.uploaded_by))} to upload it again — Looproom now converts phone videos automatically.</span></div>`);
+  };
+  videoEl.addEventListener('error', cantPlay);
+  videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.videoWidth) cantPlay(); });
   const duration = () => (Number.isFinite(videoEl.duration) ? videoEl.duration : 0);
   const pct = (sec) => `${duration() ? (sec / duration()) * 100 : 0}%`;
 

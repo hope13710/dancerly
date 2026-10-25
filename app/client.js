@@ -106,40 +106,19 @@ export function actionSheet({ title, actions }) {
   });
 }
 
-// ---------- Uploading a take ----------
-export function checkTakeFile(file) {
-  if (!file) return 'Choose a video file.';
-  const type = file.type || ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' })[file.name.split('.').pop().toLowerCase()];
-  if (!TAKE_TYPES[type]) return 'This file type isn’t supported. Try MP4, MOV, or WebM.';
-  if (file.size > MAX_TAKE_BYTES) return `This video is ${(file.size / 1048576).toFixed(0)} MB. The limit is 50 MB for now — trim it or export at 720p.`;
-  return null;
-}
-
-export async function uploadTake({ projectId, videoId, file, onStage = () => {} }) {
-  const problem = checkTakeFile(file);
-  if (problem) throw new Error(problem);
-  const type = file.type || ({ mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' })[file.name.split('.').pop().toLowerCase()];
-  const path = `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[type]}`;
-  onStage('Uploading');
-  const { error: upErr } = await sb.storage.from(TAKE_BUCKET).upload(path, file, { contentType: type, upsert: false });
-  if (upErr) throw upErr;
-  onStage('Saving');
-  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: path, file_name: file.name.slice(0, 200) }).select('id, number').single();
-  if (error) {
-    await sb.storage.from(TAKE_BUCKET).remove([path]);
-    throw error;
-  }
-  return data;
-}
-
 // One shared upload bar, so people can keep working while a take uploads.
+// Closing the tab mid-upload asks first; picking the same file again later resumes it.
+let uploading = 0;
+window.addEventListener('beforeunload', (e) => { if (uploading) { e.preventDefault(); e.returnValue = ''; } });
 export async function withUploadBar(label, task) {
   const bar = $('[data-upload-bar]');
   bar.querySelector('span').textContent = label;
   bar.classList.add('show');
+  uploading += 1;
   try {
     return await task((stage) => { bar.querySelector('span').textContent = `${stage} · ${label}`; });
   } finally {
+    uploading -= 1;
     bar.classList.remove('show');
   }
 }

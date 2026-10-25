@@ -1,5 +1,6 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, checkTakeFile, loadMembers } from '../client.js';
+import { uploadTake, checkTakeFile } from '../upload.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
@@ -235,7 +236,7 @@ export async function createVideo(projectId, { request = null } = {}) {
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
     fields: [
       { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : '' },
-      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }
+      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · big phone videos are shrunk on your device first' }
     ],
     confirm: 'Upload'
   });
@@ -272,6 +273,11 @@ export async function createVideo(projectId, { request = null } = {}) {
     toast('Uploaded. Pause on a moment and pin your first note.');
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
   } catch (err) {
+    // A stopped upload can be resumed from the video's page; anything else leaves nothing worth keeping.
+    if (err.resumable) {
+      toast(err.message, 'error');
+      return ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
+    }
     await sb.from('videos').delete().eq('id', video.id);
     toast(friendlyError(err), 'error');
   }
@@ -283,7 +289,7 @@ async function resubmit(projectId, video) {
   const values = await dialog({
     title: `Upload Take ${next}`,
     body: `You already submitted <b>${esc(video.title)}</b>. This becomes Take ${next}, and notes that aren’t fixed yet come along.`,
-    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }],
+    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · big phone videos are shrunk on your device first' }],
     confirm: `Upload Take ${next}`
   });
   if (!values) return;

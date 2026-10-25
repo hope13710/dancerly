@@ -40,6 +40,12 @@ Google Cloud 쪽 승인된 리디렉션 URI: `https://egkwjdwfzuslyrhuzkmq.supab
 
 **Sign In / Providers → Email**에서 *Confirm email*은 켜 둡니다(가입 시 1회 인증). 최소 비밀번호 길이는 8자로 맞추는 것을 권장합니다.
 
+### 업로드 방식 (설정 불필요)
+- 휴대폰에서 먼저 줄입니다: H.264가 아니거나(iPhone HEVC), 45MB를 넘거나, 1080p보다 크면 기기에서 720p H.264 MP4로 변환합니다(WebCodecs, `app/vendor/mediabunny-1.61.3.js`). 음원(AAC)은 그대로 복사합니다. 최대 15분.
+- 그다음 TUS로 6MB씩 올립니다(`/storage/v1/upload/resumable`). 연결이 끊기면 자동 재시도하고, 새로고침 후 같은 파일을 다시 고르면 이어서 올립니다(변환본은 IndexedDB에 보관).
+- 기기가 HEVC를 읽지 못하면 50MB 이하는 원본 그대로 올리고, 재생이 안 되는 브라우저에서는 안내 문구가 나옵니다.
+- Pro 플랜으로 파일 한도를 올리면 `upload.js`의 `TARGET_BYTES`와 버킷 `file_size_limit`을 함께 올리세요.
+
 ### ⑤ AI 리캡 켜기
 리캡은 Edge Function `generate-recap`(이미 배포됨)이 Claude API(`claude-haiku-5-5`, effort low)를 불러 만듭니다. 키를 넣어야 동작합니다.
 1. https://console.anthropic.com 에서 API 키를 만듭니다.
@@ -49,7 +55,7 @@ Google Cloud 쪽 승인된 리디렉션 URI: `https://egkwjdwfzuslyrhuzkmq.supab
 동작 방식: 요청한 사람의 권한으로 노트를 읽으므로(RLS) **볼 수 있는 노트만** 들어갑니다. 모든 문장은 노트를 인용해야 하고, 입력에 없는 노트를 인용한 문장은 서버에서 지웁니다. 새 노트가 없으면 이전 리캡을 다시 돌려줘 비용이 들지 않습니다. Haiku 5.5는 서버 측 fallback이 없어서, 안전 분류기가 거절하면 "The AI couldn’t write a recap for these notes."를 보여줍니다.
 
 ### ④ 파일 크기 (요금제)
-무료 플랜은 파일당 최대 50MB라 버킷도 50MB로 맞췄습니다. Pro 플랜으로 올리면 `storage.buckets`의 `file_size_limit`을 늘리고, 이어올리기(tus) 업로드로 바꾸는 것을 권장합니다.
+무료 플랜은 파일당 최대 50MB라 버킷도 50MB로 맞췄습니다. 큰 휴대폰 영상은 업로드 전에 기기에서 줄이므로 사용자는 이 한도를 거의 의식하지 않습니다(아래 '업로드 방식').
 
 ## 3. 로컬 실행
 
