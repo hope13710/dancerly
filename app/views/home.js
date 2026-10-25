@@ -1,7 +1,7 @@
 // Home: what needs you today, what changed, and how to get started.
-import { sb, $, esc, initials, timeAgo } from '../client.js';
+import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe } from './shared.js';
+import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass } from './shared.js';
 import { homeRecapCard } from './recaps.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
@@ -60,7 +60,7 @@ export async function renderHome() {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Coming up</h2><p class="muted">Rehearsals and shows</p></div><a class="link" href="/app/calendar" data-link>Calendar →</a></div>
-        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<a class="row" href="/app/p/${e.project_id}/calendar" data-link><span class="cal-dot k-${e.kind}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
+        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<a class="row" href="/app/p/${e.project_id}/calendar" data-link><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
       </section>
     </div>
     ${hideChecklist ? '' : `<section class="panel checklist">
@@ -80,10 +80,10 @@ export async function renderHome() {
           const who = esc(names[a.who] || 'Someone');
           if (a.take) {
             const t = a.take;
-            return `<li><a href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link><span class="avatar xs">${esc(initials(names[a.who]))}</span><span><b>${who}</b> uploaded ${t.number === 1 ? '' : `Take ${t.number} of `}<b>${esc(t.videos?.title || '')}</b><small>${esc(t.projects?.title || '')} · ${timeAgo(t.created_at)}</small></span></a></li>`;
+            return `<li><a href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link>${avatar(names[a.who], a.who, 'xs')}<span><b>${who}</b> uploaded ${t.number === 1 ? '' : `Take ${t.number} of `}<b>${esc(t.videos?.title || '')}</b><small>${esc(t.projects?.title || '')} · ${timeAgo(t.created_at)}</small></span></a></li>`;
           }
           const n = a.note;
-          return `<li><a href="${noteHref(n)}" data-link><span class="avatar xs">${esc(initials(names[a.who]))}</span><span><b>${who}</b> noted <span class="time-tag">${noteTime(n)}</span> on <b>${esc(n.videos?.title || '')}</b><small>“${esc(n.body.slice(0, 80))}${n.body.length > 80 ? '…' : ''}” · ${timeAgo(n.created_at)}</small></span></a></li>`;
+          return `<li><a href="${noteHref(n)}" data-link>${avatar(names[a.who], a.who, 'xs')}<span><b>${who}</b> noted <span class="time-tag">${noteTime(n)}</span> on <b>${esc(n.videos?.title || '')}</b><small>“${esc(n.body.slice(0, 80))}${n.body.length > 80 ? '…' : ''}” · ${timeAgo(n.created_at)}</small></span></a></li>`;
         }).join('')}</ul>` : '<p class="panel-empty">No activity yet. Upload a rehearsal to get things moving.</p>'}
       </section>
     </div>

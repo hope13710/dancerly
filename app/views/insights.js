@@ -1,5 +1,5 @@
 // Insights: is feedback turning into fixes? Counts, a weekly trend, and breakdowns by video and person.
-import { sb, $, $$, esc, initials, timeAgo } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { pageHead, empty, namesFor } from './shared.js';
 
@@ -122,7 +122,7 @@ export async function renderInsights() {
       <section class="panel">
         <div class="panel-head"><div><h2>By person</h2><p class="muted">In the selected range</p></div></div>
         ${peopleRows.length ? `<table class="table compact"><thead><tr><th>Person</th><th class="num">Notes given</th><th class="num">Received</th><th class="num">Takes</th></tr></thead><tbody>
-          ${peopleRows.map((p) => `<tr data-href="/app/people/${p.id}"><td><a class="person" href="/app/people/${p.id}" data-link><span class="avatar xs">${esc(initials(names[p.id]))}</span>${esc(names[p.id] || 'Former member')}</a></td><td class="num">${p.given}</td><td class="num">${p.received}${p.received ? `<small class="muted"> · ${Math.round((p.receivedFixed / p.received) * 100)}% fixed</small>` : ''}</td><td class="num">${p.takes}</td></tr>`).join('')}
+          ${peopleRows.map((p) => `<tr data-href="/app/people/${p.id}"><td><a class="person" href="/app/people/${p.id}" data-link>${avatar(names[p.id], p.id, 'xs')}${esc(names[p.id] || 'Former member')}</a></td><td class="num">${p.given}</td><td class="num">${p.received}${p.received ? `<small class="muted"> · ${Math.round((p.receivedFixed / p.received) * 100)}% fixed</small>` : ''}</td><td class="num">${p.takes}</td></tr>`).join('')}
         </tbody></table>` : '<p class="panel-empty">No activity in this range.</p>'}
       </section>
     </div>`}

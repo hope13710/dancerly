@@ -3353,6 +3353,12 @@ ul.todo.compact li {
   --k-soft: var(--warn-soft);
   --k-ink: #8a4b12;
 }
+/* Team-named event types */
+.k-c0 { --k: #0d9488; --k-soft: #e0f5f2; --k-ink: #0f5f58; }
+.k-c1 { --k: #7c3aed; --k-soft: #efe7fd; --k-ink: #5b21b6; }
+.k-c2 { --k: #2563eb; --k-soft: #e5edfd; --k-ink: #1e40af; }
+.k-c3 { --k: #c2410c; --k-soft: #fcebe2; --k-ink: #8a2f0a; }
+.k-c4 { --k: #4d7c0f; --k-soft: #ecf4df; --k-ink: #3a5d0b; }
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -4342,4 +4348,108 @@ td.ref .play {
 }
 .player {
   scroll-margin-top: 72px;
+}
+
+/* ---------- Photos and project images ---------- */
+.avatar,
+.card-mark {
+  overflow: hidden;
+}
+.avatar img,
+.card-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-mark.head {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  flex: none;
+}
+.card-mark.lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  font-size: 20px;
+  flex: none;
+}
+.project-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.image-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.image-row .muted {
+  margin: 2px 0 8px;
+  font-size: 13px;
+}
+.image-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .card-mark.head {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ---------- Video list thumbnails ---------- */
+.video-row .video-thumb {
+  position: relative;
+  width: 112px;
+  height: 63px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.video-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.video-thumb.has-img img {
+  opacity: 1;
+}
+.video-thumb i {
+  position: relative;
+  font-style: normal;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  background: rgba(20, 23, 29, 0.45);
+  backdrop-filter: blur(4px);
+}
+.video-thumb em {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 650;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(20, 23, 29, 0.7);
+}
+@media (max-width: 720px) {
+  .video-row .video-thumb {
+    width: 88px;
+    height: 50px;
+  }
 }

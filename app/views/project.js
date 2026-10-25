@@ -1,6 +1,7 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
 import { uploadTake, checkTakeFile } from '../upload.js';
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers } from '../client.js';
+import { thumbUrls, backfillThumbs } from '../thumbs.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
@@ -9,13 +10,13 @@ export async function renderProjects() {
   const { view, setCrumbs } = ctx;
   setCrumbs([['Projects']]);
   const { data: projects, error } = await sb.from('projects')
-    .select('id, title, created_at, project_members(count), videos(count)')
+    .select('id, title, image_url, created_at, project_members(count), videos(count)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><h1>Projects</h1><p class="muted sub">One project per goal — a showcase, a competition, or weekly practice.</p></div><button class="btn primary" data-new-project>+ New project</button></header>
     ${projects.length ? `<div class="cards">${projects.map((p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
-        <span class="card-mark">${esc(initials(p.title))}</span>
+        ${projectMark(p)}
         <h3>${esc(p.title)}</h3>
         <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
       </a>`).join('')}</div>`
@@ -35,7 +36,7 @@ export async function createProject() {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select('id, title, created_at, created_by').eq('id', projectId).single(),
+    sb.from('projects').select('id, title, image_url, created_at, created_by').eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -47,9 +48,9 @@ export async function loadProject(projectId) {
 export function projectHead({ project, members }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
   return `<header class="page-head project-head">
-      <div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
-        <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `<span class="avatar" title="${esc(m.name)} · ${m.role === 'owner' ? 'Owner' : 'Member'}">${esc(initials(m.name))}</span>`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
-      </div>
+      <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
+        <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
+      </div></div>
       <div class="head-actions">${actions}</div>
     </header>
     ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['counts', 'Count sheet', `${base}/counts`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
@@ -59,7 +60,7 @@ export async function renderProject(projectId) {
   const { view, setCrumbs } = ctx;
   const [p, { data: videos, error: vErr }] = await Promise.all([
     loadProject(projectId),
-    sb.from('videos').select('id, title, created_at, takes(id, number, created_at), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
+    sb.from('videos').select('id, title, created_at, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (vErr) throw vErr;
   setCrumbs([['Projects', '/app/projects'], [p.project.title]]);
@@ -69,7 +70,7 @@ export async function renderProject(projectId) {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
       return `<a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
-        <span class="video-thumb">▶</span>
+        <span class="video-thumb" ${takes[0] ? `data-thumb="${takes[0].id}"` : ''}><i aria-hidden="true">▶</i>${takes.length > 1 ? `<em>${takes.length} takes</em>` : ''}</span>
         <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
         <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
       </a>`;
@@ -78,6 +79,23 @@ export async function renderProject(projectId) {
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $('[data-invite]').addEventListener('click', () => showInvite(projectId, p.project.title));
+  paintThumbs(videos.map((v) => [...v.takes].sort((a, b) => b.number - a.number)[0]).filter(Boolean));
+}
+
+// Each row shows a still from its latest take; missing ones are made in the background.
+async function paintThumbs(latest) {
+  const show = (takeId, url) => {
+    const box = document.querySelector(`[data-thumb="${takeId}"]`);
+    if (!box || box.querySelector('img')) return;
+    const img = new Image();
+    img.alt = '';
+    img.onload = () => box.classList.add('has-img');
+    img.src = url;
+    box.prepend(img);
+  };
+  const urls = await thumbUrls(latest.map((t) => t.thumb_path));
+  latest.forEach((t) => { if (urls[t.thumb_path]) show(t.id, urls[t.thumb_path]); });
+  backfillThumbs(latest.filter((t) => !urls[t.thumb_path]).slice(0, 12), (t, url) => show(t.id, url));
 }
 
 export async function renderProjectNotes(projectId) {
@@ -108,7 +126,7 @@ export async function renderProjectPeople(projectId) {
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'people', '<button class="btn primary" data-invite>Invite people</button>')}
     <div class="list">${p.members.map((m) => `<div class="row member-row">
-      <a class="person" href="/app/people/${m.user_id}" data-link><span class="avatar sm">${esc(initials(m.name))}</span><span class="row-main"><span class="row-title">${esc(m.name)}${m.user_id === p.me ? ' <span class="tag">You</span>' : ''}</span><span class="row-meta">Joined ${timeAgo(m.joined_at)}</span></span></a>
+      <a class="person" href="/app/people/${m.user_id}" data-link>${avatar(m.name, m.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(m.name)}${m.user_id === p.me ? ' <span class="tag">You</span>' : ''}</span><span class="row-meta">Joined ${timeAgo(m.joined_at)}</span></span></a>
       <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span>
         ${p.isOwner && m.user_id !== p.me ? `<button class="btn ghost small icon" data-member="${m.user_id}" aria-label="Manage ${esc(m.name)}">•••</button>` : ''}</span>
     </div>`).join('')}</div>
@@ -148,6 +166,12 @@ export async function renderProjectSettings(projectId) {
     <div class="settings-stack">
       <section class="panel">
         <div class="panel-head"><div><h2>General</h2></div></div>
+        <div class="image-row">
+          ${projectMark(p.project, 'lg')}
+          <div><b>Project image</b><p class="muted">Shown in the sidebar and on project cards. A square works best.</p>
+            ${p.isOwner ? `<div class="image-actions"><button class="btn small" type="button" data-pick-image>${p.project.image_url ? 'Change image' : 'Upload image'}</button>${p.project.image_url ? '<button class="btn small ghost" type="button" data-remove-image>Remove</button>' : ''}</div><input type="file" accept="image/*" hidden data-image-file />` : '<p class="fine left">Only the owner can change it.</p>'}
+          </div>
+        </div>
         <form class="inline-form" data-rename-form>
           <label class="field"><span>Project name</span><input name="title" maxlength="120" value="${esc(p.project.title)}" ${p.isOwner ? '' : 'disabled'} required /></label>
           ${p.isOwner ? '<button class="btn" type="submit">Save</button>' : '<p class="fine left">Only the owner can rename the project.</p>'}
@@ -165,6 +189,11 @@ export async function renderProjectSettings(projectId) {
       </section>
     </div>
   </section>`;
+  wireImagePicker({
+    folder: `projects/${projectId}`,
+    save: (url) => sb.from('projects').update({ image_url: url }).eq('id', projectId),
+    done: async (url) => { toast(url ? 'Project image updated.' : 'Project image removed.'); await ctx.refreshNav(); ctx.route(); }
+  });
   $('[data-rename-form]').addEventListener('submit', async (event) => {
     event.preventDefault();
     const title = event.currentTarget.elements.namedItem('title').value.trim(); // form.title is the element's tooltip, not the field

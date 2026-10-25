@@ -20,6 +20,23 @@ if (heroVariant !== 'a') {
 }
 track('hero_view', { variant: heroVariant });
 
+// Already signed in to the app on this device? Offer the app and Log out instead of Log in / Sign up.
+function signedIn() {
+  try {
+    const raw = localStorage.getItem('sb-egkwjdwfzuslyrhuzkmq-auth-token');
+    return Boolean(raw && JSON.parse(raw)?.refresh_token);
+  } catch {
+    return false;
+  }
+}
+if (signedIn()) {
+  document.body.classList.add('signed-in');
+  $$('[data-auth-login]').forEach((a) => { a.textContent = 'Log out'; a.href = '/app/logout'; a.dataset.cta = 'logout'; });
+  const footerApp = $('[data-footer-app]');
+  if (footerApp) { footerApp.textContent = 'Open Looproom →'; footerApp.href = '/app'; }
+  $$('[data-auth-primary]').forEach((a) => { a.innerHTML = 'Open Looproom <span aria-hidden="true">↗</span>'; a.href = '/app'; a.dataset.cta = 'open_app'; });
+}
+
 const menuToggle = $('[data-menu-toggle]');
 const mobileMenu = $('[data-mobile-menu]');
 

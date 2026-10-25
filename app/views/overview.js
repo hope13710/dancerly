@@ -1,6 +1,7 @@
 // Project › Overview (goal, music, what's next, how it's going) and › Count sheet (the piece, section by section).
 import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
+import { kindClass } from './shared.js';
 import { loadProject, projectHead } from './project.js';
 
 const STATUS = [['learning', 'Learning'], ['practicing', 'Practicing'], ['clean', 'Clean']];
@@ -45,7 +46,7 @@ export async function renderProjectOverview(projectId) {
     <div class="home-grid">
       <section class="panel">
         <div class="panel-head"><div><h2>Coming up</h2></div><a class="link" href="/app/p/${projectId}/calendar" data-link>Calendar →</a></div>
-        ${events?.length ? `<div class="list flush">${events.map((e) => `<div class="row"><span class="cal-dot k-${e.kind}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></div>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
+        ${events?.length ? `<div class="list flush">${events.map((e) => `<div class="row"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></div>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Latest videos</h2></div><a class="link" href="/app/p/${projectId}" data-link>All videos →</a></div>

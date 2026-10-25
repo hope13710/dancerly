@@ -1,5 +1,5 @@
 // Groups inside a project — "Juniors", "Front line" — so requests can go to a group at once.
-import { sb, $$, esc, initials, toast, friendlyError, dialog } from '../client.js';
+import { sb, $$, esc, initials, toast, friendlyError, dialog, avatar } from '../client.js';
 
 export async function loadGroups(projectId) {
   const { data, error } = await sb.from('project_groups').select('id, name, created_by, project_group_members(user_id)').eq('project_id', projectId).order('name');
@@ -14,7 +14,7 @@ export function groupsSection(p, groups) {
     <div class="panel-head"><div><h2>Groups</h2><p class="muted">Send a request to a whole group at once.</p></div><button class="btn small" data-new-group>+ New group</button></div>
     ${groups.length ? `<div class="list flush">${groups.map((g) => `<div class="row">
       <span class="row-main"><span class="row-title">${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></span>
-        <span class="chips">${g.project_group_members.map((m) => `<span class="chip"><span class="avatar xs">${esc(initials(nameOf(m.user_id)))}</span> ${esc(nameOf(m.user_id))}</span>`).join('') || '<span class="muted">Nobody yet</span>'}</span></span>
+        <span class="chips">${g.project_group_members.map((m) => `<span class="chip">${avatar(nameOf(m.user_id), m.user_id, 'xs')} ${esc(nameOf(m.user_id))}</span>`).join('') || '<span class="muted">Nobody yet</span>'}</span></span>
       ${canManage(g) ? `<span class="row-side"><button class="btn ghost small" data-edit-group="${g.id}">Edit</button></span>` : ''}
     </div>`).join('')}</div>` : '<p class="panel-empty">No groups yet. Make one for each part of the team — “Juniors”, “Front line”, “Soloists”.</p>'}
   </section>`;
@@ -33,7 +33,7 @@ async function editGroup(projectId, p, group, refresh) {
     <h2>${group ? 'Edit group' : 'New group'}</h2>
     <label class="field"><span>Name</span><input name="name" maxlength="60" required value="${esc(group?.name || '')}" placeholder="Juniors" /></label>
     <div class="field"><span>People</span></div>
-    <div class="pick-people">${p.members.map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" ${current.has(m.user_id) ? 'checked' : ''} /><span class="avatar xs">${esc(initials(m.name))}</span>${esc(m.name)}</label>`).join('')}</div>
+    <div class="pick-people">${p.members.map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" ${current.has(m.user_id) ? 'checked' : ''} />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('')}</div>
     <div class="dialog-actions">${group ? '<button value="delete" formnovalidate class="btn ghost danger push-left">Delete group</button>' : ''}<button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">${group ? 'Save' : 'Create group'}</button></div>
   </form>`;
   document.body.append(el);

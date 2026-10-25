@@ -20,6 +20,68 @@ export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 export const esc = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+// Profile photos, remembered as profiles load, so any avatar can show a face instead of initials.
+export const photos = new Map();
+export const rememberPhotos = (rows) => { for (const p of rows || []) if (p?.id) { if (p.avatar_url) photos.set(p.id, p.avatar_url); else photos.delete(p.id); } };
+export function avatar(name, userId, cls = '') {
+  const url = userId && photos.get(userId);
+  return `<span class="avatar ${cls}" title="${esc(name || '')}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
+}
+// A project's square mark: its image, or its initials.
+export function projectMark(project, cls = '') {
+  return `<span class="card-mark ${cls}">${project?.image_url ? `<img src="${esc(project.image_url)}" alt="" loading="lazy" />` : esc(initials(project?.title))}</span>`;
+}
+
+// Wires [data-pick-image] / [data-remove-image] / [data-image-file] on the current screen.
+export function wireImagePicker({ folder, save, done, root = document }) {
+  const input = root.querySelector('[data-image-file]');
+  root.querySelector('[data-pick-image]')?.addEventListener('click', () => input.click());
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const button = root.querySelector('[data-pick-image]');
+    button.disabled = true;
+    button.textContent = 'Uploading…';
+    try {
+      const url = await uploadImage(file, folder);
+      const { error } = await save(url);
+      if (error) throw error;
+      await done(url);
+    } catch (err) {
+      toast(friendlyError(err), 'error');
+      button.disabled = false;
+      button.textContent = 'Try again';
+    }
+  });
+  root.querySelector('[data-remove-image]')?.addEventListener('click', async () => {
+    const { error } = await save(null);
+    if (error) return toast(friendlyError(error), 'error');
+    await done(null);
+  });
+}
+
+// Square-crops and shrinks a picked photo on the device, then stores it in the public images bucket.
+export async function uploadImage(file, folder) {
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) throw new Error('Pick a JPG, PNG, or WebP image.');
+  if (file.size > 25 * 1024 * 1024) throw new Error('That image is too large. Pick one under 25 MB.');
+  let bitmap;
+  try { bitmap = await createImageBitmap(file); } catch { throw new Error('This image format can’t be read here. Try a JPG or PNG.'); }
+  const side = Math.min(bitmap.width, bitmap.height);
+  const size = Math.min(512, side);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  canvas.getContext('2d').drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  bitmap.close?.();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+  const type = blob?.type === 'image/webp' ? 'webp' : 'jpg';
+  const body = type === 'webp' ? blob : await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  const path = `${folder}/${crypto.randomUUID()}.${type}`;
+  const { error } = await sb.storage.from('images').upload(path, body, { contentType: `image/${type === 'jpg' ? 'jpeg' : 'webp'}`, cacheControl: '31536000' });
+  if (error) throw error;
+  return sb.storage.from('images').getPublicUrl(path).data.publicUrl;
+}
 export const fmt = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 export const fmtFine = (sec) => `${fmt(sec)}.${Math.floor((sec % 1) * 10)}`;
 export const timeAgo = (iso) => {
@@ -127,7 +189,8 @@ export async function withUploadBar(label, task) {
 export async function loadMembers(projectId) {
   const { data: members, error } = await sb.from('project_members').select('user_id, role, joined_at').eq('project_id', projectId);
   if (error) throw error;
-  const { data: profiles } = await sb.from('profiles').select('id, display_name').in('id', members.map((m) => m.user_id));
+  const { data: profiles } = await sb.from('profiles').select('id, display_name, avatar_url').in('id', members.map((m) => m.user_id));
+  rememberPhotos(profiles);
   const names = Object.fromEntries((profiles || []).map((p) => [p.id, p.display_name]));
   return members.map((m) => ({ ...m, name: names[m.user_id] || 'Member' })).sort((a, b) => (a.role === 'owner' ? -1 : 0) - (b.role === 'owner' ? -1 : 0));
 }

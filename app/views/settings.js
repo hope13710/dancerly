@@ -1,5 +1,5 @@
 // Settings: your account, what you get notified about, the projects you're in, and your plan.
-import { sb, $, $$, esc, initials, toast, friendlyError } from '../client.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
 import { ctx } from '../ctx.js';
 
 const SECTIONS = [
@@ -36,8 +36,13 @@ export async function renderSettings(section = 'account') {
     return {
       html: `<section class="panel">
         <div class="panel-head"><div><h2>Profile</h2><p class="muted">Your name appears on your notes and in @mentions.</p></div></div>
+        <div class="image-row">
+          ${avatar(state.profile.display_name, state.session.user.id, 'xl')}
+          <div><b>Photo</b><p class="muted">Helps teammates recognize your notes. A square works best.</p>
+            <div class="image-actions"><button class="btn small" type="button" data-pick-image>${state.profile.avatar_url ? 'Change photo' : 'Upload photo'}</button>${state.profile.avatar_url ? '<button class="btn small ghost" type="button" data-remove-image>Remove</button>' : ''}</div><input type="file" accept="image/*" hidden data-image-file />
+          </div>
+        </div>
         <form class="inline-form" data-name-form>
-          <span class="avatar lg">${esc(initials(state.profile.display_name))}</span>
           <label class="field grow"><span>Name</span><input name="display" maxlength="60" required value="${esc(state.profile.display_name)}" /></label>
           <button class="btn" type="submit">Save</button>
         </form>
@@ -64,6 +69,11 @@ export async function renderSettings(section = 'account') {
           ctx.route();
         });
         $('[data-signout-here]').addEventListener('click', () => ctx.signOut());
+        wireImagePicker({
+          folder: `users/${state.session.user.id}`,
+          save: (url) => sb.from('profiles').update({ avatar_url: url }).eq('id', state.session.user.id),
+          done: async (url) => { state.profile.avatar_url = url; rememberPhotos([state.profile]); toast(url ? 'Photo updated.' : 'Photo removed.'); ctx.route(); }
+        });
       }
     };
   }
@@ -90,13 +100,13 @@ export async function renderSettings(section = 'account') {
   }
 
   async function projects() {
-    const { data, error } = await sb.from('project_members').select('project_id, role, joined_at, projects(title, project_members(count))').eq('user_id', state.session.user.id).order('joined_at', { ascending: false });
+    const { data, error } = await sb.from('project_members').select('project_id, role, joined_at, projects(title, image_url, project_members(count))').eq('user_id', state.session.user.id).order('joined_at', { ascending: false });
     if (error) throw error;
     return {
       html: `<section class="panel">
         <div class="panel-head"><div><h2>Your projects</h2><p class="muted">Rename, manage people, invite links, or leave — in each project’s Settings tab.</p></div></div>
         ${data.length ? `<div class="list flush">${data.map((m) => `<a class="row" href="/app/p/${m.project_id}/settings" data-link>
-          <span class="card-mark xs">${esc(initials(m.projects?.title))}</span>
+          ${projectMark(m.projects, 'xs')}
           <span class="row-main"><span class="row-title">${esc(m.projects?.title || '')}</span><span class="row-meta">${m.projects?.project_members?.[0]?.count ?? 1} members</span></span>
           <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span><span class="chev">›</span></span></a>`).join('')}</div>`
           : '<p class="panel-empty">You’re not in any projects yet.</p>'}

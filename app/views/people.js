@@ -1,5 +1,5 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, esc, initials, timeAgo } from '../client.js';
+import { sb, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, pageHead, empty, namesFor, tabs } from './shared.js';
 
@@ -40,7 +40,7 @@ export async function renderPeople() {
       <tbody>${people.map((p) => {
         const s = stat(p.id);
         return `<tr data-href="/app/people/${p.id}">
-          <td><a class="person" href="/app/people/${p.id}" data-link><span class="avatar sm">${esc(initials(p.name))}</span><b>${esc(p.name)}</b>${p.id === me ? '<span class="tag">You</span>' : ''}</a></td>
+          <td><a class="person" href="/app/people/${p.id}" data-link>${avatar(p.name, p.id, 'sm')}<b>${esc(p.name)}</b>${p.id === me ? '<span class="tag">You</span>' : ''}</a></td>
           <td class="hide-sm"><span class="chips">${p.projects.map((x) => `<span class="chip">${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</span>`).join('')}</span></td>
           <td class="num">${s.notes}</td><td class="num">${s.takes}</td><td class="muted hide-sm">${s.last ? timeAgo(s.last) : '—'}</td>
         </tr>`;
@@ -75,7 +75,7 @@ export async function renderPerson(userId) {
 
   view.innerHTML = `<section class="page narrow-wide">
     <div class="me-card">
-      <span class="avatar xl">${esc(initials(person.name))}</span>
+      ${avatar(person.name, person.id, 'xl')}
       <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}</h1>
         <p class="chips">${person.projects.map((x) => `<a class="chip" href="/app/p/${x.id}" data-link>${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</a>`).join('')}</p></div>
     </div>

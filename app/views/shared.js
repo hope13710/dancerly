@@ -1,5 +1,5 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
-import { sb, esc, initials, fmt, timeAgo } from '../client.js';
+import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos } from '../client.js';
 
 export const NOTE_SELECT = 'id, project_id, video_id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, takes(number), videos(title), projects(title), note_reactions(user_id), note_replies(count)';
 
@@ -13,7 +13,8 @@ export const statusPill = (status) => `<span class="pill ${STATUS[status][1]}">$
 export async function namesFor(ids) {
   const unique = [...new Set(ids.filter(Boolean))];
   if (!unique.length) return {};
-  const { data } = await sb.from('profiles').select('id, display_name').in('id', unique);
+  const { data } = await sb.from('profiles').select('id, display_name, avatar_url').in('id', unique);
+  rememberPhotos(data);
   return Object.fromEntries((data || []).map((p) => [p.id, p.display_name]));
 }
 
@@ -21,7 +22,7 @@ export function noteRow(n, names, { showAuthor = true, showProject = true } = {}
   const author = names[n.author_id] || 'Former member';
   const agrees = n.note_reactions?.length || 0;
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
-    ${showAuthor ? `<span class="avatar sm" title="${esc(author)}">${esc(initials(author))}</span>` : ''}
+    ${showAuthor ? avatar(author, n.author_id, 'sm') : ''}
     <span class="row-main">
       <span class="row-title">${n.private_to ? '<span class="lock" title="Private: only the two of you">🔒</span> ' : ''}${esc(n.body)}</span>
       <span class="row-meta">${showAuthor ? `<b>${esc(author)}</b> · ` : ''}<span class="time-tag">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
@@ -57,4 +58,14 @@ export async function notesForMe(me, { limit = 200 } = {}) {
   const { data, error } = await sb.from('notes').select(NOTE_SELECT).or(parts.join(',')).neq('author_id', me).order('created_at', { ascending: false }).limit(limit);
   if (error) throw error;
   return data;
+}
+
+// Event types: the built-in ones, plus any a team names (shown in one of five steady colors).
+export const EVENT_KINDS = { rehearsal: 'Rehearsal', show: 'Show', other: 'Other', due: 'Due' };
+export const kindLabel = (k) => EVENT_KINDS[k] || k;
+export function kindClass(k) {
+  if (EVENT_KINDS[k]) return `k-${k}`;
+  let h = 0;
+  for (const ch of String(k).toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `k-c${h % 5}`;
 }

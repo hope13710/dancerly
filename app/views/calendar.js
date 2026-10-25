@@ -4,8 +4,8 @@ import { sb, $, $$, esc, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
+import { kindLabel, kindClass } from './shared.js';
 
-const KINDS = { rehearsal: 'Rehearsal', show: 'Show', other: 'Other', due: 'Due' };
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const timeOf = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
@@ -46,14 +46,14 @@ export async function renderCalendar(projectId = null) {
   const byDay = new Map();
   for (const it of items) { const k = dayKey(it.at); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(it); }
 
-  const chip = (it, i) => `<button class="cal-item k-${it.kind} ${it.closed ? 'closed' : ''}" data-item="${i}" title="${esc(it.title)}">${it.type === 'due' ? 'Due · ' : `${timeOf(it.at)} `}${esc(it.title)}</button>`;
+  const chip = (it, i) => `<button class="cal-item ${kindClass(it.kind)} ${it.closed ? 'closed' : ''}" data-item="${i}" title="${esc(it.title)}">${it.type === 'due' ? 'Due · ' : `${timeOf(it.at)} `}${esc(it.title)}</button>`;
   const head = `${projectId ? projectHead(p, 'calendar', '<button class="btn primary" data-new-event>+ Add event</button>') : `<header class="page-head"><div><h1>Calendar</h1><p class="muted sub">Rehearsals, shows, and request due dates across your projects.</p></div><div class="head-actions"><button class="btn primary" data-new-event>+ Add event</button></div></header>`}`;
   const toolbar = `<div class="cal-toolbar">
     ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
       <button class="btn small ghost" data-subscribe title="Keep Google, Apple, or Outlook Calendar in sync">Subscribe</button><button class="btn small ghost" data-ics title="Download upcoming events as a calendar file">Export .ics</button></div>
   </div>
-  <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span><span class="k-due">Request due</span></div>`;
+  <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span>${[...new Set(items.filter((it) => it.type === 'event' && !['rehearsal', 'show', 'other'].includes(it.kind)).map((it) => it.kind))].map((k) => `<span class="${kindClass(k)}">${esc(k)}</span>`).join('')}<span class="k-due">Request due</span></div>`;
 
   let body;
   if (mode === 'month') {
@@ -73,9 +73,9 @@ export async function renderCalendar(projectId = null) {
       const d = new Date(`${k}T00:00`);
       return `<section class="agenda-day ${k === dayKey(today) ? 'today' : ''}"><h3><b>${d.toLocaleDateString(undefined, { weekday: 'short' })}</b> ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</h3>
         <div class="list">${list.map((it) => `<button class="row agenda-item" data-item="${items.indexOf(it)}">
-          <span class="cal-dot k-${it.kind}"></span>
+          <span class="cal-dot ${kindClass(it.kind)}"></span>
           <span class="row-main"><span class="row-title">${it.type === 'due' ? 'Due: ' : ''}${esc(it.title)}</span><span class="row-meta">${it.type === 'due' ? timeOf(it.at) : `${timeOf(it.at)}${it.end ? `–${timeOf(it.end)}` : ''}`}${it.raw.location ? ` · ${esc(it.raw.location)}` : ''}${projectId ? '' : ` · ${esc(it.project)}`}</span></span>
-          <span class="row-side"><span class="pill ${it.kind === 'due' ? (it.closed ? '' : 'warn') : it.kind === 'show' ? 'info' : ''}">${KINDS[it.kind]}</span></span>
+          <span class="row-side"><span class="pill ${it.kind === 'due' ? (it.closed ? '' : 'warn') : it.kind === 'show' ? 'info' : ''}">${esc(kindLabel(it.kind))}</span></span>
         </button>`).join('')}</div></section>`;
     }).join('')}</div>` : '<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Request due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button></div>';
   }
@@ -103,7 +103,7 @@ async function showEvent(e, refresh, projectId) {
   const when = `${start.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · ${timeOf(start)}${e.ends_at ? `–${timeOf(new Date(e.ends_at))}` : ''}`;
   const choice = await dialog({
     title: e.title,
-    body: `<span class="pill ${e.kind === 'show' ? 'info' : ''}">${KINDS[e.kind]}</span> ${esc(when)}${e.location ? `<br>${esc(e.location)}` : ''}${projectId ? '' : `<br>${esc(project?.title || '')}`}${e.details ? `<br><br>${esc(e.details)}` : ''}`,
+    body: `<span class="pill ${e.kind === 'show' ? 'info' : ''}">${esc(kindLabel(e.kind))}</span> ${esc(when)}${e.location ? `<br>${esc(e.location)}` : ''}${projectId ? '' : `<br>${esc(project?.title || '')}`}${e.details ? `<br><br>${esc(e.details)}` : ''}`,
     confirm: e.created_by === me ? 'Edit' : 'Close',
     extra: e.created_by === me ? 'Delete' : null
   });
@@ -125,13 +125,17 @@ export async function editEvent({ projectId = null, date = null, event = null, r
   const local = (iso) => { const d = new Date(iso); return { date: dayKey(d), time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }; };
   const s = event ? local(event.starts_at) : { date: date || dayKey(new Date()), time: '18:00' };
   const e2 = event?.ends_at ? local(event.ends_at) : { time: event ? '' : '20:00' };
+  // Built-in types first, then the ones your teams already use.
+  const { data: used } = await sb.from('project_events').select('kind').in('project_id', projects.map((p) => p.id)).order('created_at', { ascending: false }).limit(300);
+  const kinds = [...new Set(['rehearsal', 'show', 'other', ...(used || []).map((u) => u.kind), ...(event ? [event.kind] : [])])];
   const el = document.createElement('dialog');
   el.className = 'dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card">
     <h2>${event ? 'Edit event' : 'Add event'}</h2>
     ${!projectId && !event && projects.length > 1 ? `<label class="field"><span>Project</span><select name="project">${projects.map((p) => `<option value="${p.id}">${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     <label class="field"><span>Title</span><input name="title" maxlength="120" required value="${esc(event?.title || '')}" placeholder="Full rehearsal" /></label>
-    <label class="field"><span>Type</span><select name="kind">${['rehearsal', 'show', 'other'].map((k) => `<option value="${k}" ${event?.kind === k ? 'selected' : ''}>${KINDS[k]}</option>`).join('')}</select></label>
+    <label class="field"><span>Type</span><select name="kind" data-kind>${kinds.map((k) => `<option value="${esc(k)}" ${(event?.kind || 'rehearsal') === k ? 'selected' : ''}>${esc(kindLabel(k))}</option>`).join('')}<option value="__new">＋ New type…</option></select></label>
+    <label class="field" data-new-kind hidden><span>New type</span><input name="newKind" maxlength="30" placeholder="Class, Workshop, Filming…" /></label>
     <div class="date-row three">
       <label class="field"><span>Date</span><input type="date" name="date" required value="${s.date}" /></label>
       <label class="field"><span>Starts</span><input type="time" name="start" required value="${s.time}" /></label>
@@ -144,15 +148,23 @@ export async function editEvent({ projectId = null, date = null, event = null, r
   document.body.append(el);
   el.showModal();
   const f = el.querySelector('form').elements;
+  const kindSelect = el.querySelector('[data-kind]');
+  kindSelect.addEventListener('change', () => {
+    const custom = kindSelect.value === '__new';
+    el.querySelector('[data-new-kind]').hidden = !custom;
+    f.namedItem('newKind').required = custom;
+    if (custom) f.namedItem('newKind').focus();
+  });
   const values = await new Promise((resolve) => el.addEventListener('close', () => {
     resolve(el.returnValue === 'ok' ? {
       project: f.namedItem('project')?.value || projectId || event?.project_id || projects[0].id,
-      title: f.namedItem('title').value.trim(), kind: f.namedItem('kind').value, date: f.namedItem('date').value,
+      title: f.namedItem('title').value.trim(), kind: f.namedItem('kind').value === '__new' ? f.namedItem('newKind').value.trim().slice(0, 30) : f.namedItem('kind').value, date: f.namedItem('date').value,
       start: f.namedItem('start').value, end: f.namedItem('end').value, location: f.namedItem('location').value.trim(), details: f.namedItem('details').value.trim()
     } : null);
     el.remove();
   }));
   if (!values?.title) return;
+  if (!values.kind) values.kind = 'other';
   const starts = new Date(`${values.date}T${values.start}`);
   let ends = values.end ? new Date(`${values.date}T${values.end}`) : null;
   if (ends && ends < starts) ends = new Date(ends.getTime() + 864e5); // ends after midnight

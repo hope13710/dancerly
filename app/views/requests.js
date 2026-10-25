@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead, createVideo } from './project.js';
 import { empty } from './shared.js';
@@ -110,7 +110,7 @@ export async function newRequest(projectId) {
       <label><input type="radio" name="who" value="some" /><b>Choose people</b><small>Only the people you pick</small></label>
     </div></div>
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
-    <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" /><span class="avatar xs">${esc(initials(m.name))}</span>${esc(m.name)}</label>`).join('') || '<p class="muted">Invite people to the project first.</p>'}</div>
+    <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Invite people to the project first.</p>'}</div>
     ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${videos.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Send request</button></div>
   </form>`;
@@ -190,7 +190,7 @@ export async function renderRequest(projectId, requestId) {
         ${canManage && missing && r.status === 'active' ? `<button class="btn small" data-remind ${r.last_reminded_at && Date.now() - new Date(r.last_reminded_at) < 36e5 ? 'disabled title="You can remind again an hour after the last reminder"' : ''}>Remind ${missing === 1 ? '1 person' : `${missing} people`}</button>` : ''}</div>
       <div class="progress"><i style="width:${subs.length ? (submitted / subs.length) * 100 : 0}%"></i></div>
       <div class="list flush">${subs.map((s) => `<${s.video ? `a href="/app/p/${projectId}/v/${s.video.id}" data-link` : 'div'} class="row">
-        <span class="avatar sm">${esc(initials(s.member.name))}</span>
+        ${avatar(s.member.name, s.member.user_id, 'sm')}
         <span class="row-main"><span class="row-title">${esc(s.member.name)}${s.member.user_id === me ? ' <span class="tag">You</span>' : ''}</span>
           <span class="row-meta">${s.video ? `${esc(s.video.title)} · ${s.latest ? `Take ${s.latest.number} · ${timeAgo(s.latest.created_at)}` : 'no take yet'}` : 'Nothing yet'}</span></span>
         <span class="row-side">${pill(s.state)}${s.video ? '<span class="chev">›</span>' : ''}</span>

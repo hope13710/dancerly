@@ -1,4 +1,4 @@
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED } from './client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, avatar, projectMark, rememberPhotos } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
@@ -25,6 +25,8 @@ const state = { session: null, profile: null, cleanup: null, authError: null, re
 // ---------- Routing ----------
 const routes = [
   { re: /^\/app\/login\/?$/, render: renderLogin, open: true },
+  // Used by the landing page's Log out link.
+  { re: /^\/app\/logout\/?$/, render: async () => { await sb.auth.signOut(); location.replace('/'); }, open: true },
   { re: /^\/app\/reset\/?$/, render: renderReset, open: true },
   { re: /^\/app\/join\/([a-f0-9]{6,64})\/?$/, render: renderJoin, open: true },
   { re: /^\/app\/s\/([0-9a-f]{36})\/?$/, render: renderShared, open: true },
@@ -110,7 +112,7 @@ function renderChrome() {
   $('[data-tabbar]').hidden = !signedIn;
   $('[data-bell]').hidden = !signedIn;
   if (signedIn) {
-    $('[data-account-initials]').textContent = initials(state.profile.display_name);
+    $('[data-account-initials]').innerHTML = state.profile.avatar_url ? `<img src="${esc(state.profile.avatar_url)}" alt="" />` : esc(initials(state.profile.display_name));
     $('[data-account-name]').textContent = state.profile.display_name;
     $('[data-account-email]').textContent = state.session.user.email || '';
     paintNav();
@@ -142,7 +144,7 @@ function paintNav() {
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   $('[data-side-projects]').innerHTML = state.projects.length
-    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}><span class="card-mark xs">${esc(initials(p.title))}</span><span>${esc(p.title)}</span></a>`).join('')
+    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}>${projectMark(p, 'xs')}<span>${esc(p.title)}</span></a>`).join('')
     : '<p class="side-empty">No projects yet</p>';
 }
 
@@ -174,7 +176,7 @@ async function startAction(kind) {
 // The project list behind the sidebar and the New menu.
 async function refreshNav() {
   if (!state.session) return;
-  const { data } = await sb.from('projects').select('id, title').order('created_at', { ascending: false });
+  const { data } = await sb.from('projects').select('id, title, image_url').order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
   if (state.profile) paintNav();
@@ -494,7 +496,7 @@ function renderMe() {
   const row = (href, label, extra = '') => `<a href="${href}" data-link><span>${label}</span>${extra}<i>›</i></a>`;
   view.innerHTML = `<section class="page narrow">
     <div class="me-card">
-      <span class="avatar xl">${esc(initials(state.profile.display_name))}</span>
+      ${avatar(state.profile.display_name, state.session.user.id, 'xl')}
       <div><h1>${esc(state.profile.display_name)}</h1><p class="muted">${esc(user.email || '')}</p></div>
     </div>
     <div class="list-group">
@@ -553,11 +555,12 @@ async function renderJoin(code) {
 async function loadProfile() {
   if (!state.session) { state.profile = null; return; }
   const user = state.session.user;
-  let { data } = await sb.from('profiles').select('id, display_name').eq('id', user.id).maybeSingle();
+  let { data } = await sb.from('profiles').select('id, display_name, avatar_url').eq('id', user.id).maybeSingle();
   // A name typed at sign-up travels in the magic link; save it the first time we see this person.
   const pending = user.user_metadata?.display_name;
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());
   state.profile = data || null;
+  if (data) rememberPhotos([data]);
 }
 
 // What the ⌘K palette can do besides searching.

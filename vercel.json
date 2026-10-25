@@ -2,8 +2,20 @@
   "buildCommand": "node build.js",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/demo", "destination": "/workspace.html" },
-    { "source": "/app", "destination": "/app/index.html" },
-    { "source": "/app/:path*", "destination": "/app/index.html" }
+    {
+      "source": "/app",
+      "destination": "/app/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/app/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/demo",
+      "destination": "/app",
+      "permanent": false
+    }
   ]
 }

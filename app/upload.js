@@ -7,6 +7,7 @@
 //    The prepared file and the upload position are remembered, so picking the same file again after a
 //    reload continues where it stopped instead of starting over.
 import { Upload } from './vendor/tus-js-client-4.3.1.js';
+import { grabStill, saveThumb } from './thumbs.js';
 import { sb, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, TAKE_BUCKET, MAX_TAKE_BYTES, TAKE_TYPES } from './client.js';
 
 const TARGET_BYTES = 45 * 1024 * 1024; // leaves headroom under the 50 MB storage limit
@@ -173,7 +174,7 @@ export async function uploadTake({ projectId, videoId, file, onStage = () => {} 
   if (!record.path.endsWith(`.${TAKE_TYPES[record.type]}`)) record.path = `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[record.type]}`;
   await tusUpload(blob, { ...record, key }, onStage);
   onStage('Saving');
-  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select('id, number').single();
+  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select('id, number, project_id, video_id').single();
   if (error) {
     await sb.storage.from(TAKE_BUCKET).remove([record.path]);
     clearRecord(key);
@@ -182,5 +183,8 @@ export async function uploadTake({ projectId, videoId, file, onStage = () => {} 
   }
   clearRecord(key);
   cacheDelete(key);
+  // The list thumbnail, made from the file already on this device (doesn't hold up the upload).
+  const local = URL.createObjectURL(blob);
+  grabStill(local).then((still) => saveThumb(data, still)).finally(() => URL.revokeObjectURL(local));
   return data;
 }

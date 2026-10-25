@@ -1,4 +1,4 @@
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, TAKE_BUCKET } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, TAKE_BUCKET, avatar } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 
@@ -41,7 +41,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const { data: signed, error: sErr } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(take.storage_path, 60 * 60 * 3);
   if (sErr) throw sErr;
 
-  const r = { sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  const r = { abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
@@ -64,14 +64,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <button class="big-play" data-play aria-label="Play or pause (Space)">▶</button>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Click to jump"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
       </div>
       <aside class="notes-col">
         <div class="take-summary" data-summary></div>
         <div class="note-list" data-list></div>
         <form class="composer" data-composer>
           <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">▸ At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">⟷ Range</button></div>
-          <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>→</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small></div>
+          <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>→</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small><button type="button" class="mini" data-loop-range hidden>↻ Loop</button></div>
           <div class="composer-field"><textarea data-input rows="2" maxlength="2000" placeholder="What should change at this moment? Type @ to mention someone"></textarea><div class="mention-menu" data-mentions role="listbox" hidden></div></div>
           <div class="composer-foot"><label class="visibility"><span class="sr-only">Who can see this note</span><select data-visibility>
             <option value="">👥 Whole team</option>
@@ -135,7 +135,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
         <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
-        <div class="note-foot"><span class="who"><span class="avatar xs">${esc(initials(nameOf(n.author_id)))}</span>${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
+        <div class="note-foot"><span class="who">${avatar(nameOf(n.author_id), n.author_id, 'xs')}${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
           <button class="mini ${looping ? 'on' : ''}" data-loop="${n.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}">👍 ${agrees || ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
@@ -144,7 +144,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           ${canResolve(n) ? `<button class="mini ghost" data-delete="${n.id}" aria-label="Delete note">🗑</button>` : ''}
         </div>
         ${open ? `<div class="thread">
-          ${replies.map((rp) => `<div class="reply"><span class="avatar xs">${esc(initials(nameOf(rp.author_id)))}</span><div><p><b>${esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
+          ${replies.map((rp) => `<div class="reply">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
           <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;
@@ -173,6 +173,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const play = (on) => { if (on) { if (r.drawing) finishSketch(); videoEl.play().catch(() => {}); } else videoEl.pause(); };
   const seek = (sec, { start = false } = {}) => { videoEl.currentTime = Math.max(0, Math.min(sec, duration() || sec)); if (start) play(true); paintPlayer(); };
   function setLoop(note) {
+    r.abStart = null;
     if (!note || r.loop?.id === note.id) r.loop = null;
     else {
       r.loop = note.t_end === null ? { id: note.id, start: Math.max(0, note.t_start - 2), end: Math.min(duration(), note.t_start + 2) } : { id: note.id, start: note.t_start, end: note.t_end };
@@ -195,8 +196,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-tfill]').style.width = pct(t);
     $('[data-thead]').style.left = pct(t);
     const loopBar = $('[data-tloop]');
-    loopBar.hidden = !r.loop;
+    loopBar.hidden = !r.loop && r.abStart === null;
     if (r.loop) { loopBar.style.left = pct(r.loop.start); loopBar.style.width = pct(r.loop.end - r.loop.start); }
+    else if (r.abStart !== null) { loopBar.style.left = pct(Math.min(r.abStart, t)); loopBar.style.width = pct(Math.abs(t - r.abStart)); }
+    const ab = $('[data-ab]');
+    const abOn = !!r.loop && !r.loop.id;
+    ab.textContent = r.abStart !== null ? `↻ Set B · from ${fmt(r.abStart)}` : abOn ? '↻ A–B on' : '↻ A–B';
+    ab.setAttribute('aria-pressed', String(r.abStart !== null || abOn));
+    $('[data-loop-range]').hidden = !(r.mode === 'range' && r.rangeStart !== null && r.rangeEnd !== null);
     $('[data-loopchip]').innerHTML = r.loop ? `↻ Looping ${fmt(r.loop.start)}–${fmt(r.loop.end)} <button type="button" data-clearloop aria-label="Stop looping">✕</button>` : '';
     const draft = $('[data-tdraft]');
     const showDraft = r.mode === 'range' && r.rangeStart !== null;
@@ -284,6 +291,22 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   $('[data-speed]').addEventListener('click', () => { r.speed = SPEEDS[(SPEEDS.indexOf(r.speed) + 1) % SPEEDS.length]; videoEl.playbackRate = r.speed; paintPlayer(); });
   const toggleMirror = () => { r.mirror = !r.mirror; localStorage.setItem('looproom:mirror', r.mirror ? '1' : '0'); paintPlayer(); };
   $('[data-mirror]').addEventListener('click', toggleMirror);
+  // Free A–B loop: any part of the video, no note needed.
+  function loopPart(start, end) {
+    r.abStart = null;
+    r.loop = { id: null, start: Math.min(start, end), end: Math.max(start, end) };
+    seek(r.loop.start, { start: true });
+    paintNotes();
+  }
+  function abLoop() {
+    const t = videoEl.currentTime || 0;
+    if (r.loop && !r.loop.id) return setLoop(null);
+    if (r.abStart === null) { r.loop = null; r.abStart = t; paintNotes(); paintPlayer(); return toast(`A set at ${fmt(t)}. Play or scrub to the end, then tap again.`); }
+    if (Math.abs(t - r.abStart) < 0.3) return toast('Move to where the loop should end, then tap again.');
+    loopPart(r.abStart, t);
+  }
+  $('[data-ab]').addEventListener('click', abLoop);
+  $('[data-loop-range]').addEventListener('click', () => loopPart(r.rangeStart, r.rangeEnd));
   $('[data-loopchip]').addEventListener('click', (e) => { if (e.target.closest('[data-clearloop]')) setLoop(null); });
   $('[data-track]').addEventListener('click', (e) => {
     if (e.target.closest('[data-seek]')) return;
@@ -387,14 +410,51 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   function paintMentions() {
     const menu = $('[data-mentions]');
     const m = mentionMatch();
-    const options = m ? members.filter((x) => x.user_id !== me.id && x.name.toLowerCase().startsWith(m[1].toLowerCase())) : [];
+    const options = m ? rankMentions(m[1]) : [];
     menu.hidden = !options.length;
-    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}"><span class="avatar xs">${esc(initials(x.name))}</span>${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}`;
+    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}`;
     $$('[data-pick]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); pick(b.dataset.pick); }));
+  }
+  // Who to suggest after @: best name match first (start of name, start of a word, anywhere, then loose letters),
+  // nudged by who you mention often and who is active on this video.
+  const RECENT_KEY = 'looproom:recentMentions';
+  const recentMentions = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } };
+  function rankMentions(query) {
+    const q = query.trim().toLowerCase();
+    const recent = recentMentions();
+    const active = new Map();
+    const touch = (id, at) => { if (id && (!active.has(id) || active.get(id) < at)) active.set(id, at); };
+    for (const n of r.notes) { touch(n.author_id, n.created_at); for (const rp of n.note_replies || []) touch(rp.author_id, rp.created_at); }
+    const byActivity = [...active.entries()].sort((a, b) => b[1].localeCompare(a[1])).map(([id]) => id);
+    const match = (name) => {
+      const n = name.toLowerCase();
+      if (!q) return 1;
+      if (n.startsWith(q)) return 100;
+      if (n.split(/\s+/).some((w) => w.startsWith(q))) return 80;
+      if (n.includes(q)) return 50;
+      let i = 0;
+      for (const ch of n) if (ch === q[i]) i += 1;
+      return i === q.length ? 20 : 0;
+    };
+    return members
+      .filter((x) => x.user_id !== me.id)
+      .map((x) => {
+        const score = match(x.name);
+        const ri = recent.indexOf(x.user_id);
+        const ai = byActivity.indexOf(x.user_id);
+        const bonus = (ri >= 0 ? 30 - ri * 3 : 0) + (x.user_id === take.uploaded_by ? 20 : 0) + (ai >= 0 ? Math.max(0, 15 - ai * 3) : 0);
+        return { x, score, rank: score ? score + bonus : 0 };
+      })
+      .filter((o) => o.score)
+      .sort((a, b) => b.rank - a.rank || a.x.name.localeCompare(b.x.name))
+      .slice(0, 6)
+      .map((o) => o.x);
   }
   function pick(name) {
     const m = mentionMatch();
     if (!m) return;
+    const person = members.find((x) => x.name === name);
+    if (person) try { localStorage.setItem(RECENT_KEY, JSON.stringify([person.user_id, ...recentMentions().filter((id) => id !== person.user_id)].slice(0, 10))); } catch {}
     const caret = input.selectionStart;
     const start = caret - m[0].length;
     input.value = `${input.value.slice(0, start)}@${name} ${input.value.slice(caret)}`;
@@ -406,6 +466,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   input.addEventListener('input', paintMentions);
   input.addEventListener('keydown', (e) => {
     const menu = $('[data-mentions]');
+    if (!menu.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const items = $$('[data-pick]', menu);
+      const i = items.findIndex((b) => b.classList.contains('active'));
+      const next = items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
+      items.forEach((b) => b.classList.toggle('active', b === next));
+      return;
+    }
     if (!menu.hidden && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick); return; }
     if (e.key === 'Escape') { if (!menu.hidden) menu.hidden = true; else input.blur(); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pin(); }
@@ -462,7 +530,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const actions = {
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
-      d: () => (r.drawing ? finishSketch() : startSketch()), m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
+      d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
       escape: () => setLoop(null), arrowup: () => step(-1), arrowdown: () => step(1)
     };
     const action = actions[e.key.toLowerCase()];

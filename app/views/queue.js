@@ -1,6 +1,6 @@
 // Review queue: new takes you haven't watched yet, oldest first, plus requests that are past due.
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
-import { sb, $, esc, initials, timeAgo } from '../client.js';
+import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { pageHead, tabs, empty, namesFor } from './shared.js';
 import { myOpenRequests, dueLabel } from './requests.js';
@@ -59,7 +59,7 @@ export async function renderQueue() {
           <span class="row-side"><span class="pill danger">You haven’t submitted</span><span class="chev">›</span></span></a>`).join('')}</div>`
         : empty('✓', 'Nothing overdue', 'Requests you were asked to submit and haven’t yet show up here once they’re past due.'))
       : list.length ? `<div class="list" data-queue>${list.map((v) => `<a class="row" href="${hrefFor(v)}" data-link data-queue-item>
-          <span class="avatar sm">${esc(initials(names[v.latest.uploaded_by]))}</span>
+          ${avatar(names[v.latest.uploaded_by], v.latest.uploaded_by, 'sm')}
           <span class="row-main"><span class="row-title">${esc(v.title)}</span>
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
           <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Request</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>

@@ -1,5 +1,5 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
-import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo } from '../client.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { noteTime, tabs, empty, pageHead, namesFor } from './shared.js';
 
@@ -59,7 +59,7 @@ export async function renderInbox() {
     ${pageHead('Inbox', { actions: unread ? '<button class="btn" data-read-all>Mark all as read</button>' : '' })}
     ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions']], filter)}
     ${live.length ? `<div class="list">${live.map((item) => `<a class="row inbox-row ${item.read_at ? '' : 'unread'}" href="${hrefFor(item)}" data-link data-item="${item.id}">
-        <span class="avatar sm">${esc(initials(names[item.actor_id] || '?'))}</span>
+        ${avatar(names[item.actor_id] || '?', item.actor_id, 'sm')}
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
