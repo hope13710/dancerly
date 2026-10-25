@@ -38,7 +38,13 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Requests: `create_request` / `remind_request` RPCs, Project › Requests (active/closed, submission rate), request page (brief, reference video, per-person status Not submitted/Overdue/Submitted/Reviewed/All fixed, remind once an hour, close/reopen/delete), submit or re-submit as the next take, Inbox kinds.
 - [x] Review queue: `video_views` marks what you watched; Needs review / Re-submitted / Overdue, project filter, Start reviewing, Next video → (Shift+N) in the review.
 - [x] Calendar: `project_events`; global and per-project, month grid and agenda, request due dates included, add/edit/delete, .ics export. Home shows Due from you / To review / Coming up.
-- [ ] Later: due-date reminders 24h before (needs a scheduled job), recurring requests, groups, Count sheet, Pages, iCal subscription URL, email/push, billing.
+- [x] ⌘K / Ctrl+K search palette (projects, people, videos, requests, notes, commands).
+- [x] Groups (Project › People), requests to groups, weekly repeating requests, pg_cron job hourly: 24h-before due reminders + next week's repeat.
+- [x] Project Overview (goal, music, show countdown, stats) and Count sheet (sections, counts, focus, reference moment, Learning/Practicing/Clean). Review opens at `?t=`.
+- [x] Guest share link for a video (`/app/s/:token`, `shared-video` function, expiry, turn off) and calendar subscription feed (`calendar-feed` function, webcal).
+- [x] Project Pages (Markdown docs, autosave, live preview, pin).
+- [ ] Needs the owner's setup: email/push delivery (SMTP, VAPID keys), billing, leaked-password protection (Auth settings).
+- [ ] Later: weekly auto-recap, recap translation, request announcement notes, per-sentence recap feedback.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
 - [x] Videos and takes (auto-numbered), private `takes` bucket, signed playback URLs.
 - [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.

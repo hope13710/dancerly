@@ -21,8 +21,8 @@ begin
 
   -- A asks everyone; then asks only B.
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
-  rid := public.create_request(p, 'Chorus', 'brief', now() + interval '1 day', '{}', null);
-  rid2 := public.create_request(p, 'Solo', null, now() - interval '1 hour', array[b], null);
+  rid := public.create_request_v2(p, 'Chorus', 'brief', now() + interval '1 day', '{}', '{}', null, false);
+  rid2 := public.create_request_v2(p, 'Solo', null, now() - interval '1 hour', array[b], '{}', null, false);
   begin
     insert into public.requests (project_id, title) values (p, 'direct');
     r := r || 'direct_insert=ALLOWED';
