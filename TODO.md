@@ -46,6 +46,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Uploads: on-device shrink to 720p H.264 (Mediabunny/WebCodecs, keeps AAC audio, up to 15 min), TUS resumable upload (6 MB chunks, auto-retry, resume after reload via IndexedDB + same file), can't-play notice for HEVC on unsupported browsers.
 - [x] Note replies (threads, live, Inbox "replied") and private notes (coach → one member: only the two see it, kept out of project recaps and guest links; personal recaps using them can't be shared). Tested in `supabase/tests/private_notes_test.sql`.
 - [x] Sketch on the frame: ✎ Draw in the composer (pen, arrow, circle, 4 colors, undo, clear; D / Esc / Ctrl+Z). Saved as normalized vectors on the note (`notes.sketch`), shown over the video at the note's moment (2 s) or across its range, correct in mirror mode, also on guest links.
+- [x] Dance tools: counts (tap tempo or BPM + count 1 → eight·count badge, eight marks on the timeline, count on every note), compare mode (another take or another video side by side, synced; lines up by count 1, by music, or by hand). Guest share page: Try it with your team CTA (signup_source=share), counts shown to guests.
 - [ ] Needs the owner's setup: email/push delivery (SMTP, VAPID keys), billing, leaked-password protection (Auth settings).
 - [ ] Later: weekly auto-recap, recap translation, request announcement notes, per-sentence recap feedback.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.

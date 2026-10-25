@@ -1,6 +1,8 @@
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, TAKE_BUCKET, avatar } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
+import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
+import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
@@ -11,8 +13,8 @@ const SPEEDS = [1, 0.75, 0.5, 0.25];
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
     sb.from('projects').select('id, title').eq('id', projectId).single(),
-    sb.from('videos').select('id, title, created_by, request_id, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
-    sb.from('takes').select('id, number, storage_path, created_at, uploaded_by').eq('video_id', videoId).order('number'),
+    sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
+    sb.from('takes').select('id, number, storage_path, created_at, uploaded_by, count_start').eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
@@ -41,18 +43,22 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const { data: signed, error: sErr } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(take.storage_path, 60 * 60 * 3);
   if (sErr) throw sErr;
 
-  const r = { abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
+  const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button></div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button><button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button></div>
     </header>
     <div class="review-layout">
       <div class="player-col">
+        <div class="player-pair" data-pair>
         <div class="player ${r.mirror ? 'mirrored' : ''}" data-player>
           <video src="${esc(signed.signedUrl)}" playsinline preload="metadata" data-video></video>
+          <span class="pair-label">Take ${take.number}</span>
+          <span class="count-badge" data-count-badge hidden></span>
           <svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg>
           <div class="sketch-bar" data-sketch-bar hidden>
             <div class="sketch-group" role="group" aria-label="Tool">${TOOLS.map(([k, icon, label]) => `<button type="button" data-tool="${k}" title="${label}" aria-label="${label}" aria-pressed="${k === 'pen'}">${icon}</button>`).join('')}</div>
@@ -63,8 +69,28 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <span class="player-badge"><b class="mirror-badge">⇋ Mirrored</b><span data-time-overlay>00:00.0</span></span>
           <button class="big-play" data-play aria-label="Play or pause (Space)">▶</button>
         </div>
-        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
+        <div class="player compare-pane ${r.mirror ? 'mirrored' : ''}" data-compare hidden>
+          <video playsinline muted preload="auto" data-video2></video>
+          <span class="pair-label" data-compare-label></span>
+          <span class="count-badge" data-count-badge2 hidden></span>
+        </div>
+        </div>
+        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
+        <div class="counts-panel" data-counts-panel hidden>
+          <div class="counts-row">
+            <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
+            <label class="bpm-field"><input type="number" min="40" max="240" step="0.1" inputmode="decimal" data-bpm placeholder="120" aria-label="Tempo in BPM" /><span>BPM</span></label>
+            <button type="button" class="btn small" data-count-one>Count 1 is here · <b data-count-one-at>00:00.0</b></button>
+          </div>
+          <p class="counts-hint" data-counts-hint>Play the music and tap along, or type the BPM. Then pause on count 1 of the first eight.</p>
+          <div class="counts-actions"><label class="check-inline"><input type="checkbox" data-counts-show ${r.showCounts ? 'checked' : ''} /> Show counts on the video</label><span class="spacer"></span><button type="button" class="mini ghost" data-counts-clear>Clear</button><button type="button" class="btn small primary" data-counts-save>Save counts</button></div>
+        </div>
+        <div class="compare-bar" data-compare-bar hidden>
+          <label class="compare-pick"><span>Compare with</span><select data-compare-pick></select></label>
+          <div class="compare-align"><span class="compare-offset" data-compare-offset></span><button type="button" class="mini" data-nudge="-0.1" title="Move the other video 0.1 s earlier">−0.1s</button><button type="button" class="mini" data-nudge="0.1" title="Move the other video 0.1 s later">+0.1s</button><button type="button" class="mini" data-sync-music title="Line both videos up by their music">♫ Sync by music</button></div>
+          <button type="button" class="mini ghost" data-compare-close aria-label="Close compare">✕</button>
+        </div>
       </div>
       <aside class="notes-col">
         <div class="take-summary" data-summary></div>
@@ -106,6 +132,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
   const visibleNotes = () => r.notes.filter((n) => takeNo[n.take_id] <= take.number && (n.take_id === take.id || n.status !== 'resolved'));
   const noteTime = (n) => (n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`);
+  // "3·5" next to the time when the video has counts (each take keeps its own count 1).
+  const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
+  const noteCount = (n) => {
+    const c = countAt(n.t_start, r.counts.bpm, takeCountStart(n.take_id));
+    return c ? `<span class="count-tag" title="Eight ${c.eight}, count ${c.count}">${countLabel(c)}</span>` : '';
+  };
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention">@${esc(m.name)}</span>`), esc(text));
   const canResolve = (n) => n.author_id === me.id || isOwner;
 
@@ -133,7 +165,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const open = r.openThreads.has(n.id);
       return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
+        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
         <div class="note-foot"><span class="who">${avatar(nameOf(n.author_id), n.author_id, 'xs')}${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
@@ -212,6 +244,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-rs]').textContent = r.rangeStart === null ? '—' : fmt(r.rangeStart);
     $('[data-re]').textContent = r.rangeEnd === null ? '—' : fmt(r.rangeEnd);
     paintSketchLayer(t);
+    paintCounts(t);
+    $('[data-compare]').classList.toggle('mirrored', r.mirror);
   }
 
   // ---------- Sketches on the frame ----------
@@ -282,10 +316,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   window.addEventListener('resize', onResize);
   function tick() {
     if (r.loop && !videoEl.paused && videoEl.currentTime >= r.loop.end) videoEl.currentTime = r.loop.start;
+    if (r.compare.on) follow(videoEl, video2, r.compare.offset, r.speed);
     paintPlayer();
     r.frame = requestAnimationFrame(tick);
   }
-  videoEl.addEventListener('loadedmetadata', () => { $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintNotes(); paintPlayer(); });
+  videoEl.addEventListener('loadedmetadata', () => { $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
   videoEl.addEventListener('error', () => toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'));
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
   $('[data-speed]').addEventListener('click', () => { r.speed = SPEEDS[(SPEEDS.indexOf(r.speed) + 1) % SPEEDS.length]; videoEl.playbackRate = r.speed; paintPlayer(); });
@@ -307,6 +342,176 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   $('[data-ab]').addEventListener('click', abLoop);
   $('[data-loop-range]').addEventListener('click', () => loopPart(r.rangeStart, r.rangeEnd));
+
+  // ---------- Counts: tempo + count 1 → "eight · count" on the video, the timeline, and every note ----------
+  const tapper = tapTempo();
+  const countsPanel = $('[data-counts-panel]');
+  function paintEights() {
+    const starts = r.showCounts ? eightStarts(duration(), r.counts.bpm, r.counts.start) : [];
+    $('[data-eights]').innerHTML = starts.map((x, i) => `<i class="t-eight ${i % 4 === 0 ? 'major' : ''}" style="left:${pct(x)}"></i>`).join('');
+  }
+  function paintCounts(t) {
+    const c = r.showCounts ? countAt(t, r.counts.bpm, r.counts.start) : null;
+    const key = c ? countLabel(c) : '';
+    if (key !== r.countKey) {
+      r.countKey = key;
+      const badge = $('[data-count-badge]');
+      badge.hidden = !c;
+      if (c) badge.innerHTML = `<small>Eight ${c.eight}</small><b>${c.count}</b>`;
+    }
+    if (r.compare.on) {
+      const src = r.compare.src;
+      const c2 = r.showCounts && src ? countAt(video2.currentTime, src.bpm, src.count_start) : null;
+      const badge2 = $('[data-count-badge2]');
+      badge2.hidden = !c2;
+      const html = c2 ? `<small>Eight ${c2.eight}</small><b>${c2.count}</b>` : '';
+      if (badge2.dataset.key !== html) { badge2.dataset.key = html; badge2.innerHTML = html; }
+    }
+    if (!countsPanel.hidden) $('[data-count-one-at]').textContent = fmtFine(r.countDraft?.start ?? t);
+  }
+  function openCounts(open = countsPanel.hidden) {
+    countsPanel.hidden = !open;
+    $('[data-counts-toggle]').setAttribute('aria-pressed', String(open));
+    if (open) {
+      r.countDraft = { bpm: r.counts.bpm, start: r.counts.start };
+      $('[data-bpm]').value = r.counts.bpm ?? '';
+      paintCountsHint();
+    }
+  }
+  function paintCountsHint() {
+    const d = r.countDraft;
+    $('[data-counts-hint]').textContent = !d.bpm ? 'Play the music and tap along, or type the BPM. Then pause on count 1 of the first eight.'
+      : d.start === null ? `${d.bpm} BPM. Now pause on count 1 of the first eight and tap “Count 1 is here”.`
+      : `${d.bpm} BPM · count 1 at ${fmtFine(d.start)}. Save to show counts for everyone.`;
+  }
+  function tap() {
+    if (countsPanel.hidden) openCounts(true);
+    const bpm = tapper.tap();
+    const btn = $('[data-tap]');
+    btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+    if (bpm && bpm >= 40 && bpm <= 240) { r.countDraft.bpm = bpm; $('[data-bpm]').value = bpm; paintCountsHint(); }
+  }
+  $('[data-counts-toggle]').addEventListener('click', () => openCounts());
+  $('[data-tap]').addEventListener('click', tap);
+  $('[data-bpm]').addEventListener('input', (e) => { const v = Number(e.target.value); r.countDraft.bpm = v >= 40 && v <= 240 ? Math.round(v * 10) / 10 : null; paintCountsHint(); });
+  $('[data-count-one]').addEventListener('click', () => { play(false); r.countDraft.start = Math.round((videoEl.currentTime || 0) * 1000) / 1000; paintCountsHint(); });
+  $('[data-counts-show]').addEventListener('change', (e) => {
+    r.showCounts = e.target.checked;
+    try { localStorage.setItem('looproom:counts', r.showCounts ? '1' : '0'); } catch {}
+    r.countKey = '-'; paintEights(); paintNotes(); paintPlayer();
+  });
+  async function saveCounts(bpm, start) {
+    const { error } = await sb.rpc('set_counts', { p_take: take.id, p_bpm: bpm, p_count_start: start });
+    if (error) return toast(friendlyError(error), 'error');
+    r.counts = { bpm, start };
+    take.count_start = start;
+    r.countKey = '-';
+    paintEights(); paintNotes(); paintPlayer();
+    return true;
+  }
+  $('[data-counts-save]').addEventListener('click', async () => {
+    const d = r.countDraft;
+    if (!d.bpm) return toast('Set the tempo first — tap along or type the BPM.');
+    if (d.start === null) return toast('Pause on count 1 and tap “Count 1 is here”.');
+    if (await saveCounts(d.bpm, d.start)) { openCounts(false); toast('Counts saved. Notes now show their count.'); }
+  });
+  $('[data-counts-clear]').addEventListener('click', async () => {
+    if (await saveCounts(null, null)) { openCounts(false); toast('Counts cleared.'); }
+  });
+
+  // ---------- Compare: another take, or another video in the project (like the original choreo), side by side ----------
+  const video2 = $('[data-video2]');
+  async function compareOptions() {
+    if (r.compare.options) return r.compare.options;
+    const { data: others } = await sb.from('videos').select('id, title, bpm, takes(id, number, storage_path, count_start)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false }).limit(50);
+    const num = (v) => (v === null || v === undefined ? null : Number(v));
+    const own = takes.filter((t) => t.id !== take.id).map((t) => ({ key: t.id, label: `Take ${t.number}`, group: 'this', storage_path: t.storage_path, count_start: num(t.count_start), bpm: r.counts.bpm, take: t }));
+    const rest = (others || []).filter((v) => v.takes?.length).map((v) => {
+      const t = [...v.takes].sort((a, b) => b.number - a.number)[0];
+      return { key: t.id, label: v.takes.length > 1 ? `${v.title} · Take ${t.number}` : v.title, group: 'other', storage_path: t.storage_path, count_start: num(t.count_start), bpm: num(v.bpm) };
+    });
+    r.compare.options = [...own, ...rest];
+    return r.compare.options;
+  }
+  function paintCompareOffset() {
+    const o = r.compare.offset;
+    $('[data-compare-offset]').textContent = r.compare.aligned === 'counts' && Math.abs(o - r.compare.countOffset) < 0.01 ? 'Lined up by count 1'
+      : r.compare.aligned === 'music' && Math.abs(o - r.compare.musicOffset) < 0.01 ? 'Lined up by the music'
+      : Math.abs(o) < 0.05 ? 'Starts together' : `${o > 0 ? '+' : '−'}${Math.abs(o).toFixed(1)}s`;
+  }
+  async function loadCompare(key) {
+    const src = r.compare.options.find((o) => o.key === key);
+    if (!src) return;
+    const { data, error } = await sb.storage.from(TAKE_BUCKET).createSignedUrl(src.storage_path, 60 * 60 * 3);
+    if (error) return toast(friendlyError(error), 'error');
+    r.compare.src = src;
+    r.compare.url = data.signedUrl;
+    video2.src = data.signedUrl;
+    $('[data-compare-label]').textContent = src.label;
+    // Same tempo and both have count 1 → line them up count for count.
+    const canCount = r.counts.start !== null && src.count_start !== null && src.bpm && r.counts.bpm && Math.abs(src.bpm - r.counts.bpm) < 0.5;
+    r.compare.countOffset = canCount ? src.count_start - r.counts.start : null;
+    r.compare.offset = canCount ? r.compare.countOffset : 0;
+    r.compare.aligned = canCount ? 'counts' : null;
+    paintCompareOffset();
+  }
+  async function openCompare() {
+    const options = await compareOptions();
+    if (!options.length) return toast('Upload another take, or another video to this project, to compare.');
+    r.compare.on = true;
+    const sel = $('[data-compare-pick]');
+    const group = (g, label) => { const items = options.filter((o) => o.group === g); return items.length ? `<optgroup label="${label}">${items.map((o) => `<option value="${o.key}">${esc(o.label)}</option>`).join('')}</optgroup>` : ''; };
+    sel.innerHTML = group('this', 'This video') + group('other', 'Other videos');
+    const previous = options.find((o) => o.group === 'this' && o.take.number === take.number - 1) || options[0];
+    sel.value = previous.key;
+    $('[data-pair]').classList.add('comparing');
+    $('[data-compare]').hidden = false;
+    $('[data-compare-bar]').hidden = false;
+    $('[data-compare-toggle]').setAttribute('aria-pressed', 'true');
+    await loadCompare(previous.key);
+    placeSketchLayer();
+  }
+  function closeCompare() {
+    r.compare.on = false;
+    video2.pause();
+    video2.removeAttribute('src');
+    video2.load();
+    $('[data-pair]').classList.remove('comparing');
+    $('[data-compare]').hidden = true;
+    $('[data-compare-bar]').hidden = true;
+    $('[data-compare-toggle]').setAttribute('aria-pressed', 'false');
+    placeSketchLayer();
+  }
+  const toggleCompare = () => (r.compare.on ? closeCompare() : openCompare());
+  $('[data-compare-toggle]').addEventListener('click', toggleCompare);
+  $('[data-compare-close]').addEventListener('click', closeCompare);
+  $('[data-compare-pick]').addEventListener('change', (e) => loadCompare(e.target.value));
+  $$('[data-nudge]').forEach((b) => b.addEventListener('click', () => { r.compare.offset = Math.round((r.compare.offset + Number(b.dataset.nudge)) * 10) / 10; paintCompareOffset(); }));
+  $('[data-sync-music]').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const label = btn.textContent;
+    btn.disabled = true;
+    try {
+      const offset = await offsetByMusic(signed.signedUrl, r.compare.url, (stage) => { btn.textContent = stage; });
+      if (offset === null) return toast('Couldn’t find the same music in both videos. Line them up with −0.1s / +0.1s.');
+      r.compare.offset = Math.round(offset * 100) / 100;
+      r.compare.musicOffset = r.compare.offset;
+      r.compare.aligned = 'music';
+      paintCompareOffset();
+      // A take of this video without counts gets them for free from the match.
+      const src = r.compare.src;
+      if (src.group === 'this' && src.count_start === null && r.counts.start !== null && r.counts.bpm) {
+        const start = Math.round((r.counts.start + offset) * 1000) / 1000;
+        if (start >= 0 && !(await sb.rpc('set_counts', { p_take: src.key, p_bpm: r.counts.bpm, p_count_start: start })).error) { src.count_start = start; src.take.count_start = start; paintNotes(); }
+      }
+      toast('Lined up by the music.');
+    } catch {
+      toast('This browser couldn’t read the audio. Line them up with −0.1s / +0.1s.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  });
   $('[data-loopchip]').addEventListener('click', (e) => { if (e.target.closest('[data-clearloop]')) setLoop(null); });
   // Scrubbing: press anywhere on the bar and drag (mouse or finger). Playback pauses while dragging and resumes after.
   const track = $('[data-track]');
@@ -567,7 +772,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const actions = {
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
-      d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
+      d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
       escape: () => setLoop(null), arrowup: () => step(-1), arrowdown: () => step(1)
     };
     const action = actions[e.key.toLowerCase()];
@@ -651,6 +856,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);
     r.drawing?.stop();
+    video2.pause();
     view.removeEventListener('click', onClick);
     view.removeEventListener('submit', onReply);
     sb.removeChannel(channel);

@@ -20,9 +20,9 @@ Deno.serve(async (req) => {
   if (!share || share.revoked) return json({ error: "This link was turned off." }, 404);
   if (new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
 
-  const { data: video } = await admin.from("videos").select("id, title, projects(title)").eq("id", share.video_id).maybeSingle();
+  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title)").eq("id", share.video_id).maybeSingle();
   if (!video) return json({ error: "This video was deleted." }, 404);
-  const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at").eq("video_id", video.id).order("number", { ascending: false }).limit(1).maybeSingle();
+  const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).order("number", { ascending: false }).limit(1).maybeSingle();
   if (!take) return json({ error: "This video has no takes yet." }, 404);
   const { data: signed } = await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 2);
 
@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
     uploaded_at: take.created_at,
     url: signed?.signedUrl ?? null,
     expires_at: share.expires_at,
+    bpm: (video as { bpm?: number | null }).bpm ?? null,
+    count_start: take.count_start ?? null,
     notes,
   });
 });

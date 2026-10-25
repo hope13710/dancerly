@@ -2,6 +2,7 @@
 import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL } from '../client.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
+import { countAt } from '../counts.js';
 
 function copyRow(value) {
   return `<div class="copy-row"><input readonly value="${esc(value)}" /><button class="btn primary" type="button" data-copy="${esc(value)}">Copy</button></div>`;
@@ -70,14 +71,23 @@ export async function renderShared(token) {
     view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}</p><a class="btn wide" href="/" >About Looproom</a></div></section>`;
     return () => document.body.classList.remove('is-guest');
   }
+  // Growth: whoever watches a shared video sees what made it, with a way to start their own team.
+  const signedIn = Boolean(ctx.state.session);
+  const ctaHref = signedIn ? '/app' : '/app/login?mode=signup&ref=share';
+  const ctaLabel = signedIn ? 'Open Looproom' : 'Try it with your team';
   view.innerHTML = `<section class="page guest">
+    <div class="guest-bar"><a class="guest-brand" href="/?ref=share"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>looproom</a><span class="spacer"></span><a class="btn small primary" href="${ctaHref}" data-guest-cta="top">${ctaLabel}</a></div>
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
-      <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg></div>
+      <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span></div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
         <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · ✎ sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
-    <p class="fine guest-foot">Shared from <a href="/">Looproom</a> — timestamped feedback for dance teams.</p>
+    ${signedIn ? '' : `<aside class="guest-cta">
+      <div><p class="eyebrow">Made with Looproom</p><h2>Give your team feedback like this.</h2><p>Pin notes to the exact count, sketch on the frame, loop the part that needs work, and see every fix in the next take. Free for your first team.</p></div>
+      <div class="guest-cta-actions"><a class="btn primary" href="${ctaHref}" data-guest-cta="card">Start free</a><a class="btn ghost" href="/?ref=share" data-guest-cta="learn">See how it works</a></div>
+    </aside>`}
+    <p class="fine guest-foot">Shared from <a href="/?ref=share">Looproom</a> — timestamped feedback for dance teams.</p>
   </section>`;
   const video = $('[data-video]');
   $$('[data-seek]').forEach((b) => b.addEventListener('click', () => {
@@ -85,6 +95,15 @@ export async function renderShared(token) {
     // A note with a sketch stops on its frame so the drawing can be read.
     if (n) { video.pause(); video.currentTime = Number(b.dataset.seek); } else { video.currentTime = Math.max(0, Number(b.dataset.seek) - 1); video.play(); }
   }));
+  // Counts, when the team set them.
+  const badge = $('[data-count-badge]');
+  const paintCount = () => {
+    const c = countAt(video.currentTime, data.bpm, data.count_start);
+    badge.hidden = !c;
+    const html = c ? `<small>Eight ${c.eight}</small><b>${c.count}</b>` : '';
+    if (badge.dataset.key !== html) { badge.dataset.key = html; badge.innerHTML = html; }
+  };
+  if (data.bpm && data.count_start !== null && data.count_start !== undefined) { video.addEventListener('timeupdate', paintCount); video.addEventListener('seeked', paintCount); }
   // Sketches show over the video at their moment, like in the team's review.
   const layer = $('[data-sketch-layer]');
   const sketched = data.notes.filter((n) => n.sketch);

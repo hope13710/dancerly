@@ -309,7 +309,7 @@ function renderLogin() {
       button.textContent = signup ? 'Creating…' : 'Logging in…';
       const done = (message) => { button.disabled = false; button.textContent = label; showError(message); };
       if (signup) {
-        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name } } });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name, signup_source: new URLSearchParams(location.search).get('ref') || undefined } } });
         if (error) return done(friendlyError(error));
         // Supabase answers an already-registered email with an empty user instead of an error.
         if (data.user && !data.user.identities?.length) return done('That email already has an account. Log in instead — or use “Forgot password?” if you never set one.');
