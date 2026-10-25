@@ -4,312 +4,492 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f8fa" />
-    <meta name="description" content="Looproom is video feedback for dance teams. Everyone on the team pins notes to the exact moment of a rehearsal, loops their part, and checks the next run — in one private space." />
-    <title>Looproom — Every correction. Every count. Every version.</title>
+    <meta name="description" content="Looproom is the rehearsal review space for dance teams, dancers, and studios. Pin feedback to the exact count, practice with loops and mirror mode, get AI recaps, and see what's actually improving." />
+    <title>Looproom — Feedback that lands on the count</title>
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Looproom — Video feedback for dance teams" />
-    <meta property="og:description" content="Pin notes to the exact moment. Loop your part. Nail the next run — together." />
+    <meta property="og:title" content="Looproom — Feedback that lands on the count" />
+    <meta property="og:description" content="Rehearsal video review for dance teams. Pin notes to the exact moment, loop the part, and watch every correction show up in the next take." />
     <meta name="twitter:card" content="summary" />
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="/landing.css" />
   </head>
   <body>
-    <div class="site-shell">
-      <header class="site-header" data-header>
-        <a class="brand" href="#top" aria-label="Looproom home">
-          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span>looproom</span>
-        </a>
-        <nav class="desktop-nav" aria-label="Primary navigation">
-          <a href="#workflow">How it works</a>
-          <a href="#projects">Platform</a>
-          <a href="#compare">Why Looproom</a>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="dancer" viewBox="0 0 60 120">
+          <circle cx="30" cy="14" r="9" />
+          <path d="M30 26c-7 0-11 5-11 12v26c0 3 2 5 5 5h1l-3 41c0 3 2 5 5 5s5-2 5-5l2-30 2 30c0 3 2 5 5 5s5-2 5-5l-3-41h1c3 0 5-2 5-5V38c0-7-4-12-11-12z" />
+          <path d="M20 34 6 14" stroke-width="7" stroke-linecap="round" fill="none" stroke="currentColor" />
+          <path d="M40 34l14-20" stroke-width="7" stroke-linecap="round" fill="none" stroke="currentColor" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="nav" data-nav>
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="Looproom home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>looproom</a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#review">Review</a>
+          <a href="#recaps">AI recaps</a>
+          <a href="#projects">Projects</a>
+          <a href="#insights">Insights</a>
           <a href="#pricing">Pricing</a>
-          <a href="#faq">FAQ</a>
         </nav>
-        <div class="header-actions">
-          <a class="login-link" href="/app/login" data-cta="header_login" data-auth-login>Log in</a>
-          <a class="button button-small button-dark" href="/app/login?mode=signup" data-cta="header" data-auth-primary>Start free <span aria-hidden="true">↗</span></a>
-          <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" data-menu-toggle><span></span><span></span></button>
+        <div class="nav-actions">
+          <a class="nav-login" href="/app/login" data-cta="header_login" data-auth-login>Log in</a>
+          <a class="btn btn-dark btn-sm" href="/app/login?mode=signup" data-cta="header" data-auth-primary>Start free</a>
+          <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" data-menu-toggle><span></span><span></span></button>
         </div>
-        <div class="mobile-menu" data-mobile-menu>
-          <a href="#workflow">How it works</a>
-          <a href="#projects">Platform</a>
-          <a href="#compare">Why Looproom</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#faq">FAQ</a>
-          <div class="mobile-menu-auth">
-            <a href="/app/login" class="button button-outline" data-cta="menu_login" data-auth-login>Log in</a>
-            <a href="/app/login?mode=signup" class="button button-dark" data-cta="menu_signup" data-auth-primary>Sign up free</a>
-          </div>
+      </div>
+      <div class="menu" data-menu>
+        <a href="#review">Review</a>
+        <a href="#recaps">AI recaps</a>
+        <a href="#projects">Projects</a>
+        <a href="#insights">Insights</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <div class="menu-auth">
+          <a class="btn btn-line" href="/app/login" data-cta="menu_login" data-auth-login>Log in</a>
+          <a class="btn btn-dark" href="/app/login?mode=signup" data-cta="menu_signup" data-auth-primary>Start free</a>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main id="top">
-        <section class="hero section-pad">
-          <div class="hero-copy">
-            <div class="eyebrow"><span class="eyebrow-dot"></span>Video feedback &amp; progress for dance teams</div>
-            <h1 data-hero-title><span>Every correction.</span> <span>Every count.</span> <em>Every version.</em></h1>
-            <p class="hero-lede" data-hero-lede>Everyone on your team pins feedback to the exact moment of every rehearsal, so the next run comes out cleaner.</p>
-            <div class="hero-actions">
-              <a class="button button-dark button-large" href="/app/login?mode=signup" data-cta="hero_primary">Review your first video free <span aria-hidden="true">↗</span></a>
-              <button class="text-button demo-trigger" type="button" data-demo-trigger><span class="play-icon">▶</span> Watch the 25-second demo</button>
-            </div>
-            <ul class="hero-assurances" aria-label="What you get">
-              <li><b>✓</b> Free for your first team</li>
-              <li><b>✓</b> No credit card</li>
-              <li><b>✓</b> Teammates join from a link — no app to install</li>
-            </ul>
+    <main id="top">
+      <!-- ============ Hero ============ -->
+      <section class="hero">
+        <div class="wrap hero-copy">
+          <p class="eyebrow" data-reveal><span class="dot"></span> Rehearsal video review for dance</p>
+          <h1 data-reveal style="--d: 1">Feedback that lands<br /><em>on the count.</em></h1>
+          <p class="lede" data-reveal style="--d: 2">Looproom is where dance teams review rehearsals together. Pin notes to the exact moment, loop the part that needs work, and watch every correction show up in the next take.</p>
+          <div class="hero-cta" data-reveal style="--d: 3">
+            <a class="btn btn-accent btn-lg" href="/app/login?mode=signup" data-cta="hero_primary">Start free — no card needed</a>
+            <a class="btn btn-ghost btn-lg" href="#review">See how it works <span aria-hidden="true">↓</span></a>
           </div>
-          <div class="hero-visual" data-demo data-step="1" aria-label="Looproom product demo: a team uploads a rehearsal, a teammate pins a note and sketch for Maya, she loops her part in mirror mode, and the next run closes it">
-            <div class="hero-visual-glow"></div>
-            <div class="review-window">
-              <div class="window-topbar"><div class="window-breadcrumb"><span class="mini-logo">◒</span><span>Reviews</span><span class="slash">/</span><strong>Showcase 2026 — Full run-through</strong></div><span class="viewer-badge" data-demo-viewer>Team · 5 members</span></div>
-              <div class="window-body">
-                <div class="video-stage">
-                  <div class="video-frame">
-                    <div class="stage-lines"></div>
-                    <div class="frame-content crew">
-                      <div class="dancer-silhouette crew-dancer" style="--x:20%;--y:30px;--s:.5" aria-hidden="true"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span><span class="leg leg-left"></span><span class="leg leg-right"></span></div>
-                      <div class="dancer-silhouette crew-dancer" style="--x:50%;--y:24px;--s:.5" aria-hidden="true"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span><span class="leg leg-left"></span><span class="leg leg-right"></span></div>
-                      <div class="dancer-silhouette crew-dancer" style="--x:80%;--y:30px;--s:.5" aria-hidden="true"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span><span class="leg leg-left"></span><span class="leg leg-right"></span></div>
-                      <div class="dancer-silhouette crew-dancer is-off" style="--x:35%;--y:96px;--s:.62" aria-hidden="true"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span><span class="leg leg-left"></span><span class="leg leg-right"></span></div>
-                      <div class="dancer-silhouette crew-dancer" style="--x:65%;--y:96px;--s:.62" aria-hidden="true"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span><span class="leg leg-left"></span><span class="leg leg-right"></span></div>
-                      <span class="crew-tag" style="--x:35%;--y:84px">Maya</span>
-                      <span class="crew-tag" style="--x:65%;--y:84px">Jordan</span>
-                      <svg class="sketch-layer" viewBox="0 0 400 252" aria-hidden="true"><ellipse class="sketch-stroke" pathLength="1" cx="140" cy="146" rx="38" ry="54" /><path class="sketch-stroke" pathLength="1" d="M182 128 C208 108 232 108 250 122" /><path class="sketch-stroke" pathLength="1" d="M240 112 L251 123 L238 128" /></svg>
-                    </div>
-                    <div class="sketch-tools" aria-hidden="true"><span class="active">✎</span><span>○</span><span>↗</span><span>↶</span></div>
-                    <div class="frame-label">SHOWCASE 2026&nbsp; / &nbsp;FULL RUN · TAKE <span data-demo-version>3</span></div>
-                    <div class="sync-badge" aria-hidden="true">✓ In sync on 5-and-6</div>
-                    <div class="frame-pin" aria-hidden="true"><b>00:16–00:20 · Jordan</b>We split on “5-and-6” — hit the shoulder together.</div>
-                    <div class="loop-badge" aria-hidden="true">↻ Looping 00:16 – 00:20</div>
-                    <div class="pause-button" data-demo-play>Ⅱ</div>
-                  </div>
-                  <div class="timeline"><span class="time">00:00</span><div class="track"><span class="loop-range"></span><span class="track-fill"></span><span class="marker marker-a"></span><span class="scrubber"></span></div><span class="time">01:12</span></div>
-                  <div class="player-controls"><span>▶</span><span class="control-divider"></span><span data-demo-speed>1×</span><span class="control-divider"></span><span class="mirror-toggle" data-demo-mirror>⇋ Mirror</span><span class="player-spacer"></span><span class="current-time" data-demo-time>00:08.0</span><span class="control-divider"></span><span>◖</span><span>⛶</span></div>
+          <ul class="hero-ticks" data-reveal style="--d: 4">
+            <li>Works on any phone — no app to install</li>
+            <li>Private to your team</li>
+            <li>Free for your first team</li>
+          </ul>
+        </div>
+
+        <div class="wrap hero-stage" data-reveal="up" style="--d: 3">
+          <div class="app-window hero-app" data-hero-demo data-step="0" aria-label="Looproom review screen: a coach pins a note with a sketch, a dancer loops her part, and the next take resolves it.">
+            <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-crumbs">Showcase 2026 <b>/</b> Chorus — full out</span><span class="win-takes"><span>Take 2</span><span class="on">Take 3</span></span></div>
+            <div class="rv">
+              <div class="rv-player">
+                <div class="stage" data-stage>
+                  <div class="stage-floor"></div>
+                  <svg class="dancer d1"><use href="#dancer" /></svg>
+                  <svg class="dancer d2"><use href="#dancer" /></svg>
+                  <svg class="dancer d3"><use href="#dancer" /></svg>
+                  <svg class="sketch" viewBox="0 0 400 225" aria-hidden="true">
+                    <ellipse class="sk sk-1" cx="222" cy="78" rx="26" ry="22" />
+                    <path class="sk sk-2" d="M330 40 C300 40 272 52 254 70 M254 70 L270 68 M254 70 L257 55" />
+                  </svg>
+                  <span class="stage-badge"><b class="mirror-tag">⇋ Mirrored</b><span data-hero-time>00:16.4</span></span>
                 </div>
-                <aside class="notes-panel">
-                  <div class="notes-heading"><div><span class="panel-kicker">VIDEO REVIEW</span><h3>Notes <span data-demo-count>0</span></h3></div><span class="more-button">•••</span></div>
-                  <div class="notes-empty">Anyone on the team can pause and pin a note.</div>
-                  <div class="note-composer"><div class="note-meta"><span class="mini-avatar avatar-blue">JS</span><span class="timestamp">⟷ 00:16–00:20</span></div><p><span data-demo-typed></span><i class="caret"></i></p><span class="composer-post">Post note</span></div>
-                  <div class="note-card selected demo-note"><div class="note-meta"><span class="timestamp">⟷ 00:16–00:20</span><span class="sketch-chip">✎ Sketch</span><span class="note-state" data-demo-state>Open</span></div><p><span class="mention">@Maya</span> we split on “5-and-6” — let’s hit the shoulder together.</p><div class="note-author"><span class="mini-avatar avatar-blue">JS</span><span>Jordan Smith · Teammate</span><span class="agree-chip">👍 2 agree</span></div>
-                    <div class="note-reply"><span class="mini-avatar avatar-orange">MC</span><span>On it — I’ll count it out loud on the next run.</span></div>
-                  </div>
-                  <div class="resolved-banner">✓ Fixed in Take 4 · resolved by Jordan</div>
-                </aside>
-              </div>
-            </div>
-            <div class="floating-pill pill-version"><span class="pill-check">✓</span><span><b>Take 4</b><small>Uploaded by the team</small></span></div>
-            <div class="floating-pill pill-loop"><span class="loop-symbol">↻</span><span><b>Section loop</b><small>00:16 — 00:20</small></span></div>
-            <ol class="demo-steps" aria-label="Demo steps">
-              <li><button type="button" data-demo-step="1"><span class="demo-progress"><i></i></span><b>01</b> The team uploads a run-through</button></li>
-              <li><button type="button" data-demo-step="2"><span class="demo-progress"><i></i></span><b>02</b> A teammate pins a note &amp; sketch</button></li>
-              <li><button type="button" data-demo-step="3"><span class="demo-progress"><i></i></span><b>03</b> Maya loops her part, mirrored</button></li>
-              <li><button type="button" data-demo-step="4"><span class="demo-progress"><i></i></span><b>04</b> The next run closes it</button></li>
-            </ol>
-          </div>
-        </section>
-
-        <section class="logo-strip section-pad" aria-label="Who Looproom is for"><p>For the people behind the performance</p><div class="logo-list"><span>DANCE TEAMS &amp; CREWS</span><span>UNIVERSITY CLUBS</span><span>COACHES &amp; CHOREOGRAPHERS</span><span>DANCE STUDIOS</span></div></section>
-        <section class="problem section-pad" id="problem"><div class="section-intro"><div class="eyebrow"><span class="eyebrow-dot"></span>The problem</div><h2>Chat messages lose<br /><em>the moment.</em></h2></div><div class="problem-content"><p class="large-copy">“Fix the timing in the second chorus” sounds clear—until you’re searching through a 90-second video wondering which eight counts they meant.</p><div class="problem-grid"><div class="problem-item"><span class="problem-number">01</span><h3>Feedback gets detached</h3><p>Voice notes, DMs, and scattered links separate the correction from the exact moment it belongs to.</p></div><div class="problem-item"><span class="problem-number">02</span><h3>Good work gets repeated</h3><p>When the last take disappears in a group chat, the same note gets given all over again.</p></div><div class="problem-item"><span class="problem-number">03</span><h3>Progress stays invisible</h3><p>Without a clear take history, it’s hard to see what changed between practice and performance.</p></div></div></div></section>
-        <section class="workflow section-pad" id="workflow"><div class="workflow-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span>A better review loop</div><h2>From first take<br />to <em>the one that lands.</em></h2></div><p>Everything your team needs to turn “almost there” into a correction they can actually use.</p></div><div class="workflow-steps"><article class="workflow-step active"><span class="step-num">01</span><div class="step-icon icon-upload">↑</div><h3>Collect the take</h3><p>Upload the rehearsal run-through, or ask each member to submit their own take.</p><span class="step-arrow">↗</span></article><article class="workflow-step"><span class="step-num">02</span><div class="step-icon icon-pin">⌖</div><h3>Pin the moment</h3><p>Anyone on the team leaves a note — or a sketch — on the exact beat, range, or transition.</p><span class="step-arrow">↗</span></article><article class="workflow-step"><span class="step-num">03</span><div class="step-icon icon-loop">↻</div><h3>Make it actionable</h3><p>Dancers jump to the note, loop the section, flip to mirror mode, and know what to try next.</p><span class="step-arrow">↗</span></article><article class="workflow-step"><span class="step-num">04</span><div class="step-icon icon-check">✓</div><h3>Review the change</h3><p>New takes stay connected, so every correction has a clear follow-through.</p><span class="step-arrow">↗</span></article></div></section>
-        <section class="compare section-pad" id="compare">
-          <div class="compare-heading">
-            <div><div class="eyebrow"><span class="eyebrow-dot"></span>Why switch</div><h2>Free tools are free.<br /><em>Lost corrections aren’t.</em></h2></div>
-            <p>You already have a group chat and a shared drive. Here’s what changes when the video and the feedback finally live in the same place.</p>
-          </div>
-          <div class="compare-table" role="table" aria-label="Looproom compared with common alternatives">
-            <div class="compare-row compare-head" role="row"><span role="columnheader"></span><span role="columnheader">Group chat + shared drive</span><span role="columnheader">General video review tools</span><span role="columnheader" class="col-looproom"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span> Looproom</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Feedback pinned to the exact moment</span><span role="cell" data-label="Chat + drive" class="no">You type “0:18” and hope</span><span role="cell" data-label="Video review tools" class="yes">Timestamped comments</span><span role="cell" data-label="Looproom" class="yes col-looproom">Single moments and ranges</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Loop the section being practiced</span><span role="cell" data-label="Chat + drive" class="no">Scrub back by hand</span><span role="cell" data-label="Video review tools" class="partial">Varies by tool</span><span role="cell" data-label="Looproom" class="yes col-looproom">One tap from the note</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Next take linked to the correction</span><span role="cell" data-label="Chat + drive" class="no">New file, new thread</span><span role="cell" data-label="Video review tools" class="yes">Version stacks</span><span role="cell" data-label="Looproom" class="yes col-looproom">Notes follow every take</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Sketch the correction on the frame</span><span role="cell" data-label="Chat + drive" class="no">Screenshot, scribble, resend</span><span role="cell" data-label="Video review tools" class="yes">Frame annotations</span><span role="cell" data-label="Looproom" class="yes col-looproom">Sketch attached to the note</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Mirror mode for learning choreography</span><span role="cell" data-label="Chat + drive" class="no">Not available</span><span role="cell" data-label="Video review tools" class="partial">Rarely built in</span><span role="cell" data-label="Looproom" class="yes col-looproom">One tap, any video</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Notes organized by what they’re about</span><span role="cell" data-label="Chat + drive" class="no">Free text only</span><span role="cell" data-label="Video review tools" class="no">Built for edits and cuts</span><span role="cell" data-label="Looproom" class="yes col-looproom">AI sorts notes by Timing, Pathway…</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">One queue for every new take</span><span role="cell" data-label="Chat + drive" class="no">Scroll and search</span><span role="cell" data-label="Video review tools" class="partial">Organized by project</span><span role="cell" data-label="Looproom" class="yes col-looproom">Who’s waiting, at a glance</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Progress dashboard from real practice</span><span role="cell" data-label="Chat + drive" class="no">Nothing to measure</span><span role="cell" data-label="Video review tools" class="no">Built for project status</span><span role="cell" data-label="Looproom" class="yes col-looproom">Fixes, loops, recurring notes</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">A recap of what each dancer was told</span><span role="cell" data-label="Chat + drive" class="no">Scroll back and retype</span><span role="cell" data-label="Video review tools" class="no">Not built in</span><span role="cell" data-label="Looproom" class="yes col-looproom">AI recaps from your team’s notes</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Dancers open it on their phone</span><span role="cell" data-label="Chat + drive" class="yes">Already installed</span><span role="cell" data-label="Video review tools" class="partial">Often desktop-first</span><span role="cell" data-label="Looproom" class="yes col-looproom">Web link, no app</span></div>
-            <div class="compare-row" role="row"><span role="rowheader">Priced for a dance team</span><span role="cell" data-label="Chat + drive" class="yes">Free</span><span role="cell" data-label="Video review tools" class="partial">Priced for production teams</span><span role="cell" data-label="Looproom" class="yes col-looproom">Free to start, then $12/mo per team</span></div>
-          </div>
-          <p class="compare-footnote">Compared with typical setups. General video review tools vary by product and plan.</p>
-        </section>
-        <section class="feature-story section-pad" id="features"><div class="feature-story-copy"><div class="eyebrow"><span class="eyebrow-dot"></span>For everyone on the team</div><h2>Say less.<br /><em>Point better.</em></h2><p>Give feedback that feels as clear on a dancer’s phone as it did in your head. Every note stays attached to the work—not buried underneath it.</p><ul class="feature-list"><li><b>A moment or a whole range</b> Pin 00:18, or mark 00:42–00:48 for a full phrase.</li><li><b>Loop just that part</b> Dancers tap the note and drill that section until it lands.</li><li><b>@mention a teammate</b> Call out exactly who a note is for — anyone on the project, coach or member.</li><li><b>No labels to pick</b> Just write. AI sorts notes into Timing, Pathway, and more in your reports.</li></ul><a class="arrow-link" href="/demo">Explore the team workspace <span>↗</span></a></div><div class="annotation-demo"><div class="annotation-top"><span class="annotation-label">VIDEO ANNOTATION</span><span class="annotation-time">00:18.0</span></div><div class="annotation-canvas"><div class="annotation-dancer"><span class="head"></span><span class="body"></span><span class="arm one"></span><span class="arm two"></span><span class="leg one"></span><span class="leg two"></span></div><svg class="annotation-line" viewBox="0 0 600 380" aria-hidden="true"><path d="M455 88 C390 120 350 158 309 197"/><path d="M309 197 l24 -1 l-12 19"/></svg><span class="annotation-callout">Keep the elbow<br />above the wrist</span><div class="annotation-toolbar"><span class="tool-active">↗</span><span>○</span><span>⌁</span><span>↶</span><span class="toolbar-spacer"></span><span>Done</span></div></div></div></section>
-        <section class="platform-section projects section-pad" id="projects">
-          <div class="platform-copy">
-            <div class="eyebrow"><span class="eyebrow-dot"></span>Projects</div>
-            <h2>Your whole season,<br /><em>in one room.</em></h2>
-            <p>Plan a class, a showcase, or a competition the way you’d plan it in a doc — except every page is built around video, counts, and corrections.</p>
-            <ul class="platform-points">
-              <li><b>Count sheets</b> Break the piece down by eight-counts. Notes read as “Verse 3×8, count 5”, not just “00:18”.</li>
-              <li><b>Video boards</b> To submit → In review → Practicing → Fixed. Status updates itself as dancers submit and you review.</li>
-              <li><b>Templates</b> Weekly class, showcase, competition, audition. Set up in minutes, not evenings.</li>
-            </ul>
-          </div>
-          <div class="product-mock projects-mock" aria-label="Example project page">
-            <aside class="pm-sidebar">
-              <span class="pm-label">PROJECTS</span>
-              <span class="pm-item active">✦ Showcase 2026</span>
-              <span class="pm-sub">Overview</span>
-              <span class="pm-sub active">Count sheet</span>
-              <span class="pm-sub">Videos board</span>
-              <span class="pm-sub">Rehearsal notes</span>
-              <span class="pm-item">◫ Tuesday class</span>
-              <span class="pm-item">⌁ Regional comp</span>
-              <span class="pm-new">+ New from template</span>
-            </aside>
-            <div class="pm-main">
-              <div class="pm-crumbs">Showcase 2026 / <b>Count sheet</b></div>
-              <h3>Count sheet</h3>
-              <div class="pm-props"><span><small>Status</small><i class="pm-status">In rehearsal</i></span><span><small>Show</small>Nov 14</span><span><small>Music</small>112 BPM</span><span><small>Dancers</small><em class="pm-avatars"><b>MC</b><b>JS</b><b>RK</b><b>+9</b></em></span></div>
-              <div class="pm-table" role="table" aria-label="Count sheet">
-                <div class="pm-row pm-head" role="row"><span>Section</span><span>Counts</span><span>Focus</span><span>Reference</span><span>Status</span></div>
-                <div class="pm-row" role="row"><span>Intro</span><span>1–4 × 8</span><span><i class="tag tag-path" title="Pathway — where the body travels and the lines it draws">Pathway</i></span><span class="pm-ref">▶ 00:00</span><span class="pm-done">✓ Clean</span></div>
-                <div class="pm-row" role="row"><span>Verse</span><span>5–12 × 8</span><span><i class="tag tag-time" title="Timing — landing on the right count">Timing</i></span><span class="pm-ref">▶ 00:18</span><span class="pm-open">● 2 open</span></div>
-                <div class="pm-row" role="row"><span>Chorus</span><span>13–20 × 8</span><span><i class="tag tag-energy" title="Energy — intensity, dynamics, and intent">Energy</i></span><span class="pm-ref">▶ 00:42</span><span class="pm-review">◐ In review</span></div>
-                <div class="pm-row" role="row"><span>Bridge</span><span>21–24 × 8</span><span><i class="tag tag-music" title="Musicality — hitting the music, not just the beat">Musicality</i></span><span class="pm-ref">▶ 01:03</span><span class="pm-todo">○ Not started</span></div>
-              </div>
-              <div class="pm-board">
-                <div><span class="pm-col">To submit <i>3</i></span><span class="pm-card">Jordan · Verse</span></div>
-                <div><span class="pm-col">In review <i>2</i></span><span class="pm-card">Maya · V2</span></div>
-                <div><span class="pm-col">Practicing <i>4</i></span><span class="pm-card">Riko · Chorus</span></div>
-                <div><span class="pm-col">Fixed <i>11</i></span><span class="pm-card pm-card-done">✓ Sam · Intro</span></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="platform-section dashboard section-pad" id="dashboard">
-          <div class="platform-copy">
-            <div class="eyebrow"><span class="eyebrow-dot"></span>Progress dashboard</div>
-            <h2>Progress you can<br /><em>actually measure.</em></h2>
-            <p>Every take, note, loop, and fix adds up. Looproom turns that practice history into a dashboard you can plan your next class from.</p>
-            <ul class="platform-points">
-              <li><b>Practice signals</b> Takes uploaded, deadlines met, sections looped, minutes practiced.</li>
-              <li><b>Feedback signals</b> Notes sorted by AI into Timing, Pathway, and more — plus how many takes each fix took and corrections that keep coming back.</li>
-              <li><b>Motion signals <span class="beta">BETA</span></b> Timing against the beat, measured from the video. Opt-in, and only ever compared with the dancer’s own last take.</li>
-            </ul>
-          </div>
-          <div class="product-mock dash-mock" aria-label="Example dashboard with sample data">
-            <div class="dash-top"><b>Commercial Team</b><span class="dash-range">This month ⌄</span><span class="dash-sample">Sample data</span></div>
-            <div class="dash-kpis">
-              <div><small>Corrections fixed</small><b>23<em>/29</em></b><span class="up">↗ 7 vs last month</span></div>
-              <div><small>Takes to fix</small><b>1.8</b><span class="up">↘ from 2.6</span></div>
-              <div><small>Section loops</small><b>146</b><span>across 12 dancers</span></div>
-              <div><small>Off the beat <i class="beta">BETA</i></small><b>11<em>ms</em></b><span class="up">↘ from 42 ms</span></div>
-            </div>
-            <div class="dash-grid">
-              <div class="dash-chart"><div class="dash-title">Open notes by focus <span class="ai-labeled">✦ AI-labeled</span></div>
-                <div class="stack-bars">
-                  <span><i class="s-time" style="height:62%"></i><i class="s-path" style="height:22%"></i><i class="s-music" style="height:8%"></i><small>W1</small></span>
-                  <span><i class="s-time" style="height:50%"></i><i class="s-path" style="height:20%"></i><i class="s-music" style="height:12%"></i><small>W2</small></span>
-                  <span><i class="s-time" style="height:34%"></i><i class="s-path" style="height:16%"></i><i class="s-music" style="height:18%"></i><small>W3</small></span>
-                  <span><i class="s-time" style="height:20%"></i><i class="s-path" style="height:10%"></i><i class="s-music" style="height:24%"></i><small>W4</small></span>
+                <div class="rv-timeline">
+                  <span class="rv-time">00:16</span>
+                  <div class="rv-track"><span class="rv-loop"></span><span class="rv-fill"></span><span class="rv-pin" style="left:22%"></span><span class="rv-range" style="left:46%;width:9%"></span><span class="rv-pin" style="left:74%"></span><span class="rv-head"></span></div>
+                  <span class="rv-time">00:36</span>
                 </div>
-                <div class="dash-legend"><span><i class="s-time"></i>Timing</span><span><i class="s-path"></i>Pathway</span><span><i class="s-music"></i>Musicality</span></div>
+                <div class="rv-controls"><span>▶</span><span class="chip">0.5×</span><span class="chip loop-chip">↻ Looping 00:16–00:20</span><span class="grow"></span><span class="chip mirror-chip">⇋ Mirror</span></div>
               </div>
-              <div class="dash-recurring"><div class="dash-title">Keeps coming up</div>
-                <div class="rec-item"><span class="rec-flag">⚠</span><span><b>Late on the “and” counts</b><small>4 dancers · 3 weeks in a row</small></span></div>
-                <div class="rec-item"><span class="rec-flag">⚠</span><span><b>Arms collapse in the chorus</b><small>2 dancers · 2 weeks</small></span></div>
-                <div class="rec-item rec-good"><span class="rec-flag">✓</span><span><b>Intro pathways are clean</b><small>No new notes in 2 weeks</small></span></div>
-              </div>
+              <aside class="rv-notes">
+                <div class="rv-summary"><b>Take 3</b> · <span class="ok">✓ 4 fixed from earlier takes</span> · <span class="warn">1 open</span></div>
+                <article class="note-card n-team">
+                  <div class="note-top"><span class="time-chip">▸ 00:08</span><span class="status ok">Resolved</span></div>
+                  <p>Heads snap on 1 — so much cleaner than Take 2 👏</p>
+                  <div class="note-foot"><span class="av av-b">JL</span>Jordan Lee <span class="role">Member</span></div>
+                </article>
+                <article class="note-card n-new">
+                  <div class="note-top"><span class="time-chip">⟷ 00:16–00:20</span><span class="tag-sketch">✎ Sketch</span><span class="status" data-hero-status>Open</span></div>
+                  <p><span class="mention">@Maya</span> arms are late on the 5-6. Hit the accent <em>with</em> the beat, not after it.</p>
+                  <div class="note-foot"><span class="av av-a">HK</span>Hope Kim <span class="role owner">Coach</span><span class="agree">👍 3</span></div>
+                  <div class="reply"><span class="av av-c">MC</span><p><b>Maya</b> On it — looping it now 🔁</p></div>
+                </article>
+                <div class="composer"><span class="composer-at">▸ At 00:16.4</span><span class="composer-text" data-hero-typed></span><span class="caret"></span></div>
+              </aside>
             </div>
           </div>
-        </section>
-
-        <section class="platform-section ai-reports section-pad" id="ai-reports">
-          <div class="platform-copy">
-            <div class="eyebrow"><span class="eyebrow-dot"></span>AI recaps</div>
-            <h2>Your feedback, summarized.<br /><em>Never invented.</em></h2>
-            <p>Looproom turns the notes your team already wrote into a clear recap: what was worked on, what to do next, and what finally landed. Anyone can make one — just for themselves, or for the whole project.</p>
-            <ul class="platform-points ai-points">
-              <li class="pt-me"><b>Just me</b> Before rehearsal, recap every note your teammates gave you — last rehearsal, this week, or this month.</li>
-              <li class="pt-project"><b>Whole project</b> See what the whole team noticed, what keeps coming up, and what finally landed. Share it to the project so everyone starts the next run on the same page.</li>
-              <li><b>Grounded, never invented</b> Every line links to the note — and the exact moment — it came from. Delivered in each dancer’s language.</li>
-              <li><b>Saved automatically</b> Every recap lands in the project’s Recaps tab, dated. Pin the ones you’ll want again — like the week before the show.</li>
-            </ul>
-          </div>
-          <div class="ai-stage">
-            <div class="ai-audience" role="tablist" aria-label="What the recap covers">
-              <button role="tab" type="button" data-scope-tab="me" aria-selected="true"><span class="aud-dot"></span>Just me <small>Notes for you</small></button>
-              <button role="tab" type="button" data-scope-tab="project" aria-selected="false"><span class="aud-dot"></span>Whole project <small>Everyone’s notes</small></button>
-            </div>
-            <div class="report-mock" data-report aria-label="Example AI recap built from team notes">
-              <div class="report-card">
-                <div class="report-topline">
-                  <span class="report-kind"><svg class="sparkle" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg><b>Summary by AI</b><span class="report-kind-for" data-report-kind>Your recap</span></span>
-                  <span class="report-status" data-report-status>Generated just now</span>
-                </div>
-                <div class="report-people" data-report-people></div>
-                <div class="report-controls">
-                  <div class="report-tabs" role="tablist" aria-label="Report period">
-                    <button role="tab" type="button" data-report-tab="class" aria-selected="false">Last rehearsal</button>
-                    <button role="tab" type="button" data-report-tab="week" aria-selected="true">This week</button>
-                    <button role="tab" type="button" data-report-tab="month" aria-selected="false">This month</button>
-                  </div>
-                  <span class="report-scope" data-report-source></span>
-                </div>
-                <div class="report-body" data-report-body aria-live="polite"></div>
-                <div class="report-foot"><span class="report-grounded">Sources · every line cites a note</span><span class="report-actions" data-report-actions></span></div>
-                <div class="report-trust"><span>AI can make mistakes. Check the cited notes before acting on it.</span><span class="report-feedback" role="group" aria-label="Was this recap useful?">Useful? <button type="button" data-report-feedback aria-pressed="false" aria-label="Useful">👍</button><button type="button" data-report-feedback aria-pressed="false" aria-label="Not useful">👎</button></span></div>
-              </div>
-            </div>
-            <div class="recap-history" aria-label="Earlier recaps saved in this project">
-              <span class="history-label">Saved in <b>Showcase 2026 › Recaps</b></span>
-              <span class="history-chip pinned">📌 Pre-show check · Nov 7</span>
-              <span class="history-chip">Oct 12–18 · Whole project</span>
-              <span class="history-chip">Oct 5–11 · Just me</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="memory section-pad" id="memory">
-          <div class="memory-heading"><div class="eyebrow"><span class="eyebrow-dot"></span>Gets better the longer your team uses it</div><h2>Every note makes<br /><em>the next one sharper.</em></h2></div>
-          <div class="memory-grid">
-            <article><span class="memory-icon">❝</span><h3>Your team’s note library</h3><p>Save the notes your team gives most and drop them in with one keystroke. Your team’s language, reusable every season.</p></article>
-            <article><span class="memory-icon">↻</span><h3>A record that follows each member</h3><p>Every take, note, and fix across classes and seasons — so everyone can see where they started and how far they’ve come.</p></article>
-            <article><span class="memory-icon">✦</span><h3>Reports that write themselves</h3><p>The more your team rehearses in Looproom, the richer every dashboard and recap gets. Month three knows things week one couldn’t.</p></article>
-          </div>
-          <p class="memory-foot">Your data stays yours: export every video, note, and report whenever you want.</p>
-        </section>
-
-        <section class="trust section-pad"><div class="trust-mark"><span class="trust-ring"></span><span class="trust-check">✓</span></div><div><div class="eyebrow"><span class="eyebrow-dot"></span>Private by default</div><h2>Your work stays<br /><em>in your room.</em></h2><p>Looproom is built for honest practice. Your workspace is private, your videos are never public by default, and you choose who gets to see the work.</p><div class="trust-points"><span><b>✓</b> Invite-only workspaces</span><span><b>✓</b> No public profiles or search</span><span><b>✓</b> Delete any video, any time</span><span><b>✓</b> You choose who sees each review</span></div></div><div class="trust-side-note"><span class="lock-icon">⌑</span><strong>Your videos are private to this workspace.</strong><small>They won’t appear in search results or public profiles.</small></div></section>
-        <section class="pricing section-pad" id="pricing">
-          <div class="pricing-intro"><div class="eyebrow"><span class="eyebrow-dot"></span>Simple pricing</div><h2>Start free.<br /><em>Upgrade when it sticks.</em></h2><p>Run the full feedback loop with your first team. No sales call, no credit card, no complicated rollout.</p></div>
-          <div class="pricing-cards">
-            <div class="pricing-card"><div class="price-top"><span class="plan-name">FREE</span></div><div class="price"><span>$</span>0<small>/ forever</small></div><p>Try the whole loop with one team before you commit.</p><div class="price-divider"></div><ul><li><span>✓</span> 1 team, up to 10 members</li><li><span>✓</span> Unlimited takes per video</li><li><span>✓</span> Timestamped notes and replies</li><li><span>✓</span> Take history and mirror mode</li><li><span>✓</span> 1 project, 2-week dashboard</li><li><span>✓</span> 3 AI recaps a month</li></ul><a href="/app/login?mode=signup" class="plan-link" data-cta="pricing_free">Start free <span>↗</span></a></div>
-            <div class="pricing-card pricing-card-featured"><div class="price-top"><span class="plan-name">TEAM</span><span class="plan-badge">FOR REHEARSING TEAMS</span></div><div class="price"><span>$</span>12<small>/ month</small></div><p>For teams and coaches who rehearse every week.</p><div class="price-divider"></div><ul><li><span>✓</span> 3 teams, up to 40 members</li><li><span>✓</span> Unlimited videos, takes, and notes</li><li><span>✓</span> Section loops, range notes, team note library</li><li><span>✓</span> Unlimited projects and templates</li><li><span>✓</span> Full-history progress dashboard</li><li><span>✓</span> Unlimited AI recaps</li><li><span>✓</span> Sketch feedback on the frame</li></ul><a href="/app/login?mode=signup" class="plan-link plan-link-dark" data-cta="pricing_team">Start free, upgrade later <span>↗</span></a></div>
-          </div>
-          <p class="pricing-footnote">Prices in USD, billed monthly. Running a studio or several crews? Studio adds unlimited teams, studio-wide dashboards, and parent-ready monthly reports. <a href="#signup" data-cta="pricing_studio">Join the waitlist</a>.</p>
-        </section>
-        <section class="first-session section-pad" id="first-session">
-          <div class="first-session-heading"><div class="eyebrow"><span class="eyebrow-dot"></span>What happens after you sign up</div><h2>From sign-up to<br /><em>first note</em> in one sitting.</h2></div>
-          <ol class="session-steps">
-            <li><span class="session-num">1</span><h3>Enter your email</h3><p>We create a private space for your team. No card, no setup call.</p></li>
-            <li><span class="session-num">2</span><h3>Add a rehearsal</h3><p>Drop in a phone video of the run-through — MP4, MOV, or WebM. Every new take of the same piece stacks into the same video.</p></li>
-            <li><span class="session-num">3</span><h3>Pin your first note</h3><p>Pause on a moment or mark a range, write the note or sketch it on the frame, and @mention who it’s for. No labels to pick.</p></li>
-            <li><span class="session-num">4</span><h3>Invite your team</h3><p>Share one link. Teammates join with their name and email, give notes back, and loop their part on their phone.</p></li>
+          <ol class="hero-steps" aria-hidden="true">
+            <li data-hero-step="1"><b>1</b> Pin the note</li>
+            <li data-hero-step="2"><b>2</b> Sketch the fix</li>
+            <li data-hero-step="3"><b>3</b> Loop the part</li>
+            <li data-hero-step="4"><b>4</b> Next take closes it</li>
           </ol>
-        </section>
-        <section class="faq section-pad" id="faq"><div class="faq-heading"><div class="eyebrow"><span class="eyebrow-dot"></span>Questions, answered</div><h2>Good to know<br /><em>before you start.</em></h2></div><div class="faq-list">
-            <details open><summary>Why not just use group chat and a shared drive?<span>+</span></summary><p>They’re great for talking, not for rehearsing. A note in chat isn’t attached to the moment, the next take lands in a new thread, and nothing tells you which corrections actually landed. Looproom keeps the video, the note, and the next take together.</p></details>
-            <details><summary>Does the AI give feedback on our dancing?<span>+</span></summary><p>No. AI recaps only summarize notes your teammates actually wrote, and every line links back to its source note. Anyone can generate one — for themselves or for the whole project — and nothing is shared until they choose to. The feedback stays human.</p></details>
-            <details><summary>What does the dashboard measure?<span>+</span></summary><p>By default, practice and feedback activity: takes uploaded, section loops, notes by category, and how many takes a correction took to fix. Motion signals such as timing against the beat are an opt-in beta, calculated from the video and only compared with a dancer’s own previous takes.</p></details>
-            <details><summary>Who is Looproom for?<span>+</span></summary><p>Dance teams and crews, university and school clubs, cover groups, and the coaches, choreographers, and studios who work with them. You don’t need a coach to use it — any team can give each other feedback.</p></details>
-            <details><summary>Do we need a coach to use it?<span>+</span></summary><p>No. Everyone invited to a project has the same tools: watch, pin notes, sketch, @mention, and generate recaps. If you work with a coach or instructor, they simply join the project like everyone else.</p></details>
-            <details><summary>How do we keep peer feedback kind and useful?<span>+</span></summary><p>Notes are pinned to a moment, not to a person, which keeps them about the dancing. Teammates can 👍 a note they agree with instead of repeating it, and the project owner can hide notes that aren’t helpful. AI recaps highlight what several teammates noticed, so the most useful feedback rises to the top.</p></details>
-            <details><summary>Does my team need to install anything?<span>+</span></summary><p>No. Teammates open your invite link in their phone’s browser and join with their name and email — no password, no app. They can watch your notes and sketches, jump to the timestamp, loop the section in mirror mode, reply, and upload their next take from the camera roll.</p></details>
-            <details><summary>What videos can I upload?<span>+</span></summary><p>Regular phone videos work best — MP4, MOV, or WebM, straight from the camera roll. No editing or exporting needed.</p></details>
-            <details><summary>Who can see our videos? Can we delete them?<span>+</span></summary><p>Only people you invite to your workspace. There are no public profiles and nothing is searchable. You can delete any video or review at any time, and export everything whenever you want. We don’t use your videos or notes to train AI models unless you explicitly opt in.</p></details>
-            <details><summary>How does billing work outside the US?<span>+</span></summary><p>Plans are priced in USD and billed monthly by card. Your bank handles currency conversion. You can start on the free plan without a card.</p></details>
-          </div></section>
-        <section class="signup section-pad" id="signup"><div class="signup-inner"><div class="signup-orbit orbit-one"></div><div class="signup-orbit orbit-two"></div><div class="eyebrow"><span class="eyebrow-dot"></span>Ready when your next take is</div><h2>Make the next<br /><em>correction count.</em></h2><p>Start a private space for your team. Sign up with your email and a password, confirm once, and you’re in.</p><form class="signup-form" data-signup-form><label class="sr-only" for="email">Your email</label><input id="email" type="email" placeholder="you@example.com" required /><button class="button button-light" type="submit" data-cta="signup">Review your first video free <span aria-hidden="true">↗</span></button></form><ul class="signup-assurances"><li>✓ No credit card</li><li>✓ Free for your first team</li><li>✓ Private by default</li></ul><p class="founding-note"><b>Early access.</b> Your team will be one of our founding teams — tell us what to build next and we’ll answer you directly.</p><div class="form-message" data-form-message role="status"></div></div></section>
-      </main>
-      <footer class="site-footer section-pad"><div class="footer-top"><a class="brand brand-footer" href="#top"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>looproom</span></a><p>Better feedback for the next take.</p><div class="footer-columns"><div><span>PRODUCT</span><a href="#workflow">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a></div><div><span>RESOURCES</span><a href="#faq">FAQ</a><a href="#signup">Start free</a><a href="#compare">Why Looproom</a></div><div><span>LEGAL</span><a href="#signup">Privacy</a><a href="#signup">Terms</a></div></div></div><div class="footer-bottom"><span>© 2026 Looproom</span><span>Made for the next take.</span><a class="footer-status" href="/app/login?mode=signup" data-footer-app>Try Looproom free →</a></div></footer>
-    </div>
-    <div class="mobile-cta" data-mobile-cta><a class="button button-dark" href="/app/login?mode=signup" data-cta="mobile_sticky">Review your first video free <span aria-hidden="true">↗</span></a></div>
-    <div class="toast" data-toast role="status"></div>
-    <script src="/app.js" defer></script>
+        </div>
+      </section>
+
+      <!-- ============ Problem ============ -->
+      <section class="problem">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker">Sound familiar?</p>
+            <h2>Great feedback shouldn’t get lost in the group chat.</h2>
+            <p>The video lives in someone’s camera roll. The notes live in a thread. By the next rehearsal, nobody remembers which eight counts “the part after the turn” meant.</p>
+          </div>
+          <div class="chat-wall">
+            <div class="bubble b1" data-reveal style="--d: 1"><span>Coach</span>Fix the timing in the second chorus</div>
+            <div class="bubble b2 me" data-reveal style="--d: 2"><span>Maya</span>wait which part?? 0:47 or the one after the turn</div>
+            <div class="bubble b3" data-reveal style="--d: 3"><span>Jordan</span>can someone resend last week’s video 🙏</div>
+            <div class="bubble b4 me" data-reveal style="--d: 4"><span>Maya</span>did I fix it or…?</div>
+          </div>
+          <p class="problem-turn" data-reveal style="--d: 2">Looproom keeps the video, the note, and the next take in one place — <b>so every correction actually gets made.</b></p>
+        </div>
+      </section>
+
+      <!-- ============ 1. Review ============ -->
+      <section class="pillar" id="review">
+        <div class="wrap">
+          <div class="section-head" data-reveal>
+            <p class="kicker"><span class="num">01</span> Review &amp; feedback</p>
+            <h2>Say it once.<br />Say it exactly where it happens.</h2>
+            <p>Every note is pinned to a moment or a range of counts, so dancers see the fix the second they hit play — on any phone, in any studio.</p>
+          </div>
+
+          <div class="bento">
+            <!-- Upload -->
+            <article class="tile t-upload" data-reveal style="--d: 0" data-play>
+              <div class="mod mod-upload">
+                <div class="up-file"><span class="up-icon">▶</span><div><b>Chorus — full out</b><small>IMG_2041.MOV · 412 MB</small></div></div>
+                <div class="up-stages">
+                  <p class="s1">Shrinking on your phone… <span>412 MB → 38 MB</span></p>
+                  <p class="s2">Uploading <span class="pct">64%</span></p>
+                  <p class="s3">✓ Take 3 is up. Open notes came along.</p>
+                </div>
+                <div class="up-bar"><i></i></div>
+              </div>
+              <h3>Upload straight from the studio floor</h3>
+              <p>Phone videos are shrunk on the device before they upload, so a 400 MB clip goes up in seconds. Lose signal halfway? It picks up where it left off. iPhone HEVC included.</p>
+            </article>
+
+            <!-- Moment or range -->
+            <article class="tile t-pin" data-reveal style="--d: 1" data-play>
+              <div class="mod mod-pin">
+                <div class="mini-track"><span class="mt-range"></span><span class="mt-pin"></span></div>
+                <div class="seg"><span>▸ At 00:47</span><span class="on">⟷ 00:47–00:52</span></div>
+                <div class="mention-menu"><span class="on"><i class="av av-b">JL</i>Jordan Lee</span><span><i class="av av-d">JO</i>Joy Oh</span></div>
+                <div class="mention-box">Watch your spacing <b class="mention">@Jor</b><span class="caret"></span></div>
+              </div>
+              <h3>A moment — or the whole eight</h3>
+              <p>Pin a note to a single frame or drag across a phrase. @mention anyone on the project and it lands in their inbox.</p>
+            </article>
+
+            <!-- Sketch -->
+            <article class="tile t-sketch" data-reveal style="--d: 2" data-play>
+              <div class="mod mod-sketch">
+                <div class="frame">
+                  <svg class="dancer solo"><use href="#dancer" /></svg>
+                  <svg class="sketch" viewBox="0 0 300 170" aria-hidden="true">
+                    <ellipse class="sk sk-y" cx="168" cy="40" rx="22" ry="18" />
+                    <path class="sk" d="M262 30 C244 18 220 22 198 38" />
+                    <path class="sk" d="M198 38 L213 39 M198 38 L203 24" />
+                  </svg>
+                  <div class="sketch-bar"><span class="on">✎</span><span>↗</span><span>◯</span><i style="--c:#ffd60a" class="on"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><b>Done</b></div>
+                </div>
+              </div>
+              <h3>Draw what words can’t</h3>
+              <p>Circle the arm, arrow the pathway. Sketches sit right on the frame and play back at that exact moment — even in mirror mode.</p>
+            </article>
+
+            <!-- Practice -->
+            <article class="tile t-practice" data-reveal style="--d: 1" data-play>
+              <div class="mod mod-practice">
+                <div class="pr-track"><span class="pr-loop"></span><span class="pr-head"></span><b class="pr-a">A</b><b class="pr-b">B</b></div>
+                <div class="pr-controls"><span class="chip on">↻ A–B 00:16–00:20</span><span class="chip">0.5×</span><span class="chip on">⇋ Mirror</span></div>
+              </div>
+              <h3>Practice mode, built in</h3>
+              <p>Loop any eight counts, slow it to half speed, and flip to mirror so the video matches the studio mirror. Drag to scrub, frame by frame.</p>
+            </article>
+
+            <!-- Takes -->
+            <article class="tile t-takes" data-reveal style="--d: 2" data-play>
+              <div class="mod mod-takes">
+                <div class="takes-tabs"><span>Take 1</span><span>Take 2</span><span class="on">Take 3</span></div>
+                <ul class="takes-list">
+                  <li><span class="tick">✓</span> Heads snap on 1 <small>fixed in Take 3</small></li>
+                  <li><span class="tick">✓</span> Formation drifts left <small>fixed in Take 2</small></li>
+                  <li class="open"><span class="tick">•</span> Canon is a half count off <small>carried over</small></li>
+                </ul>
+              </div>
+              <h3>Every take remembers what was said</h3>
+              <p>Upload the next run and open notes come with it. Mark them fixed as they land — and see the progress take by take.</p>
+            </article>
+
+            <!-- Private -->
+            <article class="tile t-private" data-reveal style="--d: 3">
+              <div class="mod mod-private">
+                <article class="note-card private">
+                  <p class="private-tag">🔒 Private · you and Maya</p>
+                  <p>Your turns are getting so much cleaner. Next: spot earlier on the double.</p>
+                  <div class="reply"><span class="av av-c">MC</span><p><b>Maya</b> thank you!! will drill it tonight</p></div>
+                </article>
+              </div>
+              <h3>Private notes, one dancer at a time</h3>
+              <p>Some feedback is personal. Send a note only one dancer can see, and keep the conversation going in a private thread.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 2. AI recaps ============ -->
+      <section class="pillar pillar-dark" id="recaps">
+        <div class="wrap split">
+          <div class="split-copy">
+            <div class="section-head" data-reveal>
+              <p class="kicker"><span class="num">02</span> AI recaps</p>
+              <h2>The whole rehearsal, in one minute.</h2>
+              <p>Dozens of notes across a week of takes? Looproom turns them into a short recap each dancer can read before the next rehearsal.</p>
+            </div>
+            <ul class="value-list">
+              <li data-reveal style="--d: 1"><b>Personal for every dancer.</b> Just the notes about you — what you worked on, what to practice next, what’s finally clean.</li>
+              <li data-reveal style="--d: 2"><b>Never made up.</b> Every line links back to the notes it came from, so you can check it in one tap.</li>
+              <li data-reveal style="--d: 3"><b>Private stays private.</b> One-to-one notes never end up in a team recap.</li>
+            </ul>
+          </div>
+          <div class="recap-wrap" data-reveal="up" style="--d: 1" data-play>
+            <article class="recap">
+              <p class="ai-label"><span>✦</span> Summary by AI · This week · Showcase 2026</p>
+              <h3 class="rl">Your chorus is nearly there — it’s the 5-6 arms holding it back.</h3>
+              <div class="rc-sec rl"><small>Practice next</small>
+                <p>Hit the 5-6 arm accent on the beat, not after it <a>2 notes</a></p>
+                <p>Spot earlier on the double turn at 1:12 <a>1 note</a></p>
+              </div>
+              <div class="rc-sec rl"><small>Keeps coming up</small>
+                <p>Canon timing in the bridge — 3 people flagged it across 2 takes <a>3 notes</a></p>
+              </div>
+              <div class="rc-sec rl"><small>Landed</small>
+                <p class="ok-line">Heads snap on 1 — clean since Take 3 <a>1 note</a></p>
+              </div>
+              <div class="rc-foot rl"><span>Sources · 7 notes</span><span class="fb">Useful? <i>👍</i><i>👎</i></span><span class="disc">AI can make mistakes. Check the sources.</span></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 3. Projects ============ -->
+      <section class="pillar" id="projects">
+        <div class="wrap">
+          <div class="section-head" data-reveal>
+            <p class="kicker"><span class="num">03</span> Projects</p>
+            <h2>Run the whole season, not just the rehearsal.</h2>
+            <p>One project per goal — a showcase, a competition, a weekly class. Everything it needs sits in one place, and everyone knows what’s due.</p>
+          </div>
+          <div class="bento bento-projects">
+            <article class="tile t-request" data-reveal style="--d: 0" data-play>
+              <div class="mod mod-request">
+                <div class="rq-head"><b>Solo section — 16 counts</b><span class="pill warn">Due Fri 6 PM</span></div>
+                <p class="rq-brief">Film from the front with the track. Full out, please.</p>
+                <div class="rq-progress"><span>Submitted</span><b><span class="rq-count">7</span> of 10</b></div>
+                <div class="rq-bar"><i></i></div>
+                <div class="rq-people"><span class="av av-a">HK</span><span class="av av-b">JL</span><span class="av av-c">MC</span><span class="av av-d">JO</span><span class="av more">+3</span><span class="grow"></span><span class="btn-mini">Remind 3</span></div>
+              </div>
+              <h3>Ask for videos, with a deadline</h3>
+              <p>Request a video from the whole team, a group, or one dancer. See who’s submitted at a glance, nudge the rest, or repeat it every week.</p>
+            </article>
+
+            <article class="tile t-cal" data-reveal style="--d: 1">
+              <div class="mod mod-cal">
+                <div class="cal-row"><b>Tue 14</b><span class="ev k-reh">6:00 PM Full rehearsal · Studio B</span></div>
+                <div class="cal-row"><b>Thu 16</b><span class="ev k-work">5:00 PM Heels workshop</span></div>
+                <div class="cal-row"><b>Fri 17</b><span class="ev k-due">Due · Solo section</span></div>
+                <div class="cal-row"><b>Sat 25</b><span class="ev k-show">7:00 PM Spring showcase · Main hall</span></div>
+              </div>
+              <h3>One calendar for every rehearsal</h3>
+              <p>Rehearsals, shows, workshops, and due dates together — synced to Google, Apple, or Outlook Calendar.</p>
+            </article>
+
+            <article class="tile t-counts" data-reveal style="--d: 2" data-play>
+              <div class="mod mod-counts">
+                <div class="cs-row"><b>Intro</b><span>1–8 ×2</span><em>Heads snap on 1</em><i class="st clean">Clean</i></div>
+                <div class="cs-row"><b>Verse</b><span>1–8 ×4</span><em>Arms late on 5-6</em><i class="st prac">Practicing</i></div>
+                <div class="cs-row"><b>Chorus</b><span>1–8 ×4</span><em>Formation drifts left</em><i class="st learn">Learning</i></div>
+                <div class="cs-row"><b>Bridge</b><span>1–8 ×2</span><em>Canon timing</em><i class="st learn">Learning</i></div>
+              </div>
+              <h3>The piece, count by count</h3>
+              <p>Break choreography into sections and track each one from Learning to Clean, linked to the exact moment in the video.</p>
+            </article>
+
+            <article class="tile t-queue" data-reveal style="--d: 3">
+              <div class="mod mod-queue">
+                <div class="q-row unread"><span class="av av-c">MC</span><p><b>Maya</b> uploaded Take 4 of <b>Chorus</b><small>2 min ago</small></p><span class="dot"></span></div>
+                <div class="q-row unread"><span class="av av-b">JL</span><p><b>Jordan</b> mentioned you<small>“@Hope is this spacing better?”</small></p><span class="dot"></span></div>
+                <div class="q-row"><span class="av av-d">JO</span><p><b>Joy</b> replied to your note<small>1 h ago</small></p></div>
+              </div>
+              <h3>Never miss a new take</h3>
+              <p>An inbox for mentions and replies, and a review queue of every video you haven’t watched yet.</p>
+            </article>
+          </div>
+          <ul class="extras" data-reveal>
+            <li>📝 Pages for plans and notes</li>
+            <li>👥 Groups for classes and crews</li>
+            <li>🔗 Expiring share links for parents and guests</li>
+            <li>⌘K Search everything</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============ 4. Insights ============ -->
+      <section class="pillar pillar-soft" id="insights">
+        <div class="wrap split reverse">
+          <div class="split-copy">
+            <div class="section-head" data-reveal>
+              <p class="kicker"><span class="num">04</span> Insights</p>
+              <h2>See what’s actually getting better.</h2>
+              <p>Feedback only matters if it turns into fixes. Insights shows how many notes land, how fast, and where the team still needs time.</p>
+            </div>
+            <ul class="value-list light">
+              <li data-reveal style="--d: 1"><b>Know where to spend rehearsal.</b> The videos and sections with the most open notes rise to the top.</li>
+              <li data-reveal style="--d: 2"><b>Show progress you can point to.</b> Fix rate and time-to-fix, week over week — great for parents and directors.</li>
+              <li data-reveal style="--d: 3"><b>Recognize the work.</b> See who’s giving feedback, who’s getting it, and who’s closing it out.</li>
+            </ul>
+          </div>
+          <div class="app-window dash" data-reveal="up" style="--d: 1" data-play>
+            <div class="win-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="win-crumbs">Insights <b>/</b> Last 30 days</span></div>
+            <div class="dash-body">
+              <div class="stats">
+                <div class="stat"><small>Notes fixed</small><b data-count="128">128</b><span class="up">↑ 24%</span></div>
+                <div class="stat"><small>Fix rate</small><b data-count="82" data-suffix="%">82%</b><span class="up">↑ 9 pts</span></div>
+                <div class="stat"><small>Median time to fix</small><b>2.4 days</b><span class="up">↓ 1.1 days</span></div>
+                <div class="stat"><small>Takes uploaded</small><b data-count="64">64</b><span class="flat">this month</span></div>
+              </div>
+              <div class="chart">
+                <div class="chart-head"><b>Notes left and fixed</b><span><i class="lg-left"></i>Left <i class="lg-fixed"></i>Fixed</span></div>
+                <div class="bars">
+                  <div class="wk"><i class="left" style="--h:62%"></i><i class="fixed" style="--h:38%"></i><small>W1</small></div>
+                  <div class="wk"><i class="left" style="--h:70%"></i><i class="fixed" style="--h:52%"></i><small>W2</small></div>
+                  <div class="wk"><i class="left" style="--h:58%"></i><i class="fixed" style="--h:61%"></i><small>W3</small></div>
+                  <div class="wk"><i class="left" style="--h:66%"></i><i class="fixed" style="--h:74%"></i><small>W4</small></div>
+                  <div class="wk"><i class="left" style="--h:48%"></i><i class="fixed" style="--h:80%"></i><small>W5</small></div>
+                </div>
+              </div>
+              <div class="people">
+                <div class="p-row"><span class="av av-c">MC</span><b>Maya Chen</b><span class="meter"><i style="--w:91%"></i></span><small>91% fixed</small></div>
+                <div class="p-row"><span class="av av-b">JL</span><b>Jordan Lee</b><span class="meter"><i style="--w:78%"></i></span><small>78% fixed</small></div>
+                <div class="p-row"><span class="av av-d">JO</span><b>Joy Oh</b><span class="meter"><i style="--w:64%"></i></span><small>64% fixed</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Who it's for ============ -->
+      <section class="who">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker">Built for every room</p>
+            <h2>From weekend crews to full academies.</h2>
+          </div>
+          <div class="who-grid">
+            <article data-reveal style="--d: 1">
+              <span class="who-icon">👯</span>
+              <h3>Dance teams &amp; crews</h3>
+              <p>Everyone reviews, everyone gives notes. Keep the whole team on the same eight counts between rehearsals.</p>
+            </article>
+            <article data-reveal style="--d: 2">
+              <span class="who-icon">💃</span>
+              <h3>Dancers</h3>
+              <p>See exactly what to fix, loop it until it’s clean, and get a recap of everything you were told this week.</p>
+            </article>
+            <article data-reveal style="--d: 3">
+              <span class="who-icon">🏫</span>
+              <h3>Studios &amp; entertainment academies</h3>
+              <p>Private feedback for each student, video assignments with deadlines, and progress you can show directors and parents.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Trust ============ -->
+      <section class="trust">
+        <div class="wrap trust-grid">
+          <div data-reveal><b>Private by default</b><p>Only people you invite can see your videos. No public profiles, ever.</p></div>
+          <div data-reveal style="--d: 1"><b>You control sharing</b><p>Guest links are read-only and expire. Turn them off any time.</p></div>
+          <div data-reveal style="--d: 2"><b>Phone-first</b><p>Opens in the browser on any phone. Nothing to install.</p></div>
+          <div data-reveal style="--d: 3"><b>Your work stays yours</b><p>Delete a video, a project, or your account whenever you want.</p></div>
+        </div>
+      </section>
+
+      <!-- ============ Pricing ============ -->
+      <section class="pricing" id="pricing">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker">Pricing</p>
+            <h2>Start free. Upgrade when it sticks.</h2>
+            <p>No sales call, no credit card, no rollout plan. Bring your team and run the full loop today.</p>
+          </div>
+          <div class="plans">
+            <article class="plan" data-reveal style="--d: 1">
+              <p class="plan-name">Free</p>
+              <p class="price">$0<small>/ forever</small></p>
+              <p>Everything you need to try it with one team.</p>
+              <ul><li>1 team, up to 10 members</li><li>Unlimited videos and takes</li><li>Notes, replies, sketches, private notes</li><li>Loops, mirror mode, slow motion</li><li>Requests, calendar, count sheet</li><li>AI recaps to try</li></ul>
+              <a class="btn btn-line btn-block" href="/app/login?mode=signup" data-cta="pricing_free">Start free</a>
+            </article>
+            <article class="plan featured" data-reveal style="--d: 2">
+              <p class="plan-name">Team <span>Most popular</span></p>
+              <p class="price">$12<small>/ month</small></p>
+              <p>For teams and coaches who rehearse every week.</p>
+              <ul><li>Up to 3 teams and 40 members</li><li>Unlimited projects</li><li>Unlimited AI recaps</li><li>Full-history Insights</li><li>Everything in Free</li></ul>
+              <a class="btn btn-accent btn-block" href="/app/login?mode=signup" data-cta="pricing_team">Start free, upgrade later</a>
+            </article>
+            <article class="plan" data-reveal style="--d: 3">
+              <p class="plan-name">Studio</p>
+              <p class="price small">Let’s talk</p>
+              <p>For studios and academies running many classes.</p>
+              <ul><li>Unlimited teams and classes</li><li>Studio-wide Insights</li><li>Onboarding for your coaches</li></ul>
+              <a class="btn btn-line btn-block" href="#signup" data-cta="pricing_studio">Join the waitlist</a>
+            </article>
+          </div>
+          <p class="fine center" data-reveal>Early access: nothing is blocked while we’re in early access. We’ll tell you well before anything changes.</p>
+        </div>
+      </section>
+
+      <!-- ============ FAQ ============ -->
+      <section class="faq" id="faq">
+        <div class="wrap narrow">
+          <div class="section-head center" data-reveal><h2>Good to know</h2></div>
+          <div class="faq-list" data-reveal style="--d: 1">
+            <details><summary>Do dancers need to download an app?</summary><p>No. Looproom runs in the browser on any phone, tablet, or laptop. Share an invite link and they’re in.</p></details>
+            <details><summary>What about big iPhone videos?</summary><p>Videos are shrunk on the phone before uploading, so even long 4K clips go up quickly. If the connection drops, the upload continues where it stopped — just pick the same file again.</p></details>
+            <details><summary>Who can see our videos?</summary><p>Only people in your project. Private notes are visible to just two people. You can make a read-only guest link for a single video, and it expires automatically.</p></details>
+            <details><summary>How do AI recaps work?</summary><p>A recap summarizes the notes your team already wrote. Every line links to the notes it’s based on, and anything without a source is left out. Private notes never go into a team recap.</p></details>
+            <details><summary>Can coaches give feedback to one student?</summary><p>Yes. Choose “Only [name]” when you pin a note, and only you and that student can see it and its replies.</p></details>
+            <details><summary>Can we delete everything later?</summary><p>Yes. Owners can delete videos or whole projects at any time, and you can leave a project whenever you like.</p></details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Final CTA ============ -->
+      <section class="final" id="signup">
+        <div class="wrap final-card" data-reveal="up">
+          <h2>Make the next take<br />the one that lands.</h2>
+          <p>Create a private space for your team in under a minute. Sign up with your email and a password — that’s it.</p>
+          <form class="signup-form" data-signup-form>
+            <label class="sr-only" for="email">Your email</label>
+            <input id="email" type="email" placeholder="you@yourteam.com" autocomplete="email" required />
+            <button class="btn btn-accent" type="submit" data-cta="signup">Start free</button>
+          </form>
+          <ul class="hero-ticks light"><li>No credit card</li><li>Free for your first team</li><li>Private by default</li></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <div><a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>looproom</a><p>Feedback that lands on the count.</p></div>
+        <nav aria-label="Footer"><a href="#review">Review</a><a href="#recaps">AI recaps</a><a href="#projects">Projects</a><a href="#insights">Insights</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+        <a class="footer-app" href="/app/login?mode=signup" data-footer-app>Try Looproom free →</a>
+      </div>
+      <p class="wrap copyright">© 2026 Looproom</p>
+    </footer>
+
+    <div class="mobile-cta" data-mobile-cta><a class="btn btn-accent btn-block" href="/app/login?mode=signup" data-cta="mobile_sticky">Start free — no card needed</a></div>
+    <script type="module" src="/landing.js"></script>
   </body>
 </html>
