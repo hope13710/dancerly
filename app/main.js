@@ -12,6 +12,7 @@ import { renderProjectRequests, renderRequest, newRequest } from './views/reques
 import { renderQueue } from './views/queue.js';
 import { renderCalendar, editEvent } from './views/calendar.js';
 import { openSearch } from './views/search.js';
+import { renderProjectOverview, renderCountSheet } from './views/overview.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 
@@ -28,6 +29,8 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/notes\/?$/, render: renderProjectNotes },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/people\/?$/, render: renderProjectPeople },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/overview\/?$/, render: renderProjectOverview },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/counts\/?$/, render: renderCountSheet },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/?$/, render: renderProjectRequests },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },

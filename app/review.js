@@ -340,6 +340,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       view.querySelector(`[data-note="${target.id}"]`)?.scrollIntoView({ block: 'nearest' });
     };
     if (videoEl.readyState >= 1) jump(); else videoEl.addEventListener('loadedmetadata', jump, { once: true });
+  } else {
+    // ?t=42 opens at that second (count sheet references, shared moments).
+    const at = Number(new URLSearchParams(location.search).get('t'));
+    if (at > 0) { const go = () => seek(at); if (videoEl.readyState >= 1) go(); else videoEl.addEventListener('loadedmetadata', go, { once: true }); }
   }
 
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
