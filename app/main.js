@@ -148,7 +148,7 @@ function renderCheckInbox(email, name, next) {
     <p class="muted">We sent an email to <b>${esc(email)}</b>. Type the 6-digit code here — or open the link on this device.</p>
     <form class="code-form" data-code-form>
       <label class="sr-only" for="otp">6-digit code</label>
-      <input id="otp" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required />
+      <input id="otp" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" maxlength="8" placeholder="123456" required />
       <button class="btn primary" type="submit">Log in</button>
     </form>
     <p class="form-error" data-code-error role="alert" hidden></p>
