@@ -29,7 +29,7 @@
 | 상황 | ❌ 피하기 | ✅ 쓰기 |
 |---|---|---|
 | 업로드 실패 | Error 500 | The upload stopped. We’ll resume when you’re back online. |
-| 빈 대기열 | No data | You’re all caught up. New submissions will show up here. |
+| 빈 대기열 | No data | You’re all caught up. New videos will show up here. |
 | 리캡 노트 없음 | Nothing found | No notes from your coaches this week yet. |
 | 한도 도달 | Limit exceeded | Your free plan includes 10 members. Start a free Team trial to invite more. |
 | 삭제 확인 | Are you sure? | Delete this video? Its 4 notes and 1 sketch will be deleted too. |
@@ -178,14 +178,14 @@
 | **Role chip** | Owner(핑크) · Member(연보라) | | 작성자 이름 옆. 역할은 두 개뿐 |
 | **Agree chip** | 👍 n agree | 내가 누름 · 안 누름 | 노트 카드 작성자 줄 오른쪽 |
 | **Avatar** | 24 · 32 · 40, 이니셜 / 사진 | 온라인 점 없음 (차분함) | 겹침 스택 최대 3 + "+n" |
-| **Note card** | 순간(▸) · 구간(⟷) · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · looping · "from V1" | 시간 칩(누르면 이동) + 카운트 + 본문(@멘션 칩) + 작성자 + ↻ Loop 버튼. **레이블 없음** |
+| **Note card** | 순간(▸) · 구간(⟷) · 스케치 첨부 · 그룹 공지 | Open · Practicing · Resolved · selected · looping · "from Take 1" | 시간 칩(누르면 이동) + 카운트 + 본문(@멘션 칩) + 작성자 + ↻ Loop 버튼. **레이블 없음** |
 | **Note composer** | ▸ At 00:18 · ⟷ Range(Start/End) | typing · `@` 멘션 목록 · 라이브러리 `/` 팝업 · saving | 입력은 본문 하나. 포커스 시 영상 정지, 올린 뒤 포커스 해제. 하단 안내 "No label needed — AI sorts notes in your reports." |
 | **Mention menu** | 작성기 위 팝업 | 첫 항목 선택됨 · ↑↓ 이동 | 머리글 "People on {project}", 아바타 + 이름 + 역할 |
 | **Player** | 코치(풀 컨트롤) · 댄서(간단) · 비교(2분할) | loading(썸네일+스피너) · processing · error | 영상 영역은 항상 dark |
 | **Timeline** | 기본 · 카운트 눈금 | 순간 노트 점 · 구간 노트 막대 · 작성 중 구간 미리보기(보라) · 반복 구간(주황) · 재생 헤드 | 클릭으로 이동, 점·막대 클릭 → 노트 선택 |
 | **Loop chip** | 툴바 | 반복 중일 때만 | "↻ Looping 00:42–00:48 ✕" |
 | **Sketch toolbar** | 펜 · 원 · 화살표 · 지우기 · 되돌리기 · 색 3 | 선택 도구 강조 | 영상 좌상단 플로팅 |
-| **Board card** | 제출 카드 | 상태 컬럼별 | 댄서 아바타 + 버전 + Open 노트 수 |
+| **Board card** | 제출 카드 | 상태 컬럼별 | 댄서 아바타 + 테이크 + Open 노트 수 |
 | **Table** | 기본 · 카운트 시트 | 행 호버 · 선택 | 모바일: 카드로 전환 |
 | **Tabs / Segmented** | 밑줄 탭 · 세그먼트 | | 기간 선택은 세그먼트 |
 | **Toast** | info · success · error | 3.5초 자동 닫힘, 되돌리기 버튼 가능 | 우하단 / 모바일 하단 탭 위 |
@@ -196,7 +196,7 @@
 | **AI recap card** | Just me · Whole project (같은 디자인) | generating · ready · private · shared · pinned | 밝은 유리 카드, 모드별 그라데이션 테두리, ✦ 26px |
 | **Command palette** | ⌘K | 검색 · 명령 · 최근 | 키보드 전용 동작 |
 | **Toggle** | on/off | | 설정 |
-| **Recap row** | 목록 한 줄: 범위 · 기간 · 만든/공유한 사람 · 📌 · 이전 버전 수 | 기본 · pinned · 펼침 | 프로젝트 Recaps 탭, My recaps |
+| **Recap row** | 목록 한 줄: 범위 · 기간 · 만든/공유한 사람 · 📌 · 이전 테이크 수 | 기본 · pinned · 펼침 | 프로젝트 Recaps 탭, My recaps |
 | **Checklist item** | 리캡 할 일 | unchecked · checked(→ Practicing) | 타임스탬프 칩 포함 |
 
 ### 5-1. 노트 카드 해부
@@ -220,7 +220,7 @@
 ### S1. Home (데스크톱)
 
 ```
-Good morning, Alex                                   [＋ New assignment]
+Good morning, Alex                                   [＋ New request]
 Monday, Oct 26 · Here’s what needs you today.
 
 ┌ ✦ Your recap · Showcase 2026 · Oct 19–25 ─────── saved ┐   (최근 리캡 1장)
@@ -236,15 +236,15 @@ Monday, Oct 26 · Here’s what needs you today.
 [ To review 8 ] [ Due this week 3 ] [ Resolved this week 14 ] [ Open notes 22 ]
 
 ┌ Needs your attention ─────────┐ ┌ Recent activity ───────┐
-│ MC Maya · Week 04 · V2  →     │ │ ↗ Maya submitted V2    │
-│ JS Jordan · Week 04 · V1 →    │ │ ↩ Jordan replied       │
+│ MC Maya · Week 04 · Take 2  →     │ │ ↗ Maya submitted Take 2    │
+│ JS Jordan · Week 04 · Take 1 →    │ │ ↩ Jordan replied       │
 │ [Start reviewing (8)]         │ │ ✓ You resolved a note  │
 └───────────────────────────────┘ └────────────────────────┘
 ┌ Quiet this week ─────────────────────────────────────────┐ (2.5)
-│ RK Riko — no practice or submission in 8 days  [Nudge]   │
+│ RK Riko — no practice or video in 8 days  [Nudge]   │
 └──────────────────────────────────────────────────────────┘
 ```
-- 빈 상태: "No submissions yet. Create an assignment and share the link with your dancers." [Create assignment]
+- 빈 상태: "No videos yet. Create an request and share the link with your dancers." [Create request]
 
 ### S2. Review queue
 
@@ -252,9 +252,9 @@ Monday, Oct 26 · Here’s what needs you today.
 Review queue                                 Filter: All groups ▾  Project ▾
 [Needs review 8] [Re-submitted 3] [Overdue 1]
 
-  DANCER          ASSIGNMENT              VERSION   WAITING   
-  MC Maya Chen    Week 04 — Chorus timing  V2 ↻     12 min    →
-  JS Jordan Smith Week 04 — Chorus timing  V1       2 h       →
+  DANCER          ASSIGNMENT              TAKE   WAITING   
+  MC Maya Chen    Week 04 — Chorus timing  Take 2 ↻     12 min    →
+  JS Jordan Smith Week 04 — Chorus timing  Take 1       2 h       →
                                          [Start reviewing →]
 ```
 - 행 클릭 → S3. "Start reviewing"은 맨 위부터 연속 리뷰.
@@ -263,12 +263,12 @@ Review queue                                 Filter: All groups ▾  Project ▾
 ### S3. Video review (핵심 화면)
 
 ```
-← Review queue   Week 04 — Chorus timing · Maya Chen          [V1] [V2●] [Compare]   Next →
+← Review queue   Week 04 — Chorus timing · Maya Chen          [Take 1] [Take 2●] [Compare]   Next →
 ┌───────────────────────────────────────────────┬─────────────────────────────┐
 │                                               │ NOTES 3        All · Open   │
 │  ✎ ○ ↗ ↶  (스케치 중일 때만)                  │ ┌ 00:18 · 3×8·5 TIMING ✎ ─┐ │
 │              [ 영상 · dark ]                  │ │ Land on the beat…       │ │
-│                                   ⇋ Mirrored  │ │ AL · from V1  Practicing│ │
+│                                   ⇋ Mirrored  │ │ AL · from Take 1  Practicing│ │
 │                                               │ └─────────────────────────┘ │
 │                                               │ ┌ 00:42–00:48 PATHWAY ────┐ │
 ├───────────────────────────────────────────────┤ └─────────────────────────┘ │
@@ -295,7 +295,7 @@ Hi Maya 👋
 └─────────────────────────────────┘
 ┌ Due Friday ─────────────────────┐
 │ Week 04 — Chorus timing         │
-│ 2 notes to practice · V1        │
+│ 2 notes to practice · Take 1        │
 │ [＋ Upload new version]          │
 └─────────────────────────────────┘
 New feedback
@@ -306,7 +306,7 @@ Keep practicing
 ┌ 00:42–00:48 PATHWAY  ↻ 12 ────┐
 └───────────────────────────────┘
 ```
-- 빈 상태: "Nothing due right now. Your coach will send the next assignment here."
+- 빈 상태: "Nothing due right now. Your coach will send the next request here."
 
 ### S5. 댄서 노트 보기 + 연습 (모바일)
 
@@ -329,7 +329,7 @@ Keep practicing
 
 ### S6. 업로드 (모바일)
 
-1. ＋ → **과제 선택** (마감 임박 순, 1개면 건너뜀)
+1. ＋ → **요청 선택** (마감 임박 순, 1개면 건너뜀)
 2. 카메라 롤 → 영상 선택
 3. 미리보기 + 트림(선택) + 한 줄 메모 → **Upload**
 4. 상단 진행 바, "You can leave this screen." → 완료 푸시
@@ -349,9 +349,9 @@ Status In rehearsal · Show Nov 14 · Music 112 BPM (auto) · MC JS RK +9
 ```
 - 음악 없음 상태: "Add the music to see notes in counts." [Add music] (건너뛸 수 있음)
 
-### S8. Assignments board
+### S8. Videos board
 
-`To submit 3 | In review 2 | Practicing 4 | Fixed 11` 4열. 카드는 댄서·버전·Open 노트 수. **드래그 없음** (상태는 행동으로만 변함, 카드 클릭 → S3).
+`To submit 3 | In review 2 | Practicing 4 | Fixed 11` 4열. 카드는 댄서·테이크·Open 노트 수. **드래그 없음** (상태는 행동으로만 변함, 카드 클릭 → S3).
 
 ### S9. Insights › Dashboard
 
@@ -391,9 +391,9 @@ Showcase 2026 › Recaps                         [✦ New recap]
 
 ```
 MC Maya Chen  Member · Commercial Team · since Sep 2026     [✦ Generate recap] [Message]
-[Timeline●] [Notes] [Versions] [Reports]
-Oct 22  V2 Week 04 — 2 notes resolved ✓
-Oct 19  V1 Week 04 — 3 notes (Timing 2, Pathway 1)
+[Timeline●] [Notes] [Takes] [Reports]
+Oct 22  Take 2 Week 04 — 2 notes resolved ✓
+Oct 19  Take 1 Week 04 — 3 notes (Timing 2, Pathway 1)
 Oct 12  …
 Focus over time: Timing ▇▇▇▅▃▂  Musicality ▁▁▂▃▅
 ```

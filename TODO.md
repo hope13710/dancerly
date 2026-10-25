@@ -26,7 +26,7 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 ## Prototype alignment with the planning docs
 - [ ] Coach sidebar: Home · Inbox · Review queue · Projects · People · Insights · Settings (`docs/01-menu-structure.md`).
 - [ ] Separate mobile dancer app at `/d` with bottom tabs: Today · Feedback · ＋ · Recap · Me.
-- [ ] Rename "Reviews" to Assignments in the workspace; note status Open → Practicing → Resolved.
+- [ ] Workspace hierarchy Project › Video › Take (Request optional); note status Open → Practicing → Resolved.
 - [ ] Raise app text to 12px minimum and unify tokens (`docs/05-ux-ui-design.md` §3).
 
 ## Phase 2 — real SaaS foundations
@@ -47,6 +47,8 @@ See `docs/product-plan.md` for the full spec.
 ## Phase 3 — AI reports
 - [x] Landing: one AI Recap with Just me / Whole project scopes (coach reports removed), auto-saved with 📌 pin and earlier recaps.
 - [ ] Project › Recaps tab, Home recap card, Me › My recaps; version folding for the same scope and period.
+- [x] Take summary on the review screen ("Take 3 · n resolved since Take 2 · n still open"), computed from note states.
+- [ ] Recap Video filter (optional) on top of project × period.
 - [ ] Dancer self-serve "My recap": period × coach/project × category, private by default, share with coach, checklist → note status Practicing.
 - [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
 - [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.

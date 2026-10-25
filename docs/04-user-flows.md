@@ -17,7 +17,7 @@
 |---|---|---|
 | 코치 | **첫 노트를 남기고 댄서 1명 이상 초대** | 가입 후 10분 이내 |
 | 댄서 | **노트를 눌러 그 순간을 재생** | 초대 링크 클릭 후 30초 이내 |
-| 리텐션 신호 | 2주 연속 과제 1개 이상 + 해결 노트 1개 이상 | 가입 후 14일 |
+| 리텐션 신호 | 2주 연속 요청 1개 이상 + 해결 노트 1개 이상 | 가입 후 14일 |
 
 ---
 
@@ -60,13 +60,13 @@ flowchart TD
   B --> C{이 기기에서 처음?}
   C -->|예| D[이름 입력<br/>연령 확인]
   D --> E{보호자 동의 필요?}
-  E -->|예| F[보호자 이메일 → 동의 대기<br/>그동안 과제 설명만 보기]
+  E -->|예| F[보호자 이메일 → 동의 대기<br/>그동안 요청 설명만 보기]
   E -->|아니오| G
   C -->|아니오| G[Today]
   F -->|동의 완료| G
   G --> H{노트가 있나?}
   H -->|있음| I[노트 카드 탭 → 그 순간 재생]
-  H -->|없음| J[마감 과제 → ＋ 영상 올리기]
+  H -->|없음| J[마감 요청 → ＋ 영상 올리기]
   I --> K[코치마크: 루프 · 거울모드 · Practicing]
   K --> L[알림 허용 요청<br/>'새 피드백이 오면 알려드릴까요?']
 ```
@@ -77,11 +77,11 @@ flowchart TD
 
 ---
 
-## F3. 과제 → 제출 → 리뷰 (코치 루프)
+## F3. 요청 → 제출 → 리뷰 (코치 루프)
 
 ```mermaid
 flowchart TD
-  A[＋ New → Assignment] --> B[제목 · 대상 그룹 · 마감 · 기준 영상]
+  A[＋ New → Request] --> B[제목 · 대상 그룹 · 마감 · 기준 영상]
   B --> C[Publish → 댄서에게 알림]
   C --> D[댄서 제출]
   D --> E[Review queue에 추가]
@@ -91,7 +91,7 @@ flowchart TD
   H -->|예| G
   H -->|아니오| I[Done reviewing]
   I --> J[댄서에게 노트 묶음 알림 1회]
-  J --> K[Next submission →]
+  J --> K[Next video →]
   K --> F
 ```
 
@@ -113,7 +113,7 @@ flowchart TD
   F --> G[Practicing 표시 · 답글 'Got it']
   G --> H[다시 촬영]
   H --> I[Upload improved version]
-  I --> J[V2 업로드 → 코치 대기열]
+  I --> J[Take 2 업로드 → 코치 대기열]
 ```
 
 ---
@@ -122,11 +122,11 @@ flowchart TD
 
 ```mermaid
 stateDiagram-v2
-  [*] --> ToSubmit: 과제 배정
+  [*] --> ToSubmit: 요청 배정
   ToSubmit --> InReview: 댄서가 영상 제출
   InReview --> Practicing: 코치가 노트 남김 (Done reviewing)
   InReview --> Fixed: 노트 없이 승인
-  Practicing --> InReview: 새 버전 제출
+  Practicing --> InReview: 새 테이크 제출
   Practicing --> Fixed: 모든 노트 Resolved
   Fixed --> [*]
 ```
@@ -135,7 +135,7 @@ stateDiagram-v2
 |---|---|---|
 | Open | 시스템 | 노트 작성 |
 | Practicing | 댄서 | "I’m on it" 버튼, 또는 리캡 체크리스트 체크 |
-| Resolved | 코치 | 새 버전에서 확인 후 Resolve (`R`) |
+| Resolved | 코치 | 새 테이크에서 확인 후 Resolve (`R`) |
 
 ---
 
@@ -153,7 +153,7 @@ flowchart TD
   E -->|있음| F{같은 범위·기간 리캡이 최신?}
   F -->|예| G[저장된 리캡 바로 표시]
   F -->|아니오| H[✦ Reading 9 notes… shimmer → 스트리밍]
-  H --> S[(자동 저장 · 이전 버전은 접힘)]
+  H --> S[(자동 저장 · 이전 테이크은 접힘)]
   S --> G
   G --> J[문장의 n 탭 → 노트 → 그 순간 재생]
   G --> K[할 일 체크 → 노트 Practicing]
@@ -192,7 +192,7 @@ flowchart TD
   E --> F[Count sheet 초안: 구간 자동 분할 제안]
   D -->|나중에| G
   F --> G[프로젝트 Overview]
-  G --> H[첫 과제 만들기 제안]
+  G --> H[첫 요청 만들기 제안]
 ```
 
 ---
@@ -233,6 +233,6 @@ flowchart TD
 |---|---|---|---|
 | 가입 직후 | 샘플 리뷰에 노트 | 😮 "이거 빠르네" | 샘플·코치마크 |
 | 첫날 | 댄서 초대 | 😟 "애들이 가입할까?" | 이름만으로 참여, 초대 문구 템플릿 |
-| 2~3일 | 첫 제출 리뷰 | 🙂 | 대기열 + Next submission |
+| 2~3일 | 첫 제출 리뷰 | 🙂 | 대기열 + Next video |
 | 1주 | 첫 해결 | 😊 "진짜 고쳤네" | 해결 축하, 대시보드 첫 데이터 |
 | 2주 | 첫 주간 리포트 | 😍 "이걸 내가 안 썼는데" | 출처 인용으로 신뢰 |

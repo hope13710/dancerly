@@ -128,7 +128,7 @@ flowchart LR
 
   INBOX --> I1[All]
   INBOX --> I2[Mentions]
-  INBOX --> I3[Submissions]
+  INBOX --> I3[Videos]
 
   RQ --> R1[Needs review]
   RQ --> R2[Re-submitted]
@@ -138,12 +138,12 @@ flowchart LR
   PJ --> PX[프로젝트 목록]
   PX --> P1[Overview]
   PX --> P2[Count sheet]
-  PX --> P3[Assignments board]
+  PX --> P3[Videos board]
   PX --> P6[✦ Recaps]
   PX --> P4[Pages]
   PX --> P5[Calendar]
   P6 --> RL[[Shared · Mine · 📌 Pinned]]
-  P3 --> AS[Assignment 상세]
+  P3 --> AS[Request 상세]
   AS --> RV
 
   PP --> D1[Members]
@@ -167,20 +167,20 @@ flowchart LR
 
 | 1단계 | 2단계 | 3단계 / 탭 | 설명 |
 |---|---|---|---|
-| **Home** | 오늘 할 일 | | 아직 안 본 새 테이크, 나에게 온·멘션된 노트, 마감 과제 |
+| **Home** | 오늘 할 일 | | 아직 안 본 새 테이크, 나에게 온·멘션된 노트, 마감 요청 |
 | | 시작 체크리스트 | | 첫 주에만 표시: 팀 공간 · 첫 리허설 영상 · 첫 노트 · 팀원 초대 |
 | | 최근 활동 | | 제출·답글·해결 기록 |
-| **Inbox** | All · Mentions · Submissions | | 알림 모음. 읽음/안 읽음 |
+| **Inbox** | All · Mentions · New takes | | 알림 모음. 읽음/안 읽음 |
 | **Review queue** | New takes · Mentions me · Overdue | | 내가 속한 프로젝트의 새 테이크를 한 줄로. 여기서 바로 리뷰 화면으로 |
-| | → **Video review** | Notes · Versions · Compare | 플레이어 + 노트·스케치 + 버전 비교 |
+| | → **Video review** | Notes · Takes · Compare | 플레이어 + 노트·스케치 + 테이크 비교 |
 | **Projects** | 프로젝트 목록 | | 카드 목록, ＋ New from template |
 | | 프로젝트 상세 | Overview | 목표, 일정, 참여 멤버, 음악 |
 | | | Count sheet | 구간 × 카운트 × 포커스 × 기준 영상 × 상태 |
-| | | Assignments board | To submit → In review → Practicing → Fixed |
+| | | Videos board | To submit → In review → Practicing → Fixed |
 | | | Pages | 자유 문서 (블록 에디터, @링크) |
-| | | **Recaps** | ✦ 이 프로젝트의 AI 리캡 **본거지**. 새 리캡 만들기, Shared · Mine · 📌 Pinned 필터, 기간별 목록, 이전 버전 펼치기 |
+| | | **Recaps** | ✦ 이 프로젝트의 AI 리캡 **본거지**. 새 리캡 만들기, Shared · Mine · 📌 Pinned 필터, 기간별 목록, 이전 테이크 펼치기 |
 | | | Calendar | 리허설·마감 |
-| | → Assignment 상세 | Submissions · Brief · Settings | 과제 설명, 제출 현황 |
+| | → Request 상세 | Videos · Brief · Settings | 요청 설명, 제출 현황 |
 | **People** | Members | | 멤버 목록 → **멤버 프로필**(테이크·받은 노트·해결 기록, 리캡 생성) |
 | | Groups | | 그룹 목록, 초대 링크 |
 | **Insights** | Dashboard | Project · Member · AI label | 연습 신호 · 피드백 신호 · 동작 신호(Beta) |
@@ -197,8 +197,8 @@ flowchart LR
 | 요소 | 위치 | 기능 |
 |---|---|---|
 | 워크스페이스 전환 | 사이드바 상단 | 여러 워크스페이스·역할 이동 |
-| **＋ New** | 사이드바 상단 | Assignment · Project · Note · Invite |
-| 검색 / **⌘K** | 헤더 | 사람·프로젝트·과제·노트 검색, 명령 실행 |
+| **＋ New** | 사이드바 상단 | Request · Project · Note · Invite |
+| 검색 / **⌘K** | 헤더 | 사람·프로젝트·요청·노트 검색, 명령 실행 |
 | 알림 벨 | 헤더 | Inbox 미리보기 |
 | 계정 메뉴 | 사이드바 하단 | Account settings, 언어, 도움말, 로그아웃 |
 
@@ -217,13 +217,13 @@ flowchart LR
   DA --> ME[Me]
 
   T --> T0[✦ 최근 리캡 · Generate for next rehearsal]
-  T --> T1[할 일 · 마감 과제]
+  T --> T1[할 일 · 마감 요청]
   T --> T2[새 피드백]
   FB --> F1[For me · 나에게 온 노트]
   FB --> F2[By me · 내가 쓴 노트]
   FB --> F3[Team · 프로젝트 전체 노트]
   FB --> PV[[노트 보기 · 루프 · 거울모드]]
-  UP --> U1[과제 선택]
+  UP --> U1[요청 선택]
   U1 --> U2[영상 선택 · 업로드]
   PJ --> P1m[프로젝트 → Takes · Notes · ✦ Recaps]
   ME --> M1[내 성장 기록]
@@ -235,9 +235,9 @@ flowchart LR
 
 | 탭 | 아이콘 | 내용 | 배지 |
 |---|---|---|---|
-| **Today** | ⌂ | **✦ 최근 리캡 카드**(없으면 "Generate for next rehearsal"), 새 테이크, 나에게 온 노트, 마감 과제 | — |
+| **Today** | ⌂ | **✦ 최근 리캡 카드**(없으면 "Generate for next rehearsal"), 새 테이크, 나에게 온 노트, 마감 요청 | — |
 | **Feedback** | ◫ | For me(나에게 온·멘션된 노트) · By me(내가 쓴 노트, 해결 처리) · Team(프로젝트 전체) | 새 노트 수 |
-| **＋** | 가운데 큰 버튼 | 영상 올리기 (프로젝트·과제 선택 → 카메라 롤) | — |
+| **＋** | 가운데 큰 버튼 | 영상 올리기 (프로젝트·요청 선택 → 카메라 롤) | — |
 | **Projects** | ◇ | 내 프로젝트 → 테이크·노트·**Recaps 탭** | — |
 | **Me** | ○ | 성장 기록, **My recaps**(모든 프로젝트, 📌 고정 먼저), 계정 | — |
 
@@ -267,10 +267,10 @@ flowchart LR
 | `/app` | Home (데스크톱) · Today (모바일) | 모든 멤버 |
 | `/app/inbox` | Inbox | 〃 |
 | `/app/queue` | Review queue | 〃 |
-| `/app/review/:submissionId?v=2&t=18.0&note=:id` | Video review | 〃 |
+| `/app/review/:videoId?v=2&t=18.0&note=:id` | Video review | 〃 |
 | `/app/projects` | 프로젝트 목록 | 〃 |
 | `/app/projects/:id/(overview\|counts\|board\|pages\|calendar)` | 프로젝트 상세 | 〃 |
-| `/app/assignments/:id` | 과제 상세 | 〃 |
+| `/app/requests/:id` | 요청 상세 | 〃 |
 | `/app/people/(dancers\|groups\|coaches)` | People | 〃 |
 | `/app/people/dancers/:id` | 댄서 프로필 | 〃 |
 | `/app/insights/(dashboard\|library)` | Insights | 모든 멤버 |

@@ -4,28 +4,38 @@
 
 ```mermaid
 flowchart TB
-  WS[Workspace<br/>코치·스튜디오 · 결제 단위]
-  WS --> PJ[Project<br/>쇼케이스 · 주간 수업 · 대회]
-  WS --> GR[Group<br/>댄서 묶음]
-  WS --> LIB[Correction library]
+  WS[Team space<br/>팀·크루·학원 · 결제 단위]
+  WS --> PJ[Project<br/>쇼케이스 · 대회 · 주간 연습]
+  WS --> LIB[Note library]
   PJ --> CS[Count sheet<br/>구간 × 8카운트]
   PJ --> PG[Pages<br/>자유 문서]
-  PJ --> AS[Assignment<br/>마감 있는 영상 요청]
-  AS --> SB[Submission<br/>댄서 1명의 제출]
-  SB --> VR[Version<br/>V1 · V2 · V3 …]
-  VR --> NT[Note<br/>순간·구간 피드백]
+  PJ --> VD[Video<br/>같은 장면의 테이크 묶음<br/>Full run-through · Chorus · Maya solo]
+  PJ -. 선택 .-> RQ[Request<br/>마감 있는 영상 요청]
+  RQ -. 답으로 올라온 .-> VD
+  VD --> TK[Take<br/>Take 1 · Take 2 · Take 3 …]
+  TK --> NT[Note<br/>순간·구간 피드백]
   NT --> SK[Sketch]
-  NT --> RP[Reply]
-  GR -. 참여 .-> PJ
-  GR -. 대상 .-> AS
-  NT -. 근거 .-> RPT[AI Recap]
+  NT --> RP[Reply · 👍]
+  VD -. 테이크 비교 요약 .-> TS[Take summary<br/>해결 n · 남음 n]
+  PJ ==> RPT[AI Recap<br/>프로젝트 × 기간<br/>Just me / Whole project]
+  NT -. 근거 .-> RPT
   NT -. 집계 .-> DB[Dashboard]
-  VR -. 연습 로그 .-> DB
+  TK -. 연습 로그 .-> DB
 ```
 
-**핵심 원칙**
-- 노트는 **버전에 달리지만 제출을 따라간다.** V2가 올라오면 V1의 Open 노트가 V2 화면에도 보이고, 코치는 V2를 보고 해결 처리한다.
-- 대시보드와 리포트는 **새 데이터를 만들지 않는다.** 노트·버전·연습 로그를 모아서 보여줄 뿐이다. (신뢰의 근거)
+**계층과 원칙**
+
+| 계층 | 화면 이름 | 뜻 | 피드백·요약 |
+|---|---|---|---|
+| 1 | **Project** | 하나의 목표 (쇼케이스, 대회, 주간 연습) | **AI Recap은 여기서, 기간 기준으로** 만든다 |
+| 2 | **Video** | 같은 장면을 반복해 찍은 테이크 묶음 | 화면에 **테이크 비교 요약**(AI 없음): "Take 3 · 4 resolved · 2 still open" |
+| 3 | **Take** | 한 번 찍은 영상 | 노트가 붙는 곳 |
+| — | Request (선택) | "금요일까지 Chorus 영상 올려줘" | 없어도 영상은 올릴 수 있다 |
+
+- 노트는 **테이크의 그 순간에 붙지만 Video를 따라간다.** Take 3이 올라오면 Take 2의 해결 안 된 노트가 Take 3 화면에도 "from Take 2"로 보이고, 노트 쓴 사람이 Take 3을 보고 해결한다.
+- **리캡이 프로젝트 × 기간인 이유**: 한 번의 리허설에 전체 런스루·구간·개인 영상이 섞여 올라온다. 여러 Video에 흩어진 같은 지적을 모아야 "3명이 3주째 말하는 문제" 같은 합의 신호가 보인다. 리캡을 만들 때 특정 Video로 좁히는 필터는 선택 사항이다.
+- 테이크 하나 단위 요약은 만들지 않는다 (노트 몇 개라 직접 읽는 게 빠르다).
+- 대시보드와 리캡은 **새 데이터를 만들지 않는다.** 노트·테이크·연습 로그를 모아서 보여줄 뿐이다. (신뢰의 근거)
 
 ## 2. 핵심 가치 루프
 
@@ -58,16 +68,17 @@ erDiagram
   WORKSPACE ||--|| SUBSCRIPTION : billed_by
   GROUP ||--o{ GROUP_MEMBER : has
   USER ||--o{ GROUP_MEMBER : joins
-  PROJECT ||--o{ ASSIGNMENT : has
+  PROJECT ||--o{ REQUEST : "has (선택)"
+  PROJECT ||--o{ VIDEO : contains
   PROJECT ||--o{ SECTION : "count sheet"
   PROJECT ||--o{ PAGE : has
   PROJECT ||--o| TRACK : "music"
-  ASSIGNMENT ||--o{ SUBMISSION : receives
-  USER ||--o{ SUBMISSION : submits
-  SUBMISSION ||--o{ VERSION : has
-  VERSION ||--|| MEDIA_ASSET : plays
-  VERSION ||--o{ NOTE : "anchored on"
-  SUBMISSION ||--o{ NOTE : "carries"
+  REQUEST |o--o{ VIDEO : "answered by"
+  USER ||--o{ TAKE : uploads
+  VIDEO ||--o{ TAKE : has
+  TAKE ||--|| MEDIA_ASSET : plays
+  TAKE ||--o{ NOTE : "anchored on"
+  VIDEO ||--o{ NOTE : "carries"
   NOTE ||--o| SKETCH : has
   NOTE ||--o{ REPLY : has
   NOTE ||--o{ NOTE_REACTION : "👍"
@@ -95,9 +106,9 @@ erDiagram
   PROJECT { uuid id string title enum template date show_date enum status }
   TRACK { uuid id float bpm "자동 감지" float offset_sec string source }
   SECTION { uuid id string name int start_count int end_count enum focus }
-  ASSIGNMENT { uuid id string title text brief datetime due_at enum status }
-  SUBMISSION { uuid id uuid assignment_id uuid dancer_id enum board_status }
-  VERSION { uuid id int number datetime uploaded_at enum processing enum visibility "team|private" uuid uploaded_by }
+  REQUEST { uuid id string title text brief datetime due_at enum status }
+  VIDEO { uuid id uuid project_id uuid request_id "nullable" string title uuid created_by enum board_status }
+  TAKE { uuid id int number datetime uploaded_at enum processing enum visibility "team|private" uuid uploaded_by }
   MEDIA_ASSET { uuid id string storage_key string playback_id float duration json waveform }
   NOTE { uuid id float t_start float t_end "null이면 순간 노트" text body enum status uuid author_id string lang }
   NOTE_LABEL { uuid note_id enum label float confidence enum source "ai|coach" }
@@ -105,7 +116,7 @@ erDiagram
   SKETCH { uuid id json strokes float frame_t }
   REPLY { uuid id uuid author_id text body }
   PRACTICE_EVENT { uuid id enum type "loop|replay|mirror|mark_practicing" float seconds datetime at }
-  REPORT { uuid id enum scope "me|project" date period_start date period_end datetime notes_until json body enum status "private|shared" uuid generated_by uuid project_id uuid supersedes "같은 범위·기간 이전 버전" }
+  REPORT { uuid id enum scope "me|project" date period_start date period_end datetime notes_until json body enum status "private|shared" uuid generated_by uuid project_id uuid supersedes "같은 범위·기간 이전 테이크" }
   RECAP_PIN { uuid report_id uuid user_id datetime pinned_at }
   REPORT_CITATION { uuid report_id uuid note_id string sentence_key }
   LIBRARY_ITEM { uuid id text body int uses }
@@ -221,15 +232,15 @@ sequenceDiagram
   participant M as 영상 처리
   participant A as API
   actor C as 다른 멤버
-  D->>W: ＋ → 프로젝트·과제 선택 → 영상 선택
-  W->>A: 업로드 세션 요청 (submission, version 번호)
+  D->>W: ＋ → 프로젝트·요청 선택 → 영상 선택
+  W->>A: 업로드 세션 요청 (video, version 번호)
   A-->>W: 업로드 URL
   W->>U: 청크 업로드 (끊기면 이어서)
   W-->>D: "업로드 중 — 화면을 나가도 돼요"
   U->>M: 업로드 완료
   M->>M: HLS 변환 · 썸네일 · 파형 · BPM
   M->>A: 처리 완료 (Ready)
-  A->>A: 이전 버전의 Open 노트를 새 버전에 연결
+  A->>A: 이전 테이크의 Open 노트를 새 테이크에 연결
   A-->>D: 푸시 "Take 4 is ready"
   A-->>C: Inbox + 대기열 "Maya uploaded Take 4"
 ```
@@ -299,12 +310,12 @@ flowchart LR
 
 | 신호 | 이벤트 | 발생 위치 | 대시보드 지표 |
 |---|---|---|---|
-| 연습 | `submission_created`, `version_uploaded` | 업로드 완료 | 제출률, 마감 준수 |
+| 연습 | `video_created`, `take_uploaded` | 업로드 완료 | 제출률, 마감 준수 |
 | 연습 | `loop_played` (구간, 횟수, 초) | 댄서 플레이어 | 구간 루프 횟수, 연습 시간 |
 | 연습 | `mirror_toggled`, `speed_changed` | 플레이어 | 연습 방식 분포 |
 | 연습 | `note_marked_practicing` | 노트 | 연습 중 노트 수 |
 | 피드백 | `note_created` → `note_labeled` (AI 레이블) | 코치 리뷰 → 비동기 분류 | 레이블별 노트 수·추이 |
-| 피드백 | `note_resolved` (버전 번호) | 코치 리뷰 | 해결률, **해결까지 걸린 버전 수** |
+| 피드백 | `note_resolved` (테이크 번호) | 코치 리뷰 | 해결률, **해결까지 걸린 테이크 수** |
 | 피드백 | 같은 레이블·구간 노트가 3주 이상 반복 | 배치 집계 | **반복되는 교정** |
 | 동작 (Beta) | `motion_analyzed` | 분석 워커 | 박자 대비 오차(ms), 동작 크기, 대칭 |
 | 리포트 | `recap_generated`, `report_sent`, `report_opened`, `todo_checked` | 리포트 | 생성 빈도, 열람률, 체크리스트 완료율 |

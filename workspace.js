@@ -87,9 +87,9 @@ function renderReviewDetail() {
     <div class="review-player-layout"><div class="player-column">
       <div class="player-video" data-player-video>${review.videoUrl ? `<video src="${review.videoUrl}" playsinline data-video></video>` : '<div class="demo-dancer"><span class="head"></span><span class="body"></span><span class="arm arm-one"></span><span class="arm arm-two"></span><span class="leg leg-one"></span><span class="leg leg-two"></span></div>'}<span class="player-overlay-label"><b class="mirror-badge">⇋ Mirrored</b><span data-time-overlay></span></span><button class="pause-control" data-action="play" aria-label="Play or pause (Space)"></button></div>
       <div class="player-timeline"><span>00:00</span><div class="timeline-line" data-timeline title="Click to jump"><span class="timeline-loop" data-timeline-loop></span><span class="timeline-draft" data-timeline-draft></span><span class="timeline-progress" data-progress></span><span data-markers></span><span class="timeline-head" data-head></span></div><span data-duration>${fmt(review.duration)}</span></div>
-      <div class="player-toolbar"><button data-action="play" aria-label="Play or pause (Space)"></button><button data-action="speed" title="Playback speed"></button><span class="loop-chip" data-loop-chip></span><span class="toolbar-spacer"></span><strong data-time></strong><button class="mirror-button" data-action="mirror" title="Mirror mode (M)">⇋ Mirror</button><button data-action="upload-video">Upload version</button></div>
+      <div class="player-toolbar"><button data-action="play" aria-label="Play or pause (Space)"></button><button data-action="speed" title="Playback speed"></button><span class="loop-chip" data-loop-chip></span><span class="toolbar-spacer"></span><strong data-time></strong><button class="mirror-button" data-action="mirror" title="Mirror mode (M)">⇋ Mirror</button><button data-action="upload-video">Upload new take</button></div>
     </div>
-    <aside class="detail-notes"><div class="detail-notes-head"><div><span class="panel-kicker">VIDEO REVIEW</span><h3>Notes <small data-note-count></small></h3></div><button class="more-button" data-toast-action="More review actions are coming next.">•••</button></div>
+    <aside class="detail-notes"><div class="detail-notes-head"><div><span class="panel-kicker">FULL RUN-THROUGH · TAKE 3</span><h3>Notes <small data-note-count></small></h3></div><button class="more-button" data-toast-action="More review actions are coming next.">•••</button></div>
       <div class="detail-note-list" data-note-list></div>
       <form class="composer" data-composer>
         <div class="composer-mode" role="tablist"><button type="button" data-mode="point" role="tab">▸ At <span data-composer-point></span></button><button type="button" data-mode="range" role="tab">⟷ Range</button></div>
@@ -97,7 +97,8 @@ function renderReviewDetail() {
         <div class="composer-field"><textarea data-composer-input rows="2" placeholder="Write a note for the team… type @ to mention someone"></textarea><div class="mention-menu" data-mention-menu role="listbox" hidden></div></div>
         <div class="composer-foot"><small>No label needed — AI sorts notes in your reports.</small><button type="submit" class="composer-submit">Pin note ↵</button></div>
       </form>
-      <div class="detail-footer"><span>Version 2 of 2</span><button data-action="mark-resolved">Resolve selected ✓</button></div>
+      <div class="take-summary" data-take-summary></div>
+      <div class="detail-footer"><span>Take 3 of 3</span><button data-action="mark-resolved">Resolve selected ✓</button></div>
     </aside></div>`;
 }
 
@@ -166,6 +167,10 @@ function paintNotes() {
   const notes = [...state.notes].sort((x, y) => x.start - y.start);
   list.innerHTML = notes.length ? notes.map(noteCard).join('') : '<p class="notes-empty">No notes yet. Pause on a moment and write a correction below.</p>';
   $('[data-note-count]').textContent = state.notes.length;
+  // Take summary: no AI, just note states compared with the previous take.
+  const resolved = state.notes.filter((n) => n.status === 'Resolved').length;
+  const open = state.notes.length - resolved;
+  $('[data-take-summary]').innerHTML = `<b>Take 3</b> · <span class="ts-resolved">✓ ${resolved} resolved since Take 2</span> · <span class="ts-open">${open} still open</span>`;
   $('[data-markers]').innerHTML = notes.map((n) => n.end === null
     ? `<button class="timeline-pin ${state.selectedNote === n.id ? 'active' : ''}" style="left:${pct(n.start)}" data-seek-note="${n.id}" aria-label="Note at ${noteTime(n)}"></button>`
     : `<button class="timeline-range ${state.selectedNote === n.id ? 'active' : ''}" style="left:${pct(n.start)};width:${pct(n.end - n.start)}" data-seek-note="${n.id}" aria-label="Note from ${noteTime(n)}"></button>`).join('');
