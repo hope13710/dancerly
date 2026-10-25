@@ -41,12 +41,12 @@ Google Cloud 쪽 승인된 리디렉션 URI: `https://egkwjdwfzuslyrhuzkmq.supab
 **Sign In / Providers → Email**에서 *Confirm email*은 켜 둡니다(가입 시 1회 인증). 최소 비밀번호 길이는 8자로 맞추는 것을 권장합니다.
 
 ### ⑤ AI 리캡 켜기
-리캡은 Edge Function `generate-recap`(이미 배포됨)이 Claude API(`claude-opus-5-5`)를 불러 만듭니다. 키를 넣어야 동작합니다.
+리캡은 Edge Function `generate-recap`(이미 배포됨)이 Claude API(`claude-haiku-5-5`, effort low)를 불러 만듭니다. 키를 넣어야 동작합니다.
 1. https://console.anthropic.com 에서 API 키를 만듭니다.
 2. Supabase → **Edge Functions → Secrets**(또는 Project Settings → Edge Functions)에 `ANTHROPIC_API_KEY` 이름으로 저장합니다.
 3. 키가 없으면 앱에 "AI recaps aren’t switched on yet"이 나옵니다.
 
-동작 방식: 요청한 사람의 권한으로 노트를 읽으므로(RLS) **볼 수 있는 노트만** 들어갑니다. 모든 문장은 노트를 인용해야 하고, 입력에 없는 노트를 인용한 문장은 서버에서 지웁니다. 새 노트가 없으면 이전 리캡을 다시 돌려줘 비용이 들지 않습니다. 안전 분류기가 거절하면 서버 측 fallback(`fallbacks: "default"`)이 다른 모델로 다시 시도합니다.
+동작 방식: 요청한 사람의 권한으로 노트를 읽으므로(RLS) **볼 수 있는 노트만** 들어갑니다. 모든 문장은 노트를 인용해야 하고, 입력에 없는 노트를 인용한 문장은 서버에서 지웁니다. 새 노트가 없으면 이전 리캡을 다시 돌려줘 비용이 들지 않습니다. Haiku 5.5는 서버 측 fallback이 없어서, 안전 분류기가 거절하면 "The AI couldn’t write a recap for these notes."를 보여줍니다.
 
 ### ④ 파일 크기 (요금제)
 무료 플랜은 파일당 최대 50MB라 버킷도 50MB로 맞췄습니다. Pro 플랜으로 올리면 `storage.buckets`의 `file_size_limit`을 늘리고, 이어올리기(tus) 업로드로 바꾸는 것을 권장합니다.

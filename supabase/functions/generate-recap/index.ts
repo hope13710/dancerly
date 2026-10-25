@@ -4,7 +4,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.132.1";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const MODEL = "claude-opus-5-5";
+const MODEL = "claude-haiku-5-5";
 const MAX_NOTES = 400;
 const DAY = 86_400_000;
 
@@ -161,17 +161,15 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   let response: any;
   try {
-    response = await client.beta.messages.create({
+    // Haiku 5.5 thinks adaptively by default; low effort keeps a recap fast and cheap.
+    // It has no server-side refusal fallback, so a decline is reported to the user below.
+    response = await client.messages.create({
       model: MODEL,
       max_tokens: 16000,
       system: SYSTEM,
       messages: [{ role: "user", content: user }],
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-      // On a safety decline, Anthropic re-runs the request on its recommended fallback model.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      // deno-lint-ignore no-explicit-any
-    } as any);
+    });
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) return json({ error: "The AI is busy. Try again in a minute." }, 429);
     if (err instanceof Anthropic.AuthenticationError) return json({ error: "The AI key isn’t valid. Ask the project owner to check it." }, 503);
