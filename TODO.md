@@ -33,6 +33,8 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Supabase auth: email + password, one-time email confirmation (code or link), forgot/reset password, Google button behind a flag, profile on first visit.
 - [x] App shell: left sidebar on wide screens (＋ New, All projects, project list, account menu, hide toggle); bottom tab bar on phones (Projects · ＋ · Me) with the same actions. Review screen hides the tab bar.
+- [x] Workspace menus (docs/01): Home (checklist, For you, recent activity), Inbox (notifications table + triggers, unread badge, realtime), Feedback (For me / By me / Team × To do / Resolved), People (+ profile), Insights (stats, left-vs-fixed chart, by video / by person), Settings (account, notification prefs, projects, plan), project tabs Videos · Notes · People · Settings (invite links, transfer ownership, remove, delete/leave). Deep links `?note=` open the review at that moment. Phones: Home · Feedback · ＋ · Projects · Me, bell → Inbox.
+- [ ] Later: AI recaps backend + Recaps tab, Review queue/requests with due dates, Count sheet, Pages, Calendar, email/push delivery, billing.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
 - [x] Videos and takes (auto-numbered), private `takes` bucket, signed playback URLs.
 - [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.

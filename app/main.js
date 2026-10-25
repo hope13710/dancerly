@@ -1,5 +1,13 @@
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, uploadTake, withUploadBar, checkTakeFile, loadMembers, GOOGLE_ENABLED } from './client.js';
 import { mountReview } from './review.js';
+import { ctx } from './ctx.js';
+import { renderHome } from './views/home.js';
+import { renderInbox } from './views/inbox.js';
+import { renderFeedback } from './views/feedback.js';
+import { renderPeople, renderPerson } from './views/people.js';
+import { renderInsights } from './views/insights.js';
+import { renderSettings } from './views/settings.js';
+import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
@@ -11,6 +19,16 @@ const routes = [
   { re: /^\/app\/join\/([a-f0-9]{6,64})\/?$/, render: renderJoin, open: true },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/v\/([0-9a-f-]{36})\/?$/, render: (projectId, videoId) => mountReview({ projectId, videoId, me: state.session.user, view, navigate, setCrumbs }) },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/?$/, render: renderProject },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/notes\/?$/, render: renderProjectNotes },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/people\/?$/, render: renderProjectPeople },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/settings\/?$/, render: renderProjectSettings },
+  { re: /^\/app\/projects\/?$/, render: renderProjects },
+  { re: /^\/app\/inbox\/?$/, render: renderInbox },
+  { re: /^\/app\/feedback\/?$/, render: renderFeedback },
+  { re: /^\/app\/people\/?$/, render: renderPeople },
+  { re: /^\/app\/people\/([0-9a-f-]{36})\/?$/, render: renderPerson },
+  { re: /^\/app\/insights\/?$/, render: renderInsights },
+  { re: /^\/app\/settings(?:\/([a-z]+))?\/?$/, render: (section) => renderSettings(section) },
   { re: /^\/app\/me\/?$/, render: renderMe },
   { re: /^\/app\/?$/, render: renderHome }
 ];
@@ -38,11 +56,12 @@ async function route() {
   if (!match.r.open && !state.profile) return renderName();
   renderChrome();
   refreshNav();
+  if (state.profile) refreshUnread();
   view.innerHTML = '<div class="loading">Loading…</div>';
   try {
     state.cleanup = (await match.r.render(...match.m.slice(1))) || null;
   } catch (error) {
-    view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><a class="btn" href="/app" data-link>Back to projects</a></div>`;
+    view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><a class="btn" href="/app" data-link>Back to Home</a></div>`;
   }
 }
 
@@ -63,6 +82,7 @@ function renderChrome() {
   document.body.classList.toggle('is-review', /\/v\//.test(location.pathname));
   $('[data-sidebar]').hidden = !signedIn;
   $('[data-tabbar]').hidden = !signedIn;
+  $('[data-bell]').hidden = !signedIn;
   if (signedIn) {
     $('[data-account-initials]').textContent = initials(state.profile.display_name);
     $('[data-account-name]').textContent = state.profile.display_name;
@@ -79,11 +99,48 @@ function currentProjectId() {
 function paintNav() {
   const path = location.pathname.replace(/\/$/, '');
   const projectId = currentProjectId();
-  const current = { home: path === '/app', projects: path === '/app' || Boolean(projectId), me: path === '/app/me' || path === '/app/reset' };
+  const under = (prefix) => path === prefix || path.startsWith(`${prefix}/`);
+  const current = {
+    home: path === '/app',
+    inbox: under('/app/inbox'),
+    feedback: under('/app/feedback'),
+    people: under('/app/people'),
+    insights: under('/app/insights'),
+    settings: under('/app/settings') || path === '/app/reset',
+    'all-projects': path === '/app/projects',
+    projects: path === '/app/projects' || Boolean(projectId),
+    // Places only reachable from Me on a phone keep the Me tab lit.
+    me: ['/app/me', '/app/inbox', '/app/people', '/app/insights', '/app/settings', '/app/reset'].some(under)
+  };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   $('[data-side-projects]').innerHTML = state.projects.length
     ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}><span class="card-mark xs">${esc(initials(p.title))}</span><span>${esc(p.title)}</span></a>`).join('')
     : '<p class="side-empty">No projects yet</p>';
+}
+
+// Unread count for the Inbox badge (sidebar) and the bell (phones). Kept live by a realtime channel.
+let inboxChannel = null;
+async function refreshUnread() {
+  if (!state.session) return;
+  const { count } = await sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+  $$('[data-unread]').forEach((b) => { b.hidden = !count; b.textContent = count > 99 ? '99+' : String(count || ''); });
+  if (!inboxChannel) {
+    const uid = state.session.user.id;
+    inboxChannel = sb.channel(`inbox:${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` }, () => refreshUnread())
+      .subscribe();
+  }
+}
+
+// Shortcuts from Home's getting-started list.
+async function startAction(kind) {
+  if (kind === 'project') return createProject();
+  if (kind === 'video') return newVideo();
+  if (kind === 'invite') {
+    if (!state.projects.length) { toast('Invites are per project. Create one first.'); return createProject(); }
+    const project = state.projects.find((p) => p.id === currentProjectId()) || state.projects[0];
+    return showInvite(project.id, project.title);
+  }
 }
 
 // The project list behind the sidebar and the New menu.
@@ -106,7 +163,10 @@ async function openNew() {
   const choice = await actionSheet({ title: 'Create', actions });
   if (choice === 'project') return createProject();
   if (choice === 'invite') return showInvite(project.id, project.title);
-  if (choice !== 'video') return;
+  if (choice === 'video') newVideo(project);
+}
+
+async function newVideo(project = null) {
   if (project) return createVideo(project.id);
   if (!state.projects.length) {
     toast('Videos live in a project. Create one first.');
@@ -129,6 +189,7 @@ document.addEventListener('click', (event) => { if (!event.target.closest('[data
 $('[data-signout]').addEventListener('click', signOut);
 async function signOut() {
   await sb.auth.signOut();
+  if (inboxChannel) { sb.removeChannel(inboxChannel); inboxChannel = null; }
   state.session = null;
   state.profile = null;
   state.projects = [];
@@ -385,223 +446,35 @@ function renderName() {
   });
 }
 
-// ---------- Projects ----------
-async function renderHome() {
-  setCrumbs([['Projects']]);
-  const { data: projects, error } = await sb.from('projects')
-    .select('id, title, created_at, project_members(count), videos(count)')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  view.innerHTML = `<section class="page">
-    <header class="page-head"><div><p class="eyebrow">Hi ${esc(state.profile.display_name.split(' ')[0])}</p><h1>Your projects</h1></div><button class="btn primary" data-new-project>+ New project</button></header>
-    ${projects.length ? `<div class="cards">${projects.map((p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
-        <span class="card-mark">${esc(initials(p.title))}</span>
-        <h3>${esc(p.title)}</h3>
-        <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
-      </a>`).join('')}</div>`
-    : `<div class="empty"><div class="empty-icon">✦</div><h2>Create your first project</h2><p>A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.</p><button class="btn primary" data-new-project>+ New project</button></div>`}
-  </section>`;
-  $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
-}
-
-// Phones reach account settings from the Me tab; wide screens also have them in the sidebar.
+// Phones: the Me tab is the hub for everything the sidebar holds beyond the tabs.
 function renderMe() {
   setCrumbs([['Me']]);
   const user = state.session.user;
+  const row = (href, label, extra = '') => `<a href="${href}" data-link><span>${label}</span>${extra}<i>›</i></a>`;
   view.innerHTML = `<section class="page narrow">
     <div class="me-card">
       <span class="avatar xl">${esc(initials(state.profile.display_name))}</span>
       <div><h1>${esc(state.profile.display_name)}</h1><p class="muted">${esc(user.email || '')}</p></div>
     </div>
     <div class="list-group">
-      <button data-me-rename><span>Your name</span><small>${esc(state.profile.display_name)}</small><i>›</i></button>
-      <button data-me-password><span>Password</span><small>Change</small><i>›</i></button>
+      ${row('/app/inbox', 'Inbox', '<span class="badge" data-unread hidden></span>')}
+      ${row(`/app/people/${user.id}`, 'My activity')}
+    </div>
+    <div class="list-group">
+      ${row('/app/people', 'People')}
+      ${row('/app/insights', 'Insights')}
+    </div>
+    <div class="list-group">
+      ${row('/app/settings/account', 'Account')}
+      ${row('/app/settings/notifications', 'Notifications')}
+      ${row('/app/settings/plan', 'Plan', '<small>Free</small>')}
     </div>
     <div class="list-group">
       <button data-me-signout class="danger-text"><span>Log out</span></button>
     </div>
   </section>`;
-  $('[data-me-rename]').addEventListener('click', renameMe);
-  $('[data-me-password]').addEventListener('click', () => navigate('/app/reset'));
   $('[data-me-signout]').addEventListener('click', signOut);
-}
-
-async function createProject() {
-  const values = await dialog({ title: 'New project', fields: [{ name: 'title', label: 'Project name', placeholder: 'Showcase 2026', required: true }], confirm: 'Create project' });
-  if (!values?.title) return;
-  const { data, error } = await sb.from('projects').insert({ title: values.title }).select('id').single();
-  if (error) return toast(friendlyError(error), 'error');
-  navigate(`/app/p/${data.id}`);
-}
-
-async function renderProject(projectId) {
-  const [{ data: project, error }, members, { data: videos, error: vErr }] = await Promise.all([
-    sb.from('projects').select('id, title, created_at').eq('id', projectId).single(),
-    loadMembers(projectId),
-    sb.from('videos').select('id, title, created_at, takes(id, number, created_at), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
-  ]);
-  if (error) throw error;
-  if (vErr) throw vErr;
-  const me = members.find((m) => m.user_id === state.session.user.id);
-  const isOwner = me?.role === 'owner';
-  setCrumbs([['Projects', '/app'], [project.title]]);
-  view.innerHTML = `<section class="page">
-    <header class="page-head">
-      <div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
-        <div class="members">${members.slice(0, 6).map((m) => `<span class="avatar" title="${esc(m.name)} · ${m.role === 'owner' ? 'Owner' : 'Member'}">${esc(initials(m.name))}</span>`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<button class="link" data-show-members>${members.length} ${members.length === 1 ? 'member' : 'members'}</button></div>
-      </div>
-      <div class="head-actions"><button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>+ New video</button><button class="btn ghost icon" data-project-menu aria-label="Project settings">•••</button></div>
-    </header>
-    ${videos.length ? `<div class="video-list">${videos.map((v) => {
-      const takes = [...v.takes].sort((a, b) => b.number - a.number);
-      const open = v.notes.filter((n) => n.status !== 'resolved').length;
-      return `<a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
-        <span class="video-thumb">▶</span>
-        <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
-        <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
-      </a>`;
-    }).join('')}</div>`
-    : `<div class="empty"><div class="empty-icon">▶</div><h2>Add your first rehearsal video</h2><p>Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.</p><button class="btn primary" data-new-video>+ New video</button></div>`}
-  </section>`;
-  $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
-  $('[data-invite]').addEventListener('click', () => showInvite(projectId, project.title));
-  $('[data-show-members]').addEventListener('click', () => showMembers(projectId, members, isOwner));
-  $('[data-project-menu]').addEventListener('click', () => projectMenu(project, isOwner));
-}
-
-// Words that don't tell two videos apart ("take 2", "v3", "final", dates).
-const titleWords = (title) => title.toLowerCase().replace(/\b(take|v|ver|version)\s*\d+\b|\b(final|new|again|retake)\b|\d{1,4}[./-]\d{1,2}([./-]\d{1,4})?/g, ' ')
-  .split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1);
-
-// Is this upload probably another take of a video that's already here?
-function suggestStack(title, videos, lastViewedId) {
-  const words = new Set(titleWords(title));
-  let best = null;
-  for (const v of videos) {
-    const other = new Set(titleWords(v.title));
-    const shared = [...words].filter((w) => other.has(w)).length;
-    const score = shared / Math.max(1, Math.min(words.size, other.size));
-    if (score >= 0.6 && (!best || score > best.score)) best = { video: v, score };
-  }
-  if (best) return best.video;
-  // No title match: offer the video they were just looking at, if it's still here.
-  return videos.find((v) => v.id === lastViewedId) || null;
-}
-
-async function createVideo(projectId) {
-  const values = await dialog({
-    title: 'New video',
-    body: 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
-    fields: [
-      { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true },
-      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 50 MB' }
-    ],
-    confirm: 'Upload'
-  });
-  if (!values) return;
-  const problem = checkTakeFile(values.file);
-  if (problem) return toast(problem, 'error');
-  const { data: existing } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId);
-  let lastViewed = null;
-  try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
-  const match = suggestStack(values.title, existing || [], lastViewed);
-  if (match) {
-    const next = (match.takes[0]?.count ?? 0) + 1;
-    const choice = await dialog({
-      title: `Is this a new take of “${match.title}”?`,
-      body: `It would become <b>Take ${next}</b>, and notes that aren’t fixed yet will carry over so your team can check what changed.`,
-      confirm: `Yes, add as Take ${next}`,
-      extra: 'No, it’s a new video'
-    });
-    if (!choice) return;
-    if (!choice.extra) {
-      try {
-        const added = await withUploadBar(`${match.title} · Take ${next}`, (stage) => uploadTake({ projectId, videoId: match.id, file: values.file, onStage: stage }));
-        toast(`Take ${added.number} is up. Open notes came along.`);
-        return navigate(`/app/p/${projectId}/v/${match.id}?take=${added.number}`);
-      } catch (err) {
-        return toast(friendlyError(err), 'error');
-      }
-    }
-  }
-  const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title }).select('id').single();
-  if (error) return toast(friendlyError(error), 'error');
-  try {
-    await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
-    toast('Uploaded. Pause on a moment and pin your first note.');
-    navigate(`/app/p/${projectId}/v/${video.id}`);
-  } catch (err) {
-    await sb.from('videos').delete().eq('id', video.id);
-    toast(friendlyError(err), 'error');
-  }
-}
-
-async function showInvite(projectId, title) {
-  // Reuse a live invite link if there is one, so everyone shares the same link.
-  let { data: invite } = await sb.from('project_invites').select('code, expires_at').eq('project_id', projectId).eq('revoked', false)
-    .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (!invite) {
-    const { data, error } = await sb.from('project_invites').insert({ project_id: projectId }).select('code, expires_at').single();
-    if (error) return toast(friendlyError(error), 'error');
-    invite = data;
-  }
-  const link = `${location.origin}/app/join/${invite.code}`;
-  const el = document.createElement('dialog');
-  el.className = 'dialog';
-  el.innerHTML = `<div class="dialog-card"><h2>Invite your team</h2><p>Anyone with this link can join <b>${esc(title)}</b> with just their name and email. It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
-    <div class="copy-row"><input readonly value="${esc(link)}" /><button class="btn primary" data-copy>Copy</button></div>
-    <div class="dialog-actions"><button class="btn ghost" data-close>Done</button></div></div>`;
-  document.body.append(el);
-  el.showModal();
-  el.querySelector('input').select();
-  el.querySelector('[data-copy]').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(link); toast('Invite link copied.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
-  });
-  el.querySelector('[data-close]').addEventListener('click', () => el.close());
-  el.addEventListener('close', () => el.remove());
-}
-
-function showMembers(projectId, members, isOwner) {
-  const el = document.createElement('dialog');
-  el.className = 'dialog';
-  el.innerHTML = `<div class="dialog-card"><h2>Members</h2>
-    <ul class="member-list">${members.map((m) => `<li><span class="avatar">${esc(initials(m.name))}</span><span><b>${esc(m.name)}</b><small>${m.role === 'owner' ? 'Owner' : 'Member'}</small></span>${isOwner && m.role !== 'owner' ? `<button class="link danger" data-remove="${m.user_id}">Remove</button>` : ''}</li>`).join('')}</ul>
-    <div class="dialog-actions"><button class="btn ghost" data-close>Close</button></div></div>`;
-  document.body.append(el);
-  el.showModal();
-  el.querySelector('[data-close]').addEventListener('click', () => el.close());
-  el.addEventListener('close', () => el.remove());
-  $$('[data-remove]', el).forEach((b) => b.addEventListener('click', async () => {
-    const { error } = await sb.from('project_members').delete().eq('project_id', projectId).eq('user_id', b.dataset.remove);
-    if (error) return toast(friendlyError(error), 'error');
-    el.close();
-    toast('Removed from the project.');
-    route();
-  }));
-}
-
-async function projectMenu(project, isOwner) {
-  if (isOwner) {
-    const values = await dialog({ title: 'Project settings', fields: [{ name: 'title', label: 'Project name', value: project.title, required: true }], confirm: 'Save', extra: 'Delete project' });
-    if (!values) return;
-    if (!values.extra) {
-      if (values.title === project.title) return;
-      const { error } = await sb.from('projects').update({ title: values.title }).eq('id', project.id);
-      if (error) return toast(friendlyError(error), 'error');
-      return route();
-    }
-    const sure = await dialog({ title: 'Delete this project?', body: `Every video, take, and note in <b>${esc(project.title)}</b> will be deleted for everyone. This can’t be undone.`, confirm: 'Delete project', danger: true });
-    if (!sure) return;
-    const { error } = await sb.from('projects').delete().eq('id', project.id);
-    if (error) return toast(friendlyError(error), 'error');
-    toast('Project deleted.');
-    return navigate('/app');
-  }
-  const leave = await dialog({ title: 'Leave this project?', body: 'You’ll lose access to its videos and notes. Ask for a new invite link to come back.', confirm: 'Leave project', danger: true });
-  if (!leave) return;
-  const { error } = await sb.from('project_members').delete().eq('project_id', project.id).eq('user_id', state.session.user.id);
-  if (error) return toast(friendlyError(error), 'error');
-  navigate('/app');
+  refreshUnread();
 }
 
 // ---------- Joining with an invite link ----------
@@ -642,6 +515,8 @@ async function loadProfile() {
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());
   state.profile = data || null;
 }
+
+Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut });
 
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {

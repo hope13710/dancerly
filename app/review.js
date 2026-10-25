@@ -11,7 +11,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     loadMembers(projectId)
   ]);
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
-  setCrumbs([['Projects', '/app'], [project.title, `/app/p/${projectId}`], [video.title]]);
+  setCrumbs([['Projects', '/app/projects'], [project.title, `/app/p/${projectId}`], [video.title]]);
   const base = `/app/p/${projectId}/v/${videoId}`;
   // Remembered so a later upload from the project page can offer to stack onto this video.
   try { localStorage.setItem(`looproom:lastVideo:${projectId}`, videoId); } catch {}
@@ -321,6 +321,18 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   setMode('point');
   await loadNotes();
   r.frame = requestAnimationFrame(tick);
+  // Opened from Inbox, Feedback, or Home: select that note and go to its moment.
+  const wantedNote = new URLSearchParams(location.search).get('note');
+  const target = wantedNote && r.notes.find((n) => n.id === wantedNote);
+  if (target) {
+    r.selected = target.id;
+    const jump = () => {
+      seek(target.t_end === null ? Math.max(0, target.t_start - 1) : target.t_start);
+      paintNotes();
+      view.querySelector(`[data-note="${target.id}"]`)?.scrollIntoView({ block: 'nearest' });
+    };
+    if (videoEl.readyState >= 1) jump(); else videoEl.addEventListener('loadedmetadata', jump, { once: true });
+  }
 
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
   async function mergeInto() {
