@@ -32,6 +32,7 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 ## Phase 2 — real SaaS foundations
 Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Supabase auth: email + password, one-time email confirmation (code or link), forgot/reset password, Google button behind a flag, profile on first visit.
+- [x] App shell: left sidebar on wide screens (＋ New, All projects, project list, account menu, hide toggle); bottom tab bar on phones (Projects · ＋ · Me) with the same actions. Review screen hides the tab bar.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
 - [x] Videos and takes (auto-numbered), private `takes` bucket, signed playback URLs.
 - [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.

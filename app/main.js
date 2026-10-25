@@ -1,8 +1,8 @@
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, checkTakeFile, loadMembers, GOOGLE_ENABLED } from './client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, uploadTake, withUploadBar, checkTakeFile, loadMembers, GOOGLE_ENABLED } from './client.js';
 import { mountReview } from './review.js';
 
 const view = $('[data-view]');
-const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false };
+const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
 
 // ---------- Routing ----------
 const routes = [
@@ -11,6 +11,7 @@ const routes = [
   { re: /^\/app\/join\/([a-f0-9]{6,64})\/?$/, render: renderJoin, open: true },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/v\/([0-9a-f-]{36})\/?$/, render: (projectId, videoId) => mountReview({ projectId, videoId, me: state.session.user, view, navigate, setCrumbs }) },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/?$/, render: renderProject },
+  { re: /^\/app\/me\/?$/, render: renderMe },
   { re: /^\/app\/?$/, render: renderHome }
 ];
 
@@ -36,6 +37,7 @@ async function route() {
   }
   if (!match.r.open && !state.profile) return renderName();
   renderChrome();
+  refreshNav();
   view.innerHTML = '<div class="loading">Loading…</div>';
   try {
     state.cleanup = (await match.r.render(...match.m.slice(1))) || null;
@@ -53,26 +55,89 @@ function setCrumbs(items) {
   back.hidden = !parent;
   if (parent) { back.href = parent[1]; back.textContent = `← ${parent[0]}`; }
 }
+// Signed in: a sidebar on wide screens, a tab bar on phones. Both reach the same places and actions.
 function renderChrome() {
   const signedIn = Boolean(state.session && state.profile);
-  $('[data-account]').hidden = !signedIn;
+  document.body.classList.toggle('signed-in', signedIn);
+  // Detail screens (the review) get the whole phone screen; the back link leads out.
+  document.body.classList.toggle('is-review', /\/v\//.test(location.pathname));
+  $('[data-sidebar]').hidden = !signedIn;
+  $('[data-tabbar]').hidden = !signedIn;
   if (signedIn) {
     $('[data-account-initials]').textContent = initials(state.profile.display_name);
     $('[data-account-name]').textContent = state.profile.display_name;
     $('[data-account-email]').textContent = state.session.user.email || '';
+    paintNav();
   }
   setCrumbs([]);
 }
+
+function currentProjectId() {
+  return location.pathname.match(/^\/app\/p\/([0-9a-f-]{36})/)?.[1] || null;
+}
+
+function paintNav() {
+  const path = location.pathname.replace(/\/$/, '');
+  const projectId = currentProjectId();
+  const current = { home: path === '/app', projects: path === '/app' || Boolean(projectId), me: path === '/app/me' || path === '/app/reset' };
+  $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
+  $('[data-side-projects]').innerHTML = state.projects.length
+    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}><span class="card-mark xs">${esc(initials(p.title))}</span><span>${esc(p.title)}</span></a>`).join('')
+    : '<p class="side-empty">No projects yet</p>';
+}
+
+// The project list behind the sidebar and the New menu.
+async function refreshNav() {
+  if (!state.session) return;
+  const { data } = await sb.from('projects').select('id, title').order('created_at', { ascending: false });
+  if (!data) return;
+  state.projects = data;
+  if (state.profile) paintNav();
+}
+
+async function openNew() {
+  const projectId = currentProjectId();
+  const project = state.projects.find((p) => p.id === projectId);
+  const actions = [
+    { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A rehearsal or run-through' },
+    ...(project ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
+    { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
+  ];
+  const choice = await actionSheet({ title: 'Create', actions });
+  if (choice === 'project') return createProject();
+  if (choice === 'invite') return showInvite(project.id, project.title);
+  if (choice !== 'video') return;
+  if (project) return createVideo(project.id);
+  if (!state.projects.length) {
+    toast('Videos live in a project. Create one first.');
+    return createProject();
+  }
+  if (state.projects.length === 1) return createVideo(state.projects[0].id);
+  const values = await dialog({ title: 'Upload to which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: state.projects.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
+  if (values?.project) createVideo(values.project);
+}
+$$('[data-new]').forEach((b) => b.addEventListener('click', openNew));
+
+// Wide screens can tuck the sidebar away; remembered per browser.
+try { document.body.classList.toggle('side-hidden', localStorage.getItem('looproom:side') === 'hidden'); } catch {}
+$$('[data-side-toggle]').forEach((b) => b.addEventListener('click', () => {
+  const hidden = document.body.classList.toggle('side-hidden');
+  try { localStorage.setItem('looproom:side', hidden ? 'hidden' : 'shown'); } catch {}
+}));
 $('[data-account-toggle]').addEventListener('click', () => $('[data-account-menu]').toggleAttribute('hidden'));
 document.addEventListener('click', (event) => { if (!event.target.closest('[data-account]')) $('[data-account-menu]').hidden = true; });
-$('[data-signout]').addEventListener('click', async () => {
+$('[data-signout]').addEventListener('click', signOut);
+async function signOut() {
   await sb.auth.signOut();
   state.session = null;
   state.profile = null;
+  state.projects = [];
   navigate('/app/login');
-});
+}
 $('[data-password]').addEventListener('click', () => { $('[data-account-menu]').hidden = true; navigate('/app/reset'); });
-$('[data-rename]').addEventListener('click', async () => {
+$('[data-rename]').addEventListener('click', renameMe);
+async function renameMe() {
+  $('[data-account-menu]').hidden = true;
   const values = await dialog({ title: 'Your name', fields: [{ name: 'name', label: 'Shown to your team', value: state.profile.display_name, max: 60, required: true }] });
   if (!values?.name) return;
   const { error } = await sb.from('profiles').update({ display_name: values.name }).eq('id', state.session.user.id);
@@ -80,7 +145,7 @@ $('[data-rename]').addEventListener('click', async () => {
   state.profile.display_name = values.name;
   renderChrome();
   route();
-});
+}
 
 // ---------- Sign in / sign up ----------
 // Only ever send people back inside the app after signing in.
@@ -265,6 +330,7 @@ function renderReset() {
     $('[data-new]').addEventListener('click', () => renderForgot());
     return;
   }
+  if (!state.recovering) setCrumbs([['Me', '/app/me'], ['Password']]);
   view.innerHTML = `<section class="auth"><form class="auth-card" data-reset-form>
     <h1>${state.recovering ? 'Set a new password' : 'Change password'}</h1>
     <p class="muted">For <b>${esc(state.session.user.email || '')}</b>. You’ll use it to log in from now on.</p>
@@ -338,6 +404,28 @@ async function renderHome() {
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
 
+// Phones reach account settings from the Me tab; wide screens also have them in the sidebar.
+function renderMe() {
+  setCrumbs([['Me']]);
+  const user = state.session.user;
+  view.innerHTML = `<section class="page narrow">
+    <div class="me-card">
+      <span class="avatar xl">${esc(initials(state.profile.display_name))}</span>
+      <div><h1>${esc(state.profile.display_name)}</h1><p class="muted">${esc(user.email || '')}</p></div>
+    </div>
+    <div class="list-group">
+      <button data-me-rename><span>Your name</span><small>${esc(state.profile.display_name)}</small><i>›</i></button>
+      <button data-me-password><span>Password</span><small>Change</small><i>›</i></button>
+    </div>
+    <div class="list-group">
+      <button data-me-signout class="danger-text"><span>Log out</span></button>
+    </div>
+  </section>`;
+  $('[data-me-rename]').addEventListener('click', renameMe);
+  $('[data-me-password]').addEventListener('click', () => navigate('/app/reset'));
+  $('[data-me-signout]').addEventListener('click', signOut);
+}
+
 async function createProject() {
   const values = await dialog({ title: 'New project', fields: [{ name: 'title', label: 'Project name', placeholder: 'Showcase 2026', required: true }], confirm: 'Create project' });
   if (!values?.title) return;
@@ -374,7 +462,6 @@ async function renderProject(projectId) {
       </a>`;
     }).join('')}</div>`
     : `<div class="empty"><div class="empty-icon">▶</div><h2>Add your first rehearsal video</h2><p>Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.</p><button class="btn primary" data-new-video>+ New video</button></div>`}
-    <button class="fab" data-new-video aria-label="Upload a new video"><span aria-hidden="true">＋</span></button>
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $('[data-invite]').addEventListener('click', () => showInvite(projectId, project.title));

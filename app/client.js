@@ -89,6 +89,23 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', danger
   });
 }
 
+// A short list of choices: a bottom sheet on phones, a small centered card elsewhere.
+export function actionSheet({ title, actions }) {
+  return new Promise((resolve) => {
+    const el = document.createElement('dialog');
+    el.className = 'dialog sheet';
+    el.innerHTML = `<form method="dialog" class="dialog-card">
+      <h2>${esc(title)}</h2>
+      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action"><b>${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</button>`).join('')}</div>
+      <button value="" class="btn ghost wide">Cancel</button>
+    </form>`;
+    document.body.append(el);
+    el.addEventListener('click', (event) => { if (event.target === el) el.close(''); });
+    el.addEventListener('close', () => { el.remove(); resolve(el.returnValue || null); });
+    el.showModal();
+  });
+}
+
 // ---------- Uploading a take ----------
 export function checkTakeFile(file) {
   if (!file) return 'Choose a video file.';
