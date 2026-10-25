@@ -60,3 +60,7 @@ create table public.account_deletion_feedback (
 );
 alter table public.account_deletion_feedback enable row level security;
 -- No policies: only the service role (the delete-account function) writes or reads it.
+
+-- Security cleanup: migration 013 (dropping the first version of create_request) was never applied, so the old
+-- function was still callable. The app only uses create_request_v2.
+drop function if exists public.create_request(uuid, text, text, timestamptz, uuid[], uuid);
