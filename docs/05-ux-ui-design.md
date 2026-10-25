@@ -159,8 +159,8 @@
 │        본문 스크롤       │
 │                         │
 ├─────────────────────────┤
-│  ⌂    ◫    (＋)   ✦   ○  │ ← 하단 탭 64px + 안전 영역
-│Today Feedback    Recap Me│
+│  ⌂    ◫    (＋)   ◇   ○  │ ← 하단 탭 64px + 안전 영역
+│Today Feedback  Projects Me│
 └─────────────────────────┘
 ```
 
@@ -193,9 +193,10 @@
 | **Empty state** | 일러스트 없음, 아이콘 + 한 줄 + 버튼 | | "Never a blank page" |
 | **Skeleton** | 리스트 · 카드 · AI shimmer | | AI는 테마색 shimmer + "Reading n notes…" |
 | **Upload bar** | 상단 고정 진행 | uploading · paused · processing · done · failed | 화면 이동해도 유지 |
-| **AI recap card** | Just me · Whole project (같은 디자인) | generating · ready · private · shared | 밝은 유리 카드, 모드별 그라데이션 테두리, ✦ 26px |
+| **AI recap card** | Just me · Whole project (같은 디자인) | generating · ready · private · shared · pinned | 밝은 유리 카드, 모드별 그라데이션 테두리, ✦ 26px |
 | **Command palette** | ⌘K | 검색 · 명령 · 최근 | 키보드 전용 동작 |
 | **Toggle** | on/off | | 설정 |
+| **Recap row** | 목록 한 줄: 범위 · 기간 · 만든/공유한 사람 · 📌 · 이전 버전 수 | 기본 · pinned · 펼침 | 프로젝트 Recaps 탭, My recaps |
 | **Checklist item** | 리캡 할 일 | unchecked · checked(→ Practicing) | 타임스탬프 칩 포함 |
 
 ### 5-1. 노트 카드 해부
@@ -216,11 +217,17 @@
 
 각 화면: **목적 · 구성 · 상태(빈/로딩/오류)**
 
-### S1. 코치 Home
+### S1. Home (데스크톱)
 
 ```
 Good morning, Alex                                   [＋ New assignment]
 Monday, Oct 26 · Here’s what needs you today.
+
+┌ ✦ Your recap · Showcase 2026 · Oct 19–25 ─────── saved ┐   (최근 리캡 1장)
+│ ☐ 00:16 Hit “5-and-6” together with Jordan             │
+│ ☐ 01:03 Hold the final shape two counts                │
+│ [Open recap]  [✦ New recap for next rehearsal]          │
+└─────────────────────────────────────────────────────────┘
 
 ┌ Get set up ────────────── 2 of 4 ┐   (첫 주에만)
 │ ✓ Workspace  ✓ First note  ○ Upload your own video  ○ Invite dancers │
@@ -278,10 +285,14 @@ Review queue                                 Filter: All groups ▾  Project ▾
 - 로딩: 썸네일 + 노트 목록 먼저. 처리 중: "Processing your video… notes are ready below."
 - 오류: "This video couldn’t be played." [Try again] [Ask dancer to re-upload]
 
-### S4. 댄서 Today (모바일)
+### S4. Today (모바일)
 
 ```
 Hi Maya 👋
+┌ ✦ Before Thursday’s rehearsal ──┐   (최근 리캡 카드, 맨 위)
+│ 2 things to work on · Oct 19–25 │
+│ [Open recap]  [✦ New recap]     │
+└─────────────────────────────────┘
 ┌ Due Friday ─────────────────────┐
 │ Week 04 — Chorus timing         │
 │ 2 notes to practice · V1        │
@@ -351,9 +362,29 @@ Status In rehearsal · Show Nov 14 · Music 112 BPM (auto) · MC JS RK +9
 ### S10. Recap (모든 멤버)
 
 - 랜딩 AI 리캡 카드와 동일한 컴포넌트, **한 종류**.
-- 상단: 범위 세그먼트 **Just me / Whole project** → 기간 세그먼트(Last rehearsal · This week · This month · Custom) → [✦ Generate] → shimmer → 결과.
-- 결과 아래: [Share to project] [✦ Regenerate]. 공유 전에는 "Only you can see this" 표시.
-- Insights › Recaps: Mine / Shared to project 탭.
+- 입구 세 곳, 같은 카드: **Home/Today 최근 리캡 카드** · **프로젝트 › Recaps 탭(본거지)** · **Me › My recaps**.
+- 만들기: 범위 **Just me / Whole project** → 기간(Last rehearsal · This week · This month · Custom) → [✦ Generate] → shimmer → 결과.
+- 결과 아래: [📌 Pin] [Share to project] [✦ Regenerate]. 상단 상태 "Just now · saved to Recaps". 공유 전에는 "Only you can see this".
+- **저장은 자동**. 저장 버튼 없음. 같은 범위·기간으로 다시 만들면 새 것이 위, 이전 것은 "▸ 2 earlier versions"로 접힘.
+- 📌 고정은 **개인 표시** (나에게만 맨 위). 고정은 개수 제한 없음, 목록 맨 위 "Pinned" 묶음.
+
+**프로젝트 › Recaps 탭**
+
+```
+Showcase 2026 › Recaps                         [✦ New recap]
+[Shared] [Mine] [📌 Pinned]                    Oct ▾
+
+📌 Pre-show check · Whole project · Nov 7
+   Shared by Riko · 4 still open
+── This week ───────────────────────────────────
+   Whole project · Oct 19–25 · Weekly auto-recap
+   Just me · Oct 19–25 · Only you      ▸ 2 earlier versions
+── Last week ───────────────────────────────────
+   Whole project · Oct 12–18 · Shared by Jordan
+```
+
+- 행 클릭 → 리캡 카드 펼침 (같은 화면, 오른쪽 패널 또는 모바일 전체 화면).
+- 빈 상태: "No recaps yet. Make one before your next rehearsal." [✦ New recap]
 - 항상 표시: "AI summary of your team’s notes" + 각 문장 [n] + ✦ AI 레이블.
 
 ### S11. 멤버 프로필

@@ -139,22 +139,28 @@ stateDiagram-v2
 
 ---
 
-## F6. 댄서 리캡 생성
+## F6. AI 리캡 만들기·다시 보기
 
 ```mermaid
 flowchart TD
-  A[Recap 탭] --> B[기간: Last class · This week · This month · Custom]
-  B --> C[필터: 모든 코치 / 특정 코치·프로젝트]
-  C --> D{기간 내 노트 있음?}
-  D -->|없음| E['No notes from your coaches in this period yet.']
-  D -->|있음| F{이전 결과가 최신?}
-  F -->|예| G[저장된 리캡 즉시 표시]
-  F -->|아니오| H[✦ Reading 9 notes… shimmer]
-  H --> I[스트리밍으로 문장 표시]
-  I --> G
-  G --> J[문장의 n 탭 → 노트 카드 → 그 순간 재생]
+  A{어디서?} -->|Home/Today 카드| B[✦ New recap for next rehearsal]
+  A -->|프로젝트 › Recaps 탭| B2[✦ New recap]
+  B --> C[범위: Just me / Whole project]
+  B2 --> C
+  C --> D[기간: Last rehearsal · This week · This month · Custom]
+  D --> E{기간 내 노트 있음?}
+  E -->|없음| E2['No notes in this period yet.']
+  E -->|있음| F{같은 범위·기간 리캡이 최신?}
+  F -->|예| G[저장된 리캡 바로 표시]
+  F -->|아니오| H[✦ Reading 9 notes… shimmer → 스트리밍]
+  H --> S[(자동 저장 · 이전 버전은 접힘)]
+  S --> G
+  G --> J[문장의 n 탭 → 노트 → 그 순간 재생]
   G --> K[할 일 체크 → 노트 Practicing]
-  G --> L[Share with coach]
+  G --> L[Share to project]
+  G --> P[📌 Pin]
+  R([예전 리캡이 보고 싶을 때]) --> R1[프로젝트 › Recaps 탭<br/>Shared · Mine · Pinned · 월 선택]
+  R --> R2[Me › My recaps<br/>모든 프로젝트]
 ```
 
 ---

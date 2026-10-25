@@ -4217,3 +4217,51 @@ sup.cite {
   background: rgba(91, 92, 226, 0.1);
   box-shadow: inset 0 0 0 1px rgba(91, 92, 226, 0.3);
 }
+
+/* ---------- AI recap: auto-saved history and pin ---------- */
+.report-actions .pin.on {
+  color: #b4386a;
+  background: #fde8f0;
+  box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.4);
+}
+.recap-history {
+  width: min(600px, 100%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #6b7280;
+}
+.history-label b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.history-chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: #4b515c;
+  white-space: nowrap;
+}
+.history-chip.pinned {
+  border-color: rgba(244, 114, 182, 0.45);
+  color: #b4386a;
+}
+@media (max-width: 720px) {
+  .report-actions {
+    flex-wrap: wrap;
+  }
+}
+.report-actions button {
+  white-space: nowrap;
+}
+.report-grounded {
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .report-grounded {
+    white-space: normal;
+  }
+}

@@ -163,6 +163,8 @@ AI가 춤을 직접 평가하지 않는다. **팀원이 남긴 피드백만** �
 | 범위 | **Just me** (나에게 온·멘션된 노트) / **Whole project** (그 프로젝트의 모든 Team 노트) |
 | 기간 | Last rehearsal · This week · This month · Custom |
 | 공개 | 만든 사람만 보임 → **Share to project** 하면 프로젝트 피드에 올라감 |
+| 보는 곳 | **프로젝트 › Recaps 탭**(본거지) · Home/Today 최근 리캡 카드 · Me › My recaps. 별도 메뉴 없음 |
+| 보관 | **자동 저장**(날짜·범위). 같은 범위·기간은 버전으로 접힘. 중요한 것은 📌 고정 (북마크 대신) |
 | 자동 리캡 | 프로젝트 설정에서 켜면 매주 정해진 시간에 Whole project 리캡이 프로젝트에 자동 게시 (Owner 설정) |
 | 학부모·외부 공유 | 리캡을 게스트 링크로 공유 (Studio) |
 

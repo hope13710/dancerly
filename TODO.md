@@ -45,7 +45,8 @@ See `docs/product-plan.md` for the full spec.
 - [ ] Correction library: save and reuse frequent notes with `/`.
 
 ## Phase 3 — AI reports
-- [x] Landing: one AI Recap with Just me / Whole project scopes (coach reports removed).
+- [x] Landing: one AI Recap with Just me / Whole project scopes (coach reports removed), auto-saved with 📌 pin and earlier recaps.
+- [ ] Project › Recaps tab, Home recap card, Me › My recaps; version folding for the same scope and period.
 - [ ] Dancer self-serve "My recap": period × coach/project × category, private by default, share with coach, checklist → note status Practicing.
 - [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
 - [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.

@@ -121,6 +121,7 @@ flowchart LR
   APP --> IN[Insights]
   APP --> ST[Settings]
 
+  HOME --> H0[✦ 최근 리캡 카드]
   HOME --> H1[오늘 할 일]
   HOME --> H2[시작 체크리스트]
   HOME --> H3[최근 활동]
@@ -138,8 +139,10 @@ flowchart LR
   PX --> P1[Overview]
   PX --> P2[Count sheet]
   PX --> P3[Assignments board]
+  PX --> P6[✦ Recaps]
   PX --> P4[Pages]
   PX --> P5[Calendar]
+  P6 --> RL[[Shared · Mine · 📌 Pinned]]
   P3 --> AS[Assignment 상세]
   AS --> RV
 
@@ -148,7 +151,8 @@ flowchart LR
   D1 --> DP[멤버 프로필]
 
   IN --> N1[Dashboard]
-  IN --> N2[Recaps]
+  ME2[내 프로필] --> MR[My recaps<br/>모든 프로젝트]
+  APP --> ME2
   IN --> N3[Note library]
 
   ST --> S1[Workspace]
@@ -170,16 +174,16 @@ flowchart LR
 | **Review queue** | New takes · Mentions me · Overdue | | 내가 속한 프로젝트의 새 테이크를 한 줄로. 여기서 바로 리뷰 화면으로 |
 | | → **Video review** | Notes · Versions · Compare | 플레이어 + 노트·스케치 + 버전 비교 |
 | **Projects** | 프로젝트 목록 | | 카드 목록, ＋ New from template |
-| | 프로젝트 상세 | Overview | 목표, 일정, 참여 댄서, 음악 |
+| | 프로젝트 상세 | Overview | 목표, 일정, 참여 멤버, 음악 |
 | | | Count sheet | 구간 × 카운트 × 포커스 × 기준 영상 × 상태 |
 | | | Assignments board | To submit → In review → Practicing → Fixed |
 | | | Pages | 자유 문서 (블록 에디터, @링크) |
+| | | **Recaps** | ✦ 이 프로젝트의 AI 리캡 **본거지**. 새 리캡 만들기, Shared · Mine · 📌 Pinned 필터, 기간별 목록, 이전 버전 펼치기 |
 | | | Calendar | 리허설·마감 |
 | | → Assignment 상세 | Submissions · Brief · Settings | 과제 설명, 제출 현황 |
 | **People** | Members | | 멤버 목록 → **멤버 프로필**(테이크·받은 노트·해결 기록, 리캡 생성) |
 | | Groups | | 그룹 목록, 초대 링크 |
 | **Insights** | Dashboard | Project · Member · AI label | 연습 신호 · 피드백 신호 · 동작 신호(Beta) |
-| | Recaps | Mine · Shared to project | AI 리캡 생성(Just me / Whole project), 프로젝트에 공유된 리캡 모음 |
 | | Note library | | 팀이 자주 쓰는 노트, AI 레이블 이름 관리 |
 | **Settings** | Workspace | | 이름, 로고, 언어, 시간대 |
 | | Members | | 초대·내보내기, Owner 넘기기 (Owner만) |
@@ -209,9 +213,10 @@ flowchart LR
   DA((웹 앱 모바일)) --> T[Today]
   DA --> FB[Feedback]
   DA --> UP[＋ Upload]
-  DA --> RC[Recap]
+  DA --> PJ[Projects]
   DA --> ME[Me]
 
+  T --> T0[✦ 최근 리캡 · Generate for next rehearsal]
   T --> T1[할 일 · 마감 과제]
   T --> T2[새 피드백]
   FB --> F1[For me · 나에게 온 노트]
@@ -220,10 +225,9 @@ flowchart LR
   FB --> PV[[노트 보기 · 루프 · 거울모드]]
   UP --> U1[과제 선택]
   U1 --> U2[영상 선택 · 업로드]
-  RC --> R1[Last class / This week / This month]
-  RC --> R2[코치 · 프로젝트 필터]
+  PJ --> P1m[프로젝트 → Takes · Notes · ✦ Recaps]
   ME --> M1[내 성장 기록]
-  ME --> M2[내 팀 · 프로젝트]
+  ME --> M2[My recaps · 📌 고정 포함]
   ME --> M3[Account settings]
 ```
 
@@ -231,11 +235,11 @@ flowchart LR
 
 | 탭 | 아이콘 | 내용 | 배지 |
 |---|---|---|---|
-| **Today** | ⌂ | 새 리허설 영상(아직 안 본 테이크), 나에게 온 노트, 마감 과제 | — |
+| **Today** | ⌂ | **✦ 최근 리캡 카드**(없으면 "Generate for next rehearsal"), 새 테이크, 나에게 온 노트, 마감 과제 | — |
 | **Feedback** | ◫ | For me(나에게 온·멘션된 노트) · By me(내가 쓴 노트, 해결 처리) · Team(프로젝트 전체) | 새 노트 수 |
 | **＋** | 가운데 큰 버튼 | 영상 올리기 (프로젝트·과제 선택 → 카메라 롤) | — |
-| **Recap** | ✦ | 내 AI 리캡 생성·보기 | — |
-| **Me** | ○ | 성장 기록, 내 팀·프로젝트, 계정 | — |
+| **Projects** | ◇ | 내 프로젝트 → 테이크·노트·**Recaps 탭** | — |
+| **Me** | ○ | 성장 기록, **My recaps**(모든 프로젝트, 📌 고정 먼저), 계정 | — |
 
 > 원칙: 알림·초대 링크를 누르면 **해당 노트의 그 순간**으로 바로 열린다 (3탭 이내 규칙).
 
@@ -269,11 +273,13 @@ flowchart LR
 | `/app/assignments/:id` | 과제 상세 | 〃 |
 | `/app/people/(dancers\|groups\|coaches)` | People | 〃 |
 | `/app/people/dancers/:id` | 댄서 프로필 | 〃 |
-| `/app/insights/(dashboard\|recaps\|library)` | Insights | 모든 멤버 |
+| `/app/insights/(dashboard\|library)` | Insights | 모든 멤버 |
+| `/app/projects/:id/recaps` | 프로젝트 Recaps 탭 | 프로젝트 멤버 |
+| `/app/recaps/:recapId` | 리캡 한 장 (공유·딥링크용) | 볼 권한이 있는 사람 |
 | `/app/settings/:section` | 팀 공간·프로젝트 설정 | Owner |
 | `/app/feedback/:noteId` | 노트의 그 순간 (모바일·데스크톱 공통) | 프로젝트 멤버 |
 | `/app/upload?project=:id` | 업로드 | 프로젝트 멤버 |
-| `/app/recap` | 내 리캡 | 모든 멤버 |
+| `/app/me/recaps` | My recaps (모든 프로젝트) | 본인 |
 | `/account` | 내 계정 설정 (공통) | 로그인 사용자 |
 | `/s/:token` | 게스트 보기 | 링크 소지자 |
 
@@ -293,14 +299,27 @@ flowchart LR
 | Projects | ✓ + 설정·보관·삭제 | ✓ 초대받은 프로젝트 | — |
 | People | ✓ + 내보내기·Owner 넘기기 | ✓ 보기 | — |
 | Insights › Dashboard | ✓ | ✓ | — |
-| Insights › Recaps | ✓ | ✓ | 공유된 리캡만 |
+| Project › Recaps | ✓ | ✓ | 공유 링크로 받은 리캡만 |
+| Me › My recaps | ✓ | ✓ | — |
 | Note library | ✓ | ✓ | — |
 | Settings › Team·Members·Billing·AI | ✓ | — | — |
 | Account settings | ✓ | ✓ | — |
 
 ---
 
-## 8. 내비게이션 규칙
+## 8. AI 리캡이 보이는 곳
+
+리캡은 **프로젝트에 저장**되고, 입구만 세 곳이다. 세 곳 모두 같은 카드·같은 데이터.
+
+| 입구 | 보이는 것 | 목적 |
+|---|---|---|
+| Home / Today 맨 위 카드 | 가장 최근 리캡 1장, 없으면 [✦ Generate for next rehearsal] | 리허설 직전, 메뉴를 찾지 않고 바로 |
+| 프로젝트 › **Recaps** 탭 (본거지) | 그 프로젝트의 모든 리캡: Shared · Mine · 📌 Pinned, 기간별 | 만들기·모아 보기·공유 |
+| Me › **My recaps** | 내가 만든 리캡 전체 (모든 프로젝트) | 여러 팀에 속한 사람의 개인 기록 |
+
+별도 Insights › Recaps 메뉴는 두지 않는다.
+
+## 9. 내비게이션 규칙
 
 1. **최대 깊이 3단계**. 4단계가 필요하면 탭으로 푼다. (Projects › Showcase 2026 › Board)
 2. **브레드크럼**은 데스크톱 헤더에 항상 표시. 모바일은 ← 뒤로 + 현재 화면 이름.

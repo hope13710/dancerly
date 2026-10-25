@@ -290,7 +290,7 @@
 
 | ID | 기능 | 설명 | 역할 | 우선 | 단계 | 현황 |
 |---|---|---|---|---|---|---|
-| RPT-01 | **리캡 생성** | Recap → 범위(**Just me** / **Whole project**) × 기간(Last rehearsal · This week · This month · Custom) → Generate | 전체 | P0 | 3 | ✅ (랜딩 데모) |
+| RPT-01 | **리캡 생성** | Home 카드·프로젝트 Recaps 탭의 [✦ New recap] → 범위(**Just me** / **Whole project**) × 기간(Last rehearsal · This week · This month · Custom) → Generate | 전체 | P0 | 3 | ✅ (랜딩 데모) |
 | RPT-02 | 프로젝트에 공유 | "Share to project" → 프로젝트 피드에 게시, 멤버에게 알림 | 전체 | P0 | 3 | ✅ (버튼만) |
 | RPT-03 | 다시 생성 | 새 노트가 생기면 "Regenerate" 강조 | 전체 | P1 | 3 | ✅ (데모) |
 | RPT-04 | 출처 인용 | 모든 문장에 [n] → 노트 카드 팝오버 → 그 순간 재생 | 전체 | P0 | 3 | ✅ (표시만) |
@@ -303,6 +303,13 @@
 | RPT-11 | 번역 | 보는 사람 언어로 | 전체 | P1 | 3 | ⬜ |
 | RPT-12 | 캐시·한도 | 새 노트 없으면 이전 결과, 플랜별 생성 한도 | — | P0 | 3 | ⬜ |
 | RPT-13 | 피드백 | 문장별 👍/👎, "이 문장 틀림" 신고 → 다시 생성 | 전체 | P1 | 3 | ⬜ |
+| RPT-14 | **자동 저장** | 만든 리캡은 날짜·범위·"notes up to" 시점과 함께 자동 저장. 저장 버튼 없음 | 전체 | P0 | 3 | ✅ (랜딩 "saved to Recaps") |
+| RPT-15 | 버전 묶기 | 같은 범위·기간으로 다시 만들면 최신이 위, 이전 것은 "▸ n earlier versions"로 접힘 | 전체 | P1 | 3 | ⬜ |
+| RPT-16 | 📌 고정 | 개인 고정. Recaps 목록 맨 위 Pinned 묶음, Me › My recaps에서도 먼저 | 전체 | P1 | 3 | ✅ (랜딩 데모) |
+| RPT-17 | 프로젝트 Recaps 탭 | 리캡 **본거지**. Shared · Mine · 📌 Pinned 필터, 주 단위 묶음, 월 선택 | 전체 | P0 | 3 | ⬜ |
+| RPT-18 | 홈 리캡 카드 | Home/Today 맨 위에 최근 리캡 1장, 없으면 "Generate for next rehearsal" | 전체 | P0 | 3 | ⬜ |
+| RPT-19 | My recaps | Me › My recaps: 내가 만든 리캡 전체(모든 프로젝트), 고정 먼저 | 전체 | P1 | 3 | ⬜ |
+| RPT-20 | 리캡 검색 | 리캡 본문·기간 검색 | 전체 | P2 | 3.5 | ⬜ |
 
 **인수 조건 (RPT-01)**
 - 생성 시작부터 첫 문장 표시까지 **5초 이내** (스트리밍).
