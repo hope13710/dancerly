@@ -55,7 +55,9 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', danger
     el.className = 'dialog';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>${body ? `<p>${body}</p>` : ''}
-      ${fields.map((f) => `<label class="field"><span>${esc(f.label)}</span>${f.type === 'file'
+      ${fields.map((f) => `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
+        ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
+        : f.type === 'file'
         ? `<input name="${f.name}" type="file" accept="${f.accept || ''}" ${f.required ? 'required' : ''} />`
         : `<input name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" maxlength="${f.max || 120}" ${f.required ? 'required' : ''} />`}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`).join('')}
       <div class="dialog-actions">${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}<button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button></div>

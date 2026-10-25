@@ -40,7 +40,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [ ] Custom SMTP before launch; resumable uploads (tus) with progress; HLS transcoding and thumbnails.
 - [ ] Mention notifications, Inbox, retention rules.
 - [x] Takes stay in the data but show only when a video has 2+ takes; upload suggests stacking onto a matching video.
-- [ ] Merge a video into another as its next takes (migration 20261025000004 written, not applied yet).
+- [x] Merge a video into another as its next takes, notes included ("Merge into…" on the review screen; creator or owner).
 - [ ] Add real email/in-app notifications and permission checks.
 - [ ] Add Stripe plan entitlements and billing portal.
 - [ ] Replace seeded demo data with database-backed queries and mutations.

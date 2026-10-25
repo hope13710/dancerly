@@ -1,4 +1,3 @@
--- NOTE: written 2026-10-25 but NOT yet applied to the live Supabase project (the apply was interrupted). Apply before shipping the merge button.
 -- Merge one video into another: its takes become the next takes of the target, notes come along.
 -- For when someone uploaded a new take of the same piece as a separate video.
 

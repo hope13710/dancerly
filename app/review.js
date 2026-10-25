@@ -16,6 +16,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Remembered so a later upload from the project page can offer to stack onto this video.
   try { localStorage.setItem(`looproom:lastVideo:${projectId}`, videoId); } catch {}
   const isOwner = members.some((m) => m.user_id === me.id && m.role === 'owner');
+  const canManageVideo = isOwner || video.created_by === me.id;
   const nameOf = (id) => members.find((m) => m.user_id === id)?.name || 'Former member';
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
@@ -36,7 +37,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button></div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}</div>
     </header>
     <div class="review-layout">
       <div class="player-col">
@@ -316,9 +317,30 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     .subscribe();
 
   wireUpload();
+  $('[data-merge]')?.addEventListener('click', mergeInto);
   setMode('point');
   await loadNotes();
   r.frame = requestAnimationFrame(tick);
+
+  // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
+  async function mergeInto() {
+    const { data: others, error } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });
+    if (error) return toast(friendlyError(error), 'error');
+    if (!others.length) return toast('There’s no other video in this project to merge into.');
+    const values = await dialog({
+      title: `Merge “${video.title}” into another video`,
+      body: `Its ${takes.length === 1 ? 'take' : `${takes.length} takes`} will become the next takes of the video you pick, and every note comes along. “${esc(video.title)}” then disappears from the list.`,
+      fields: [{ name: 'target', label: 'Add these takes to', type: 'select', required: true, options: others.map((o) => ({ value: o.id, label: `${o.title} · ${o.takes[0]?.count ?? 0} ${(o.takes[0]?.count ?? 0) === 1 ? 'take' : 'takes'}` })) }],
+      confirm: 'Merge'
+    });
+    if (!values?.target) return;
+    const target = others.find((o) => o.id === values.target);
+    const { error: mergeErr } = await sb.rpc('merge_video', { p_source: videoId, p_target: target.id });
+    if (mergeErr) return toast(friendlyError(mergeErr), 'error');
+    const first = (target.takes[0]?.count ?? 0) + 1;
+    toast(`Merged. They’re now ${takes.length === 1 ? `Take ${first}` : `Takes ${first}–${first + takes.length - 1}`} of “${target.title}”.`);
+    navigate(`/app/p/${projectId}/v/${target.id}?take=${first + takes.length - 1}`);
+  }
 
   function wireUpload() {
     const fileInput = $('[data-file]');
