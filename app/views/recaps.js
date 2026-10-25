@@ -12,6 +12,14 @@ const SECTIONS = [
   ['recurring', 'Keeps coming up']
 ];
 const PERIODS = { last: 'Last rehearsal', week: 'This week', month: 'This month', custom: 'Custom' };
+// The four-point star used everywhere AI made something. Gradient ids are unique per use.
+let sparkId = 0;
+export function sparkle(cls = '') {
+  const id = `spark-g${(sparkId += 1)}`;
+  return `<svg class="ai-spark ${cls}" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa" /><stop offset="0.5" stop-color="#818cf8" /><stop offset="1" stop-color="#f472b6" /></linearGradient></defs><path fill="url(#${id})" d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>`;
+}
+const FRESH_KEY = 'looproom:fresh-recap';
+
 const SELECT = 'id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, created_at, projects(title), videos(title), recap_pins(user_id)';
 
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -103,18 +111,33 @@ async function runGeneration(params) {
   const busy = document.createElement('div');
   busy.className = 'recap-busy';
   busy.setAttribute('role', 'status');
-  busy.innerHTML = '<div><span class="spark">✦</span><b>Writing your recap…</b><small>Reading your team’s notes. This takes a few seconds.</small></div>';
+  const steps = ['Reading your team’s notes…', 'Finding what keeps coming up…', 'Writing your next steps…', 'Checking every line against a note…'];
+  busy.innerHTML = `<div class="ai-frame busy-card"><div class="ai-glow"></div><div class="ai-glass">
+    <div class="busy-orb">${sparkle('big')}${sparkle('twin')}</div>
+    <b class="ai-gradient-text">Writing your recap</b>
+    <small data-step>${steps[0]}</small>
+    <div class="ai-skeleton"><span></span><span></span><span></span><span></span></div>
+  </div></div>`;
   document.body.append(busy);
+  let step = 0;
+  const stepTimer = setInterval(() => {
+    step = Math.min(step + 1, steps.length - 1);
+    const el = busy.querySelector('[data-step]');
+    el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
+    el.textContent = steps[step];
+  }, 1600);
   try {
     const result = await generateRecap(params);
     if (result.empty) { toast(result.message || 'No notes in this period yet.'); return null; }
     if (result.cached) toast('No new notes since your last recap — here it is.');
+    else { try { sessionStorage.setItem(FRESH_KEY, result.recap.id); } catch {} }
     ctx.navigate(`/app/recaps/${result.recap.id}`);
     return result.recap;
   } catch (err) {
     toast(err.message, 'error');
     return null;
   } finally {
+    clearInterval(stepTimer);
     busy.remove();
   }
 }
@@ -130,26 +153,27 @@ function citeChips(cites, sources) {
 export function recapBody(r, { interactive = false } = {}) {
   const sources = r.sources || [];
   const mine = r.created_by === ctx.state.session.user.id;
+  let order = 0; // reveal order for the first-open animation
   return SECTIONS.map(([key, label]) => {
     const items = r.content?.[key] || [];
     if (!items.length) return '';
-    return `<section class="recap-section"><h3>${label}</h3><ul class="${key === 'next' ? 'todo' : ''}">${items.map((it, i) => {
+    return `<section class="recap-section" style="--i:${order++}"><h3>${label}</h3><ul class="${key === 'next' ? 'todo' : ''}">${items.map((it, i) => {
       const done = key === 'next' && (r.checked || []).includes(i);
       const box = key === 'next' && interactive && mine ? `<input type="checkbox" data-check="${i}" ${done ? 'checked' : ''} aria-label="Done" />` : key === 'next' ? `<span class="todo-dot ${done ? 'done' : ''}"></span>` : '';
-      return `<li class="${done ? 'done' : ''}">${box}<span>${esc(it.text)} ${citeChips(it.cites, sources)}</span></li>`;
+      return `<li class="${done ? 'done' : ''}" style="--i:${order++}">${box}<span>${esc(it.text)} ${citeChips(it.cites, sources)}</span></li>`;
     }).join('')}</ul></section>`;
   }).join('');
 }
 
 function recapMeta(r, names) {
-  return `<span class="chip ai">✦ ${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>by ${esc(names[r.created_by] || 'a teammate')}</span>`;
+  return `<span class="chip ai">${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>by ${esc(names[r.created_by] || 'a teammate')}</span>`;
 }
 
 function recapRow(group, names, { showProject = false } = {}) {
   const r = group.latest;
   return `<div class="recap-row">
     <a class="row" href="/app/recaps/${r.id}" data-link>
-      <span class="spark-mark">✦</span>
+      <span class="spark-mark">${sparkle()}</span>
       <span class="row-main">
         <span class="row-title">${esc(r.content?.headline || 'Recap')}</span>
         <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · by ${esc(names[r.created_by] || 'a teammate')}</span>
@@ -231,12 +255,16 @@ export async function renderRecap(recapId) {
   const mine = r.created_by === me;
   const { count: newer } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', r.project_id).gt('created_at', r.notes_up_to);
   const pinned = isPinned(r);
+  // Just generated? Play the reveal once.
+  let fresh = false;
+  try { fresh = sessionStorage.getItem(FRESH_KEY) === r.id; if (fresh) sessionStorage.removeItem(FRESH_KEY); } catch {}
   view.innerHTML = `<section class="page narrow-wide">
-    <article class="recap-card">
+    <div class="ai-frame ${fresh ? 'is-fresh' : ''}"><div class="ai-glow"></div>
+    <article class="recap-card ai-glass">
       <header class="recap-head">
+        <div class="ai-topline"><span class="ai-kind">${sparkle()}${sparkle('twin')}<b class="ai-gradient-text">AI recap</b></span><span class="ai-made">Written by AI from ${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span></div>
+        <h1 class="recap-headline">${esc(r.content?.headline || 'Recap')}</h1>
         <div class="recap-meta">${recapMeta(r, names)}</div>
-        <h1>${esc(r.content?.headline || 'Recap')}</h1>
-        <p class="recap-note">AI summary of your team’s notes · notes up to ${new Date(r.notes_up_to).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${r.shared_at ? `shared ${timeAgo(r.shared_at)}` : 'only you can see this'}</p>
       </header>
       ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${mine ? '<button class="btn small primary" data-regenerate>Regenerate</button>' : ''}</div>` : ''}
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
@@ -247,7 +275,8 @@ export async function renderRecap(recapId) {
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${mine ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
       </footer>
-    </article>
+      <p class="ai-disclaimer">${sparkle('tiny')} AI summary of your team’s notes, up to ${new Date(r.notes_up_to).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Every line cites a note — tap a number to check it. ${r.shared_at ? `Shared ${timeAgo(r.shared_at)}.` : 'Only you can see this.'}</p>
+    </article></div>
     <div class="cite-pop" data-pop hidden></div>
   </section>`;
 
@@ -329,15 +358,15 @@ export async function homeRecapCard() {
   const r = data?.[0];
   if (!r) {
     return {
-      html: `<section class="panel recap-teaser"><div class="panel-head"><div><p class="eyebrow">✦ AI recap</p><h2>Get ready for your next rehearsal</h2><p class="muted">Turn this week’s notes into a short list of what to work on.</p></div><button class="btn primary" data-home-recap>✦ Generate</button></div></section>`,
+      html: `<section class="panel recap-teaser ai-frame"><div class="ai-glow"></div><div class="panel-head"><div><p class="ai-kind small">${sparkle()}<b class="ai-gradient-text">AI recap</b></p><h2>Get ready for your next rehearsal</h2><p class="muted">Turn this week’s notes into a short list of what to work on.</p></div><button class="btn primary" data-home-recap>✦ Generate</button></div></section>`,
       wire: () => $('[data-home-recap]')?.addEventListener('click', () => newRecap())
     };
   }
   const names = await namesFor([r.created_by]);
   const next = (r.content?.next || []).slice(0, 3);
   return {
-    html: `<section class="panel recap-teaser">
-      <div class="panel-head"><div><p class="eyebrow">✦ Latest recap · ${esc(r.projects?.title || '')}</p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · by ${esc(names[r.created_by] || 'a teammate')} · ${timeAgo(r.created_at)}</p></div>
+    html: `<section class="panel recap-teaser ai-frame"><div class="ai-glow"></div>
+      <div class="panel-head"><div><p class="ai-kind small">${sparkle()}<b class="ai-gradient-text">Latest AI recap</b><span>· ${esc(r.projects?.title || '')}</span></p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · by ${esc(names[r.created_by] || 'a teammate')} · ${timeAgo(r.created_at)}</p></div>
         <div class="head-actions"><button class="btn small ghost" data-home-recap>New</button><a class="btn small" href="/app/recaps/${r.id}" data-link>Open</a></div></div>
       ${next.length ? `<ul class="todo compact">${next.map((it, i) => `<li class="${(r.checked || []).includes(i) ? 'done' : ''}"><span class="todo-dot ${(r.checked || []).includes(i) ? 'done' : ''}"></span><span>${esc(it.text)}</span></li>`).join('')}</ul>` : ''}
     </section>`,
