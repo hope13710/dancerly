@@ -182,6 +182,8 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
   inset: 0;
   background: radial-gradient(40% 60% at 50% 20%, rgba(173, 175, 255, 0.22), transparent 70%);
 }
+.stage-media { position: absolute; inset: 0; transition: transform 0.5s var(--ease); }
+.stage-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .stage-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.07)); }
 .dancer { position: absolute; bottom: 9%; width: 13%; height: 62%; fill: #c9cbe8; color: #c9cbe8; z-index: 1; transition: transform 0.6s var(--ease); }
 .dancer.d1 { left: 18%; transform: rotate(-4deg); opacity: 0.82; }
@@ -198,11 +200,11 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .mirror-tag { display: none; background: rgba(91, 92, 226, 0.5); padding: 2px 7px; border-radius: 5px; font-weight: 600; }
 .rv-timeline { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #8f98a8; font-variant-numeric: tabular-nums; }
 .rv-track { position: relative; flex: 1; height: 6px; border-radius: 5px; background: #333945; }
-.rv-fill { position: absolute; inset: 0 auto 0 0; width: 46%; border-radius: 5px; background: var(--accent); }
-.rv-loop { position: absolute; top: -4px; bottom: -4px; left: 46%; width: 9%; border-radius: 4px; background: rgba(255, 214, 10, 0.25); box-shadow: inset 0 0 0 1px rgba(255, 214, 10, 0.6); opacity: 0; transition: opacity 0.4s ease; }
+.rv-fill { position: absolute; inset: 0 auto 0 0; width: 17%; border-radius: 5px; background: var(--accent); }
+.rv-loop { position: absolute; top: -4px; bottom: -4px; left: 16.8%; width: 5.6%; border-radius: 4px; background: rgba(255, 214, 10, 0.25); box-shadow: inset 0 0 0 1px rgba(255, 214, 10, 0.6); opacity: 0; transition: opacity 0.4s ease; }
 .rv-pin { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: #ffb547; transform: translate(-50%, -50%); }
 .rv-range { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: #ffb547; opacity: 0.85; }
-.rv-head { position: absolute; top: 50%; left: 46%; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.35); }
+.rv-head { position: absolute; top: 50%; left: 17%; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.35); }
 .rv-controls { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #c3c9d6; }
 .chip { padding: 4px 9px; border-radius: 7px; background: #232935; border: 1px solid #343b48; color: #c3c9d6; font-size: 12px; white-space: nowrap; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
 .chip.on { background: rgba(91, 92, 226, 0.22); border-color: rgba(91, 92, 226, 0.55); color: #d9daff; }
@@ -247,17 +249,14 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .hero-app:not([data-step="3"]):not([data-step="4"]) .n-new .reply { opacity: 0; max-height: 0; padding-top: 0; border-width: 0; }
 .hero-app:is([data-step="2"], [data-step="3"], [data-step="4"]) .sk { stroke-dashoffset: 0; }
 .hero-app:is([data-step="3"], [data-step="4"]) .rv-loop { opacity: 1; }
-.hero-app:is([data-step="3"], [data-step="4"]) .loop-chip { opacity: 1; background: rgba(255, 214, 10, 0.16); border-color: rgba(255, 214, 10, 0.5); color: #ffe27a; }
-.hero-app[data-step="3"] .rv-head { animation: loopHead 1.6s linear infinite; }
-.hero-app[data-step="3"] .rv-fill { animation: loopFill 1.6s linear infinite; }
-@keyframes loopHead { from { left: 46%; } to { left: 55%; } }
-@keyframes loopFill { from { width: 46%; } to { width: 55%; } }
+.hero-app[data-step="3"] .loop-chip { opacity: 1; background: rgba(255, 214, 10, 0.16); border-color: rgba(255, 214, 10, 0.5); color: #ffe27a; }
 .hero-app[data-step="3"] .stage .dancer { transform: scaleX(-1); }
 .hero-app[data-step="3"] .dancer.d1 { transform: scaleX(-1) rotate(-4deg); }
 .hero-app[data-step="3"] .dancer.d3 { transform: scaleX(-1) rotate(4deg); }
 .hero-app[data-step="3"] .mirror-tag { display: inline; }
 .hero-app[data-step="3"] .mirror-chip { background: rgba(91, 92, 226, 0.22); border-color: rgba(91, 92, 226, 0.55); color: #d9daff; }
-.hero-app[data-step="4"] .win-takes span:first-child { opacity: 0.5; }
+.hero-app[data-step="3"] .stage-media { transform: scaleX(-1); }
+.hero-app[data-step="4"] .sketch { opacity: 0; transition: opacity 0.4s ease; }
 .hero-app:not([data-step="0"]) .composer-at { background: #38404e; }
 
 .hero-steps { display: flex; justify-content: center; gap: 8px; margin-top: 18px; flex-wrap: wrap; }

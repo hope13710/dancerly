@@ -131,8 +131,55 @@ const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['미해결', '
 let step = 0;
 let typing = 0;
 let visible = true;
+// The stage plays the sample project's real rehearsal video: Take 2 has the late 5-6 arms; Take 3 fixed them.
+const video = $('[data-hero-video]');
+const TAKES = ['/samples/sample-take-1.mp4', '/samples/sample-take-2.mp4'];
+const MOMENT = 3.6; // count 5 of the first eight in Take 2
+const LOOP = [3.6, 4.8];
+const NEXT_TAKE = [4.4, 7.4]; // the same eight in Take 3
+const DURATION = 21.4;
+const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+function useTake(n) {
+  const src = TAKES[n];
+  if (!video.src.endsWith(src)) { video.src = src; video.poster = src.replace('.mp4', '.jpg'); }
+  $$('[data-hero-takes] span').forEach((s, i) => s.classList.toggle('on', i === n));
+}
+function stageFor(s) {
+  if (!video) return;
+  video.playbackRate = s === 3 ? 0.5 : 1;
+  const at = (t, play) => {
+    const go = () => { video.currentTime = t; if (play && !reducedMotion) video.play().catch(() => {}); else video.pause(); };
+    if (video.readyState >= 1) go(); else video.addEventListener('loadedmetadata', go, { once: true });
+  };
+  if (s === 4) { useTake(1); at(NEXT_TAKE[0], true); return; }
+  useTake(0);
+  if (s === 0) at(1.0, true); // plays up to the moment, then holds there while the note is typed
+  else if (s === 3) at(LOOP[0], true);
+  else at(MOMENT, false);
+}
+if (video) {
+  const now = $('[data-hero-now]');
+  const fill = $('[data-hero-fill]');
+  const head = $('[data-hero-head]');
+  const badge = $('[data-hero-time]');
+  const tick = () => {
+    const t = video.currentTime;
+    if (step === 0 && t >= MOMENT) { video.pause(); video.currentTime = MOMENT; }
+    if (step === 3 && t >= LOOP[1]) video.currentTime = LOOP[0];
+    if (step === 4 && t >= NEXT_TAKE[1]) video.currentTime = NEXT_TAKE[0];
+    const pct = `${Math.min(100, (video.currentTime / DURATION) * 100)}%`;
+    fill.style.width = pct;
+    head.style.left = pct;
+    now.textContent = clock(video.currentTime);
+    badge.textContent = `${clock(video.currentTime)}.${Math.floor((video.currentTime % 1) * 10)}`;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 function show(next) {
   step = next;
+  stageFor(step);
   demo.dataset.step = String(step);
   $$('[data-hero-step]').forEach((li) => li.classList.toggle('on', Number(li.dataset.heroStep) === step));
   status.textContent = STATUS[lang][step >= 4 ? 2 : step >= 3 ? 1 : 0];
@@ -146,7 +193,11 @@ function show(next) {
 }
 if (reducedMotion) show(4);
 else {
-  new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }, { threshold: 0.2 }).observe(demo);
+  new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    // Off screen, the video rests.
+    if (!visible) video?.pause(); else if (step !== 1 && step !== 2) video?.play().catch(() => {});
+  }, { threshold: 0.2 }).observe(demo);
   show(0);
   const DURATIONS = [2600, 2600, 2600, 3200, 3000];
   const advance = () => {

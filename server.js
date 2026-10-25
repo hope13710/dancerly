@@ -24,7 +24,17 @@ const server = http.createServer(async (request, response) => {
   const filePath = join(root, safePath);
   try {
     const body = await readFile(filePath);
-    response.writeHead(200, { 'Content-Type': mime[extname(filePath)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    const type = mime[extname(filePath)] || 'application/octet-stream';
+    // Videos need byte ranges so the browser can seek.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range || '');
+    if (range) {
+      const start = range[1] ? Number(range[1]) : Math.max(0, body.length - Number(range[2]));
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+      response.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${start}-${end}/${body.length}`, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Cache-Control': 'no-cache' });
+      response.end(body.subarray(start, end + 1));
+      return;
+    }
+    response.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' });
     response.end(body);
   } catch {
     if (!extname(requestPath)) {
