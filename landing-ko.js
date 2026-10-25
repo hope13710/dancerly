@@ -55,8 +55,7 @@ export const LANDING_KO = {
   'On it — looping it now 🔁': '지금 구간 반복으로 연습 중이에요 🔁',
   '▸ At 00:16.4': '▸ 시점 00:16.4',
   '▸ At 00:03.6': '▸ 시점 00:03.6',
-  'Pin the note': '피드백 남기기',
-  'Sketch the fix': '그림으로 보여주기',
+  'Note it and sketch it': '피드백과 그림을 한 번에',
   'Loop the part': '구간 반복 연습',
   'Next take closes it': '다음 테이크에서 해결',
 
