@@ -2,6 +2,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
+import { startTranslating } from './i18n.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
 import { renderFeedback } from './views/feedback.js';
@@ -590,6 +591,7 @@ sb.auth.onAuthStateChange((event, session) => {
   if (booted && changed && (event === 'SIGNED_IN' || event === 'SIGNED_OUT')) setTimeout(async () => { await loadProfile(); route(); }, 0);
 });
 
+startTranslating();
 (async () => {
   const { data } = await sb.auth.getSession();
   state.session = data.session;

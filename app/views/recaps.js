@@ -2,6 +2,7 @@
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
+import { getLang } from '../i18n.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor, tabs } from './shared.js';
 
@@ -51,7 +52,7 @@ async function invokeErrorMessage(error) {
 }
 
 export async function generateRecap(params) {
-  const { data, error } = await sb.functions.invoke('generate-recap', { body: params });
+  const { data, error } = await sb.functions.invoke('generate-recap', { body: { ...params, lang: getLang() } });
   if (error) throw new Error(await invokeErrorMessage(error));
   return data;
 }

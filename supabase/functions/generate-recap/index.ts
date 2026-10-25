@@ -70,10 +70,11 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ error: "Your session ended. Log in again." }, 401);
   const me = userData.user.id;
 
-  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null };
+  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string };
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const { project_id, video_id = null } = body;
   const scope = body.scope === "project" ? "project" : "me";
+  const lang = body.lang === "ko" ? "ko" : "en";
   const period = ["last", "week", "month", "custom"].includes(body.period ?? "") ? body.period! : "week";
   if (!project_id) return json({ error: "Pick a project." }, 400);
 
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
 
   // ---------- Same inputs as an existing recap? Return it instead of spending a generation. ----------
   let existingQ = admin.from("recaps").select("*").eq("created_by", me).eq("project_id", project_id).eq("scope", scope).eq("period", period)
-    .eq("note_count", notes.length).gte("notes_up_to", notesUpTo)
+    .eq("note_count", notes.length).gte("notes_up_to", notesUpTo).eq("content->>lang", lang)
     .order("created_at", { ascending: false }).limit(1);
   existingQ = video_id ? existingQ.eq("video_id", video_id) : existingQ.is("video_id", null);
   if (period === "custom") existingQ = existingQ.eq("period_start", start.toISOString());
@@ -154,7 +155,8 @@ Deno.serve(async (req) => {
   const audience = scope === "me"
     ? `Personal recap for ${nameOf[me] ?? "this dancer"}: notes they wrote, notes on their takes or videos, and notes that @mention them. Address them as "you".`
     : `Whole-project recap for everyone on "${project.title}". Address the team.`;
-  const user = `${audience}\nPeriod: ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}.\n\nNotes (${sources.length}):\n\n${lines.join("\n\n")}`;
+  const language = lang === "ko" ? "\nWrite every headline and item in natural, friendly Korean (해요체). Keep counts, names, and dance terms as the notes wrote them." : "";
+  const user = `${audience}${language}\nPeriod: ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}.\n\nNotes (${sources.length}):\n\n${lines.join("\n\n")}`;
 
   // ---------- Generate ----------
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -187,7 +189,7 @@ Deno.serve(async (req) => {
 
   // ---------- Grounding: keep only items whose citations are real notes from the input ----------
   const known = new Set(sources.map((s) => s.ref));
-  const content: Record<string, unknown> = { headline: String(parsed.headline ?? "").slice(0, 300) };
+  const content: Record<string, unknown> = { headline: String(parsed.headline ?? "").slice(0, 300), lang };
   for (const key of SECTIONS) {
     content[key] = (Array.isArray(parsed[key]) ? parsed[key] : [])
       .filter((it: { text?: string; cites?: string[] }) => it?.text && Array.isArray(it.cites) && it.cites.length && it.cites.every((c) => known.has(c)))

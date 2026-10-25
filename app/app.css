@@ -4469,3 +4469,6 @@ td.ref .play {
 .track.scrubbing .t-head {
   transition: none;
 }
+
+/* Korean: break lines between words, not inside them */
+:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }

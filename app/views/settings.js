@@ -1,6 +1,7 @@
 // Settings: your account, what you get notified about, the projects you're in, and your plan.
 import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
 import { ctx } from '../ctx.js';
+import { LANGS, getLang, setLang } from '../i18n.js';
 
 const SECTIONS = [
   ['account', 'Account'],
@@ -48,6 +49,10 @@ export async function renderSettings(section = 'account') {
         </form>
       </section>
       <section class="panel">
+        <div class="panel-head"><div><h2>Language</h2><p class="muted">Shown throughout Looproom on this device.</p></div>
+          <div class="seg small" role="group" aria-label="Language" data-no-i18n>${LANGS.map(([k, l]) => `<button type="button" data-lang="${k}" aria-selected="${getLang() === k}">${l}</button>`).join('')}</div></div>
+      </section>
+      <section class="panel">
         <div class="panel-head"><div><h2>Sign-in</h2></div></div>
         <div class="list flush">
           <div class="row"><span class="row-main"><span class="row-title">Email</span><span class="row-meta">${esc(state.session.user.email || '')}</span></span></div>
@@ -69,6 +74,11 @@ export async function renderSettings(section = 'account') {
           ctx.route();
         });
         $('[data-signout-here]').addEventListener('click', () => ctx.signOut());
+        $$('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+          if (b.dataset.lang === getLang()) return;
+          setLang(b.dataset.lang);
+          location.reload();
+        }));
         wireImagePicker({
           folder: `users/${state.session.user.id}`,
           save: (url) => sb.from('profiles').update({ avatar_url: url }).eq('id', state.session.user.id),

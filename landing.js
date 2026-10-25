@@ -1,4 +1,5 @@
-// Landing page: nav, signed-in state, reveal-on-scroll (once), and the small product animations.
+// Landing page: nav, signed-in state, English/Korean switch, reveal-on-scroll (once), and the small product animations.
+import { LANDING_KO } from './landing-ko.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,6 +24,43 @@ if (signedIn()) {
   const footerApp = $('[data-footer-app]');
   if (footerApp) { footerApp.textContent = 'Open Looproom →'; footerApp.href = '/app'; }
 }
+
+// ---------- English / Korean (English by default; the choice is shared with the app) ----------
+const LANG_KEY = 'looproom:lang';
+let lang = 'en';
+try { lang = localStorage.getItem(LANG_KEY) === 'ko' ? 'ko' : 'en'; } catch {}
+const originalText = new WeakMap();
+const ATTRS = ['aria-label', 'placeholder'];
+function applyLang() {
+  document.documentElement.lang = lang;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.parentElement.closest('script, style, [data-hero-typed]')) continue;
+    if (!originalText.has(node)) originalText.set(node, node.nodeValue);
+    const en = originalText.get(node);
+    const key = en.replace(/\s+/g, ' ').trim();
+    const ko = lang === 'ko' ? LANDING_KO[key] : undefined;
+    node.nodeValue = ko === undefined ? en : en.replace(key, ko);
+  }
+  for (const el of document.querySelectorAll(ATTRS.map((a) => `[${a}]`).join(','))) {
+    for (const name of ATTRS) {
+      if (!el.hasAttribute(name)) continue;
+      const stash = `data-en-${name}`;
+      if (!el.hasAttribute(stash)) el.setAttribute(stash, el.getAttribute(name));
+      const en = el.getAttribute(stash);
+      el.setAttribute(name, lang === 'ko' ? LANDING_KO[en] ?? en : en);
+    }
+  }
+  $$('[data-set-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.setLang === lang)));
+}
+$$('[data-set-lang]').forEach((b) => b.addEventListener('click', () => {
+  if (b.dataset.setLang === lang) return;
+  lang = b.dataset.setLang;
+  try { localStorage.setItem(LANG_KEY, lang); } catch {}
+  track('language_switch', { lang });
+  applyLang();
+  show(step);
+}));
 
 // ---------- Nav ----------
 const nav = $('[data-nav]');
@@ -82,11 +120,14 @@ function countUp(root) {
   }
 }
 
+applyLang();
+
 // ---------- Hero: pin → sketch → loop → fixed, on a gentle loop while visible ----------
 const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
 const status = $('[data-hero-status]');
-const NOTE = '@Maya arms are late on the 5-6…';
+const NOTE = { en: '@Maya arms are late on the 5-6…', ko: '@Maya 5-6에서 팔이 늦어요…' };
+const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['열림', '연습 중', '해결됨 ✓'] };
 let step = 0;
 let typing = 0;
 let visible = true;
@@ -94,13 +135,13 @@ function show(next) {
   step = next;
   demo.dataset.step = String(step);
   $$('[data-hero-step]').forEach((li) => li.classList.toggle('on', Number(li.dataset.heroStep) === step));
-  status.textContent = step >= 4 ? 'Resolved ✓' : step >= 3 ? 'Practicing' : 'Open';
+  status.textContent = STATUS[lang][step >= 4 ? 2 : step >= 3 ? 1 : 0];
   status.className = `status ${step >= 4 ? 'ok' : step >= 3 ? 'info' : ''}`;
   clearInterval(typing);
   typed.textContent = '';
   if (step === 0) {
     let i = 0;
-    typing = setInterval(() => { typed.textContent = NOTE.slice(0, (i += 1)); if (i >= NOTE.length) clearInterval(typing); }, 45);
+    typing = setInterval(() => { const note = NOTE[lang]; typed.textContent = note.slice(0, (i += 1)); if (i >= note.length) clearInterval(typing); }, 45);
   }
 }
 if (reducedMotion) show(4);
