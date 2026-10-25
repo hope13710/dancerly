@@ -1,6 +1,7 @@
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, uploadTake, withUploadBar, loadMembers, TAKE_BUCKET } from './client.js';
 
 import { nextInQueue } from './views/queue.js';
+import { shareVideo } from './views/share.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
@@ -44,7 +45,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}</div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button></div>
     </header>
     <div class="review-layout">
       <div class="player-col">
@@ -326,6 +327,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   wireUpload();
   $('[data-merge]')?.addEventListener('click', mergeInto);
+  $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
   setMode('point');
   await loadNotes();
   r.frame = requestAnimationFrame(tick);

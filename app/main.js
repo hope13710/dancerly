@@ -12,6 +12,8 @@ import { renderProjectRequests, renderRequest, newRequest } from './views/reques
 import { renderQueue } from './views/queue.js';
 import { renderCalendar, editEvent } from './views/calendar.js';
 import { openSearch } from './views/search.js';
+import { renderShared } from './views/share.js';
+import { renderProjectPages, renderPage } from './views/pages.js';
 import { renderProjectOverview, renderCountSheet } from './views/overview.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
@@ -24,6 +26,7 @@ const routes = [
   { re: /^\/app\/login\/?$/, render: renderLogin, open: true },
   { re: /^\/app\/reset\/?$/, render: renderReset, open: true },
   { re: /^\/app\/join\/([a-f0-9]{6,64})\/?$/, render: renderJoin, open: true },
+  { re: /^\/app\/s\/([0-9a-f]{36})\/?$/, render: renderShared, open: true },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/v\/([0-9a-f-]{36})\/?$/, render: (projectId, videoId) => mountReview({ projectId, videoId, me: state.session.user, view, navigate, setCrumbs }) },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/?$/, render: renderProject },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/notes\/?$/, render: renderProjectNotes },
@@ -31,6 +34,8 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/overview\/?$/, render: renderProjectOverview },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/counts\/?$/, render: renderCountSheet },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/?$/, render: renderProjectPages },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/([0-9a-f-]{36})\/?$/, render: renderPage },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/?$/, render: renderProjectRequests },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },

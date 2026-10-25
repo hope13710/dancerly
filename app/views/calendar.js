@@ -3,6 +3,7 @@
 import { sb, $, $$, esc, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
+import { subscribeCalendar } from './share.js';
 
 const KINDS = { rehearsal: 'Rehearsal', show: 'Show', other: 'Other', due: 'Due' };
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -50,7 +51,7 @@ export async function renderCalendar(projectId = null) {
   const toolbar = `<div class="cal-toolbar">
     ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
-      <button class="btn small ghost" data-ics title="Download upcoming events as a calendar file">Export .ics</button></div>
+      <button class="btn small ghost" data-subscribe title="Keep Google, Apple, or Outlook Calendar in sync">Subscribe</button><button class="btn small ghost" data-ics title="Download upcoming events as a calendar file">Export .ics</button></div>
   </div>
   <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span><span class="k-due">Request due</span></div>`;
 
@@ -86,6 +87,7 @@ export async function renderCalendar(projectId = null) {
   $$('[data-day-more]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); navigate(link({ view: 'agenda' })); }));
   // Click an empty part of a day to add an event on that day.
   $$('[data-day]').forEach((cell) => cell.addEventListener('click', () => editEvent({ projectId, date: cell.dataset.day })));
+  $('[data-subscribe]').addEventListener('click', subscribeCalendar);
   $('[data-ics]').addEventListener('click', () => exportIcs(items, projectId ? p.project.title : 'Looproom'));
 
   function openItem(it) {
