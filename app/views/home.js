@@ -2,6 +2,7 @@
 import { sb, $, esc, initials, timeAgo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe } from './shared.js';
+import { homeRecapCard } from './recaps.js';
 
 function greeting() {
   const h = new Date().getHours();
@@ -12,7 +13,8 @@ export async function renderHome() {
   const { state, view, setCrumbs } = ctx;
   setCrumbs([['Home']]);
   const me = state.session.user.id;
-  const [forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }] = await Promise.all([
+  const [recapCard, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }] = await Promise.all([
+    homeRecapCard(),
     notesForMe(me, { limit: 50 }),
     sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)').order('created_at', { ascending: false }).limit(12),
     sb.from('notes').select(NOTE_SELECT).order('created_at', { ascending: false }).limit(12),
@@ -40,6 +42,7 @@ export async function renderHome() {
   const first = esc(state.profile.display_name.split(' ')[0]);
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><p class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${greeting()}, ${first}</h1></div></header>
+    ${recapCard.html}
     ${hideChecklist ? '' : `<section class="panel checklist">
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
@@ -66,6 +69,7 @@ export async function renderHome() {
     </div>
   </section>`;
 
+  recapCard.wire();
   $('[data-hide-checklist]')?.addEventListener('click', () => {
     try { localStorage.setItem('looproom:checklist', 'hidden'); } catch {}
     $('.checklist').remove();

@@ -7,6 +7,7 @@ import { renderFeedback } from './views/feedback.js';
 import { renderPeople, renderPerson } from './views/people.js';
 import { renderInsights } from './views/insights.js';
 import { renderSettings } from './views/settings.js';
+import { renderProjectRecaps, renderRecap, renderMyRecaps } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 
 const view = $('[data-view]');
@@ -21,6 +22,9 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/?$/, render: renderProject },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/notes\/?$/, render: renderProjectNotes },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/people\/?$/, render: renderProjectPeople },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
+  { re: /^\/app\/recaps\/([0-9a-f-]{36})\/?$/, render: renderRecap },
+  { re: /^\/app\/me\/recaps\/?$/, render: renderMyRecaps },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/settings\/?$/, render: renderProjectSettings },
   { re: /^\/app\/projects\/?$/, render: renderProjects },
   { re: /^\/app\/inbox\/?$/, render: renderInbox },
@@ -458,6 +462,7 @@ function renderMe() {
     </div>
     <div class="list-group">
       ${row('/app/inbox', 'Inbox', '<span class="badge" data-unread hidden></span>')}
+      ${row('/app/me/recaps', '✦ My recaps')}
       ${row(`/app/people/${user.id}`, 'My activity')}
     </div>
     <div class="list-group">

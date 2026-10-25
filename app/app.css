@@ -2649,3 +2649,323 @@ a.side-label[aria-current] {
 .list-group a > small {
   margin-left: 0;
 }
+
+/* ---------- AI recaps: light glass, same family as the landing card ---------- */
+.recap-card {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(91, 92, 226, 0.09), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgba(22, 132, 91, 0.06), transparent 60%),
+    var(--surface);
+  border: 1px solid #e3e3fb;
+  border-radius: 18px;
+  padding: 26px 28px 18px;
+  box-shadow: 0 18px 50px rgba(69, 70, 184, 0.08);
+}
+.recap-head h1 {
+  margin: 12px 0 6px;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+}
+.recap-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.chip.ai {
+  border-color: #d9d9fb;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 650;
+}
+.recap-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.recap-stale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 13px;
+  font-weight: 600;
+}
+.recap-body {
+  margin-top: 8px;
+}
+.recap-section h3 {
+  margin: 20px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.recap-section ul,
+ul.todo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.recap-section li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.recap-section ul:not(.todo) li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.68em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b9baf3;
+}
+ul.todo li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 0;
+}
+ul.todo input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--ok);
+  flex: none;
+  cursor: pointer;
+}
+ul.todo li.done > span:last-child {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.todo-dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border-radius: 4px;
+  border: 1.5px solid #c8ccd3;
+  flex: none;
+}
+.todo-dot.done {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+ul.todo.compact {
+  margin: 0 0 12px;
+}
+ul.todo.compact li {
+  font-size: 14px;
+}
+.cite {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 2px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.cite:hover {
+  background: #dcdcfb;
+}
+.cite-pop {
+  position: absolute;
+  z-index: 60;
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(20, 23, 29, 0.14);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cite-pop p {
+  margin: 0 0 8px;
+  white-space: normal;
+}
+.cite-pop .link {
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.recap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.recap-actions .push-right {
+  margin-left: auto;
+}
+.btn.on {
+  border-color: #c8c9f5;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.recap-row + .recap-row {
+  border-top: 1px solid var(--line);
+}
+.spark-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  flex: none;
+}
+.versions {
+  padding: 0 16px 10px 56px;
+  font-size: 13px;
+}
+.versions summary {
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+}
+.versions a {
+  display: block;
+  padding: 4px 0;
+  color: #3b4048;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-title {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+}
+.recap-teaser {
+  border-color: #e3e3fb;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(91, 92, 226, 0.08), transparent 60%), var(--surface);
+}
+.recap-teaser h2 {
+  font-size: 17px;
+  line-height: 1.35;
+}
+.recap-busy {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: rgba(247, 248, 250, 0.7);
+  backdrop-filter: blur(4px);
+}
+.recap-busy div {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid #e3e3fb;
+  border-radius: 16px;
+  padding: 24px 30px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.recap-busy small {
+  color: var(--muted);
+}
+.spark {
+  font-size: 26px;
+  color: var(--accent);
+  animation: spark-pulse 1.2s ease-in-out infinite;
+}
+@keyframes spark-pulse {
+  50% {
+    transform: scale(1.25) rotate(20deg);
+    opacity: 0.6;
+  }
+}
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.choices label {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 400;
+}
+.choices label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.choices input {
+  position: absolute;
+  opacity: 0;
+}
+.choices b {
+  font-size: 14px;
+}
+.choices small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.date-row input,
+.field select {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .recap-card {
+    padding: 20px 18px 14px;
+    border-radius: 14px;
+  }
+  .recap-head h1 {
+    font-size: 21px;
+  }
+  .choices {
+    grid-template-columns: 1fr;
+  }
+  .cite-pop {
+    width: calc(100vw - 24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spark {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .recap-teaser .panel-head {
+    flex-direction: column;
+  }
+}

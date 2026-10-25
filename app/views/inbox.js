@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo } from '../clie
 import { ctx } from '../ctx.js';
 import { noteTime, tabs, empty, pageHead, namesFor } from './shared.js';
 
-const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
+const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 
 const VERB = {
   mention: 'mentioned you',
@@ -19,6 +19,7 @@ function describe(item, names) {
   const takeNo = item.notes?.takes?.number ?? item.takes?.number;
   const project = esc(item.projects?.title || '');
   if (item.kind === 'joined') return `${who} joined <b>${project}</b>`;
+  if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
   if (item.kind === 'mention') return `${who} mentioned you on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   return `${who} ${VERB[item.kind]} <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
@@ -26,6 +27,7 @@ function describe(item, names) {
 
 function hrefFor(item) {
   if (item.kind === 'joined') return `/app/p/${item.project_id}/people`;
+  if (item.kind === 'recap_shared') return `/app/recaps/${item.recap_id}`;
   if (item.notes) return `/app/p/${item.project_id}/v/${item.notes.video_id}?take=${item.notes.takes?.number ?? ''}&note=${item.note_id}`;
   if (item.takes) return `/app/p/${item.project_id}/v/${item.takes.video_id}?take=${item.takes.number}`;
   return `/app/p/${item.project_id}`;
@@ -44,7 +46,7 @@ export async function renderInbox() {
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open.
-  const live = items.filter((i) => i.kind === 'joined' || i.notes || i.takes);
+  const live = items.filter((i) => i.kind === 'joined' || i.notes || i.takes || i.recaps);
   const names = await namesFor(live.map((i) => i.actor_id));
 
   view.innerHTML = `<section class="page narrow-wide">
@@ -55,6 +57,7 @@ export async function renderInbox() {
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
+          ${item.recaps ? `<span class="row-quote">✦ ${esc(item.recaps.content?.headline || 'Recap')}</span>` : ''}
           <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}</span>
         </span>
         ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}

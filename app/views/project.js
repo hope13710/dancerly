@@ -31,7 +31,7 @@ export async function createProject() {
 }
 
 // Shared header + tabs for every project screen.
-async function loadProject(projectId) {
+export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
     sb.from('projects').select('id, title, created_at, created_by').eq('id', projectId).single(),
     loadMembers(projectId)
@@ -42,7 +42,7 @@ async function loadProject(projectId) {
   return { project, members, isOwner, me };
 }
 
-function projectHead({ project, members }, tab, actions = '') {
+export function projectHead({ project, members }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
   return `<header class="page-head project-head">
       <div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
@@ -50,7 +50,7 @@ function projectHead({ project, members }, tab, actions = '') {
       </div>
       <div class="head-actions">${actions}</div>
     </header>
-    ${tabs([['videos', 'Videos', base], ['notes', 'Notes', `${base}/notes`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+    ${tabs([['videos', 'Videos', base], ['notes', 'Notes', `${base}/notes`], ['recaps', 'Recaps', `${base}/recaps`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
 }
 
 export async function renderProject(projectId) {
