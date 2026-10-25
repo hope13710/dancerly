@@ -4805,3 +4805,7 @@ body.is-guest .topbar {
 .guest-cta .btn.ghost {
   border-color: #3a4150;
 }
+.sketch-bar .sketch-done,
+.sketch-bar button {
+  white-space: nowrap;
+}

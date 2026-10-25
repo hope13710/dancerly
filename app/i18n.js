@@ -1,7 +1,7 @@
 // English / Korean. The app is written in English; in Korean mode, rendered text and labels are swapped
 // using the dictionary below (exact phrases) and a few patterns (phrases with numbers or names in them).
 // What people type — notes, replies, titles they gave — is never translated.
-import { KO, KO_RULES, KO_ATTR, KO_ACTION } from './i18n-ko.js';
+import { KO, KO_RULES, KO_ATTR, KO_ACTION, KO_FIELD } from './i18n-ko.js';
 
 const KEY = 'looproom:lang';
 export const LANGS = [['en', 'English'], ['ko', '한국어']];
@@ -37,10 +37,11 @@ function exact(text) {
   }
   return null;
 }
-function translate(raw, { attr = false, action = false } = {}) {
+function translate(raw, { attr = false, action = false, field = false } = {}) {
   const text = raw.replace(/\s+/g, ' ').trim();
   if (!text || !/[A-Za-z]/.test(text)) return null;
   if (action && KO_ACTION[text] !== undefined) return KO_ACTION[text];
+  if (field && KO_FIELD[text] !== undefined) return KO_FIELD[text];
   if (attr && KO_ATTR[text] !== undefined) return KO_ATTR[text];
   const whole = exact(text);
   if (whole !== null) return whole;
@@ -66,9 +67,10 @@ function translateText(node) {
   if (done.get(node) === value) return;
   const parent = node.parentElement;
   if (!parent || parent.closest(SKIP)) return;
-  const ko = translate(value, { action: Boolean(parent.closest('button, .btn')) });
+  const ko = translate(value, { action: Boolean(parent.closest('button, .btn')), field: Boolean(parent.closest('.field > span:first-child, label.field > span')) });
   if (ko === null) return;
-  const lead = value.match(/^\s*/)[0];
+  // Korean particles attach to the name before them: "Maya" + " 님이…" → "Maya님이…".
+  const lead = /^님/.test(ko) ? '' : value.match(/^\s*/)[0];
   const trail = value.match(/\s*$/)[0];
   const next = lead + ko + trail;
   done.set(node, next);
