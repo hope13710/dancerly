@@ -50,7 +50,7 @@ export async function renderSettings(section = 'account') {
         </form>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>Language</h2><p class="muted">Shown throughout Looproom on this device.</p></div>
+        <div class="panel-head"><div><h2>Language</h2><p class="muted">Shown throughout dancerly on this device.</p></div>
           <div class="seg small" role="group" aria-label="Language" data-no-i18n>${LANGS.map(([k, l]) => `<button type="button" data-lang="${k}" aria-selected="${getLang() === k}">${l}</button>`).join('')}</div></div>
       </section>
       <section class="panel">

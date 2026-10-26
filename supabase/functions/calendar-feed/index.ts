@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   ]) : [{ data: [] }, { data: [] }];
 
   const now = stamp(new Date().toISOString());
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Looproom//Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Looproom", "REFRESH-INTERVAL;VALUE=DURATION:PT1H"];
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dancerly//Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:dancerly", "REFRESH-INTERVAL;VALUE=DURATION:PT1H"];
   for (const e of events ?? []) {
     const end = e.ends_at ?? new Date(new Date(e.starts_at).getTime() + 60 * 6e4).toISOString();
     lines.push("BEGIN:VEVENT", `UID:event-${e.id}@looproom`, `DTSTAMP:${now}`, `DTSTART:${stamp(e.starts_at)}`, `DTEND:${stamp(end)}`,

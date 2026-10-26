@@ -146,7 +146,7 @@ export function friendlyError(error) {
   if (/should be different from the old/i.test(msg)) return 'That’s your current password. Choose a new one.';
   if (/provider is not enabled/i.test(msg)) return 'Google sign-in isn’t turned on yet. Use your email for now.';
   if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and try again.';
-  if (/Failed to fetch|NetworkError|network/i.test(msg)) return 'Can’t reach Looproom. Check your connection and try again.';
+  if (/Failed to fetch|NetworkError|network/i.test(msg)) return 'Can’t reach dancerly. Check your connection and try again.';
   if (/JWT|not authenticated|session/i.test(msg)) return 'Your session ended. Log in again.';
   if (/row-level security|permission denied/i.test(msg)) return 'You don’t have permission to do that.';
   if (/Payload too large|exceeded the maximum allowed size/i.test(msg)) return 'That video is over 50 MB. Trim it or export a smaller file.';

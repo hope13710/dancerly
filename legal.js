@@ -1,8 +1,8 @@
-// Shared by /terms and /privacy: who runs Looproom and how to reach them, plus the English/Korean switch.
+// Shared by /terms and /privacy: who runs dancerly and how to reach them, plus the English/Korean switch.
 // Change these two lines when the operator details change; every mention on both pages updates.
 const LEGAL = {
-  operator: { en: 'The Looproom team (individual operator)', ko: 'Looproom 운영팀 (개인 운영)' }, // the person (or, later, the company) that runs Looproom
-  email: 'help@looproom.com' // the dedicated contact address for legal and privacy requests
+  operator: { en: 'The dancerly team (individual operator)', ko: 'dancerly 운영팀 (개인 운영)' }, // the person (or, later, the company) that runs dancerly
+  email: 'help@dancerly.app' // the dedicated contact address for legal and privacy requests
 };
 
 const KEY = 'looproom:lang';

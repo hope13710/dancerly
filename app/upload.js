@@ -1,4 +1,4 @@
-// Getting a phone video into Looproom: shrink it on the device when needed, then upload in resumable chunks.
+// Getting a phone video into dancerly: shrink it on the device when needed, then upload in resumable chunks.
 //
 // 1. Prepare: anything that isn't H.264, is over the size budget, or is bigger than 1080p is converted
 //    on the device to 720p H.264 MP4 (WebCodecs via Mediabunny). This also fixes iPhone HEVC videos that

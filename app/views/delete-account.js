@@ -39,7 +39,7 @@ export async function renderDeleteAccount() {
   const decisions = Object.fromEntries(decide.map((p) => [p.id, { action: 'transfer', to: p.others[0].user_id }]));
 
   view.innerHTML = `<section class="page narrow delete-account">
-    <header class="page-head"><div><h1>Delete your account</h1><p class="muted sub">This permanently deletes your Looproom account. It can’t be undone.</p></div></header>
+    <header class="page-head"><div><h1>Delete your account</h1><p class="muted sub">This permanently deletes your dancerly account. It can’t be undone.</p></div></header>
 
     <section class="panel">
       <div class="panel-head"><div><h2>What happens</h2></div></div>
@@ -74,7 +74,7 @@ export async function renderDeleteAccount() {
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><h2>Why are you leaving?</h2><p class="muted">Optional. Kept without your name or email, so we can make Looproom better.</p></div></div>
+      <div class="panel-head"><div><h2>Why are you leaving?</h2><p class="muted">Optional. Kept without your name or email, so we can make dancerly better.</p></div></div>
       <div class="da-reasons">${REASONS.map(([k, l]) => `<label class="da-reason"><input type="radio" name="reason" value="${k}" /><span>${l}</span></label>`).join('')}</div>
       <label class="field"><span>Anything else? (optional)</span><textarea data-details maxlength="1000" rows="3"></textarea></label>
     </section>
@@ -173,7 +173,7 @@ export async function renderDeleteAccount() {
       const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `looproom-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `dancerly-data-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.append(a);
       a.click();
       a.remove();

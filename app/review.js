@@ -117,7 +117,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Some browsers can't decode certain phone formats (older iPhone HEVC uploads). Say so instead of showing a black box.
   const cantPlay = () => {
     if ($('[data-cant-play]')) return;
-    $('[data-player]').insertAdjacentHTML('beforeend', `<div class="cant-play" data-cant-play><b>This take can’t play in this browser.</b><span>It was recorded in a format (often iPhone HEVC) this browser doesn’t support. Open it in Safari, or ask ${esc(nameOf(take.uploaded_by))} to upload it again — Looproom now converts phone videos automatically.</span></div>`);
+    $('[data-player]').insertAdjacentHTML('beforeend', `<div class="cant-play" data-cant-play><b>This take can’t play in this browser.</b><span>It was recorded in a format (often iPhone HEVC) this browser doesn’t support. Open it in Safari, or ask ${esc(nameOf(take.uploaded_by))} to upload it again — dancerly now converts phone videos automatically.</span></div>`);
   };
   videoEl.addEventListener('error', cantPlay);
   videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.videoWidth) cantPlay(); });

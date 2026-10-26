@@ -14,9 +14,9 @@ export const LANDING_KO = {
   'Log in': '로그인',
   'Log out': '로그아웃',
   'Start free': '무료로 시작하기',
-  'Open Looproom': 'Looproom 열기',
-  'Open Looproom →': 'Looproom 열기 →',
-  'Looproom home': 'Looproom 홈',
+  'Open dancerly': 'dancerly 열기',
+  'Open dancerly →': 'dancerly 열기 →',
+  'dancerly home': 'dancerly 홈',
   'Primary': '주 메뉴',
   'Open menu': '메뉴 열기',
   'Footer': '하단 메뉴',
@@ -26,13 +26,13 @@ export const LANDING_KO = {
   'Rehearsal video review for dance': '댄스 연습 영상 피드백',
   'Feedback that lands': '카운트 하나까지',
   'on the count.': '정확히 꽂히는 피드백.',
-  'Looproom is where dance teams review rehearsals together. Pin notes to the exact moment, loop the part that needs work, and watch every correction show up in the next take.': 'Looproom은 댄스팀이 연습 영상을 함께 보며 피드백하는 곳이에요. 고칠 장면에 바로 피드백을 남기고, 필요한 구간만 반복해서 연습하고, 다음 테이크에서 고쳐졌는지 확인하세요.',
+  'dancerly is where dance teams review rehearsals together. Pin notes to the exact moment, loop the part that needs work, and watch every correction show up in the next take.': 'dancerly는 댄스팀이 연습 영상을 함께 보며 피드백하는 곳이에요. 고칠 장면에 바로 피드백을 남기고, 필요한 구간만 반복해서 연습하고, 다음 테이크에서 고쳐졌는지 확인하세요.',
   'Start free — no card needed': '무료로 시작하기 — 카드 등록 없이',
   'See how it works': '어떻게 쓰는지 보기',
   'Works on any phone — no app to install': '앱 설치 없이 휴대폰으로 바로',
   'Private to your team': '우리 팀만 보는 비공개 공간',
   'Free for your first team': '첫 팀은 무료',
-  'Looproom review screen: a coach pins a note with a sketch, a dancer loops her part, and the next take resolves it.': 'Looproom 리뷰 화면: 강사가 그림과 함께 피드백을 남기고, 댄서가 자기 파트를 반복 연습하고, 다음 테이크에서 해결돼요.',
+  'dancerly review screen: a coach pins a note with a sketch, a dancer loops her part, and the next take resolves it.': 'dancerly 리뷰 화면: 강사가 그림과 함께 피드백을 남기고, 댄서가 자기 파트를 반복 연습하고, 다음 테이크에서 해결돼요.',
   'Chorus — full out': '코러스 — 풀로',
   'Take 1': '테이크 1',
   'Take 2': '테이크 2',
@@ -69,7 +69,7 @@ export const LANDING_KO = {
   'wait which part?? 0:47 or the one after the turn': '어디요?? 0:47이요, 턴 다음이요?',
   'can someone resend last week’s video 🙏': '지난주 영상 다시 올려주실 분 🙏',
   'did I fix it or…?': '저 고친 거 맞나요…?',
-  'Looproom keeps the video, the note, and the next take in one place —': 'Looproom은 영상, 피드백, 다음 테이크를 한곳에 모아요.',
+  'dancerly keeps the video, the note, and the next take in one place —': 'dancerly는 영상, 피드백, 다음 테이크를 한곳에 모아요.',
   'so every correction actually gets made.': '그래서 피드백이 흐지부지되지 않아요.',
 
   // 01 리뷰
@@ -107,7 +107,7 @@ export const LANDING_KO = {
 
   // 02 AI 요약
   'The whole rehearsal, in one minute.': '일주일 피드백, 1분이면 정리 끝.',
-  'Dozens of notes across a week of takes? Looproom turns them into a short recap each dancer can read before the next rehearsal.': '일주일 동안 쌓인 수십 개의 피드백을 다음 연습 전에 읽기 좋게 짧게 정리해 드려요.',
+  'Dozens of notes across a week of takes? dancerly turns them into a short recap each dancer can read before the next rehearsal.': '일주일 동안 쌓인 수십 개의 피드백을 다음 연습 전에 읽기 좋게 짧게 정리해 드려요.',
   'Personal for every dancer.': '댄서마다 따로.',
   'Just the notes about you — what you worked on, what to practice next, what’s finally clean.': '내 피드백만 모아서 연습한 것, 다음에 할 것, 드디어 완성된 것을 보여줘요.',
   'Never made up.': '지어내지 않아요.',
@@ -254,7 +254,7 @@ export const LANDING_KO = {
   // 자주 묻는 질문
   'Good to know': '자주 묻는 질문',
   'Do dancers need to download an app?': '댄서들이 앱을 설치해야 하나요?',
-  'No. Looproom runs in the browser on any phone, tablet, or laptop. Share an invite link and they’re in.': '아니요. 휴대폰, 태블릿, 노트북 어디서든 브라우저로 열려요. 초대 링크만 보내면 바로 들어올 수 있어요.',
+  'No. dancerly runs in the browser on any phone, tablet, or laptop. Share an invite link and they’re in.': '아니요. 휴대폰, 태블릿, 노트북 어디서든 브라우저로 열려요. 초대 링크만 보내면 바로 들어올 수 있어요.',
   'What about big iPhone videos?': '아이폰으로 찍은 큰 영상도 올라가나요?',
   'Videos are shrunk on the phone before uploading, so even long 4K clips go up quickly. If the connection drops, the upload continues where it stopped — just pick the same file again.': '올리기 전에 휴대폰에서 용량을 줄이기 때문에 긴 4K 영상도 빠르게 올라가요. 중간에 끊기면 같은 파일을 다시 고르기만 하면 이어서 올라가요.',
   'Who can see our videos?': '우리 영상은 누가 볼 수 있나요?',
@@ -273,5 +273,5 @@ export const LANDING_KO = {
   'Your email': '이메일',
   'No credit card': '카드 등록 없이',
   'Feedback that lands on the count.': '카운트 하나까지 정확히 꽂히는 피드백.',
-  'Try Looproom free →': 'Looproom 무료로 써보기 →'
+  'Try dancerly free →': 'dancerly 무료로 써보기 →'
 };

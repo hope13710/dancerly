@@ -88,7 +88,7 @@ export async function renderCalendar(projectId = null) {
   // Click an empty part of a day to add an event on that day.
   $$('[data-day]').forEach((cell) => cell.addEventListener('click', () => editEvent({ projectId, date: cell.dataset.day })));
   $('[data-subscribe]').addEventListener('click', subscribeCalendar);
-  $('[data-ics]').addEventListener('click', () => exportIcs(items, projectId ? p.project.title : 'Looproom'));
+  $('[data-ics]').addEventListener('click', () => exportIcs(items, projectId ? p.project.title : 'dancerly'));
 
   function openItem(it) {
     if (it.type === 'due') return navigate(`/app/p/${it.project_id}/requests/${it.raw.id}`);
@@ -183,7 +183,7 @@ function exportIcs(items, name) {
   const text = (t) => String(t || '').replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
   const upcoming = items.filter((it) => it.at >= new Date(Date.now() - 864e5) && !it.closed);
   if (!upcoming.length) return toast('Nothing upcoming to export in this view.');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Looproom//Calendar//EN', `X-WR-CALNAME:${text(name)}`];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//dancerly//Calendar//EN', `X-WR-CALNAME:${text(name)}`];
   for (const it of upcoming) {
     const end = it.end || new Date(it.at.getTime() + (it.type === 'due' ? 15 : 60) * 6e4);
     lines.push('BEGIN:VEVENT', `UID:${it.type}-${it.raw.id}@looproom`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${stamp(it.at)}`, `DTEND:${stamp(end)}`,

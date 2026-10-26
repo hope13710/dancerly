@@ -68,15 +68,15 @@ export async function renderShared(token) {
   let message = null;
   if (error) { try { message = (await error.context.json()).error; } catch { message = 'This link isn’t available.'; } }
   if (message || !data?.url) {
-    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}</p><a class="btn wide" href="/" >About Looproom</a></div></section>`;
+    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}</p><a class="btn wide" href="/" >About dancerly</a></div></section>`;
     return () => document.body.classList.remove('is-guest');
   }
   // Growth: whoever watches a shared video sees what made it, with a way to start their own team.
   const signedIn = Boolean(ctx.state.session);
   const ctaHref = signedIn ? '/app' : '/app/login?mode=signup&ref=share';
-  const ctaLabel = signedIn ? 'Open Looproom' : 'Try it with your team';
+  const ctaLabel = signedIn ? 'Open dancerly' : 'Try it with your team';
   view.innerHTML = `<section class="page guest">
-    <div class="guest-bar"><a class="guest-brand" href="/?ref=share" aria-label="Dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="Dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small primary" href="${ctaHref}" data-guest-cta="top">${ctaLabel}</a></div>
+    <div class="guest-bar"><a class="guest-brand" href="/?ref=share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small primary" href="${ctaHref}" data-guest-cta="top">${ctaLabel}</a></div>
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
       <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span></div>
@@ -84,10 +84,10 @@ export async function renderShared(token) {
         <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · ✎ sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
     ${signedIn ? '' : `<aside class="guest-cta">
-      <div><p class="eyebrow">Made with Looproom</p><h2>Give your team feedback like this.</h2><p>Pin notes to the exact count, sketch on the frame, loop the part that needs work, and see every fix in the next take. Free for your first team.</p></div>
+      <div><p class="eyebrow">Made with dancerly</p><h2>Give your team feedback like this.</h2><p>Pin notes to the exact count, sketch on the frame, loop the part that needs work, and see every fix in the next take. Free for your first team.</p></div>
       <div class="guest-cta-actions"><a class="btn primary" href="${ctaHref}" data-guest-cta="card">Start free</a><a class="btn ghost" href="/?ref=share" data-guest-cta="learn">See how it works</a></div>
     </aside>`}
-    <p class="fine guest-foot">Shared from <a href="/?ref=share">Looproom</a> — timestamped feedback for dance teams.</p>
+    <p class="fine guest-foot">Shared from <a href="/?ref=share">dancerly</a> — timestamped feedback for dance teams.</p>
   </section>`;
   const video = $('[data-video]');
   $$('[data-seek]').forEach((b) => b.addEventListener('click', () => {

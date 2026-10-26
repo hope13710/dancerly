@@ -44,4 +44,4 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end('Not found');
   }
 });
-server.listen(port, '0.0.0.0', () => console.log(`Looproom listening on http://0.0.0.0:${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`dancerly listening on http://0.0.0.0:${port}`));

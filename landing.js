@@ -20,9 +20,9 @@ function signedIn() {
 }
 if (signedIn()) {
   $$('[data-auth-login]').forEach((a) => { a.textContent = 'Log out'; a.href = '/app/logout'; a.dataset.cta = 'logout'; });
-  $$('[data-auth-primary]').forEach((a) => { a.textContent = 'Open Looproom'; a.href = '/app'; a.dataset.cta = 'open_app'; });
+  $$('[data-auth-primary]').forEach((a) => { a.textContent = 'Open dancerly'; a.href = '/app'; a.dataset.cta = 'open_app'; });
   const footerApp = $('[data-footer-app]');
-  if (footerApp) { footerApp.textContent = 'Open Looproom →'; footerApp.href = '/app'; }
+  if (footerApp) { footerApp.textContent = 'Open dancerly →'; footerApp.href = '/app'; }
 }
 
 // ---------- English / Korean (English by default; the choice is shared with the app) ----------

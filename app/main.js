@@ -280,7 +280,7 @@ function renderLogin() {
     const signup = mode === 'signup';
     view.innerHTML = `<section class="auth">
       <div class="auth-card">
-        <a class="auth-brand" href="/" aria-label="Dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="Dancerly" width="542" height="128" /></a>
+        <a class="auth-brand" href="/" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
         <h1>${signup ? 'Start your team’s space' : 'Welcome back'}</h1>
         <p class="muted">${signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
@@ -353,7 +353,7 @@ function renderForgot(email = '') {
   renderChrome();
   view.innerHTML = `<section class="auth"><form class="auth-card" data-forgot-form>
     <h1>Reset your password</h1>
-    <p class="muted">We’ll email you a code to set a new one. Also works if you joined before Looproom had passwords.</p>
+    <p class="muted">We’ll email you a code to set a new one. Also works if you joined before dancerly had passwords.</p>
     <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required value="${esc(email)}" placeholder="you@example.com" /></label>
     <button class="btn primary wide" type="submit">Email me a code</button>
     <p class="form-error" data-form-error role="alert" hidden></p>
@@ -545,7 +545,7 @@ async function renderJoin(code) {
   if (error) throw error;
   const invite = data?.[0];
   if (!invite || !invite.valid) {
-    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>This invite has expired</h1><p class="muted">Ask the project owner for a new link.</p><a class="btn wide" href="/app" data-link>Go to Looproom</a></div></section>`;
+    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>This invite has expired</h1><p class="muted">Ask the project owner for a new link.</p><a class="btn wide" href="/app" data-link>Go to dancerly</a></div></section>`;
     return;
   }
   const signedIn = Boolean(state.session);

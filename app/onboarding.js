@@ -136,7 +136,7 @@ export async function renderWelcome() {
         });
         $('[data-share]').addEventListener('click', () => {
           track('invite_link_shared', { via: 'share', from: 'welcome' });
-          navigator.share({ title: 'Looproom', text: t('Join our team on Looproom'), url: link }).catch(() => {});
+          navigator.share({ title: 'dancerly', text: t('Join our team on dancerly'), url: link }).catch(() => {});
         });
       }).catch((error) => toast(friendlyError(error), 'error'));
       const next = async () => { step = 3; await saveOnboarding({ welcome_step: 3 }); track('onboarding_step_done', { step: 'invite' }); paint(); };
