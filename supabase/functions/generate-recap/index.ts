@@ -7,6 +7,12 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const MODEL = "claude-haiku-5-5";
 const MAX_NOTES = 400;
 const DAY = 86_400_000;
+// Free plan: 3 new recaps per person per calendar month (UTC) — enough for the first "wow" and two more
+// rehearsals; a weekly team runs into it in week four, which is the natural moment to upgrade.
+// Re-opening a cached recap and anything made in the sample project don't count.
+// During early access the limit is only shown, never enforced; set RECAP_LIMIT_ENFORCED=true to enforce it.
+const FREE_RECAPS_PER_MONTH = 3;
+const ENFORCE_LIMIT = Deno.env.get("RECAP_LIMIT_ENFORCED") === "true";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -70,8 +76,19 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ error: "Your session ended. Log in again." }, 401);
   const me = userData.user.id;
 
-  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string };
+  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string; usage_only?: boolean };
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
+
+  // ---------- This month's free recaps (counted from the product_events log, which people can't edit) ----------
+  const now0 = new Date();
+  const monthStart = new Date(Date.UTC(now0.getUTCFullYear(), now0.getUTCMonth(), 1));
+  const resets = new Date(Date.UTC(now0.getUTCFullYear(), now0.getUTCMonth() + 1, 1)).toISOString();
+  const { count: usedCount } = await admin.from("product_events").select("id", { count: "exact", head: true })
+    .eq("user_id", me).eq("event", "recap_generated").gte("created_at", monthStart.toISOString());
+  const used = usedCount ?? 0;
+  const usage = (n: number) => ({ used: n, limit: FREE_RECAPS_PER_MONTH, over: n > FREE_RECAPS_PER_MONTH, enforced: ENFORCE_LIMIT, resets });
+  if (body.usage_only) return json({ usage: usage(used) });
+
   const { project_id, video_id = null } = body;
   const scope = body.scope === "project" ? "project" : "me";
   const lang = body.lang === "ko" ? "ko" : "en";
@@ -79,7 +96,7 @@ Deno.serve(async (req) => {
   if (!project_id) return json({ error: "Pick a project." }, 400);
 
   // Membership check through RLS: non-members simply don't see the project.
-  const { data: project } = await asUser.from("projects").select("id, title").eq("id", project_id).maybeSingle();
+  const { data: project } = await asUser.from("projects").select("id, title, is_sample").eq("id", project_id).maybeSingle();
   if (!project) return json({ error: "Project not found." }, 404);
 
   // ---------- Period ----------
@@ -130,7 +147,11 @@ Deno.serve(async (req) => {
   existingQ = video_id ? existingQ.eq("video_id", video_id) : existingQ.is("video_id", null);
   if (period === "custom") existingQ = existingQ.eq("period_start", start.toISOString());
   const { data: existing } = await existingQ.maybeSingle();
-  if (existing) return json({ recap: existing, cached: true });
+  if (existing) return json({ recap: existing, cached: true, usage: usage(used) });
+
+  if (!project.is_sample && ENFORCE_LIMIT && used >= FREE_RECAPS_PER_MONTH) {
+    return json({ error: `You’ve used this month’s ${FREE_RECAPS_PER_MONTH} free AI recaps. They reset on the 1st, or the Team plan makes them unlimited.`, usage: usage(used) }, 402);
+  }
 
   // ---------- Prompt ----------
   const ids = [...new Set(notes.map((n) => n.author_id))];
@@ -213,5 +234,7 @@ Deno.serve(async (req) => {
     model: response.model ?? MODEL,
   }).select("*").single();
   if (saveErr) return json({ error: saveErr.message }, 500);
-  return json({ recap: saved });
+  if (project.is_sample) return json({ recap: saved });
+  await admin.from("product_events").insert({ user_id: me, event: "recap_generated", props: { project_id, scope } });
+  return json({ recap: saved, usage: usage(used + 1) });
 });

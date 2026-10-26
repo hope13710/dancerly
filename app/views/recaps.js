@@ -58,6 +58,24 @@ export async function generateRecap(params) {
   return data;
 }
 
+// This month's free recaps: { used, limit, over, enforced, resets }. Null if it can't be checked.
+export async function recapUsage() {
+  try {
+    const { data, error } = await sb.functions.invoke('generate-recap', { body: { usage_only: true } });
+    return error ? null : data?.usage || null;
+  } catch { return null; }
+}
+const resetDay = (u) => new Date(u.resets).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+// Built in both languages here (it has numbers in it); shown with data-no-i18n.
+export function usageText(u) {
+  if (!u) return '';
+  const ko = getLang() === 'ko';
+  const left = Math.max(0, u.limit - u.used);
+  if (left > 0) return ko ? `이번 달 무료 AI 요약 ${u.limit}회 중 ${left}회 남았어요` : `${left} of ${u.limit} free recaps left this month`;
+  if (u.enforced) return ko ? `이번 달 무료 AI 요약 ${u.limit}회를 모두 썼어요. ${resetDay(u)}에 다시 채워져요.` : `You’ve used this month’s ${u.limit} free recaps. They reset on ${resetDay(u)}.`;
+  return ko ? `이번 달 무료 AI 요약 ${u.limit}회를 모두 썼어요. 얼리 액세스 기간이라 계속 무료로 쓸 수 있어요.` : `You’ve used this month’s ${u.limit} free recaps — the rest are on us during early access.`;
+}
+
 // The New recap form. Resolves to the saved recap, or null.
 export async function newRecap({ projectId = null, scope = 'me' } = {}) {
   // From outside a project, only real projects are offered; the sample's recap is made from inside it.
@@ -81,6 +99,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
       <label class="field"><span>To</span><input type="date" name="to" /></label>
     </div>
     <label class="field"><span>Video</span><select name="video"></select></label>
+    <p class="recap-usage" data-usage hidden></p>
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">✦ Generate</button></div>
   </form>`;
   document.body.append(el);
@@ -89,8 +108,17 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
     const list = (videos || []).filter((v) => v.project_id === form.elements.namedItem('project').value);
     form.elements.namedItem('video').innerHTML = `<option value="">All videos</option>${list.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}`;
   };
+  // How many free recaps are left (the sample doesn't use any).
+  let usage = null;
+  const paintUsage = () => {
+    const line = el.querySelector('[data-usage]');
+    const sample = ctx.state.projects.some((p) => p.is_sample && p.id === form.elements.namedItem('project').value);
+    line.hidden = !usage || sample;
+    line.innerHTML = `<span data-no-i18n>${usageText(usage)}</span>`;
+  };
+  recapUsage().then((u) => { usage = u; if (el.isConnected) paintUsage(); });
   fillVideos();
-  form.elements.namedItem('project').addEventListener?.('change', fillVideos);
+  form.elements.namedItem('project').addEventListener?.('change', () => { fillVideos(); paintUsage(); });
   const period = form.elements.namedItem('period');
   period.addEventListener('change', () => {
     const custom = period.value === 'custom';
@@ -124,6 +152,9 @@ async function runGeneration(params) {
     if (result.empty) { toast(result.message || 'No notes in this period yet.'); return null; }
     if (result.cached) toast('No new notes since your last recap — here it is.');
     else { try { sessionStorage.setItem(FRESH_KEY, result.recap.id); } catch {} }
+    // The first recap past the free limit, during early access: say it's a gift, once a month, so the limit isn't a surprise later.
+    const u = result.usage;
+    if (!result.cached && u?.over && !u.enforced && u.used === u.limit + 1) toast(usageText(u));
     ctx.navigate(`/app/recaps/${result.recap.id}`);
     return result.recap;
   } catch (err) {

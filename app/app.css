@@ -5568,3 +5568,8 @@ body.is-guest .topbar {
   font-size: 13px;
   color: var(--muted);
 }
+.recap-usage {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}

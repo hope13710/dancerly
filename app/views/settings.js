@@ -3,6 +3,7 @@ import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wi
 import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
+import { recapUsage } from './recaps.js';
 
 const SECTIONS = [
   ['account', 'Account'],
@@ -131,17 +132,19 @@ export async function renderSettings(section = 'account') {
   async function plan() {
     const { data: rows } = await sb.from('project_members').select(cols('project_id, projects(is_sample, project_members(count))')).eq('user_id', state.session.user.id).eq('role', 'owner');
     const data = (rows || []).filter((m) => !m.projects?.is_sample);
+    const recaps = await recapUsage();
     const owned = data?.length || 0;
     const largest = Math.max(0, ...(data || []).map((m) => m.projects?.project_members?.[0]?.count ?? 1));
     const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;
     return {
       html: `<section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">One team of up to 10 members, unlimited takes, every note feature, Insights, and AI recaps to try. Everything you make stays yours.</p></div></div>
+        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">One team of up to 10 members, unlimited takes, every note feature, Insights, and 3 AI recaps a month per person. Everything you make stays yours.</p></div></div>
         <div class="usage">
-          <div><span>Projects you own</span><b>${owned} of ${FREE.projects}</b>${meter(owned, FREE.projects)}</div>
+          <div><span>Projects you own</span><b data-no-i18n>${getLang() === 'ko' ? `${FREE.projects}개 중 ${owned}개` : `${owned} of ${FREE.projects}`}</b>${meter(owned, FREE.projects)}</div>
           <div><span>People in your largest project</span><b>${largest} of ${FREE.members}</b>${meter(largest, FREE.members)}</div>
+          ${recaps ? `<div><span>Your AI recaps this month</span><b data-no-i18n>${getLang() === 'ko' ? `${recaps.limit}회 중 ${recaps.used}회` : `${recaps.used} of ${recaps.limit}`}</b>${meter(recaps.used, recaps.limit)}</div>` : ''}
         </div>
-        ${owned > FREE.projects || largest > FREE.members ? '<p class="fine left">You’re past the Free limits. Nothing is blocked during early access — we’ll let you know well before that changes.</p>' : ''}
+        ${owned > FREE.projects || largest > FREE.members || recaps?.over ? '<p class="fine left">You’re past the Free limits. Nothing is blocked during early access — we’ll let you know well before that changes.</p>' : ''}
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Team · $12/month</h2><p class="muted">3 teams and up to 40 members, unlimited projects, full-history Insights, and unlimited AI recaps.</p></div><span class="tag">Coming soon</span></div>

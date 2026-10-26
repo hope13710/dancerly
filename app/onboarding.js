@@ -90,7 +90,7 @@ async function deleteSample(projectId) {
 
 // In the sample, features that grow with the paid Team plan say what Free includes and what Team adds — honestly: nothing is limited yet.
 const TEAM_NOTES = {
-  recaps: 'Free includes AI recaps to try; the Team plan makes them unlimited. During early access, there’s no limit for anyone.',
+  recaps: 'Free includes 3 AI recaps a month per person; the Team plan makes them unlimited. During early access, there’s no limit for anyone.',
   insights: 'Free includes Insights; the Team plan adds your full history. During early access, everyone sees the full history.'
 };
 export const teamNote = (key) => `<p class="team-note"><span class="tag team-tag" data-no-i18n>Team</span> <span>${esc(TEAM_NOTES[key])}</span> <a class="link" href="/app/settings/plan" data-link>Plans</a></p>`;

@@ -232,7 +232,7 @@ export const LANDING_KO = {
   'Notes, replies, sketches, private notes': '피드백, 답글, 그림, 비공개 피드백',
   'Loops, mirror mode, slow motion': '구간 반복, 거울 모드, 느린 재생',
   'Requests, calendar, count sheet': '영상 요청, 캘린더, 카운트 시트',
-  'AI recaps to try': 'AI 요약 체험',
+  '3 AI recaps a month per person': '1인당 월 3회 AI 요약',
   'Team': '팀',
   'Most popular': '가장 많이 선택',
   '/ month': '/ 월',
