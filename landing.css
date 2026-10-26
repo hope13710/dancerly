@@ -631,3 +631,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 /* Korean: break lines between words, not inside them */
 :lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .sketch-bar b { white-space: nowrap; }
+
+/* Wordmark logo (nav and footer) */
+.brand-logo { display: block; height: 24px; width: auto; }
+.site-footer .brand-logo, footer .brand-logo { height: 22px; }

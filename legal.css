@@ -77,3 +77,5 @@ html[data-lang="en"] [lang="ko"]:not(html), html[data-lang="ko"] [lang="en"]:not
   .top, footer, .toc { display: none; }
   main { padding: 0; }
 }
+
+.brand-logo { display: block; height: 22px; width: auto; }

@@ -280,7 +280,7 @@ function renderLogin() {
     const signup = mode === 'signup';
     view.innerHTML = `<section class="auth">
       <div class="auth-card">
-        <a class="auth-brand" href="/"><span class="brand-mark"><i></i><i></i><i></i></span>looproom</a>
+        <a class="auth-brand" href="/" aria-label="Dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="Dancerly" width="542" height="128" /></a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
         <h1>${signup ? 'Start your team’s space' : 'Welcome back'}</h1>
         <p class="muted">${signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>

@@ -76,7 +76,7 @@ export async function renderShared(token) {
   const ctaHref = signedIn ? '/app' : '/app/login?mode=signup&ref=share';
   const ctaLabel = signedIn ? 'Open Looproom' : 'Try it with your team';
   view.innerHTML = `<section class="page guest">
-    <div class="guest-bar"><a class="guest-brand" href="/?ref=share"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>looproom</a><span class="spacer"></span><a class="btn small primary" href="${ctaHref}" data-guest-cta="top">${ctaLabel}</a></div>
+    <div class="guest-bar"><a class="guest-brand" href="/?ref=share" aria-label="Dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="Dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small primary" href="${ctaHref}" data-guest-cta="top">${ctaLabel}</a></div>
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
       <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span></div>

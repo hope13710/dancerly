@@ -5403,3 +5403,8 @@ body.is-guest .topbar {
     flex-wrap: wrap;
   }
 }
+
+/* Wordmark logo: sidebar, phone header, sign-in card, guest page */
+.brand-logo { display: block; height: 22px; width: auto; }
+.auth-brand .brand-logo { height: 28px; }
+.guest-brand .brand-logo { height: 20px; }

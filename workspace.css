@@ -412,3 +412,5 @@
 .take-summary .ts-open {
   color: #f3ae7a;
 }
+
+.brand-logo { display: block; height: 22px; width: auto; }
