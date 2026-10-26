@@ -1,0 +1,5 @@
+Contact: mailto:help@dancerly.app
+Expires: 2027-10-26T00:00:00.000Z
+Preferred-Languages: en, ko
+Canonical: https://dancerly.app/.well-known/security.txt
+Policy: https://dancerly.app/privacy

@@ -21,6 +21,17 @@
   ],
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "looproom-weld.vercel.app"
+        }
+      ],
+      "destination": "https://dancerly.app/:path*",
+      "permanent": false
+    },
+    {
       "source": "/demo",
       "destination": "/app",
       "permanent": false

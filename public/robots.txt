@@ -1,0 +1,8 @@
+# dancerly — https://dancerly.app
+User-agent: *
+Allow: /
+# The app, invite links, and shared videos are private to each team.
+Disallow: /app/
+Disallow: /workspace.html
+
+Sitemap: https://dancerly.app/sitemap.xml

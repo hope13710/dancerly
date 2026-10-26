@@ -15,7 +15,7 @@ const resolveRequestPath = (requestPath) => {
   if (requestPath === '/terms' || requestPath === '/privacy') return `${requestPath.slice(1)}.html`;
   if (requestPath === '/manus-routes.json') return 'public/manus-routes.json';
   // The build copies public/ to the site root; locally, serve it from there.
-  if (requestPath.startsWith('/samples/')) return `public${requestPath}`;
+  if (requestPath.startsWith('/samples/') || /^\/(robots\.txt|sitemap\.xml|site\.webmanifest|\.well-known\/security\.txt)$/.test(requestPath)) return `public${requestPath}`;
   return requestPath.replace(/^\/+/, '');
 };
 const server = http.createServer(async (request, response) => {
