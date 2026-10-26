@@ -136,7 +136,7 @@ export async function renderSettings(section = 'account') {
     const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;
     return {
       html: `<section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">One team of up to 10 members, unlimited takes, and every note feature. Everything you make stays yours.</p></div></div>
+        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">One team of up to 10 members, unlimited takes, every note feature, Insights, and AI recaps to try. Everything you make stays yours.</p></div></div>
         <div class="usage">
           <div><span>Projects you own</span><b>${owned} of ${FREE.projects}</b>${meter(owned, FREE.projects)}</div>
           <div><span>People in your largest project</span><b>${largest} of ${FREE.members}</b>${meter(largest, FREE.members)}</div>
