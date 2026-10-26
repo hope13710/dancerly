@@ -1,0 +1,12 @@
+<!-- Supabase → Authentication → Emails → Templates → "Confirm signup". Subject: Your dancerly code: {{ .Token }} -->
+<div style="margin:0;padding:32px 16px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#15171b;">
+  <div style="max-width:440px;margin:0 auto;background:#ffffff;border:1px solid #e6e8ec;border-radius:16px;padding:32px 28px;">
+    <img src="https://dancerly.app/logo-wordmark.png" alt="dancerly" height="24" style="display:block;height:24px;width:auto;margin:0 0 28px;" />
+    <h1 style="margin:0 0 8px;font-size:22px;letter-spacing:-0.02em;">Confirm your email</h1>
+    <p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#4b5260;">Enter this code on the dancerly sign-up screen.<br />가입 화면에 아래 코드를 입력해 주세요.</p>
+    <div style="margin:0 0 22px;padding:18px 0;border-radius:12px;background:#ededff;text-align:center;font-size:32px;font-weight:800;letter-spacing:0.28em;color:#4948d4;">{{ .Token }}</div>
+    <p style="margin:0 0 6px;font-size:13px;line-height:1.5;color:#6b7280;">Or confirm on this device · 또는 이 기기에서 바로 인증하기:</p>
+    <p style="margin:0 0 24px;"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:11px 18px;border-radius:10px;background:#15171b;color:#ffffff;font-size:14px;font-weight:650;text-decoration:none;">Confirm email · 이메일 인증</a></p>
+    <p style="margin:0;font-size:12px;line-height:1.5;color:#9aa0aa;">The code works once and expires in an hour. If you didn’t sign up for dancerly, you can ignore this email.<br />코드는 한 번만 쓸 수 있고 1시간 뒤 만료돼요. 가입한 적이 없다면 이 메일은 무시하셔도 돼요.</p>
+  </div>
+</div>
