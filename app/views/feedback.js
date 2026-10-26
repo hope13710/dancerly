@@ -1,7 +1,7 @@
 // Feedback: every note, from three angles — for me, by me, and the whole team.
 import { sb, $, esc } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, tabs, empty, pageHead, namesFor, notesForMe } from './shared.js';
+import { NOTE_SELECT, noteRow, tabs, empty, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
 
 const VIEWS = [
   ['for-me', 'For me'],
@@ -33,7 +33,7 @@ export async function renderFeedback() {
   if (which === 'for-me') {
     notes = await notesForMe(me);
   } else {
-    let q = sb.from('notes').select(NOTE_SELECT).order('created_at', { ascending: false }).limit(300);
+    let q = noSample(sb.from('notes').select(NOTE_SELECT)).order('created_at', { ascending: false }).limit(300);
     if (which === 'by-me') q = q.eq('author_id', me);
     const { data, error } = await q;
     if (error) throw error;
@@ -55,7 +55,7 @@ export async function renderFeedback() {
     ${tabs(VIEWS.map(([k, label]) => [k, label, url({ view: k })]), which)}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Status">${STATUSES.map(([k, label]) => `<a href="${url({ status: k })}" data-link aria-selected="${k === status}">${label} <span>${counts[k]}</span></a>`).join('')}</div>
-      ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
+      ${realProjects().length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
       : notes.length && status !== 'all' ? empty('✓', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')

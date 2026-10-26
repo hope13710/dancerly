@@ -55,9 +55,12 @@ export const initials = (name) => String(name || '?').trim().split(/\s+/).filter
 // Profile photos, remembered as profiles load, so any avatar can show a face instead of initials.
 export const photos = new Map();
 export const rememberPhotos = (rows) => { for (const p of rows || []) if (p?.id) { if (p.avatar_url) photos.set(p.id, p.avatar_url); else photos.delete(p.id); } };
+// The sample project's made-up teammates (fixed ids, no login).
+export const isSamplePerson = (id) => String(id || '').startsWith('5a3b0000-');
 export function avatar(name, userId, cls = '') {
   const url = userId && photos.get(userId);
-  return `<span class="avatar ${cls}" title="${esc(name || '')}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
+  if (isSamplePerson(userId)) cls += ' sample-person';
+  return `<span class="avatar ${cls}" title="${esc(name || '')}${isSamplePerson(userId) ? ' (sample)' : ''}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
 }
 // A project's square mark: its image, or its initials.
 export function projectMark(project, cls = '') {
@@ -154,7 +157,7 @@ export function friendlyError(error) {
 }
 
 // A small promise-based dialog so views can ask for a title or confirm a delete.
-export function dialog({ title, body = '', fields = [], confirm = 'Save', danger = false, extra = null }) {
+export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel = 'Cancel', danger = false, extra = null }) {
   return new Promise((resolve) => {
     const el = document.createElement('dialog');
     el.className = 'dialog';
@@ -165,7 +168,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', danger
         : f.type === 'file'
         ? `<input name="${f.name}" type="file" accept="${f.accept || ''}" ${f.required ? 'required' : ''} />`
         : `<input name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" maxlength="${f.max || 120}" ${f.required ? 'required' : ''} />`}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`).join('')}
-      <div class="dialog-actions">${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}<button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button></div>
+      <div class="dialog-actions">${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}<button value="cancel" formnovalidate class="btn ghost">${esc(cancel)}</button><button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button></div>
     </form>`;
     document.body.append(el);
     el.addEventListener('close', () => {

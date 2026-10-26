@@ -2,7 +2,7 @@
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
 import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
-import { pageHead, tabs, empty, namesFor } from './shared.js';
+import { pageHead, tabs, empty, namesFor, noSample, realProjects } from './shared.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 
 export const QUEUE_KEY = 'looproom:queue';
@@ -12,7 +12,7 @@ export async function unseenVideos() {
   const me = ctx.state.session.user.id;
   const since = new Date(Date.now() - 60 * 864e5).toISOString();
   const [{ data: takes, error }, { data: views }] = await Promise.all([
-    sb.from('takes').select('id, number, created_at, uploaded_by, video_id, project_id, videos(title, request_id), projects(title)').neq('uploaded_by', me).gte('created_at', since).order('created_at', { ascending: true }).limit(1000),
+    noSample(sb.from('takes').select('id, number, created_at, uploaded_by, video_id, project_id, videos(title, request_id), projects(title)')).neq('uploaded_by', me).gte('created_at', since).order('created_at', { ascending: true }).limit(1000),
     sb.from('video_views').select('video_id, seen_at').eq('user_id', me)
   ]);
   if (error) throw error;
@@ -52,7 +52,7 @@ export async function renderQueue() {
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Review queue', { sub: 'New takes you haven’t watched yet, oldest first.', actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
     ${tabs([['needs', 'Needs review', url({ show: 'needs' }), needs.length], ['resubmitted', 'Re-submitted', url({ show: 'resubmitted' }), resubmitted.length], ['overdue', 'Overdue', url({ show: 'overdue' }), overdue.length]], show)}
-    ${state.projects.length > 1 ? `<div class="filters"><label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label></div>` : ''}
+    ${realProjects().length > 1 ? `<div class="filters"><label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label></div>` : ''}
     ${show === 'overdue'
       ? (overdue.length ? `<div class="list">${overdue.map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link>
           <span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due overdue">${esc(dueLabel(r.due_at))}</span> · ${esc(r.projects?.title || '')}</span></span>

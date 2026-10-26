@@ -1,6 +1,7 @@
 // ⌘K / Ctrl+K: jump to any project, person, video, request, or note — or run a command.
-import { sb, esc, initials, fmt } from '../client.js';
+import { sb, esc, initials, fmt, isSamplePerson } from '../client.js';
 import { ctx } from '../ctx.js';
+import { noSample } from './shared.js';
 
 let open = false;
 
@@ -54,8 +55,10 @@ export function openSearch() {
     const term = q.trim();
     const lower = term.toLowerCase();
     const cmds = commands().filter((c) => !lower || c.label.toLowerCase().includes(lower));
-    const projects = ctx.state.projects.filter((p) => !lower || p.title.toLowerCase().includes(lower)).slice(0, 5)
-      .map((p) => ({ group: 'Projects', icon: esc(initials(p.title)), label: p.title, href: `/app/p/${p.id}` }));
+    // Real projects first; the sample is still reachable by name, marked as such.
+    const projects = [...ctx.state.projects].sort((a, b) => Number(Boolean(a.is_sample)) - Number(Boolean(b.is_sample)))
+      .filter((p) => !lower || p.title.toLowerCase().includes(lower)).slice(0, 5)
+      .map((p) => ({ group: 'Projects', icon: esc(initials(p.title)), label: p.title, hint: p.is_sample ? 'Sample' : '', href: `/app/p/${p.id}` }));
     if (term.length < 2) {
       results = [...cmds.slice(0, 8), ...projects];
       active = 0;
@@ -63,15 +66,15 @@ export function openSearch() {
     }
     const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
     const [videos, requests, notes, people] = await Promise.all([
-      sb.from('videos').select('id, title, project_id, projects(title)').ilike('title', like).limit(6),
-      sb.from('requests').select('id, title, project_id, projects(title)').ilike('title', like).limit(5),
-      sb.from('notes').select('id, body, t_start, project_id, video_id, takes(number), videos(title)').ilike('body', like).order('created_at', { ascending: false }).limit(8),
+      noSample(sb.from('videos').select('id, title, project_id, projects(title)')).ilike('title', like).limit(6),
+      noSample(sb.from('requests').select('id, title, project_id, projects(title)')).ilike('title', like).limit(5),
+      noSample(sb.from('notes').select('id, body, t_start, project_id, video_id, takes(number), videos(title)')).ilike('body', like).order('created_at', { ascending: false }).limit(8),
       sb.from('profiles').select('id, display_name').ilike('display_name', like).limit(5)
     ]);
     if (mine !== seq) return; // a newer keystroke won
     results = [
       ...projects,
-      ...(people.data || []).map((p) => ({ group: 'People', icon: esc(initials(p.display_name)), label: p.display_name, href: `/app/people/${p.id}` })),
+      ...(people.data || []).filter((p) => !isSamplePerson(p.id)).map((p) => ({ group: 'People', icon: esc(initials(p.display_name)), label: p.display_name, href: `/app/people/${p.id}` })),
       ...(videos.data || []).map((v) => ({ group: 'Videos', icon: '▶', label: v.title, hint: v.projects?.title, href: `/app/p/${v.project_id}/v/${v.id}` })),
       ...(requests.data || []).map((r) => ({ group: 'Requests', icon: '⇪', label: r.title, hint: r.projects?.title, href: `/app/p/${r.project_id}/requests/${r.id}` })),
       ...(notes.data || []).map((n) => ({ group: 'Notes', icon: '◫', label: n.body.length > 90 ? `${n.body.slice(0, 90)}…` : n.body, hint: `${n.videos?.title || ''} · ${fmt(Number(n.t_start))}`, href: `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}` })),

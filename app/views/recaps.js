@@ -3,8 +3,9 @@
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
+import { sampleMoment } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
-import { empty, namesFor, tabs } from './shared.js';
+import { empty, namesFor, tabs, noSample, realProjects } from './shared.js';
 
 const SECTIONS = [
   ['worked_on', 'Worked on'],
@@ -59,7 +60,8 @@ export async function generateRecap(params) {
 
 // The New recap form. Resolves to the saved recap, or null.
 export async function newRecap({ projectId = null, scope = 'me' } = {}) {
-  const projects = ctx.state.projects;
+  // From outside a project, only real projects are offered; the sample's recap is made from inside it.
+  const projects = projectId ? ctx.state.projects : realProjects();
   if (!projects.length) { toast('Recaps summarize a project’s notes. Create a project first.'); return null; }
   const pid = projectId || projects[0].id;
   const { data: videos } = await sb.from('videos').select('id, title, project_id').in('project_id', projects.map((p) => p.id)).order('created_at', { ascending: false });
@@ -214,15 +216,16 @@ export async function renderMyRecaps() {
   const { view, setCrumbs } = ctx;
   const me = ctx.state.session.user.id;
   setCrumbs([['Me', '/app/me'], ['My recaps']]);
+  await ctx.state.projectsReady;
   const [{ data: mine, error }, { data: pins }] = await Promise.all([
-    sb.from('recaps').select(SELECT).eq('created_by', me).order('created_at', { ascending: false }).limit(200),
+    noSample(sb.from('recaps').select(SELECT)).eq('created_by', me).order('created_at', { ascending: false }).limit(200),
     sb.from('recap_pins').select('recap_id').eq('user_id', me)
   ]);
   if (error) throw error;
   // Pinned recaps someone else shared still belong in your list.
   const extraIds = (pins || []).map((p) => p.recap_id).filter((id) => !mine.some((r) => r.id === id));
   let pinnedShared = [];
-  if (extraIds.length) ({ data: pinnedShared = [] } = await sb.from('recaps').select(SELECT).in('id', extraIds));
+  if (extraIds.length) ({ data: pinnedShared = [] } = await noSample(sb.from('recaps').select(SELECT)).in('id', extraIds));
   const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine]));
   const names = await namesFor(groups.map((g) => g.latest.created_by));
   view.innerHTML = `<section class="page narrow-wide">
@@ -334,6 +337,10 @@ export async function renderRecap(recapId) {
     }
   }));
   wireCitations(r);
+  // Recaps live outside the project's URL, so the sample bar is switched on here.
+  await ctx.state.projectsReady;
+  const sample = ctx.state.projects.find((p) => p.id === r.project_id && p.is_sample);
+  if (sample) { ctx.sampleBar(sample); sampleMoment('recap'); }
 }
 
 // Tap a [n] chip: the note behind the sentence, and a link to play that moment.
@@ -363,7 +370,7 @@ document.addEventListener('click', (e) => {
 
 // ---------- Home card ----------
 export async function homeRecapCard() {
-  const { data } = await sb.from('recaps').select(SELECT).order('created_at', { ascending: false }).limit(1);
+  const { data } = await noSample(sb.from('recaps').select(SELECT)).order('created_at', { ascending: false }).limit(1);
   const r = data?.[0];
   if (!r) {
     return {

@@ -1,7 +1,7 @@
 // Home: what needs you today, what changed, and how to get started.
 import { sb, $, esc, initials, timeAgo, avatar, schema } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass } from './shared.js';
+import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample } from './shared.js';
 import { homeRecapCard } from './recaps.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
@@ -21,18 +21,17 @@ export async function renderHome() {
   // The sample doesn't count toward getting started.
   const sample = state.projects.find((p) => p.is_sample);
   const real = state.projects.filter((p) => !p.is_sample);
-  const notSample = (q) => (sample ? q.neq('project_id', sample.id) : q);
   const [recapCard, dueFromMe, toReview, { data: upcoming }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }, { count: myTakes }, { count: myReplies }, { count: myViews }] = await Promise.all([
     homeRecapCard(),
     myOpenRequests(),
     unseenVideos(),
-    state.projects.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, location, projects(title)').in('project_id', state.projects.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
+    real.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, location, projects(title)').in('project_id', real.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
     notesForMe(me, { limit: 50 }),
-    sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)').order('created_at', { ascending: false }).limit(12),
-    sb.from('notes').select(NOTE_SELECT).order('created_at', { ascending: false }).limit(12),
-    notSample(sb.from('notes').select('id', { count: 'exact', head: true }).eq('author_id', me)),
-    notSample(sb.from('project_members').select('user_id').neq('user_id', me)).limit(1),
-    notSample(sb.from('takes').select('id', { count: 'exact', head: true }).eq('uploaded_by', me)),
+    noSample(sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)')).order('created_at', { ascending: false }).limit(12),
+    noSample(sb.from('notes').select(NOTE_SELECT)).order('created_at', { ascending: false }).limit(12),
+    noSample(sb.from('notes').select('id', { count: 'exact', head: true }).eq('author_id', me)),
+    noSample(sb.from('project_members').select('user_id').neq('user_id', me)).limit(1),
+    noSample(sb.from('takes').select('id', { count: 'exact', head: true }).eq('uploaded_by', me)),
     sb.from('note_replies').select('id', { count: 'exact', head: true }).eq('author_id', me),
     sb.from('video_views').select('video_id', { count: 'exact', head: true }).eq('user_id', me)
   ]);
@@ -63,9 +62,24 @@ export async function renderHome() {
   let hideChecklist = done === steps.length || Boolean(onboarding().checklist_hidden);
   try { hideChecklist ||= localStorage.getItem('looproom:checklist') === 'hidden'; } catch {}
 
+  // The sample's one place on Home: a single card for leaders who haven't uploaded a video of their own yet.
+  // After that it lives only in the sidebar ("Try it out"). People who were invited don't get it pushed at them.
+  const graduated = (takes || []).length > 0;
+  let sampleHidden = false;
+  try { sampleHidden = Number(localStorage.getItem('looproom:sample-card')) > Date.now(); } catch {}
+  const sampleCard = leader && schema.firstRun && !graduated && !sampleHidden ? `<section class="panel home-sample">
+      <span class="sample-dot" aria-hidden="true">✦</span>
+      <div class="grow">${sample
+        ? '<h2>Pick up the sample where you left off</h2><p class="muted">A finished team project to try things in. Only you can see it, and it never mixes into your own work.</p>'
+        : '<h2>See a finished project first</h2><p class="muted">A sample team with rehearsal videos, notes on the moment, and an AI recap. Only you can see it — try anything.</p>'}</div>
+      ${sample ? `<a class="btn primary" href="/app/p/${sample.id}" data-link>Open the sample</a>` : '<button class="btn primary" data-open-sample="home">Explore the sample</button>'}
+      <button class="btn ghost small" data-hide-sample-card title="Hide for a week">Not now</button>
+    </section>` : '';
+
   const first = esc(state.profile.display_name.split(' ')[0]);
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><p class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${greeting()}, ${first}</h1></div></header>
+    ${sampleCard}
     ${recapCard.html}
     <div class="home-strip">
       <section class="panel">
@@ -85,7 +99,6 @@ export async function renderHome() {
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
       <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
-      ${leader && schema.firstRun ? `<p class="checklist-sample">${sample ? `Want to see a finished example? <a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : 'Not sure where to start? <button type="button" class="link-btn" data-open-sample="home">Explore a sample project</button>'}</p>` : ''}
     </section>`}
     <div class="home-grid">
       <section class="panel">
@@ -114,6 +127,10 @@ export async function renderHome() {
   $('[data-hide-checklist]')?.addEventListener('click', () => {
     saveOnboarding({ checklist_hidden: true });
     $('.checklist').remove();
+  });
+  $('[data-hide-sample-card]')?.addEventListener('click', () => {
+    try { localStorage.setItem('looproom:sample-card', String(Date.now() + 7 * 864e5)); } catch {}
+    $('.home-sample').remove();
   });
   view.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => ctx.startAction(b.dataset.step)));
 }

@@ -18,13 +18,19 @@ export async function renderProjects() {
     .select(cols('id, title, image_url, is_sample, created_at, project_members(count), videos(count)'))
     .order('created_at', { ascending: false });
   if (error) throw error;
-  view.innerHTML = `<section class="page">
-    <header class="page-head"><div><h1>Projects</h1><p class="muted sub">One project per goal — a showcase, a competition, or weekly practice.</p></div><button class="btn primary" data-new-project>+ New project</button></header>
-    ${projects.length ? `<div class="cards">${projects.map((p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
+  // Your projects, then the sample on its own row so it never reads as one of them.
+  const card = (p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
         ${projectMark(p)}
         <h3>${esc(p.title)}${p.is_sample ? ' <span class="tag sample-tag">Sample</span>' : ''}</h3>
         <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
-      </a>`).join('')}</div>`
+      </a>`;
+  const real = projects.filter((p) => !p.is_sample);
+  const sample = projects.find((p) => p.is_sample);
+  view.innerHTML = `<section class="page">
+    <header class="page-head"><div><h1>Projects</h1><p class="muted sub">One project per goal — a showcase, a competition, or weekly practice.</p></div><button class="btn primary" data-new-project>+ New project</button></header>
+    ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
+      ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
+        : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
     : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
@@ -53,20 +59,12 @@ export async function loadProject(projectId) {
 export function projectHead({ project, members }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
   return `<header class="page-head project-head">
-      <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">Project</p><h1>${esc(project.title)}</h1>
+      <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">${project.is_sample ? 'Sample project' : 'Project'}</p><h1>${esc(project.title)}</h1>
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
       </div></div>
-      <div class="head-actions">${project.is_sample ? actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '') : actions}</div>
+      <div class="head-actions">${project.is_sample ? `${actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
     </header>
-    ${project.is_sample ? sampleBanner() : ''}
     ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
-}
-
-// Sample projects say so on every tab, and can be removed in one step.
-export function sampleBanner() {
-  return `<div class="sample-banner" role="note"><span class="sample-dot" aria-hidden="true">✦</span>
-    <p><b>This is a sample project.</b> <span>Only you can see it. Play the videos, leave notes, try the tools — nothing here reaches anyone.</span></p>
-    <span class="sample-actions"><button class="btn small primary" data-sample-own>Start my own project</button><button class="btn small ghost" data-delete-sample>Delete sample</button></span></div>`;
 }
 
 export async function renderProject(projectId) {
@@ -89,7 +87,7 @@ export async function renderProject(projectId) {
       </a>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${schema.firstRun ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${schema.firstRun && !p.project.is_sample ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));

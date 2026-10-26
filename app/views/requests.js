@@ -3,7 +3,7 @@
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead, createVideo } from './project.js';
-import { empty } from './shared.js';
+import { empty, noSample } from './shared.js';
 import { loadGroups } from './groups.js';
 
 const STATUS = {
@@ -253,7 +253,7 @@ export async function renderRequest(projectId, requestId) {
 export async function myOpenRequests() {
   const me = ctx.state.session.user.id;
   const [{ data: requests }, { data: assigned }, { data: mineVideos }] = await Promise.all([
-    sb.from('requests').select('id, project_id, title, due_at, everyone, status, created_by, projects(title)').eq('status', 'active').order('due_at', { ascending: true, nullsFirst: false }).limit(200),
+    noSample(sb.from('requests').select('id, project_id, title, due_at, everyone, status, created_by, projects(title)')).eq('status', 'active').order('due_at', { ascending: true, nullsFirst: false }).limit(200),
     sb.from('request_assignees').select('request_id').eq('user_id', me),
     sb.from('videos').select('request_id').eq('created_by', me).not('request_id', 'is', null)
   ]);

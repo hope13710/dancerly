@@ -1,5 +1,15 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
 import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos } from '../client.js';
+import { ctx } from '../ctx.js';
+
+// The sample project is a sandbox: it shows up only inside itself (and Insights' demo), never in the
+// screens that gather work across projects — Home, Feedback, Inbox, Calendar, People, Queue, Search, Recaps.
+export const sampleIds = () => (ctx.state?.projects || []).filter((p) => p.is_sample).map((p) => p.id);
+export const realProjects = () => (ctx.state?.projects || []).filter((p) => !p.is_sample);
+export function noSample(q, col = 'project_id') {
+  const ids = sampleIds();
+  return ids.length ? q.not(col, 'in', `(${ids.join(',')})`) : q;
+}
 
 export const NOTE_SELECT = 'id, project_id, video_id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, takes(number), videos(title), projects(title), note_reactions(user_id), note_replies(count)';
 
@@ -55,7 +65,7 @@ export async function notesForMe(me, { limit = 200 } = {}) {
   if (vids?.length) parts.push(`video_id.in.(${vids.map((v) => v.id).join(',')})`);
   if (takes?.length) parts.push(`take_id.in.(${takes.map((t) => t.id).join(',')})`);
   if (mentions?.length) parts.push(`id.in.(${mentions.map((m) => m.note_id).join(',')})`);
-  const { data, error } = await sb.from('notes').select(NOTE_SELECT).or(parts.join(',')).neq('author_id', me).order('created_at', { ascending: false }).limit(limit);
+  const { data, error } = await noSample(sb.from('notes').select(NOTE_SELECT).or(parts.join(',')).neq('author_id', me)).order('created_at', { ascending: false }).limit(limit);
   if (error) throw error;
   return data;
 }

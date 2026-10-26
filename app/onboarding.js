@@ -36,15 +36,47 @@ export async function openSample({ from = 'unknown' } = {}) {
   ctx.navigate(video ? `/app/p/${projectId}/v/${video.id}?take=1` : `/app/p/${projectId}`);
 }
 
-async function deleteSample(projectId) {
-  const sure = await dialog({ title: 'Delete the sample project?', body: 'Its videos, notes, and teammates go away. You can open a fresh one any time from Home.', confirm: 'Delete sample', danger: true });
-  if (!sure) return;
+async function removeSample(projectId) {
   const { error } = await sb.from('projects').delete().eq('id', projectId).eq('is_sample', true);
-  if (error) return toast(friendlyError(error), 'error');
+  if (error) { toast(friendlyError(error), 'error'); return false; }
   toast('Sample deleted.');
+  track('sample_deleted');
   await ctx.refreshNav();
-  ctx.navigate(ctx.state.projects.length ? '/app/projects' : '/app');
+  return true;
 }
+
+async function deleteSample(projectId) {
+  const sure = await dialog({ title: 'Delete the sample project?', body: 'Its videos, notes, and teammates go away. You can open a fresh one any time from Projects.', confirm: 'Delete sample', danger: true });
+  if (sure && await removeSample(projectId)) ctx.navigate(ctx.state.projects.length ? '/app/projects' : '/app');
+}
+
+// Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
+const MOMENTS = {
+  note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. Your team can do this on your own videos.'],
+  recap: ['This is what your team gets before each rehearsal.', 'It’s written from your own notes once there are a few.']
+};
+export function sampleMoment(key) {
+  const bar = $('[data-sample-bar]');
+  if (!bar || bar.hidden || seen(`sample_moment:${key}`) || !MOMENTS[key]) return;
+  markSeen(`sample_moment:${key}`);
+  track('sample_moment', { key });
+  const p = bar.querySelector('p');
+  if (p) p.innerHTML = `<b>${esc(MOMENTS[key][0])}</b> <span>${esc(MOMENTS[key][1])}</span>`;
+  bar.classList.add('nudge');
+}
+
+// The first video of your own is the moment the sample has done its job: say so, and offer to clear it away.
+// Keeping it is the default; it moves aside to "Try it out" in the sidebar either way.
+window.addEventListener('take-uploaded', (event) => {
+  const sample = ctx.state.projects.find((p) => p.is_sample);
+  if (!sample || event.detail?.project_id === sample.id || seen('sample_graduated')) return;
+  markSeen('sample_graduated');
+  track('sample_graduated');
+  setTimeout(async () => {
+    const clear = await dialog({ title: 'Your first real video is in 🎉', body: 'That’s the real thing now — your team’s notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
+    if (clear) removeSample(sample.id);
+  }, 800);
+});
 
 document.addEventListener('click', (event) => {
   const el = event.target.closest('[data-open-sample], [data-delete-sample], [data-sample-own]');
@@ -53,8 +85,9 @@ document.addEventListener('click', (event) => {
   const projectId = location.pathname.match(/^\/app\/p\/([0-9a-f-]{36})/)?.[1];
   if (el.matches('[data-delete-sample]') && projectId) return deleteSample(projectId);
   if (el.matches('[data-sample-own]')) {
-    const own = ctx.state.projects.find((p) => !p.is_sample);
-    return own ? ctx.navigate(`/app/p/${own.id}`) : ctx.navigate('/app/welcome');
+    const own = ctx.state.projects.filter((p) => !p.is_sample);
+    track('sample_exit', { to: own.length ? 'projects' : 'welcome' });
+    return ctx.navigate(own.length === 1 ? `/app/p/${own[0].id}` : own.length ? '/app/projects' : '/app/welcome');
   }
 });
 

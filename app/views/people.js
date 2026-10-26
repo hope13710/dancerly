@@ -1,10 +1,13 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, esc, initials, timeAgo, avatar } from '../client.js';
+import { sb, esc, initials, timeAgo, avatar, isSamplePerson } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, pageHead, empty, namesFor, tabs } from './shared.js';
+import { NOTE_SELECT, noteRow, pageHead, empty, namesFor, tabs, noSample } from './shared.js';
 
-async function roster() {
-  const { data, error } = await sb.from('project_members').select('user_id, role, project_id, joined_at, projects(title)');
+// Your real teammates. The sample's made-up teammates appear only inside the sample (and on their own page).
+async function roster({ withSample = false } = {}) {
+  await ctx.state.projectsReady;
+  const q = sb.from('project_members').select('user_id, role, project_id, joined_at, projects(title)');
+  const { data, error } = await (withSample ? q : noSample(q));
   if (error) throw error;
   const names = await namesFor(data.map((m) => m.user_id));
   const people = {};
@@ -23,8 +26,8 @@ export async function renderPeople() {
   const ids = people.map((p) => p.id);
   // Activity counts in two light queries.
   const [{ data: notes }, { data: takes }] = await Promise.all([
-    sb.from('notes').select('author_id, created_at').in('author_id', ids).order('created_at', { ascending: false }).limit(1000),
-    sb.from('takes').select('uploaded_by, created_at').in('uploaded_by', ids).order('created_at', { ascending: false }).limit(1000)
+    noSample(sb.from('notes').select('author_id, created_at')).in('author_id', ids).order('created_at', { ascending: false }).limit(1000),
+    noSample(sb.from('takes').select('uploaded_by, created_at')).in('uploaded_by', ids).order('created_at', { ascending: false }).limit(1000)
   ]);
   const stat = (id) => {
     const n = (notes || []).filter((x) => x.author_id === id);
@@ -54,18 +57,20 @@ export async function renderPeople() {
 export async function renderPerson(userId) {
   const { state, view, setCrumbs } = ctx;
   const me = state.session.user.id;
-  const people = await roster();
+  const sampleOnly = isSamplePerson(userId);
+  const people = await roster({ withSample: sampleOnly });
   const person = people.find((p) => p.id === userId);
+  const scope = (q) => (sampleOnly ? q : noSample(q));
   if (!person) throw new Error('You don’t share a project with this person.');
   setCrumbs([['People', '/app/people'], [person.name]]);
   const tab = new URLSearchParams(location.search).get('show') === 'received' ? 'received' : 'given';
   const [{ data: given }, { data: theirTakes }] = await Promise.all([
-    sb.from('notes').select(NOTE_SELECT).eq('author_id', userId).order('created_at', { ascending: false }).limit(100),
-    sb.from('takes').select('id, video_id').eq('uploaded_by', userId)
+    scope(sb.from('notes').select(NOTE_SELECT)).eq('author_id', userId).order('created_at', { ascending: false }).limit(100),
+    scope(sb.from('takes').select('id, video_id')).eq('uploaded_by', userId)
   ]);
   let received = [];
   if (theirTakes?.length) {
-    const { data } = await sb.from('notes').select(NOTE_SELECT).in('take_id', theirTakes.map((t) => t.id)).neq('author_id', userId).order('created_at', { ascending: false }).limit(100);
+    const { data } = await scope(sb.from('notes').select(NOTE_SELECT)).in('take_id', theirTakes.map((t) => t.id)).neq('author_id', userId).order('created_at', { ascending: false }).limit(100);
     received = data || [];
   }
   const list = tab === 'given' ? given || [] : received;
@@ -76,7 +81,7 @@ export async function renderPerson(userId) {
   view.innerHTML = `<section class="page narrow-wide">
     <div class="me-card">
       ${avatar(person.name, person.id, 'xl')}
-      <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}</h1>
+      <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}${sampleOnly ? ' <span class="tag sample-tag">Sample teammate</span>' : ''}</h1>
         <p class="chips">${person.projects.map((x) => `<a class="chip" href="/app/p/${x.id}" data-link>${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</a>`).join('')}</p></div>
     </div>
     <div class="stats">
@@ -88,5 +93,5 @@ export async function renderPerson(userId) {
     ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`]], tab)}
     ${list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`
       : `<p class="panel-empty">${tab === 'given' ? 'No notes from them yet.' : 'No notes on their takes yet.'}</p>`}
-  </section>`;
+  </section>`;  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
 }

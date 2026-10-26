@@ -7,7 +7,7 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
-import { reviewTips, explainPrivate, track, seen, markSeen } from './onboarding.js';
+import { reviewTips, explainPrivate, track, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
@@ -774,6 +774,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     r.selected = note.id;
     await loadNotes();
     if (!seen('first_note')) { markSeen('first_note'); track('first_note', { sample: Boolean(project.is_sample), private: Boolean(privateTo) }); }
+    if (project.is_sample) sampleMoment('note');
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
     toast(recipient
       ? `Private note pinned. Only ${recipient.split(' ')[0]} can see it.`

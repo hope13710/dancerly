@@ -1,7 +1,7 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
 import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
-import { noteTime, tabs, empty, pageHead, namesFor } from './shared.js';
+import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
 
 const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 
@@ -42,8 +42,9 @@ function hrefFor(item) {
 export async function renderInbox() {
   const { state, view, setCrumbs } = ctx;
   setCrumbs([['Inbox']]);
+  await state.projectsReady;
   const filter = new URLSearchParams(location.search).get('show') || 'all';
-  let query = sb.from('notifications').select(SELECT).order('created_at', { ascending: false }).limit(100);
+  let query = noSample(sb.from('notifications').select(SELECT)).order('created_at', { ascending: false }).limit(100);
   if (filter === 'unread') query = query.is('read_at', null);
   if (filter === 'mentions') query = query.eq('kind', 'mention');
   const [{ data: items, error }, { count: unread }] = await Promise.all([

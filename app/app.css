@@ -5408,3 +5408,112 @@ body.is-guest .topbar {
 .brand-logo { display: block; height: 22px; width: auto; }
 .auth-brand .brand-logo { height: 28px; }
 .guest-brand .brand-logo { height: 20px; }
+
+/* Sample sandbox: a bar on every sample screen, its own spot in the sidebar, and marked made-up teammates */
+.sample-bar {
+  position: sticky;
+  top: 60px;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px clamp(16px, 4vw, 40px);
+  background: var(--accent-soft);
+  border-bottom: 1px solid #dcdcfa;
+}
+.sample-bar[hidden] {
+  display: none;
+}
+.sample-bar p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #34366e;
+}
+.sample-bar b {
+  color: var(--accent-dark);
+}
+.sample-bar .sample-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+:lang(ko) .sample-bar {
+  word-break: keep-all;
+}
+@media (max-width: 600px) {
+  .sample-bar {
+    flex-wrap: wrap;
+    padding: 8px 16px;
+  }
+  .sample-bar p span {
+    display: none;
+  }
+  .sample-bar .sample-actions {
+    width: 100%;
+  }
+  .sample-bar .sample-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+.side-sample {
+  flex: none;
+  border-top: 1px dashed var(--line);
+  margin-top: 6px;
+}
+.side-sample .side-projects {
+  flex: none;
+}
+.side-label.small {
+  margin-top: 10px;
+}
+.avatar.sample-person {
+  outline: 1.5px dashed var(--accent);
+  outline-offset: 1px;
+}
+.home-sample {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.home-sample .grow {
+  flex: 1;
+  min-width: 0;
+}
+.home-sample h2 {
+  margin: 0 0 2px;
+}
+.home-sample p {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .home-sample {
+    flex-wrap: wrap;
+  }
+  .home-sample .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.sample-bar.nudge {
+  background: #e3e3ff;
+  animation: sample-nudge 0.6s ease-out;
+}
+@keyframes sample-nudge {
+  from { background: #cfd0ff; }
+}
+.section-label {
+  margin: 28px 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.projects-sample {
+  margin-top: 24px;
+  font-size: 14px;
+}

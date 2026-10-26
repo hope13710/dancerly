@@ -149,9 +149,27 @@ function paintNav() {
     me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/insights', '/app/settings', '/app/reset'].some(under)
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
-  $('[data-side-projects]').innerHTML = state.projects.length
-    ? state.projects.map((p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}>${projectMark(p, 'xs')}<span>${esc(p.title)}</span>${p.is_sample ? '<em class="side-tag">Sample</em>' : ''}</a>`).join('')
-    : '<p class="side-empty">No projects yet</p>';
+  // Real projects up top; the sample sits apart, under its own label, so it never reads as real work.
+  const link = (p) => `<a href="/app/p/${p.id}" data-link ${p.id === projectId ? 'aria-current="page"' : ''}>${projectMark(p, 'xs')}<span>${esc(p.title)}</span>${p.is_sample ? '<em class="side-tag">Sample</em>' : ''}</a>`;
+  const real = state.projects.filter((p) => !p.is_sample);
+  const sample = state.projects.find((p) => p.is_sample);
+  $('[data-side-projects]').innerHTML = real.length ? real.map(link).join('') : '<p class="side-empty">No projects yet</p>';
+  const side = $('[data-side-sample]');
+  side.hidden = !sample;
+  side.innerHTML = sample ? `<p class="side-label small">Try it out</p><nav class="side-projects">${link(sample)}</nav>` : '';
+  paintSampleBar(sample && sample.id === projectId ? sample : null);
+}
+
+// Inside the sample, every screen says so — and offers the way out.
+function paintSampleBar(sample) {
+  const bar = $('[data-sample-bar]');
+  document.body.classList.toggle('in-sample', Boolean(sample));
+  bar.hidden = !sample;
+  if (!sample) { bar.innerHTML = ''; return; }
+  const hasOwn = state.projects.some((p) => !p.is_sample);
+  bar.innerHTML = `<span class="sample-dot" aria-hidden="true">✦</span>
+    <p><b>You’re in the sample project.</b> <span>Only you can see it. Try anything — nothing here reaches anyone, and it stays out of Home, Feedback, and your calendar.</span></p>
+    <span class="sample-actions"><button class="btn small primary" data-sample-own>${hasOwn ? 'Go to my projects' : 'Start my own project'}</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
 }
 
 // Unread count for the Inbox badge (sidebar) and the bell (phones). Kept live by a realtime channel.
@@ -173,8 +191,9 @@ async function startAction(kind) {
   if (kind === 'project') return createProject();
   if (kind === 'video') return newVideo();
   if (kind === 'invite') {
-    if (!state.projects.length) { toast('Invites are per project. Create one first.'); return createProject(); }
-    const project = state.projects.find((p) => p.id === currentProjectId()) || state.projects[0];
+    const real = state.projects.filter((p) => !p.is_sample);
+    if (!real.length) { toast('Invites are per project. Create one first.'); return createProject(); }
+    const project = real.find((p) => p.id === currentProjectId()) || real[0];
     return showInvite(project.id, project.title);
   }
 }
@@ -191,11 +210,13 @@ async function refreshNav() {
 async function openNew() {
   const projectId = currentProjectId();
   const project = state.projects.find((p) => p.id === projectId);
+  // Outside a project, the pickers offer real projects only.
+  const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
     { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A rehearsal or run-through' },
     { value: 'request', label: 'Request a video', hint: project ? `From people in ${project.title}, by a date` : 'Ask people for a video by a date' },
     { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
-    ...(project ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
+    ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
     { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
   ];
   const choice = await actionSheet({ title: 'Create', actions });
@@ -203,10 +224,10 @@ async function openNew() {
   if (choice === 'invite') return showInvite(project.id, project.title);
   if (choice === 'event') return editEvent({ projectId: project?.id || null });
   if (choice === 'request') {
-    const target = project || (state.projects.length === 1 ? state.projects[0] : null);
+    const target = project || (real.length === 1 ? real[0] : null);
     if (target) return newRequest(target.id);
-    if (!state.projects.length) { toast('Requests belong to a project. Create one first.'); return createProject(); }
-    const values = await dialog({ title: 'Request in which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: state.projects.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
+    if (!real.length) { toast('Requests belong to a project. Create one first.'); return createProject(); }
+    const values = await dialog({ title: 'Request in which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: real.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
     if (values?.project) newRequest(values.project);
     return;
   }
@@ -215,12 +236,13 @@ async function openNew() {
 
 async function newVideo(project = null) {
   if (project) return createVideo(project.id);
-  if (!state.projects.length) {
+  const real = state.projects.filter((p) => !p.is_sample);
+  if (!real.length) {
     toast('Videos live in a project. Create one first.');
     return createProject();
   }
-  if (state.projects.length === 1) return createVideo(state.projects[0].id);
-  const values = await dialog({ title: 'Upload to which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: state.projects.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
+  if (real.length === 1) return createVideo(real[0].id);
+  const values = await dialog({ title: 'Upload to which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: real.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
   if (values?.project) createVideo(values.project);
 }
 $$('[data-new]').forEach((b) => b.addEventListener('click', openNew));
@@ -594,7 +616,7 @@ ctx.commands = [
   { label: 'Go to Settings', run: () => navigate('/app/settings') }
 ];
 
-Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut });
+Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut, sampleBar: paintSampleBar });
 
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {

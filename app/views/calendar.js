@@ -4,7 +4,7 @@ import { sb, $, $$, esc, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
-import { kindLabel, kindClass } from './shared.js';
+import { kindLabel, kindClass, realProjects } from './shared.js';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const timeOf = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -31,7 +31,7 @@ export async function renderCalendar(projectId = null) {
   const month = new Date(y, m - 1, 1);
   const p = projectId ? await loadProject(projectId) : null;
   await state.projectsReady;
-  const projectIds = projectId ? [projectId] : state.projects.map((x) => x.id);
+  const projectIds = projectId ? [projectId] : realProjects().map((x) => x.id);
   setCrumbs(projectId ? [['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Calendar']] : [['Calendar']]);
   const base = projectId ? `/app/p/${projectId}/calendar` : '/app/calendar';
   const link = (changes) => `${base}?${new URLSearchParams({ view: mode, m: `${month.getFullYear()}-${month.getMonth() + 1}`, ...changes })}`;
@@ -120,7 +120,8 @@ async function showEvent(e, refresh, projectId) {
 
 // Add or edit an event. date: "YYYY-MM-DD" to prefill.
 export async function editEvent({ projectId = null, date = null, event = null, refresh = null }) {
-  const projects = ctx.state.projects;
+  // The sample's events are edited inside the sample; the picker offers only real projects.
+  const projects = projectId || event ? ctx.state.projects : realProjects();
   if (!projects.length) { toast('Events belong to a project. Create one first.'); return; }
   const local = (iso) => { const d = new Date(iso); return { date: dayKey(d), time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }; };
   const s = event ? local(event.starts_at) : { date: date || dayKey(new Date()), time: '18:00' };

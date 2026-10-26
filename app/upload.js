@@ -186,5 +186,6 @@ export async function uploadTake({ projectId, videoId, file, onStage = () => {} 
   // The list thumbnail, made from the file already on this device (doesn't hold up the upload).
   const local = URL.createObjectURL(blob);
   grabStill(local).then((still) => saveThumb(data, still)).finally(() => URL.revokeObjectURL(local));
+  window.dispatchEvent(new CustomEvent('take-uploaded', { detail: data }));
   return data;
 }
