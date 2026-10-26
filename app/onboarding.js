@@ -24,6 +24,30 @@ export const markSeen = (key) => saveOnboarding({ seen: { ...(onboarding().seen 
 export const needsWelcome = () => schema.firstRun && !onboarding().welcome && !ctx.state.projects.length;
 
 // ---------- The sample project ----------
+// Who gets the sample offered, by where they are:
+//   A. nothing real yet → offered on Home and on empty screens
+//   B. inside the sample → the bar on top says so; nudges toward your own project
+//   C. a real project, but no real video yet → still offered (Home card, empty screens)
+//   D. a real video is in ("graduated") → never pushed again; it waits under "Try it out" and on Projects
+//   People who were invited (no project of their own) aren't offered it: they already have a real team.
+export function sampleOffer() {
+  if (!schema.firstRun || seen('sample_graduated')) return false;
+  const me = ctx.state.session?.user.id;
+  const real = ctx.state.projects.filter((p) => !p.is_sample);
+  return !real.length || real.some((p) => p.created_by === me);
+}
+
+// An empty screen shows what it will look like, rather than being filled with made-up data.
+export function samplePeek(where, text = 'Preview this in the sample project') {
+  if (!sampleOffer()) return '';
+  // Inside the sample itself there's nothing to preview.
+  if (ctx.state.projects.some((p) => p.is_sample && location.pathname.includes(p.id))) return '';
+  return `<p class="sample-peek"><button type="button" class="link-btn" data-open-sample="${where}"><span aria-hidden="true">✦</span> ${esc(text)}</button></p>`;
+}
+
+// Where each "preview it" link lands inside the sample.
+const SAMPLE_SPOTS = { feedback: '/notes', inbox: '/notes', notes: '/notes', calendar: '/calendar', people: '/people', requests: '/requests', recaps: '/recaps', overview: '/overview' };
+
 export async function openSample({ from = 'unknown' } = {}) {
   if (!schema.firstRun) return toast('The sample project isn’t available yet. Try again soon.');
   const { data: projectId, error } = await sb.rpc('create_sample_project', { p_lang: getLang(), p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
@@ -31,7 +55,12 @@ export async function openSample({ from = 'unknown' } = {}) {
   track('sample_opened', { from });
   await ctx.refreshNav();
   if (from === 'insights') return ctx.navigate(`/app/insights?project=${projectId}`);
-  // Straight to the review: that's where the product makes sense.
+  if (from === 'recaps') {
+    const { data: recap } = await sb.from('recaps').select('id').eq('project_id', projectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (recap) return ctx.navigate(`/app/recaps/${recap.id}`);
+  }
+  if (SAMPLE_SPOTS[from]) return ctx.navigate(`/app/p/${projectId}${SAMPLE_SPOTS[from]}`);
+  // Otherwise straight to the review: that's where the product makes sense.
   const { data: video } = await sb.from('videos').select('id').eq('project_id', projectId).order('created_at').limit(1).maybeSingle();
   ctx.navigate(video ? `/app/p/${projectId}/v/${video.id}?take=1` : `/app/p/${projectId}`);
 }
@@ -53,7 +82,8 @@ async function deleteSample(projectId) {
 // Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
 const MOMENTS = {
   note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. Your team can do this on your own videos.'],
-  recap: ['This is what your team gets before each rehearsal.', 'It’s written from your own notes once there are a few.']
+  recap: ['This is what your team gets before each rehearsal.', 'It’s written from your own notes once there are a few.'],
+  insights: ['This is Insights for the sample team.', 'Where people keep getting stuck, what got fixed, what’s waiting — yours fills in as your team leaves notes.']
 };
 export function sampleMoment(key) {
   const bar = $('[data-sample-bar]');
@@ -86,7 +116,8 @@ document.addEventListener('click', (event) => {
   if (el.matches('[data-delete-sample]') && projectId) return deleteSample(projectId);
   if (el.matches('[data-sample-own]')) {
     const own = ctx.state.projects.filter((p) => !p.is_sample);
-    track('sample_exit', { to: own.length ? 'projects' : 'welcome' });
+    track('sample_exit', { to: el.dataset.sampleOwn || (own.length ? 'projects' : 'welcome') });
+    if (el.dataset.sampleOwn === 'upload' && own.length) return ctx.startAction('video');
     return ctx.navigate(own.length === 1 ? `/app/p/${own[0].id}` : own.length ? '/app/projects' : '/app/welcome');
   }
 });

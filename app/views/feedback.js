@@ -1,6 +1,7 @@
 // Feedback: every note, from three angles — for me, by me, and the whole team.
 import { sb, $, esc } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, tabs, empty, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
 
 const VIEWS = [
@@ -59,7 +60,7 @@ export async function renderFeedback() {
     </div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
       : notes.length && status !== 'all' ? empty('✓', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
-      : empty('◫', emptyCopy[0], emptyCopy[1])}
+      : empty('◫', emptyCopy[0], emptyCopy[1], samplePeek('feedback'))}
   </section>`;
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
 }

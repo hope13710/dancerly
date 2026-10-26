@@ -2,6 +2,7 @@
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
 import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { pageHead, tabs, empty, namesFor, noSample, realProjects } from './shared.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 
@@ -64,7 +65,7 @@ export async function renderQueue() {
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
           <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Request</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
         </a>`).join('')}</div>`
-      : empty('✓', 'You’re all caught up', 'When teammates upload a video or a new take, it waits here until you’ve watched it.')}
+      : empty('✓', 'You’re all caught up', 'When teammates upload a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
   </section>`;
 
   $('[data-project]')?.addEventListener('change', (e) => navigate(url({ project: e.target.value })));

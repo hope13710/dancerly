@@ -5,7 +5,7 @@ import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindCla
 import { homeRecapCard } from './recaps.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
-import { needsWelcome, onboarding, saveOnboarding } from '../onboarding.js';
+import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen } from '../onboarding.js';
 
 function greeting() {
   const h = new Date().getHours();
@@ -65,9 +65,11 @@ export async function renderHome() {
   // The sample's one place on Home: a single card for leaders who haven't uploaded a video of their own yet.
   // After that it lives only in the sidebar ("Try it out"). People who were invited don't get it pushed at them.
   const graduated = (takes || []).length > 0;
+  // Already past it (videos from before this rule existed): mark it, quietly, so no screen offers the sample again.
+  if (graduated && schema.firstRun && !seen('sample_graduated')) markSeen('sample_graduated');
   let sampleHidden = false;
   try { sampleHidden = Number(localStorage.getItem('looproom:sample-card')) > Date.now(); } catch {}
-  const sampleCard = leader && schema.firstRun && !graduated && !sampleHidden ? `<section class="panel home-sample">
+  const sampleCard = sampleOffer() && !graduated && !sampleHidden ? `<section class="panel home-sample">
       <span class="sample-dot" aria-hidden="true">✦</span>
       <div class="grow">${sample
         ? '<h2>Pick up the sample where you left off</h2><p class="muted">A finished team project to try things in. Only you can see it, and it never mixes into your own work.</p>'

@@ -167,9 +167,12 @@ function paintSampleBar(sample) {
   bar.hidden = !sample;
   if (!sample) { bar.innerHTML = ''; return; }
   const hasOwn = state.projects.some((p) => !p.is_sample);
+  // The next real step: make a project, then put a video in it, then just get back to it.
+  const graduated = Boolean(state.profile?.onboarding?.seen?.sample_graduated);
+  const [cta, next] = !hasOwn ? ['Start my own project', 'project'] : graduated ? ['Go to my projects', 'projects'] : ['Upload a video of my own', 'upload'];
   bar.innerHTML = `<span class="sample-dot" aria-hidden="true">✦</span>
     <p><b>You’re in the sample project.</b> <span>Only you can see it. Try anything — nothing here reaches anyone, and it stays out of Home, Feedback, and your calendar.</span></p>
-    <span class="sample-actions"><button class="btn small primary" data-sample-own>${hasOwn ? 'Go to my projects' : 'Start my own project'}</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
+    <span class="sample-actions"><button class="btn small primary" data-sample-own="${next}">${cta}</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
 }
 
 // Unread count for the Inbox badge (sidebar) and the bell (phones). Kept live by a realtime channel.

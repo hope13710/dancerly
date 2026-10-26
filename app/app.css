@@ -5517,3 +5517,24 @@ body.is-guest .topbar {
   margin-top: 24px;
   font-size: 14px;
 }
+.sample-peek {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sample-peek .link-btn span {
+  color: var(--accent);
+}
+.sample-peek .link-btn {
+  font-size: 13px;
+}
+.empty .sample-peek {
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 16px;
+  text-align: center;
+}
+.empty .sample-peek .link-btn {
+  display: inline;
+  width: auto;
+}

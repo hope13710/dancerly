@@ -1,6 +1,7 @@
 // People: everyone you share a project with, and what each person is working on.
 import { sb, esc, initials, timeAgo, avatar, isSamplePerson } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, empty, namesFor, tabs, noSample } from './shared.js';
 
 // Your real teammates. The sample's made-up teammates appear only inside the sample (and on their own page).
@@ -48,7 +49,7 @@ export async function renderPeople() {
           <td class="num">${s.notes}</td><td class="num">${s.takes}</td><td class="muted hide-sm">${s.last ? timeAgo(s.last) : '—'}</td>
         </tr>`;
       }).join('')}</tbody></table></div>`
-      : empty('◎', 'It’s just you so far', 'Invite teammates to a project. Everyone you share a project with shows up here.', '<button class="btn primary" data-invite-any>Invite people</button>')}
+      : empty('◎', 'It’s just you so far', 'Invite teammates to a project. Everyone you share a project with shows up here.', `<button class="btn primary" data-invite-any>Invite people</button>${samplePeek('people')}`)}
   </section>`;
   view.querySelectorAll('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) ctx.navigate(tr.dataset.href); }));
   view.querySelector('[data-invite-any]')?.addEventListener('click', () => ctx.startAction('invite'));

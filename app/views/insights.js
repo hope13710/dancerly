@@ -6,6 +6,7 @@ import { pageHead, empty, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
 import { shiftBetween } from '../align.js';
 import { isKo, t } from '../i18n.js';
+import { samplePeek, sampleMoment } from '../onboarding.js';
 
 const RANGES = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
 const DAY = 86400000;
@@ -199,14 +200,11 @@ export async function renderInsights() {
   const heatMax = Math.max(1, ...spots.flatMap((s) => s.cells.map((c) => c.open + c.fixed)));
   view.innerHTML = `<section class="page">
     ${pageHead('Insights', { sub: 'What to work on next, from your team’s feedback' })}
-    ${demo ? `<div class="sample-banner" role="note"><span class="sample-dot" aria-hidden="true">✦</span>
-      <p><b>You’re looking at sample data.</b> <span>This is Insights for the sample project. Once your team uploads and leaves notes, your own projects show up here.</span></p>
-      <span class="sample-actions"><a class="btn small primary" href="/app/p/${sample.id}" data-link>Open the sample</a>${state.projects.some((p) => !p.is_sample) ? `<a class="btn small ghost" href="${url({ project: '' })}" data-link>My projects</a>` : ''}</span></div>` : ''}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
       ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
-    ${!hasData ? empty('↗', 'Nothing to measure yet', 'Upload a rehearsal and leave a few notes. This page shows where your team keeps getting stuck and what to work on next.', '<button class="btn" data-open-sample="insights">See it with sample data</button>') : `
+    ${!hasData ? empty('↗', 'Nothing to measure yet', 'Upload a rehearsal and leave a few notes. This page shows where your team keeps getting stuck and what to work on next.', samplePeek('insights', 'See it with sample data')) : `
     <section class="panel insight-lines">
       <div class="panel-head"><div><h2>Before your next rehearsal</h2><p class="muted">The few things worth your attention</p></div></div>
       ${lines.length ? `<ul class="lines">${lines.slice(0, 3).map((l) => `<li><span class="li-icon" aria-hidden="true">${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" ${l.href.startsWith('#') ? '' : 'data-link'}>${l.cta}</a>` : ''}</li>`).join('')}</ul>`
@@ -277,6 +275,8 @@ export async function renderInsights() {
 
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
   view.querySelectorAll('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) navigate(tr.dataset.href); }));
+  // The demo is the sample, so it gets the sample's bar (and, the first time, what to take from it).
+  if (demo) { ctx.sampleBar(sample); sampleMoment('insights'); }
   $('a[href="#stuck"]')?.addEventListener('click', (e) => { e.preventDefault(); $('#stuck')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const chart = $('[data-chart]');
   if (!chart) return;

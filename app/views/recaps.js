@@ -3,7 +3,7 @@
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
-import { sampleMoment } from '../onboarding.js';
+import { sampleMoment, samplePeek } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects } from './shared.js';
 
@@ -205,7 +205,7 @@ export async function renderProjectRecaps(projectId) {
     ${groups.length ? `
       ${pinned.length ? `<h2 class="group-title">📌 Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`
-      : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : 'Make one before your next rehearsal: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.', recaps.length ? '' : '<button class="btn primary" data-new-recap>✦ New recap</button>')}
+      : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next rehearsal: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
     <p class="fine left">Recaps are AI summaries of your team’s notes. Only you see a recap until you share it.</p>
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap({ projectId })));
@@ -231,7 +231,7 @@ export async function renderMyRecaps() {
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn primary" data-new-recap>✦ New recap</button></header>
     ${groups.length ? `<div class="list">${groups.map((g) => recapRow(g, names, { showProject: true })).join('')}</div>`
-      : empty('✦', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next rehearsal.', '<button class="btn primary" data-new-recap>✦ New recap</button>')}
+      : empty('✦', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next rehearsal.', `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap()));
 }

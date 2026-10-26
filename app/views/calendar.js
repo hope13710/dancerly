@@ -2,6 +2,7 @@
 // Month grid on wide screens, an agenda list on phones (or when chosen).
 import { sb, $, $$, esc, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
 import { kindLabel, kindClass, realProjects } from './shared.js';
@@ -77,10 +78,11 @@ export async function renderCalendar(projectId = null) {
           <span class="row-main"><span class="row-title">${it.type === 'due' ? 'Due: ' : ''}${esc(it.title)}</span><span class="row-meta">${it.type === 'due' ? timeOf(it.at) : `${timeOf(it.at)}${it.end ? `–${timeOf(it.end)}` : ''}`}${it.raw.location ? ` · ${esc(it.raw.location)}` : ''}${projectId ? '' : ` · ${esc(it.project)}`}</span></span>
           <span class="row-side"><span class="pill ${it.kind === 'due' ? (it.closed ? '' : 'warn') : it.kind === 'show' ? 'info' : ''}">${esc(kindLabel(it.kind))}</span></span>
         </button>`).join('')}</div></section>`;
-    }).join('')}</div>` : '<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Request due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button></div>';
+    }).join('')}</div>` : `<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Request due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button>${samplePeek('calendar')}</div>`;
   }
 
-  view.innerHTML = `<section class="page">${head}${toolbar}${body}</section>`;
+  // An empty month shows a way to see a filled one (the agenda's empty state has its own).
+  view.innerHTML = `<section class="page">${head}${toolbar}${mode === 'month' && !items.length ? samplePeek('calendar') : ''}${body}</section>`;
 
   $$('[data-new-event]').forEach((b) => b.addEventListener('click', () => editEvent({ projectId, date: null })));
   $$('[data-item]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); openItem(items[Number(b.dataset.item)]); }));

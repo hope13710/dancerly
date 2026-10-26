@@ -2,6 +2,7 @@
 // A submission is a video linked to the request; re-uploading adds a take to it.
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo } from './project.js';
 import { empty, noSample } from './shared.js';
 import { loadGroups } from './groups.js';
@@ -78,7 +79,7 @@ export async function renderProjectRequests(projectId) {
         <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">›</span></span>
       </a>`;
     }).join('')}</div>`
-      : empty('⇪', show === 'active' ? 'No open requests' : 'No closed requests', show === 'active' ? 'Ask your team for a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Requests you close show up here.', show === 'active' ? '<button class="btn primary" data-new-request>+ New request</button>' : '')}
+      : empty('⇪', show === 'active' ? 'No open requests' : 'No closed requests', show === 'active' ? 'Ask your team for a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Requests you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New request</button>${samplePeek('requests')}` : '')}
   </section>`;
   $$('[data-new-request]').forEach((b) => b.addEventListener('click', () => newRequest(projectId)));
 }

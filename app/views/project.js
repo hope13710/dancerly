@@ -6,7 +6,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUp
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
-import { memberWelcome } from '../onboarding.js';
+import { memberWelcome, sampleOffer, samplePeek } from '../onboarding.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -87,7 +87,7 @@ export async function renderProject(projectId) {
       </a>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${schema.firstRun && !p.project.is_sample ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
@@ -134,7 +134,7 @@ export async function renderProjectNotes(projectId) {
     ${projectHead(p, 'notes')}
     <div class="filters"><div class="seg small" role="group" aria-label="Status">${[['todo', 'To do'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, l]) => `<a href="${base}?status=${k}" data-link aria-selected="${k === status}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showProject: false })).join('')}</div>`
-      : notes.length ? empty('✓', 'All caught up', 'Nothing in this view.') : empty('◫', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.')}
+      : notes.length ? empty('✓', 'All caught up', 'Nothing in this view.') : empty('◫', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.', samplePeek('notes'))}
   </section>`;
 }
 

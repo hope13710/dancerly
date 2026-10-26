@@ -1,6 +1,7 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
 import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
+import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
 
 const SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
@@ -69,7 +70,7 @@ export async function renderInbox() {
         </span>
         ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}
       </a>`).join('')}</div>`
-      : empty('✉', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When a teammate @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes your team makes will show up here.')}
+      : empty('✉', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When a teammate @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes your team makes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
   </section>`;
 
   $$('[data-item]').forEach((a) => a.addEventListener('click', () => {
