@@ -1,6 +1,6 @@
 // Settings: your account, what you get notified about, the projects you're in, and your plan.
 import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
-import { cols } from '../client.js';
+import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
 
@@ -145,6 +145,7 @@ export async function renderSettings(section = 'account') {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Team · $12/month</h2><p class="muted">3 teams and up to 40 members, unlimited projects, full-history Insights, and unlimited AI recaps.</p></div><span class="tag">Coming soon</span></div>
+        ${schema.firstRun ? `<p class="plan-try">See them working in the sample project: <button type="button" class="btn small" data-open-sample="plan:recaps">✦ An AI recap</button><button type="button" class="btn small" data-open-sample="plan:insights">↗ Insights</button></p>` : ''}
       </section>`
     };
   }

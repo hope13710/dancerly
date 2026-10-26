@@ -7,7 +7,14 @@ import { inviteLink, createVideo } from './views/project.js';
 import { myOpenRequests } from './views/requests.js';
 import { notesForMe } from './views/shared.js';
 
-export const track = (event, props = {}) => { try { (window.dataLayer ||= []).push({ event, ...props }); } catch {} };
+// Product events go to the product_events table (migration 023): an event name and a few small labels, never content.
+// If the table isn't there yet, or a write fails, we stop trying for this visit.
+let eventsOff = false;
+export const track = (event, props = {}) => {
+  try { (window.dataLayer ||= []).push({ event, ...props }); } catch {}
+  if (eventsOff || !ctx.state?.session) return;
+  sb.from('product_events').insert({ event, props }).then(({ error }) => { if (error) eventsOff = true; }, () => { eventsOff = true; });
+};
 
 export const onboarding = () => ctx.state.profile?.onboarding || {};
 export async function saveOnboarding(patch) {
@@ -54,12 +61,14 @@ export async function openSample({ from = 'unknown' } = {}) {
   if (error) return toast(friendlyError(error), 'error');
   track('sample_opened', { from });
   await ctx.refreshNav();
-  if (from === 'insights') return ctx.navigate(`/app/insights?project=${projectId}`);
-  if (from === 'recaps') {
+  // "plan:recaps" = the recaps spot, opened from the Plan page.
+  const spot = from.split(':').pop();
+  if (spot === 'insights') return ctx.navigate(`/app/insights?project=${projectId}`);
+  if (spot === 'recaps') {
     const { data: recap } = await sb.from('recaps').select('id').eq('project_id', projectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (recap) return ctx.navigate(`/app/recaps/${recap.id}`);
   }
-  if (SAMPLE_SPOTS[from]) return ctx.navigate(`/app/p/${projectId}${SAMPLE_SPOTS[from]}`);
+  if (SAMPLE_SPOTS[spot]) return ctx.navigate(`/app/p/${projectId}${SAMPLE_SPOTS[spot]}`);
   // Otherwise straight to the review: that's where the product makes sense.
   const { data: video } = await sb.from('videos').select('id').eq('project_id', projectId).order('created_at').limit(1).maybeSingle();
   ctx.navigate(video ? `/app/p/${projectId}/v/${video.id}?take=1` : `/app/p/${projectId}`);
@@ -79,6 +88,13 @@ async function deleteSample(projectId) {
   if (sure && await removeSample(projectId)) ctx.navigate(ctx.state.projects.length ? '/app/projects' : '/app');
 }
 
+// In the sample, the features that will be part of the paid Team plan say so — honestly: nothing is locked yet.
+const TEAM_NOTES = {
+  recaps: 'Unlimited AI recaps are part of the Team plan. During early access, everyone gets them free.',
+  insights: 'Full-history Insights is part of the Team plan. During early access, everyone gets it free.'
+};
+export const teamNote = (key) => `<p class="team-note"><span class="tag team-tag" data-no-i18n>Team</span> <span>${esc(TEAM_NOTES[key])}</span> <a class="link" href="/app/settings/plan" data-link>Plans</a></p>`;
+
 // Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
 const MOMENTS = {
   note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. Your team can do this on your own videos.'],
@@ -95,11 +111,43 @@ export function sampleMoment(key) {
   bar.classList.add('nudge');
 }
 
+// When the sample was last opened (at most one write a day), so an unused one can be offered for cleanup.
+window.addEventListener('sample-visit', () => {
+  if (Date.now() - (onboarding().sample_seen_at || 0) > 864e5) saveOnboarding({ sample_seen_at: Date.now() });
+});
+
+// After graduating, a sample nobody has opened in three weeks is clutter: ask once whether to clear it.
+const STALE_DAYS = 21;
+export function sampleCleanupCard() {
+  const sample = ctx.state.projects.find((p) => p.is_sample);
+  if (!sample || !seen('sample_graduated') || seen('sample_cleanup')) return null;
+  const last = Math.max(onboarding().sample_seen_at || 0, Date.parse(sample.created_at || 0) || 0);
+  if (!last || Date.now() - last < STALE_DAYS * 864e5) return null;
+  return {
+    html: `<section class="panel home-sample sample-cleanup">
+      <span class="sample-dot" aria-hidden="true">✦</span>
+      <div class="grow"><h2>Clear away the sample?</h2><p class="muted">You haven’t opened it in a few weeks — your team’s real work has taken over. You can always open a fresh one from Projects.</p></div>
+      <button class="btn" data-cleanup="delete">Delete sample</button>
+      <button class="btn ghost small" data-cleanup="keep">Keep it</button>
+    </section>`,
+    wire: (root) => root.querySelectorAll('[data-cleanup]').forEach((b) => b.addEventListener('click', async () => {
+      const choice = b.dataset.cleanup;
+      markSeen('sample_cleanup');
+      track('sample_cleanup', { to: choice });
+      root.querySelector('.sample-cleanup')?.remove();
+      if (choice === 'delete') await removeSample(sample.id);
+    }))
+  };
+}
+
 // The first video of your own is the moment the sample has done its job: say so, and offer to clear it away.
 // Keeping it is the default; it moves aside to "Try it out" in the sidebar either way.
 window.addEventListener('take-uploaded', (event) => {
   const sample = ctx.state.projects.find((p) => p.is_sample);
-  if (!sample || event.detail?.project_id === sample.id || seen('sample_graduated')) return;
+  const real = !ctx.state.projects.some((p) => p.is_sample && p.id === event.detail?.project_id);
+  // Activation: the first video into a real project, whether or not they ever opened the sample.
+  if (real && !seen('first_real_video')) { markSeen('first_real_video'); track('first_real_video', { tried_sample: Boolean(sample) }); }
+  if (!sample || !real || seen('sample_graduated')) return;
   markSeen('sample_graduated');
   track('sample_graduated');
   setTimeout(async () => {

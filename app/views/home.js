@@ -5,7 +5,7 @@ import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindCla
 import { homeRecapCard } from './recaps.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
-import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen } from '../onboarding.js';
+import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard } from '../onboarding.js';
 
 function greeting() {
   const h = new Date().getHours();
@@ -78,10 +78,12 @@ export async function renderHome() {
       <button class="btn ghost small" data-hide-sample-card title="Hide for a week">Not now</button>
     </section>` : '';
 
+  const cleanup = sampleCleanupCard();
+
   const first = esc(state.profile.display_name.split(' ')[0]);
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><p class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${greeting()}, ${first}</h1></div></header>
-    ${sampleCard}
+    ${sampleCard}${cleanup?.html || ''}
     ${recapCard.html}
     <div class="home-strip">
       <section class="panel">
@@ -130,6 +132,7 @@ export async function renderHome() {
     saveOnboarding({ checklist_hidden: true });
     $('.checklist').remove();
   });
+  cleanup?.wire(view);
   $('[data-hide-sample-card]')?.addEventListener('click', () => {
     try { localStorage.setItem('looproom:sample-card', String(Date.now() + 7 * 864e5)); } catch {}
     $('.home-sample').remove();

@@ -3,7 +3,7 @@
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
-import { sampleMoment, samplePeek } from '../onboarding.js';
+import { sampleMoment, samplePeek, teamNote } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects } from './shared.js';
 
@@ -340,7 +340,11 @@ export async function renderRecap(recapId) {
   // Recaps live outside the project's URL, so the sample bar is switched on here.
   await ctx.state.projectsReady;
   const sample = ctx.state.projects.find((p) => p.id === r.project_id && p.is_sample);
-  if (sample) { ctx.sampleBar(sample); sampleMoment('recap'); }
+  if (sample) {
+    ctx.sampleBar(sample);
+    sampleMoment('recap');
+    view.querySelector('.page')?.insertAdjacentHTML('beforeend', teamNote('recaps'));
+  }
 }
 
 // Tap a [n] chip: the note behind the sentence, and a link to play that moment.

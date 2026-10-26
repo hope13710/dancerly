@@ -166,6 +166,7 @@ function paintSampleBar(sample) {
   document.body.classList.toggle('in-sample', Boolean(sample));
   bar.hidden = !sample;
   if (!sample) { bar.innerHTML = ''; return; }
+  window.dispatchEvent(new CustomEvent('sample-visit'));
   const hasOwn = state.projects.some((p) => !p.is_sample);
   // The next real step: make a project, then put a video in it, then just get back to it.
   const graduated = Boolean(state.profile?.onboarding?.seen?.sample_graduated);
@@ -204,7 +205,7 @@ async function startAction(kind) {
 // The project list behind the sidebar and the New menu.
 async function refreshNav() {
   if (!state.session) return;
-  const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by')).order('created_at', { ascending: false });
+  const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by, created_at')).order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
   if (state.profile) paintNav();

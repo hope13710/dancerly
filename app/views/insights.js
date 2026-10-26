@@ -6,7 +6,7 @@ import { pageHead, empty, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
 import { shiftBetween } from '../align.js';
 import { isKo, t } from '../i18n.js';
-import { samplePeek, sampleMoment } from '../onboarding.js';
+import { samplePeek, sampleMoment, teamNote } from '../onboarding.js';
 
 const RANGES = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
 const DAY = 86400000;
@@ -200,6 +200,7 @@ export async function renderInsights() {
   const heatMax = Math.max(1, ...spots.flatMap((s) => s.cells.map((c) => c.open + c.fixed)));
   view.innerHTML = `<section class="page">
     ${pageHead('Insights', { sub: 'What to work on next, from your team’s feedback' })}
+    ${demo ? teamNote('insights') : ''}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
       ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
