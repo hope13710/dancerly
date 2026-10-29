@@ -41,23 +41,41 @@ Deno.serve(async (req) => {
   if (saveErr) return json({ error: saveErr.message }, 500);
 
   // ---------- Copy to Notion (best effort) ----------
+  // This message, plus any earlier ones that didn't make it (Notion down, not connected yet), oldest first.
   const token = Deno.env.get("NOTION_TOKEN");
   if (!token) return json({ ok: true, id: saved.id, notion: false });
-  const { data: profile } = await admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-  const title = message.replace(/\s+/g, " ").slice(0, 80) + (message.length > 80 ? "…" : "");
+  const { data: pending } = await admin.from("app_feedback").select("id, user_id, kind, body, page, user_agent, lang, created_at")
+    .is("notion_page_id", null).order("id", { ascending: true }).limit(10);
+  let notion = false;
+  for (const fb of pending ?? []) {
+    const ok = await toNotion(admin, token, fb);
+    if (fb.id === saved.id) notion = ok;
+    if (!ok) break; // Notion is unhappy: leave the rest for next time
+  }
+  return json({ ok: true, id: saved.id, notion });
+});
+
+// deno-lint-ignore no-explicit-any
+async function toNotion(admin: any, token: string, fb: any): Promise<boolean> {
+  const [{ data: profile }, { data: account }] = await Promise.all([
+    admin.from("profiles").select("display_name").eq("id", fb.user_id).maybeSingle(),
+    fb.user_id ? admin.auth.admin.getUserById(fb.user_id) : Promise.resolve({ data: null }),
+  ]);
+  const email = account?.user?.email;
+  const title = fb.body.replace(/\s+/g, " ").slice(0, 80) + (fb.body.length > 80 ? "…" : "");
   const properties: Record<string, unknown> = {
     Message: { title: [{ text: { content: title } }] },
-    Kind: { select: { name: KINDS[kind] } },
+    Kind: { select: { name: KINDS[fb.kind] ?? "Other" } },
     Status: { status: { name: "New" } },
-    "Full message": { rich_text: text(message) },
+    "Full message": { rich_text: text(fb.body) },
     Name: { rich_text: text(profile?.display_name ?? "") },
-    Page: { rich_text: text(row.page ?? "") },
-    Browser: { rich_text: text(row.user_agent ?? "") },
-    "Sent at": { date: { start: saved.created_at } },
-    "Feedback ID": { number: saved.id },
+    Page: { rich_text: text(fb.page ?? "") },
+    Browser: { rich_text: text(fb.user_agent ?? "") },
+    "Sent at": { date: { start: fb.created_at } },
+    "Feedback ID": { number: fb.id },
   };
-  if (user.email) properties.Email = { email: user.email };
-  if (row.lang === "en" || row.lang === "ko") properties.Language = { select: { name: row.lang } };
+  if (email) properties.Email = { email };
+  if (fb.lang === "en" || fb.lang === "ko") properties.Language = { select: { name: fb.lang } };
   try {
     const res = await fetch("https://api.notion.com/v1/pages", {
       method: "POST",
@@ -66,13 +84,13 @@ Deno.serve(async (req) => {
     });
     if (!res.ok) {
       console.error("notion", res.status, (await res.text()).slice(0, 300));
-      return json({ ok: true, id: saved.id, notion: false });
+      return false;
     }
     const page = await res.json();
-    await admin.from("app_feedback").update({ notion_page_id: page.id }).eq("id", saved.id);
-    return json({ ok: true, id: saved.id, notion: true });
+    await admin.from("app_feedback").update({ notion_page_id: page.id }).eq("id", fb.id);
+    return true;
   } catch (e) {
     console.error("notion", String(e).slice(0, 300));
-    return json({ ok: true, id: saved.id, notion: false });
+    return false;
   }
-});
+}
