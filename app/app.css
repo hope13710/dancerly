@@ -5644,3 +5644,75 @@ body.is-guest .topbar {
   border-radius: 8px;
   resize: none;
 }
+
+/* Guest page: watch first, then a quiet suggestion */
+.guest-bar .guest-what {
+  font-weight: 600;
+}
+.guest-cta-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.guest-cta .guest-free {
+  font-size: 12px !important;
+  color: #8b93a3 !important;
+}
+.guest-player {
+  position: relative;
+}
+.guest-end {
+  position: absolute;
+  inset: 0 0 52px; /* leaves the video's own controls clickable */
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 16px;
+  background: rgba(14, 16, 22, 0.78);
+  color: #fff;
+  border-radius: inherit;
+  animation: guest-end-in 0.35s ease-out;
+}
+.guest-end[hidden] {
+  display: none;
+}
+.guest-end p {
+  margin: 0;
+  font-size: clamp(17px, 3.4vw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.guest-end div {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.guest-end .btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.guest-end .btn.ghost {
+  color: #e3e6ed;
+  border-color: #59607020;
+}
+@keyframes guest-end-in {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guest-end { animation: none; }
+}
+.guest-expired-pitch {
+  margin: 18px 0 8px;
+  font-weight: 650;
+}
+@media (max-width: 720px) {
+  .guest-cta-side {
+    width: 100%;
+  }
+}
