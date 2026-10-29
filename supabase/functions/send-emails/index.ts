@@ -318,23 +318,35 @@ function teammateEmail(who: string, project: any, video: any, unsub: string) {
   };
 }
 
+// Two versions: a leader with a project is one video away; one without a project is one step further back.
 function nudgeEmail(name: string, real: { id: string; title: string } | null | undefined, sampleId: string | undefined, unsub: string) {
-  const href = real ? `${SITE}/app/p/${real.id}?ref=email_start` : `${SITE}/app?ref=email_start`;
-  const where = real ? ` to <b>${esc(real.title)}</b>` : "";
+  const why = "I built dancerly because practice videos usually end up buried in a group chat, and the same notes get repeated week after week.";
+  const help = "Stuck on anything? Just reply. A real person reads every email.";
+  const sample = sampleId ? `Not ready yet? <a href="${SITE}/app/p/${sampleId}?ref=email_start" style="color:#5b5ce2">The sample project</a> shows how it works in a minute.` : "";
+  const c = real
+    ? {
+      subject: "Your team’s first video", cta: "Upload a video", href: `${SITE}/app/p/${real.id}?ref=email_start`,
+      step: `The quickest way to see if it helps your team: upload one video to <b>${esc(real.title)}</b>. A phone clip from your last practice is plenty. Then pause on one moment and leave a note.`,
+    }
+    : {
+      subject: "Set up your team on dancerly", cta: "Create your team", href: `${SITE}/app?ref=email_start`,
+      step: "Getting started takes about a minute: name your team, upload one video from your last practice, and invite your teammates with a link.",
+    };
   const p = (t: string) => `<p style="margin:12px 0 0;font-size:15px;line-height:1.55">${t}</p>`;
   const body = `<p style="margin:0;font-size:15px;line-height:1.55">Hi ${esc(name)},</p>
-${p("I built dancerly because practice videos usually end up buried in a group chat, and the same notes get repeated week after week.")}
-${p(`The quickest way to see if it helps your team: upload one video${where}. A phone clip from your last practice is plenty. Then pause on one moment and leave a note.`)}
-${sampleId ? p(`Not ready to film? <a href="${SITE}/app/p/${sampleId}?ref=email_start" style="color:#5b5ce2">The sample project</a> shows how it works in a minute.`) : ""}
-${p("Stuck on anything? Just reply. A real person reads every email.")}`;
+${p(why)}
+${p(c.step)}
+${sample ? p(sample) : ""}
+${p(help)}`;
+  const plain = (t: string) => t.replace(/<[^>]+>/g, "");
   return {
-    subject: "Your team’s first video",
-    html: layout({ heading: "Your team’s first video", body, cta: "Upload a video", ctaHref: href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
-    text: `Hi ${name},\n\nI built dancerly because practice videos usually end up buried in a group chat, and the same notes get repeated week after week.\n\nThe quickest way to see if it helps your team: upload one video${real ? ` to ${real.title}` : ""}. A phone clip from your last practice is plenty. Then pause on one moment and leave a note.\n\n${href}\n\nStuck on anything? Just reply. A real person reads every email.\n\nTurn off: ${unsub}`,
+    subject: c.subject,
+    html: layout({ heading: c.subject, body, cta: c.cta, ctaHref: c.href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
+    text: `Hi ${name},\n\n${why}\n\n${plain(c.step)}\n\n${c.href}\n\n${sample ? `${plain(sample)}\n\n` : ""}${help}\n\nTurn off: ${unsub}`,
   };
 }
 
-// Preview: sends both getting-started emails to one person, with their own project, marked [Test]. Logs nothing.
+// Preview: sends the getting-started emails (both nudge versions) to one person, with their own project, marked [Test]. Logs nothing.
 async function preview(key: string, user: string) {
   const to = await emailOf(user);
   if (!to) return { preview: "no email" };
@@ -347,9 +359,13 @@ async function preview(key: string, user: string) {
   const project = real ? { id: real.project_id, title: real.projects.title } : { id: "", title: "Your team" };
   const { data: videos } = real ? await admin.from("videos").select("id, title").eq("project_id", real.project_id).order("created_at", { ascending: false }).limit(1) : { data: [] };
   const unsub = await unsubUrl(key, user, "onboarding");
-  const a = nudgeEmail(first(profile?.display_name), real && project, sample?.project_id, unsub);
-  const b = teammateEmail("Mina", project, videos?.[0], unsub);
-  const sent = [await send(to, `[Test] ${a.subject}`, a.html, a.text, "dancerly", unsub), await send(to, `[Test] ${b.subject}`, b.html, b.text, "dancerly", unsub)];
+  const emails = [
+    nudgeEmail(first(profile?.display_name), real && project, sample?.project_id, unsub),
+    nudgeEmail(first(profile?.display_name), null, sample?.project_id, unsub),
+    teammateEmail("Mina", project, videos?.[0], unsub),
+  ];
+  const sent = [];
+  for (const e of emails) sent.push(await send(to, `[Test] ${e.subject}`, e.html, e.text, "dancerly", unsub));
   return { preview: sent };
 }
 
