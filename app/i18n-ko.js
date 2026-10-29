@@ -820,6 +820,7 @@ export const KO = {
   'Copied. Paste it in your group chat.': '복사했어요. 단체방에 붙여 넣어 주세요.',
   'Copy this message': '이 메시지를 복사하세요',
   'Everyone who joins the project': '프로젝트에 합류하는 모든 사람',
+  '✦ Early access thank-you: teams that upload their first video before paid plans launch get 3 months of Team free.': '✦ 얼리 액세스 감사 혜택: 유료 플랜 출시 전에 첫 영상을 올린 팀은 Team 플랜 3개월을 무료로 받아요.',
   'Your AI recaps this month': '이번 달 내 AI 요약',
   'Clear away the sample?': '샘플을 정리할까요?',
   'You haven’t opened it in a few weeks — your team’s real work has taken over. You can always open a fresh one from Projects.': '몇 주째 열지 않았어요. 이제 팀의 실제 작업이 자리를 잡았네요. 필요하면 언제든 프로젝트 화면에서 새로 열 수 있어요.',

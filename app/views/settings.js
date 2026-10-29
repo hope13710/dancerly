@@ -144,6 +144,7 @@ export async function renderSettings(section = 'account') {
           <div><span>People in your largest project</span><b>${largest} of ${FREE.members}</b>${meter(largest, FREE.members)}</div>
           ${recaps ? `<div><span>Your AI recaps this month</span><b data-no-i18n>${getLang() === 'ko' ? `${recaps.limit}회 중 ${recaps.used}회` : `${recaps.used} of ${recaps.limit}`}</b>${meter(recaps.used, recaps.limit)}</div>` : ''}
         </div>
+        <p class="fine left founding-note">✦ Early access thank-you: teams that upload their first video before paid plans launch get 3 months of Team free.</p>
         ${owned > FREE.projects || largest > FREE.members || recaps?.over ? '<p class="fine left">You’re past the Free limits. Nothing is blocked during early access — we’ll let you know well before that changes.</p>' : ''}
       </section>
       <section class="panel">

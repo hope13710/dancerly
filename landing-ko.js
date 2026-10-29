@@ -2,6 +2,9 @@
 // Glossary (same as the app): note → 피드백, recap → AI 요약, insights → 리포트, mirror → 거울 모드,
 // coach → 강사, studio → 연습실/학원, rehearsal → 연습, eight → 에잇.
 export const LANDING_KO = {
+  'Teams that upload their first video during early access get': '얼리 액세스 기간에 첫 영상을 올린 팀은 유료 플랜 출시 후',
+  '3 months of Team free': 'Team 플랜 3개월 무료',
+  'when paid plans launch.': '혜택을 받아요.',
   'Rough takes are safe here': '서툰 테이크도 안심하고',
   // 메뉴
   'Review': '리뷰',
