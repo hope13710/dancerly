@@ -36,5 +36,25 @@
       "destination": "/app",
       "permanent": false
     }
+  ],
+  "headers": [
+    {
+      "source": "/samples/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(og-image|icon-512|apple-touch-icon|favicon|logo-wordmark).png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    }
   ]
 }
