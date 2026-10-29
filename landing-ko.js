@@ -2,6 +2,7 @@
 // Glossary (same as the app): note → 피드백, recap → AI 요약, insights → 리포트, mirror → 거울 모드,
 // coach → 강사, studio → 연습실/학원, rehearsal → 연습, eight → 에잇.
 export const LANDING_KO = {
+  'Rough takes are safe here': '서툰 테이크도 안심하고',
   // 메뉴
   'Review': '리뷰',
   'AI recaps': 'AI 요약',
@@ -27,10 +28,10 @@ export const LANDING_KO = {
   'Rehearsal video review for dance': '댄스 연습 영상 피드백',
   'Feedback that lands': '카운트 하나까지',
   'on the count.': '정확히 꽂히는 피드백.',
-  'dancerly is where dance teams review rehearsals together. Pin notes to the exact moment, loop the part that needs work, and watch every correction show up in the next take.': 'dancerly는 댄스팀이 연습 영상을 함께 보며 피드백하는 곳이에요. 고칠 장면에 바로 피드백을 남기고, 필요한 구간만 반복해서 연습하고, 다음 테이크에서 고쳐졌는지 확인하세요.',
+  'Every dancer deserves to see their progress. dancerly is where teams review rehearsals together. Pin notes to the exact moment, loop the tricky part, and watch each fix land in the next take.': '모든 댄서는 자신의 성장을 눈으로 확인할 수 있어야 해요. dancerly는 팀이 함께 연습 영상을 리뷰하는 곳이에요. 정확한 순간에 피드백을 남기고, 어려운 구간을 반복하고, 고친 부분이 다음 테이크에 드러나는 걸 확인하세요.',
   'Start free, no card needed': '무료로 시작하기 · 카드 등록 없이',
   'See how it works': '어떻게 쓰는지 보기',
-  'Works on any phone. No app to install.': '앱 설치 없이 휴대폰으로 바로',
+  'Works on any phone, no app to install': '앱 설치 없이 휴대폰으로 바로',
   'Private to your team': '우리 팀만 보는 비공개 공간',
   'Free for your first team': '첫 팀은 무료',
   'dancerly review screen: a coach pins a note with a sketch, a dancer loops her part, and the next take resolves it.': 'dancerly 리뷰 화면: 강사가 그림과 함께 피드백을 남기고, 댄서가 자기 파트를 반복 연습하고, 다음 테이크에서 해결돼요.',
@@ -70,14 +71,14 @@ export const LANDING_KO = {
   'wait which part?? 0:47 or the one after the turn': '어디요?? 0:47이요, 턴 다음이요?',
   'can someone resend last week’s video 🙏': '지난주 영상 다시 올려주실 분 🙏',
   'did I fix it or…?': '저 고친 거 맞나요…?',
-  'dancerly keeps the video, the note, and the next take in one place,': 'dancerly는 영상, 피드백, 다음 테이크를 한곳에 모아요.',
-  'so every correction actually gets made.': '그래서 피드백이 흐지부지되지 않아요.',
+  'We grew up dancing this way: notes buried in group chats, progress judged by gut feel. dancerly puts the video, the note, and the next take in one place,': '저희도 그렇게 춤을 배웠어요. 피드백은 단체방에 묻히고, 실력이 늘었는지는 감으로 판단했죠. dancerly는 영상, 피드백, 다음 테이크를 한곳에 모아요.',
+  'so progress is something you can see.': '성장이 눈에 보이도록요.',
 
   // 01 리뷰
   'Review & feedback': '리뷰 & 피드백',
   'Say it once.': '말은 한 번만,',
   'Say it exactly where it happens.': '피드백은 그 장면에.',
-  'Every note is pinned to a moment or a range of counts, so dancers see the fix the second they hit play. On any phone, in any studio.': '모든 피드백이 장면이나 카운트 구간에 딱 붙어 있어요. 재생하자마자 뭘 고쳐야 할지 보여요. 어떤 휴대폰, 어떤 연습실에서도요.',
+  'A note only helps if dancers know exactly where it goes. Pin it to a moment or a range of counts, and they’ll see it the second they hit play.': '피드백은 어디에 해당하는지 정확히 알아야 도움이 돼요. 한 순간이나 카운트 구간에 피드백을 남기면, 댄서는 재생하는 순간 바로 확인해요.',
   'Compressing on your phone…': '휴대폰에서 용량 줄이는 중…',
   'Uploading': '올리는 중',
   '✓ Take 3 is up. Open notes came along.': '✓ 테이크 3 업로드 완료. 남은 피드백도 이어졌어요.',
@@ -108,7 +109,7 @@ export const LANDING_KO = {
 
   // 02 AI 요약
   'The whole rehearsal, in one minute.': '일주일 피드백, 1분이면 정리 끝.',
-  'Dozens of notes across a week of takes? dancerly turns them into a short recap each dancer can read before the next rehearsal.': '일주일 동안 쌓인 수십 개의 피드백을 다음 연습 전에 읽기 좋게 짧게 정리해 드려요.',
+  'No one should walk into rehearsal unsure what to work on. dancerly turns a week of notes into a short recap each dancer can read beforehand.': '무엇을 연습할지 모른 채 연습실에 들어가는 사람이 없어야 해요. dancerly는 한 주의 피드백을 짧은 요약으로 정리해, 댄서마다 연습 전에 읽을 수 있게 해요.',
   'Personal for every dancer.': '댄서마다 따로.',
   'Just the notes about you: what you worked on, what to practice next, what’s finally clean.': '내 피드백만 모아서 연습한 것, 다음에 할 것, 드디어 완성된 것을 보여줘요.',
   'Never made up.': '지어내지 않아요.',
@@ -182,8 +183,8 @@ export const LANDING_KO = {
   'The videos and sections with the most open notes rise to the top.': '미해결 피드백이 많은 영상과 파트가 가장 위에 보여요.',
   'Show progress you can point to.': '성장을 숫자로 보여줘요.',
   'Fix rate and time-to-fix, week over week. Great for parents and directors.': '주별 해결률과 해결까지 걸린 시간을 볼 수 있어 원장님·학부모 상담에도 좋아요.',
-  'Recognize the work.': '노력한 만큼 보여요.',
-  'See who’s giving feedback, who’s getting it, and who’s closing it out.': '누가 피드백을 주고, 받고, 해결했는지 한눈에 보여요.',
+  'Celebrate the work.': '노력을 함께 축하하세요.',
+  'See who’s giving notes and who’s turning them into fixes.': '누가 피드백을 주고, 누가 그걸 실력으로 바꾸고 있는지 보여요.',
   'Last 30 days': '최근 30일',
   'Notes fixed': '해결한 피드백',
   'Fix rate': '해결률',
@@ -197,13 +198,13 @@ export const LANDING_KO = {
   'Left': '남김',
   'Fixed': '해결',
   'W1': '1주', 'W2': '2주', 'W3': '3주', 'W4': '4주', 'W5': '5주',
-  '91% fixed': '91% 해결',
-  '78% fixed': '78% 해결',
-  '64% fixed': '64% 해결',
+  '+8 fixed': '+8개 해결',
+  '+6 fixed': '+6개 해결',
+  '+5 fixed': '+5개 해결',
 
   // 이런 분께
   'Built for every room': '어떤 연습실이든',
-  'From weekend crews to full academies.': '주말 크루부터 대형 학원까지.',
+  'For teams who’d rather fix it once than say it every week.': '매주 같은 말을 반복하기보다, 한 번에 고치고 싶은 팀을 위해.',
   'Dance teams & crews': '댄스팀 · 크루',
   'Everyone reviews, everyone gives notes. Keep the whole team on the same eight counts between rehearsals.': '모두가 보고, 모두가 피드백해요. 연습이 없는 날에도 팀 전체가 같은 카운트를 맞춰요.',
   'Dancers': '댄서',
@@ -270,7 +271,7 @@ export const LANDING_KO = {
   // 마지막
   'Make the next take': '다음 테이크를',
   'the one that lands.': '완벽한 테이크로.',
-  'Create a private space for your team in under a minute. Sign up with your email and a password. That’s it.': '1분이면 우리 팀 공간이 생겨요. 이메일과 비밀번호만 있으면 돼요.',
+  'Give your team a place to see how far they’ve come. Set it up in under a minute with just an email and a password.': '팀이 얼마나 성장했는지 볼 수 있는 공간을 만들어 주세요. 이메일과 비밀번호만 있으면 1분 안에 시작할 수 있어요.',
   'Your email': '이메일',
   'No credit card': '카드 등록 없이',
   'Feedback that lands on the count.': '카운트 하나까지 정확히 꽂히는 피드백.',
