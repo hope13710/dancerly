@@ -1,8 +1,10 @@
 // Getting a phone video into dancerly: shrink it on the device when needed, then upload in resumable chunks.
 //
-// 1. Prepare: anything that isn't H.264, is over the size budget, or is bigger than 1080p is converted
-//    on the device to 720p H.264 MP4 (WebCodecs via Mediabunny). This also fixes iPhone HEVC videos that
-//    other browsers can't play. The music is kept as-is when possible.
+// 1. Prepare: anything that isn't H.264, is over the size budget, is bigger than 1080p, is heavier than
+//    5 Mbps, or is 60 fps is converted on the device to H.264 (High profile) MP4 via WebCodecs and
+//    Mediabunny: 720p at up to 2.5 Mbps, 30 fps, 540p for long runs. This also
+//    fixes iPhone HEVC videos other browsers can't play. The music is copied as-is, or re-encoded at 96 kbps
+//    for runs over 8 minutes so 15 minutes fit.
 // 2. Upload: TUS resumable upload to Supabase Storage in 6 MB chunks, retrying through dropped connections.
 //    The prepared file and the upload position are remembered, so picking the same file again after a
 //    reload continues where it stopped instead of starting over.
@@ -12,8 +14,16 @@ import { sb, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, TAKE_BUCKET, MAX_TAKE_BYTES
 
 const TARGET_BYTES = 45 * 1024 * 1024; // leaves headroom under the 50 MB storage limit
 const MAX_SECONDS = 15 * 60;
-const SHORT_SIDE = 720;
-const AUDIO_BPS = 160_000;
+// Bits go where they show: 30 fps is plenty for feedback (half-speed and frame steps still look right), and
+// a 720p dance video looks clean at about 2.5 Mbps. Filling the size budget past that only makes every
+// teammate's download bigger. 60 fps is always brought down to 30: browser encoders size their bitrate as if
+// the video were 30 fps, so a 60 fps output comes out about twice as big as asked and can miss the 50 MB limit.
+const VIDEO_CAP = { 720: 2_500_000, 540: 1_500_000 };
+const VIDEO_FLOOR = 300_000; // below this, long runs drop to 540p; never below ~200 kbps
+const RECODE_ABOVE_BPS = 5_000_000; // H.264 originals heavier than this are shrunk too (phones record ~10–20 Mbps)
+const LONG_SECONDS = 8 * 60; // long runs re-encode the music at 96 kbps so 15 minutes fit
+const AUDIO_LONG_BPS = 96_000;
+const AUDIO_DEFAULT_BPS = 160_000; // assumed when the original's audio bitrate can't be read
 
 const typeOf = (file) => file.type || ({ mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' })[file.name.split('.').pop().toLowerCase()] || '';
 
@@ -47,30 +57,56 @@ export async function prepareVideo(file, onStage) {
   if (!track) throw new Error('This file has no video in it.');
   if (duration > MAX_SECONDS) throw new Error(`This video is ${Math.round(duration / 60)} minutes long. Keep takes under 15 minutes — trim it to the part you want feedback on.`);
   const big = Math.min(track.displayWidth, track.displayHeight) > 1080;
-  if (track.codec === 'avc' && file.size <= TARGET_BYTES && !big) return null; // already fine
+  // What the original really is: frame rate and bitrates, read from the first few seconds of packets.
+  const stats = await track.computePacketStats(150).catch(() => null);
+  const fps = stats?.averagePacketRate || 30;
+  const sourceBps = stats?.averageBitrate || (file.size * 8) / Math.max(duration, 1);
+  const audioTrack = await input.getPrimaryAudioTrack().catch(() => null);
+  const audioStats = audioTrack ? await audioTrack.computePacketStats(200).catch(() => null) : null;
+  const sourceAudioBps = audioTrack ? audioStats?.averageBitrate || AUDIO_DEFAULT_BPS : 0;
+  const lean = track.codec === 'avc' && file.size <= TARGET_BYTES && !big && sourceBps <= RECODE_ABOVE_BPS && fps <= 31;
+  if (lean) return null; // already light enough to stream to the whole team
 
-  // Bitrate that fits the size budget, within sensible bounds for 720p dance video.
-  const videoBps = Math.max(450_000, Math.min(3_500_000, Math.floor((TARGET_BYTES * 8 * 0.94) / Math.max(duration, 1) - AUDIO_BPS)));
-  // Short side down to 720 px, both sides even (H.264 needs that).
-  const scale = Math.min(1, SHORT_SIDE / Math.min(track.displayWidth, track.displayHeight));
-  const even = (x) => Math.max(2, Math.round((x * scale) / 2) * 2);
-  const size = { width: even(track.displayWidth), height: even(track.displayHeight) };
-  if (!(await mbx.canEncodeVideo('avc', { ...size, bitrate: videoBps }))) {
+  const targetFps = fps > 31 ? 30 : null;
+  // Resolution and bitrate for a given audio cost: the cap for quality, the size budget for long runs.
+  const plan = (audioBps) => {
+    const budget = Math.floor((TARGET_BYTES * 8 * 0.94) / Math.max(duration, 1) - audioBps);
+    const short = budget < VIDEO_FLOOR * 1.8 ? 540 : 720;
+    const cap = VIDEO_CAP[short];
+    const videoBps = Math.max(Math.min(budget, VIDEO_FLOOR), Math.min(cap, budget));
+    const scale = Math.min(1, short / Math.min(track.displayWidth, track.displayHeight));
+    const even = (x) => Math.max(2, Math.round((x * scale) / 2) * 2);
+    return { videoBps, size: { width: even(track.displayWidth), height: even(track.displayHeight) }, fits: videoBps >= 200_000 };
+  };
+  const reencodeAudio = Boolean(audioTrack) && duration > LONG_SECONDS;
+  let settings = plan(reencodeAudio ? AUDIO_LONG_BPS : sourceAudioBps);
+  if (!settings.fits) throw new Error(`This video is ${Math.round(duration / 60)} minutes long, too long to fit at a watchable quality. Trim it to the part you want feedback on.`);
+  if (!(await mbx.canEncodeVideo('avc', { ...settings.size, bitrate: settings.videoBps }))) {
     if (tooBig) throw new Error(`This video is ${mb(file.size)} and this device can’t shrink it. Trim it under 50 MB and try again.`);
     return null;
   }
 
-  const output = new mbx.Output({ format: new mbx.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mbx.BufferTarget() });
-  const conversion = await mbx.Conversion.init({
-    input,
-    output,
-    tracks: 'primary',
-    // A plain number bitrate: Mediabunny 1.61's Quality(number) fails its own encoder check.
-    video: { codec: 'avc', ...size, fit: 'contain', bitrate: videoBps, forceTranscode: true, keyFrameInterval: 2 },
-    // AAC from phones is copied untouched; other audio is re-encoded to AAC where the browser can.
-    audio: { codec: 'aac' },
-    showWarnings: false
-  });
+  const start = async (audio) => {
+    const output = new mbx.Output({ format: new mbx.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mbx.BufferTarget() });
+    const conversion = await mbx.Conversion.init({
+      input,
+      output,
+      tracks: 'primary',
+      // A plain number bitrate: Mediabunny 1.61's Quality(number) fails its own encoder check.
+      // H.264 High profile; the browser's encoder defaults are variable bitrate and quality-first.
+      video: { codec: 'avc', ...settings.size, fit: 'contain', bitrate: settings.videoBps, forceTranscode: true, keyFrameInterval: 2, ...(targetFps ? { frameRate: targetFps } : {}) },
+      audio,
+      showWarnings: false
+    });
+    return { output, conversion };
+  };
+  // Long runs: re-encode the music smaller. If this browser can't, copy it and re-plan the video around it.
+  let { output, conversion } = await start(reencodeAudio ? { codec: 'aac', bitrate: AUDIO_LONG_BPS, forceTranscode: true } : { codec: 'aac' });
+  if (reencodeAudio && conversion.discardedTracks.some((d) => d.track.type === 'audio')) {
+    settings = plan(sourceAudioBps);
+    if (!settings.fits) throw new Error('This browser can’t keep the music while shrinking a video this long. Try Chrome, or trim it to the part you want feedback on.');
+    ({ output, conversion } = await start({ codec: 'aac' }));
+  }
   const lostSound = conversion.discardedTracks.some((d) => d.track.type === 'audio');
   const lostVideo = conversion.discardedTracks.some((d) => d.track.type === 'video');
   if (lostVideo) {
