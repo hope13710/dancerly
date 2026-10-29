@@ -1,5 +1,7 @@
 // Landing page: nav, signed-in state, English/Korean switch, reveal-on-scroll (once), and the small product animations.
 import { LANDING_KO } from './landing-ko.js';
+import { rememberSource } from '/app/source.js';
+rememberSource(); // ?ref=ig_dm etc., so a signup days later is still credited
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

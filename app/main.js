@@ -6,6 +6,7 @@ import { ctx } from './ctx.js';
 import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome } from './onboarding.js';
 import { openHelp } from './help.js';
+import { rememberSource, signupSource } from './source.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
@@ -349,7 +350,7 @@ function renderLogin() {
       button.textContent = signup ? 'Creating…' : 'Logging in…';
       const done = (message) => { button.disabled = false; button.textContent = label; showError(message); };
       if (signup) {
-        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name, signup_source: new URLSearchParams(location.search).get('ref') || undefined, terms_version: TERMS_VERSION, terms_accepted_at: new Date().toISOString(), age_confirmed: '14+' } } });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}${next}`, data: { display_name: name, ...signupSource(), terms_version: TERMS_VERSION, terms_accepted_at: new Date().toISOString(), age_confirmed: '14+' } } });
         if (error) return done(friendlyError(error));
         // Supabase answers an already-registered email with an empty user instead of an error.
         if (data.user && !data.user.identities?.length) return done('That email already has an account. Log in instead — or use “Forgot password?” if you never set one.');
@@ -627,6 +628,8 @@ ctx.commands = [
 ];
 
 Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut, sampleBar: paintSampleBar });
+
+rememberSource(); // credit a later signup to the link that brought them here
 
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {
