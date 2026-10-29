@@ -7,6 +7,7 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
+import { copyInvite } from './views/project.js';
 import { reviewTips, explainPrivate, track, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 
@@ -50,12 +51,17 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Carried notes someone answered “Not yet” on for this take.
   try { r.notYet = new Set(JSON.parse(localStorage.getItem(`looproom:notYet:${take.id}`) || '[]')); } catch { r.notYet = new Set(); }
 
+  // A video nobody else can see yet: the next useful step is getting the team in. Dismissed per project.
+  let alone = !project.is_sample && members.length === 1;
+  try { alone &&= localStorage.getItem(`looproom:inviteStrip:${projectId}`) !== 'hidden'; } catch {}
+
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}</div>
     </header>
+    ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Invite your team so they can watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
     <div class="review-layout">
       <div class="player-col">
         <div class="player-pair" data-pair>
@@ -675,9 +681,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const menu = $('[data-mentions]');
     const m = mentionMatch();
     const options = m ? rankMentions(m[1]) : [];
-    menu.hidden = !options.length;
-    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}`;
+    // Typed a name that isn't on the project (or there's nobody else yet): offer the invite link right there.
+    const missing = Boolean(m) && !project.is_sample && (m[1].trim().length >= 2 || members.length === 1) && !options.length;
+    menu.hidden = !options.length && !missing;
+    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}${missing ? '<button type="button" class="mention-invite" data-invite-copy="mention"><b>Not on the team yet?</b><small>Copy the invite link. Once they join, you can @mention them.</small></button>' : ''}`;
     $$('[data-pick]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); pick(b.dataset.pick); }));
+    $$('[data-invite-copy]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); menu.hidden = true; copyInvite(projectId, 'mention'); }));
   }
   // Who to suggest after @: best name match first (start of name, start of a word, anywhere, then loose letters),
   // nudged by who you mention often and who is active on this video.
@@ -730,7 +739,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   input.addEventListener('input', paintMentions);
   input.addEventListener('keydown', (e) => {
     const menu = $('[data-mentions]');
-    if (!menu.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    if (!menu.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('[data-pick]', menu)) {
       e.preventDefault();
       const items = $$('[data-pick]', menu);
       const i = items.findIndex((b) => b.classList.contains('active'));
@@ -738,7 +747,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       items.forEach((b) => b.classList.toggle('active', b === next));
       return;
     }
-    if (!menu.hidden && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick); return; }
+    if (!menu.hidden && (e.key === 'Enter' || e.key === 'Tab') && $('[data-pick].active', menu)) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick); return; }
     if (e.key === 'Escape') { if (!menu.hidden) menu.hidden = true; else input.blur(); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pin(); }
   });
@@ -818,6 +827,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   wireUpload();
   $('[data-merge]')?.addEventListener('click', mergeInto);
   $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
+  $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
+  $('[data-invite-dismiss]')?.addEventListener('click', () => {
+    try { localStorage.setItem(`looproom:inviteStrip:${projectId}`, 'hidden'); } catch {}
+    $('[data-invite-strip]')?.remove();
+  });
   // The first private note: say who will see it.
   $('[data-visibility]').addEventListener('change', async (e) => {
     if (!e.target.value) return;

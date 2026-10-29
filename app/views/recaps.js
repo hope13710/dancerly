@@ -3,8 +3,8 @@
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
-import { sampleMoment, samplePeek, teamNote } from '../onboarding.js';
-import { loadProject, projectHead } from './project.js';
+import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
+import { loadProject, projectHead, inviteLink } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects } from './shared.js';
 
 const SECTIONS = [
@@ -165,6 +165,18 @@ async function runGeneration(params) {
   }
 }
 
+// The group-chat version of a recap: headline, the top three to-dos, and links. In the app's language.
+function chatMessage(r, link, invite) {
+  const ko = getLang() === 'ko';
+  const next = (r.content?.next || []).slice(0, 3).map((it) => `• ${it.text}`).join('\n');
+  return [
+    `✦ ${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
+    next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
+    `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${link}`,
+    invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not on the team yet? Join here'}: ${invite}` : ''
+  ].filter(Boolean).join('\n');
+}
+
 // ---------- Rendering ----------
 function citeChips(cites, sources) {
   return cites.map((ref) => {
@@ -281,6 +293,8 @@ export async function renderRecap(recapId) {
   const pinned = isPinned(r);
   const { data: myFeedback } = await sb.from('recap_feedback').select('helpful').eq('recap_id', r.id).eq('user_id', me).maybeSingle();
   const cited = (r.sources || []).map((src, i) => ({ ...src, n: i + 1 }));
+  await ctx.state.projectsReady;
+  const sampleProject = ctx.state.projects.some((p) => p.id === r.project_id && p.is_sample);
   // Just generated? A short fade-in, once.
   let fresh = false;
   try { fresh = sessionStorage.getItem(FRESH_KEY) === r.id; if (fresh) sessionStorage.removeItem(FRESH_KEY); } catch {}
@@ -295,6 +309,7 @@ export async function renderRecap(recapId) {
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
       <footer class="recap-actions">
         <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">📌 ${pinned ? 'Pinned' : 'Pin'}</button>
+        ${r.scope === 'project' && !r.has_private && (r.shared_at || mine) && !sampleProject ? '<button class="btn small primary" data-chat-share>Share to group chat</button>' : ''}
         ${mine && !r.shared_at && !r.has_private ? '<button class="btn small" data-share>Share to project</button>' : ''}
         ${mine && r.has_private ? '<span class="pill" title="Private notes stay between the two people, so this recap stays yours">🔒 Uses private notes · can’t be shared</span>' : ''}
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
@@ -338,6 +353,27 @@ export async function renderRecap(recapId) {
     const { error: shareErr } = await sb.from('recaps').update({ shared_at: new Date().toISOString() }).eq('id', r.id);
     if (shareErr) return toast(friendlyError(shareErr), 'error');
     toast('Shared with the project.');
+    renderRecap(recapId);
+  });
+  // The recap goes where the team already talks (KakaoTalk, Discord, WhatsApp…): a short message, a link to the
+  // full recap, and the invite link for anyone who isn't on dancerly yet. Sharing it also makes it visible in the project.
+  $('[data-chat-share]')?.addEventListener('click', async () => {
+    if (!r.shared_at) {
+      const ok = await dialog({ title: 'Share to your group chat?', body: 'This also shares the recap with the project, so teammates can open it from the link.', confirm: 'Continue' });
+      if (!ok) return;
+      const { error: shareErr } = await sb.from('recaps').update({ shared_at: new Date().toISOString() }).eq('id', r.id);
+      if (shareErr) return toast(friendlyError(shareErr), 'error');
+      r.shared_at = new Date().toISOString();
+    }
+    let invite = null;
+    try { invite = (await inviteLink(r.project_id)).link; } catch {}
+    const text = chatMessage(r, `${location.origin}/app/recaps/${r.id}`, invite);
+    track('recap_chat_shared', { scope: r.scope });
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      try { await navigator.share({ text }); return renderRecap(recapId); } catch (e) { if (e?.name === 'AbortError') return renderRecap(recapId); }
+    }
+    try { await navigator.clipboard.writeText(text); toast('Copied. Paste it in your group chat.'); }
+    catch { await dialog({ title: 'Copy this message', body: `<textarea class="chat-copy" rows="9" readonly>${esc(text)}</textarea>`, confirm: 'Done' }); }
     renderRecap(recapId);
   });
   $('[data-unshare]')?.addEventListener('click', async () => {

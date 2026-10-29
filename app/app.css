@@ -5573,3 +5573,74 @@ body.is-guest .topbar {
   font-size: 13px;
   color: var(--muted);
 }
+
+/* Invites where the need comes up: a lone video, an @mention of someone not on the team, a request */
+.invite-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  border: 1px solid #dcdcfa;
+}
+.invite-strip p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #34366e;
+}
+.invite-strip b {
+  color: var(--accent-dark);
+}
+.invite-strip .icon-btn {
+  flex: none;
+}
+:lang(ko) .invite-strip {
+  word-break: keep-all;
+}
+@media (max-width: 600px) {
+  .invite-strip {
+    flex-wrap: wrap;
+  }
+  .invite-strip p {
+    flex-basis: calc(100% - 44px);
+  }
+  .invite-strip p span {
+    display: block;
+  }
+  .invite-strip .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+.mention-menu .mention-invite {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 7px 7px;
+}
+.mention-menu .mention-invite b {
+  color: var(--accent-dark);
+  font-weight: 650;
+}
+.mention-menu .mention-invite small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.request-invite {
+  margin: 4px 0 12px;
+}
+.chat-copy {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: none;
+}

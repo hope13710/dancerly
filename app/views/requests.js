@@ -3,7 +3,7 @@
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
-import { loadProject, projectHead, createVideo } from './project.js';
+import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
 import { empty, noSample } from './shared.js';
 import { loadGroups } from './groups.js';
 
@@ -106,16 +106,18 @@ export async function newRequest(projectId) {
     </div>
     <label class="check-row"><input type="checkbox" name="weekly" /> <span><b>Repeat every week</b><small>When it’s due, it closes and next week’s opens for the same people.</small></span></label>
     <div class="field"><span>Who it’s for</span><div class="choices ${groups.length ? 'three' : ''}">
-      <label><input type="radio" name="who" value="all" checked /><b>Everyone</b><small>All ${members.length - 1} others on the project</small></label>
+      <label><input type="radio" name="who" value="all" checked /><b>Everyone</b><small>${members.length > 1 ? `All ${members.length - 1} others on the project` : 'Everyone who joins the project'}</small></label>
       ${groups.length ? '<label><input type="radio" name="who" value="groups" /><b>Groups</b><small>One or more groups</small></label>' : ''}
       <label><input type="radio" name="who" value="some" /><b>Choose people</b><small>Only the people you pick</small></label>
     </div></div>
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
-    <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Invite people to the project first.</p>'}</div>
+    <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Nobody else has joined yet. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>'}</div>
+    ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” requests too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
     ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${videos.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Send request</button></div>
   </form>`;
   document.body.append(el);
+  el.querySelectorAll('[data-invite-copy]').forEach((b) => b.addEventListener('click', () => copyInvite(projectId, 'request')));
   const form = el.querySelector('form');
   form.querySelectorAll('[name=who]').forEach((r) => r.addEventListener('change', () => {
     const who = form.querySelector('[name=who]:checked').value;

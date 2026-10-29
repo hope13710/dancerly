@@ -6,7 +6,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUp
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
-import { memberWelcome, sampleOffer, samplePeek } from '../onboarding.js';
+import { memberWelcome, sampleOffer, samplePeek, track } from '../onboarding.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -363,6 +363,16 @@ export async function inviteLink(projectId) {
     invite = data;
   }
   return { link: `${location.origin}/app/join/${invite.code}`, expires_at: invite.expires_at };
+}
+
+// One tap from wherever the need comes up (an @mention, a lone video, a request): the link is copied, nothing else opens.
+export async function copyInvite(projectId, from) {
+  let invite;
+  try { invite = await inviteLink(projectId); } catch (error) { toast(friendlyError(error), 'error'); return null; }
+  track('invite_link_shared', { via: 'copy', from });
+  try { await navigator.clipboard.writeText(invite.link); toast('Invite link copied. Send it to your team.'); }
+  catch { await showInvite(projectId, ctx.state.projects.find((p) => p.id === projectId)?.title || ''); }
+  return invite.link;
 }
 
 export async function showInvite(projectId, title) {

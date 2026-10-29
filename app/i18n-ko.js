@@ -806,6 +806,20 @@ export const KO = {
   'Your first real video is in 🎉': '첫 실제 영상이 올라갔어요 🎉',
   'That’s the real thing now — your team’s notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.': '이제부터가 진짜예요. 팀의 피드백, AI 요약, 리포트가 이 영상에서부터 쌓여요. 샘플은 삭제하거나, 나중을 위해 사이드바의 ‘체험하기’에 남겨 둘 수 있어요.',
   'Keep it': '남겨 두기',
+  'Invite link copied. Send it to your team.': '초대 링크를 복사했어요. 팀원들에게 보내 주세요.',
+  'Only you can see this so far.': '아직 나만 볼 수 있어요.',
+  'Invite your team so they can watch it and leave notes.': '팀원을 초대하면 함께 보고 피드백을 남길 수 있어요.',
+  'Copy invite link': '초대 링크 복사',
+  'Not on the team yet?': '아직 팀에 없는 사람인가요?',
+  'Copy the invite link. Once they join, you can @mention them.': '초대 링크를 복사해 보내세요. 합류하면 @멘션할 수 있어요.',
+  'Not everyone has joined yet? People who join later with the invite link get “Everyone” requests too.': '아직 다 합류하지 않았나요? 나중에 초대 링크로 합류한 사람도 ‘모두에게’ 요청을 받아요.',
+  'Nobody else has joined yet.': '아직 다른 팀원이 없어요.',
+  'Share to group chat': '단체방에 공유',
+  'Share to your group chat?': '단체방에 공유할까요?',
+  'This also shares the recap with the project, so teammates can open it from the link.': '프로젝트에도 함께 공유돼서, 팀원들이 링크로 바로 열어 볼 수 있어요.',
+  'Copied. Paste it in your group chat.': '복사했어요. 단체방에 붙여 넣어 주세요.',
+  'Copy this message': '이 메시지를 복사하세요',
+  'Everyone who joins the project': '프로젝트에 합류하는 모든 사람',
   'Your AI recaps this month': '이번 달 내 AI 요약',
   'Clear away the sample?': '샘플을 정리할까요?',
   'You haven’t opened it in a few weeks — your team’s real work has taken over. You can always open a fresh one from Projects.': '몇 주째 열지 않았어요. 이제 팀의 실제 작업이 자리를 잡았네요. 필요하면 언제든 프로젝트 화면에서 새로 열 수 있어요.',
@@ -989,6 +1003,7 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^All (\d+) others? on the project$/, '프로젝트의 다른 $1명 모두'],
   [/^Most open feedback: (.+) · (.+) \((\d+) open\)$/, '미해결 피드백이 가장 많은 곳: $1 · $2 (미해결 $3개)'],
   [/^(\d+) notes? (?:has|have) been open for 3\+ days$/, '피드백 $1개가 3일 넘게 그대로예요'],
   [/^(\d+) still to send (.+) · (.+)$/, '$1명이 아직 ‘$2’ 영상을 안 보냈어요 · $3'],
