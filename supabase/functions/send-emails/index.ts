@@ -2,6 +2,8 @@
 //   instant  mentions, private notes, replies, video requests: ~15 min after, bundled per person, skipped if read
 //   digest   everything else, once a morning at 8 AM US Eastern, only when there is something
 //   weekly   Monday 8 AM Eastern: fixes and takes from the past week, only after an active week
+//   start    getting started, at most once each: a nudge when a new leader has no video after 2 days
+//            (10 AM their time), and a note when the first teammate joins (replaces that "joined" email)
 // Also serves the one-click unsubscribe links (GET from the email footer, POST from mail apps).
 // Private note text never goes into an email. No open-tracking pixels; links carry ?ref=email_<kind>.
 // Secrets: RESEND_API_KEY. Without it, nothing is sent and nothing is marked.
@@ -31,7 +33,10 @@ const GROUP_LABEL: Record<string, string> = {
   mention: "@mention emails", private_note: "private note emails", reply: "reply emails", request: "video request emails",
   note_on_your_video: "emails about notes on your videos", new_take: "new take emails", note_resolved: "emails about fixed notes",
   joined: "emails about people joining", recap_shared: "recap emails", digest: "morning summary emails", weekly: "weekly progress emails",
+  onboarding: "getting started emails",
 };
+const NUDGE_HOUR = 10;
+const isPersona = (id: string) => id.startsWith("5a3b0000-");
 
 const url = Deno.env.get("SUPABASE_URL")!;
 const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -190,13 +195,15 @@ async function followUp(key: string) {
   const off = open.filter((r) => pref(r.user_id, r.kind) === "off").map((r) => r.id);
   if (off.length) await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "skipped" }).in("id", off);
 
+  const celebrated = await firstTeammate(key, open, prefs, off, now);
+
   const digestNow = hourIn(DIGEST_ZONE) === DIGEST_HOUR;
   const today = dayIn(DIGEST_ZONE);
   const ctx = await loadContext(open);
   let instant = 0, digest = 0;
 
   for (const user of users) {
-    const mine = open.filter((r) => r.user_id === user && !off.includes(r.id));
+    const mine = open.filter((r) => r.user_id === user && !off.includes(r.id) && !celebrated.has(r.id));
     const tz = prefs.get(user)?.timezone || DIGEST_ZONE;
     const h = hourIn(tz);
     const quiet = h >= QUIET_FROM || h < QUIET_TO;
@@ -248,7 +255,116 @@ async function followUp(key: string) {
       }
     }
   }
-  return { instant, digest };
+  return { instant, digest, first_teammate: celebrated.size };
+}
+
+// ---------- getting started ----------
+// The first person to join any of your projects gets its own email instead of a line in the morning summary.
+// Returns the notification ids it handled (sent, or held until morning) so the regular emails leave them alone.
+// deno-lint-ignore no-explicit-any
+async function firstTeammate(key: string, open: any[], prefs: Map<string, any>, off: string[], now: number) {
+  const handled = new Set<string>();
+  const joins = open.filter((r) => r.kind === "joined" && !off.includes(r.id) && !isPersona(r.actor_id ?? ""));
+  if (!joins.length) return handled;
+  const owners = [...new Set(joins.map((r) => r.user_id))].filter((u) => prefs.get(u)?.email?.onboarding !== false);
+  if (!owners.length) return handled;
+  const { data: logged } = await admin.from("email_log").select("user_id").eq("kind", "first_teammate").in("user_id", owners);
+  const done = new Set((logged ?? []).map((l: any) => l.user_id));
+  const { data: owned } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false).in("created_by", owners);
+  for (const owner of owners.filter((u) => !done.has(u))) {
+    const join = joins.filter((r) => r.user_id === owner).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))[0];
+    const mine = (owned ?? []).filter((p: any) => p.created_by === owner);
+    const project = mine.find((p: any) => p.id === join.project_id);
+    if (!project) continue; // joined a project someone else created
+    // Anyone who joined your projects before this one means it isn't the first.
+    const { data: earlier } = await admin.from("project_members").select("user_id").eq("role", "member")
+      .in("project_id", mine.map((p: any) => p.id)).neq("user_id", join.actor_id).lt("joined_at", join.created_at).limit(20);
+    if ((earlier ?? []).some((m: any) => !isPersona(m.user_id))) continue;
+    handled.add(join.id);
+    // Same timing as instant emails: a short pause, never at night.
+    const h = hourIn(prefs.get(owner)?.timezone || DIGEST_ZONE);
+    if (Date.parse(join.created_at) > now - INSTANT_DELAY_MIN * 60e3 || h >= QUIET_FROM || h < QUIET_TO) continue;
+    const to = await emailOf(owner);
+    if (!to) continue;
+    const { error: dup } = await admin.from("email_log").insert({ user_id: owner, kind: "first_teammate", period: "once" });
+    if (dup) continue;
+    const [{ data: person }, { data: videos }] = await Promise.all([
+      admin.from("profiles").select("display_name").eq("id", join.actor_id).maybeSingle(),
+      admin.from("videos").select("id, title").eq("project_id", project.id).order("created_at", { ascending: false }).limit(1),
+    ]);
+    const who = first(person?.display_name);
+    const video = videos?.[0];
+    const href = video ? `${SITE}/app/p/${project.id}/v/${video.id}?ref=email_first_teammate` : `${SITE}/app/p/${project.id}?ref=email_first_teammate`;
+    const next = video
+      ? `Next: open <b>${esc(video.title)}</b>, pause on a moment you want ${esc(who)} to see, and @mention them in a note.`
+      : `Next: upload a rehearsal video so ${esc(who)} has something to watch. A phone clip from your last practice is plenty.`;
+    const unsub = await unsubUrl(key, owner, "onboarding");
+    const subject = `${who} joined ${project.title}`;
+    const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>. Your team isn’t rehearsing alone anymore.</p>
+<p style="margin:12px 0 0;font-size:15px;line-height:1.55">${next}</p>`;
+    const html = layout({ heading: `${esc(who)} joined your team`, body, cta: video ? "Leave the first note" : "Upload a video", ctaHref: href, footer: footerFor("A one-time email for your first teammate", unsub, GROUP_LABEL.onboarding) });
+    const text = `${who} just joined ${project.title}. Your team isn't rehearsing alone anymore.\n\n${next.replace(/<[^>]+>/g, "")}\n${href}\n\nTurn off: ${unsub}`;
+    if (await send(to, subject, html, text, "dancerly", unsub)) {
+      await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "sent" }).eq("id", join.id);
+    } else {
+      await admin.from("email_log").delete().match({ user_id: owner, kind: "first_teammate", period: "once" });
+    }
+  }
+  return handled;
+}
+
+// Two days after signing up, a leader who hasn't uploaded anything gets one friendly nudge, at 10 AM their time.
+// Leaders: people who didn't arrive through someone else's invite. Anyone with a video in a real project is skipped.
+async function startNudge(key: string) {
+  const now = Date.now();
+  const { data: fresh } = await admin.from("profiles").select("id, display_name, created_at")
+    .lte("created_at", new Date(now - 2 * 864e5).toISOString()).gte("created_at", new Date(now - 7 * 864e5).toISOString()).limit(500);
+  const users = (fresh ?? []).filter((p: any) => !isPersona(p.id));
+  if (!users.length) return 0;
+  const ids = users.map((p: any) => p.id);
+  const [{ data: settings }, { data: logged }, { data: members }, { data: takes }] = await Promise.all([
+    admin.from("notification_settings").select("user_id, email, timezone").in("user_id", ids),
+    admin.from("email_log").select("user_id").eq("kind", "start_nudge").in("user_id", ids),
+    admin.from("project_members").select("user_id, role, project_id, projects(title, is_sample, created_at)").in("user_id", ids),
+    admin.from("takes").select("uploaded_by, projects(is_sample)").in("uploaded_by", ids).limit(2000),
+  ]);
+  const prefs = new Map((settings ?? []).map((s: any) => [s.user_id, s]));
+  const done = new Set((logged ?? []).map((l: any) => l.user_id));
+  const uploaded = new Set((takes ?? []).filter((t: any) => !t.projects?.is_sample).map((t: any) => t.uploaded_by));
+  let sent = 0;
+  for (const p of users) {
+    if (done.has(p.id) || uploaded.has(p.id) || prefs.get(p.id)?.email?.onboarding === false) continue;
+    if (hourIn(prefs.get(p.id)?.timezone || DIGEST_ZONE) !== NUDGE_HOUR) continue;
+    const mine = (members ?? []).filter((m: any) => m.user_id === p.id);
+    if (mine.some((m: any) => m.role === "member" && !m.projects?.is_sample)) continue; // joined someone else's team
+    const real = mine.filter((m: any) => m.role === "owner" && !m.projects?.is_sample)
+      .sort((a: any, b: any) => Date.parse(b.projects?.created_at) - Date.parse(a.projects?.created_at))[0];
+    // Someone else already uploaded to their project: the team is moving, no nudge needed.
+    if (real) {
+      const { count } = await admin.from("takes").select("id", { count: "exact", head: true }).eq("project_id", real.project_id);
+      if (count) continue;
+    }
+    const sample = mine.find((m: any) => m.projects?.is_sample);
+    const to = await emailOf(p.id);
+    if (!to) continue;
+    const { error: dup } = await admin.from("email_log").insert({ user_id: p.id, kind: "start_nudge", period: "once" });
+    if (dup) continue;
+    const name = first(p.display_name);
+    const href = real ? `${SITE}/app/p/${real.project_id}?ref=email_start` : `${SITE}/app?ref=email_start`;
+    const unsub = await unsubUrl(key, p.id, "onboarding");
+    const subject = "Your team’s first video";
+    const where = real ? ` to <b>${esc(real.projects.title)}</b>` : "";
+    const body = `<p style="margin:0;font-size:15px;line-height:1.55">Hi ${esc(name)},</p>
+<p style="margin:12px 0 0;font-size:15px;line-height:1.55">I built dancerly because practice videos usually end up buried in a group chat, and the same notes get repeated week after week.</p>
+<p style="margin:12px 0 0;font-size:15px;line-height:1.55">The quickest way to see if it helps your team: upload one video${where}. A phone clip from your last practice is plenty. Then pause on one moment and leave a note.</p>
+${sample ? `<p style="margin:12px 0 0;font-size:15px;line-height:1.55">Not ready to film? <a href="${SITE}/app/p/${sample.project_id}?ref=email_start" style="color:#5b5ce2">The sample project</a> shows how it works in a minute.</p>` : ""}
+<p style="margin:12px 0 0;font-size:15px;line-height:1.55">Stuck on anything? Just reply. A real person reads every email.</p>`;
+    const html = layout({ heading: "Your team’s first video", body, cta: "Upload a video", ctaHref: href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) });
+    const text = `Hi ${name},\n\nI built dancerly because practice videos usually end up buried in a group chat, and the same notes get repeated week after week.\n\nThe quickest way to see if it helps your team: upload one video${real ? ` to ${real.projects.title}` : ""}. A phone clip from your last practice is plenty. Then pause on one moment and leave a note.\n\n${href}\n\nStuck on anything? Just reply. A real person reads every email.\n\nTurn off: ${unsub}`;
+    if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
+    else await admin.from("email_log").delete().match({ user_id: p.id, kind: "start_nudge", period: "once" });
+  }
+  return sent;
 }
 
 // ---------- weekly ----------
@@ -310,7 +426,7 @@ async function unsubscribe(req: Request, key: string) {
   const { data: row } = await admin.from("notification_settings").select("email").eq("user_id", user).maybeSingle();
   const email = { ...(row?.email ?? {}) };
   if (group === "digest") for (const [g, d] of Object.entries(DEFAULTS)) { if ((email[g] ?? d) === "digest") email[g] = "off"; }
-  else if (group === "weekly") email.weekly = false;
+  else if (group === "weekly" || group === "onboarding") email[group] = false;
   else email[group] = "off";
   await admin.from("notification_settings").upsert({ user_id: user, email, updated_at: new Date().toISOString() });
   return done(true);
@@ -324,5 +440,6 @@ Deno.serve(async (req) => {
   if (!Deno.env.get("RESEND_API_KEY")) return Response.json({ skipped: "RESEND_API_KEY is not set" });
   const result = await followUp(key);
   const weeklySent = await weekly(key);
-  return Response.json({ ...result, weekly: weeklySent });
+  const nudged = await startNudge(key);
+  return Response.json({ ...result, weekly: weeklySent, start_nudge: nudged });
 });

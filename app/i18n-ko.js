@@ -829,6 +829,8 @@ export const KO = {
   'Turned off in your Inbox above': '위 알림함 설정에서 꺼져 있어요',
   'Weekly progress': '주간 성장 리포트',
   'Monday morning, after a week with fixes or new takes.': '고친 피드백이나 새 테이크가 있었던 주의 월요일 아침에 보내요.',
+  'Getting started': '시작 도우미',
+  'At most two emails, early on: a tip for your first video, and a note when your first teammate joins.': '처음에 최대 두 통만 보내요. 첫 영상 올리기 팁, 그리고 첫 팀원이 들어왔을 때 알림이에요.',
   'The morning summary arrives around 8 AM US Eastern Time.': '아침 요약은 미국 동부시간 오전 8시쯤 도착해요.',
   'Help & feedback': '도움말 · 의견 보내기',
   'Tell us anything. We read every message.': '무엇이든 알려 주세요. 모든 메시지를 직접 읽어요.',

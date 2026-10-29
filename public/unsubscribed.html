@@ -29,7 +29,7 @@
   </main>
   <script>
     // What was turned off, from the link; nothing else is read.
-    const LABEL = { mention: '@mention emails', private_note: 'private note emails', reply: 'reply emails', request: 'video request emails', note_on_your_video: 'emails about notes on your videos', new_take: 'new take emails', note_resolved: 'emails about fixed notes', joined: 'emails about people joining', recap_shared: 'recap emails', digest: 'morning summary emails', weekly: 'weekly progress emails' };
+    const LABEL = { mention: '@mention emails', private_note: 'private note emails', reply: 'reply emails', request: 'video request emails', note_on_your_video: 'emails about notes on your videos', new_take: 'new take emails', note_resolved: 'emails about fixed notes', joined: 'emails about people joining', recap_shared: 'recap emails', digest: 'morning summary emails', weekly: 'weekly progress emails', onboarding: 'getting started emails' };
     const q = new URLSearchParams(location.search);
     if (q.get('invalid')) {
       document.querySelector('[data-title]').textContent = 'This link isn’t valid';

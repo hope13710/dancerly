@@ -129,6 +129,8 @@ export async function renderSettings(section = 'account') {
         }).join('')}
           <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning, after a week with fixes or new takes.</span></span>
             <span class="switch"><input type="checkbox" data-weekly ${email.weekly !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most two emails, early on: a tip for your first video, and a note when your first teammate joins.</span></span>
+            <span class="switch"><input type="checkbox" data-onboarding ${email.onboarding !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
         </div>
         <p class="fine left">The morning summary arrives around 8 AM US Eastern Time.</p>
       </section>`,
@@ -143,12 +145,14 @@ export async function renderSettings(section = 'account') {
         const saveEmail = async () => {
           const next = Object.fromEntries($$('[data-email]').map((s) => [s.dataset.email, s.value]));
           next.weekly = $('[data-weekly]').checked;
+          next.onboarding = $('[data-onboarding]').checked;
           const { error } = await sb.from('notification_settings').upsert({ user_id: state.session.user.id, email: next, updated_at: new Date().toISOString() });
           if (error) return toast(friendlyError(error), 'error');
           toast('Saved.');
         };
         $$('[data-email]').forEach((s) => s.addEventListener('change', saveEmail));
         $('[data-weekly]').addEventListener('change', saveEmail);
+        $('[data-onboarding]').addEventListener('change', saveEmail);
       }
     };
   }
