@@ -608,6 +608,16 @@ async function loadProfile() {
   if (!data && pending) ({ data } = await sb.from('profiles').insert({ id: user.id, display_name: String(pending).slice(0, 60) }).select().single());
   state.profile = data || null;
   if (data) rememberPhotos([data]);
+  if (data) saveTimezone(user.id);
+}
+
+// Email follow-ups keep quiet hours in each person's own time zone. Saved once per browser and account.
+function saveTimezone(userId) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const key = `looproom:tz:${userId}`;
+  try { if (!tz || localStorage.getItem(key) === tz) return; } catch { return; }
+  sb.from('notification_settings').upsert({ user_id: userId, timezone: tz }, { onConflict: 'user_id' })
+    .then(({ error }) => { if (!error) try { localStorage.setItem(key, tz); } catch {} });
 }
 
 // What the ⌘K palette can do besides searching.

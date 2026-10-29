@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Email settings · dancerly</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <style>
+    :root { --ink: #15161a; --muted: #4a4f5c; --accent: #5b5ce2; --line: #e7e8ee; --bg: #f4f5f8; --card: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #eef0f5; --muted: #aab1bf; --line: #2c303a; --bg: #101216; --card: #181b21; } }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif; }
+    main { max-width: 440px; margin: 64px auto; padding: 0 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+    h1 { font-size: 20px; margin: 0 0 8px; letter-spacing: -0.01em; }
+    p { margin: 0 0 16px; line-height: 1.55; color: var(--muted); }
+    a { color: var(--accent); font-weight: 650; }
+    img { height: 22px; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/logo-wordmark.png" alt="dancerly" width="93" height="22" />
+    <div class="card">
+      <h1 data-title>Done, you won’t get these anymore</h1>
+      <p data-msg>Everything still shows up in your Inbox in the app.</p>
+      <a href="/app/settings/notifications">Email settings</a>
+    </div>
+  </main>
+  <script>
+    // What was turned off, from the link; nothing else is read.
+    const LABEL = { mention: '@mention emails', private_note: 'private note emails', reply: 'reply emails', request: 'video request emails', note_on_your_video: 'emails about notes on your videos', new_take: 'new take emails', note_resolved: 'emails about fixed notes', joined: 'emails about people joining', recap_shared: 'recap emails', digest: 'morning summary emails', weekly: 'weekly progress emails' };
+    const q = new URLSearchParams(location.search);
+    if (q.get('invalid')) {
+      document.querySelector('[data-title]').textContent = 'This link isn’t valid';
+      document.querySelector('[data-msg]').textContent = 'It may have been copied incompletely. You can change your emails in settings.';
+    } else if (LABEL[q.get('g')]) {
+      document.querySelector('[data-msg]').textContent = `We turned off ${LABEL[q.get('g')]}. Everything still shows up in your Inbox in the app.`;
+    }
+  </script>
+</body>
+</html>

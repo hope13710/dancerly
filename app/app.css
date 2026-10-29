@@ -5809,3 +5809,17 @@ body.is-guest .topbar {
   color: var(--accent-dark);
   font-weight: 650;
 }
+.email-row select {
+  flex: none;
+  min-width: 150px;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.email-row select:disabled {
+  opacity: 0.5;
+}

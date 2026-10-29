@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/email/unsubscribe",
+      "destination": "https://egkwjdwfzuslyrhuzkmq.supabase.co/functions/v1/send-emails"
+    },
+    {
       "source": "/terms",
       "destination": "/terms.html"
     },

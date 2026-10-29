@@ -21,6 +21,20 @@ const KINDS = [
   ['recap_shared', 'Recaps shared with you', 'When a teammate shares an AI recap to a project.'],
   ['request', 'Video requests', 'When someone asks you for a video, and their reminders.']
 ];
+// Email follow-ups by group (send-emails function). Same defaults as the server.
+const EMAIL_GROUPS = [
+  ['mention', 'Someone @mentions you', 'instant', 'mention'],
+  ['private_note', 'Private notes to you', 'instant', null],
+  ['reply', 'Replies', 'instant', 'reply'],
+  ['request', 'Video requests and due dates', 'instant', 'request'],
+  ['note_on_your_video', 'Notes on your videos', 'digest', 'note_on_your_video'],
+  ['new_take', 'New takes', 'digest', 'new_take'],
+  ['note_resolved', 'Your notes get fixed', 'digest', 'note_resolved'],
+  ['joined', 'Someone joins', 'digest', 'joined'],
+  ['recap_shared', 'Recaps shared with you', 'digest', 'recap_shared']
+];
+const EMAIL_CHOICES = [['instant', 'Right away'], ['digest', 'Morning summary'], ['off', 'Off']];
+
 // Matches the pricing page. Not enforced yet; shown so teams know where they stand.
 const FREE = { projects: 1, members: 10 };
 
@@ -94,14 +108,29 @@ export async function renderSettings(section = 'account') {
   }
 
   async function notifications() {
-    const { data } = await sb.from('profiles').select('notify').eq('id', state.session.user.id).single();
+    const [{ data }, { data: mail }] = await Promise.all([
+      sb.from('profiles').select('notify').eq('id', state.session.user.id).single(),
+      sb.from('notification_settings').select('email').eq('user_id', state.session.user.id).maybeSingle()
+    ]);
     const prefs = data?.notify || {};
+    const email = mail?.email || {};
     return {
       html: `<section class="panel">
         <div class="panel-head"><div><h2>Inbox notifications</h2><p class="muted">Choose what shows up in your Inbox. Changes apply from now on.</p></div></div>
         <div class="list flush">${KINDS.map(([k, title, hint]) => `<label class="row toggle-row"><span class="row-main"><span class="row-title">${title}</span><span class="row-meta">${hint}</span></span>
           <span class="switch"><input type="checkbox" data-kind="${k}" ${prefs[k] !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>`).join('')}</div>
-        <p class="fine left">Email and push notifications are coming. For now everything lands in your Inbox.</p>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Email</h2><p class="muted">We only email what you haven’t seen in the app. Nothing is sent between 10 PM and 7 AM your time.</p></div></div>
+        <div class="list flush">${EMAIL_GROUPS.map(([g, title, def, inbox]) => {
+          const blocked = inbox && prefs[inbox] === false;
+          return `<label class="row toggle-row email-row"><span class="row-main"><span class="row-title">${title}</span>${blocked ? '<span class="row-meta">Turned off in your Inbox above</span>' : ''}</span>
+            <select data-email="${g}" ${blocked ? 'disabled' : ''}>${EMAIL_CHOICES.map(([v, l]) => `<option value="${v}" ${(email[g] || def) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+        }).join('')}
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning, after a week with fixes or new takes.</span></span>
+            <span class="switch"><input type="checkbox" data-weekly ${email.weekly !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
+        </div>
+        <p class="fine left">The morning summary arrives around 8 AM US Eastern Time.</p>
       </section>`,
       wire() {
         $$('[data-kind]').forEach((box) => box.addEventListener('change', async () => {
@@ -109,7 +138,17 @@ export async function renderSettings(section = 'account') {
           const { error } = await sb.from('profiles').update({ notify: next }).eq('id', state.session.user.id);
           if (error) { box.checked = !box.checked; return toast(friendlyError(error), 'error'); }
           toast('Saved.');
+          ctx.route(); // email rows follow the Inbox switches
         }));
+        const saveEmail = async () => {
+          const next = Object.fromEntries($$('[data-email]').map((s) => [s.dataset.email, s.value]));
+          next.weekly = $('[data-weekly]').checked;
+          const { error } = await sb.from('notification_settings').upsert({ user_id: state.session.user.id, email: next, updated_at: new Date().toISOString() });
+          if (error) return toast(friendlyError(error), 'error');
+          toast('Saved.');
+        };
+        $$('[data-email]').forEach((s) => s.addEventListener('change', saveEmail));
+        $('[data-weekly]').addEventListener('change', saveEmail);
       }
     };
   }
