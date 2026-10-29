@@ -5250,6 +5250,9 @@ body.is-guest .topbar {
   }
 }
 
+.auth-card > .auth-legal {
+  margin: 20px 0 0;
+}
 .fine a {
   color: inherit;
   text-decoration: underline;

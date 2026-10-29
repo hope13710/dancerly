@@ -331,7 +331,7 @@ function renderLogin() {
           <button class="btn primary wide" type="submit">${signup ? 'Create account' : 'Log in'}</button>
           <p class="form-error" data-form-error role="alert" hidden></p>
         </form>
-        <p class="fine" data-no-i18n>${legalLine()}</p>
+        <p class="fine auth-legal" data-no-i18n>${legalLine()}</p>
       </div>
     </section>`;
     const form = $('[data-auth-form]');
@@ -523,7 +523,7 @@ function renderName() {
     <p class="muted">This name appears on your notes and in @mentions.</p>
     <label class="field"><span>Your name</span><input name="name" maxlength="60" required value="${esc(suggested)}" placeholder="Maya Chen" /></label>
     <button class="btn primary wide" type="submit">Continue</button>
-    ${unsigned ? `<p class="fine" data-no-i18n>${legalLine()}</p>` : ''}
+    ${unsigned ? `<p class="fine auth-legal" data-no-i18n>${legalLine()}</p>` : ''}
   </form></section>`;
   $('[data-name-form] input').focus();
   $('[data-name-form]').addEventListener('submit', async (event) => {
