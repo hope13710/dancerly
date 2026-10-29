@@ -5250,25 +5250,6 @@ body.is-guest .topbar {
   }
 }
 
-/* Sign-up: age and terms agreement */
-.consent {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 4px 0 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  cursor: pointer;
-}
-.consent input {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin: 1px 0 0;
-  accent-color: var(--accent);
-}
-.consent a,
 .fine a {
   color: inherit;
   text-decoration: underline;
