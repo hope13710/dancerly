@@ -1,6 +1,7 @@
 // Help & feedback: one place to tell us anything (a bug, an idea, a question) without leaving the app,
-// plus email and the FAQ. Messages go to app_feedback (migration 024) with the page and browser attached;
-// if that isn't set up yet, the same message opens in the mail app instead, so nothing typed is lost.
+// plus email and the FAQ. Messages go through the send-feedback function into app_feedback (migration 024)
+// and the Notion inbox, with the page and browser attached. If that isn't set up yet, the same message opens
+// in the mail app instead, so nothing typed is lost.
 import { sb, toast } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang } from './i18n.js';
@@ -52,7 +53,9 @@ export function openHelp({ kind = 'bug' } = {}) {
     const send = el.querySelector('[data-help-send]');
     send.disabled = true;
     const row = { kind: picked, body, page: location.pathname + location.search, user_agent: navigator.userAgent.slice(0, 500), lang: getLang() };
-    const { error } = await sb.from('app_feedback').insert(row);
+    // The send-feedback function saves it and copies it to the Notion inbox; if it isn't there, save directly.
+    let { error } = await sb.functions.invoke('send-feedback', { body: row });
+    if (error) ({ error } = await sb.from('app_feedback').insert(row));
     if (error) {
       // Not set up yet (or offline): hand the same message to the mail app.
       const mail = `mailto:${EMAIL}?subject=${encodeURIComponent(`dancerly ${picked}`)}&body=${encodeURIComponent(`${body}\n\n—\nPage: ${row.page}\nBrowser: ${row.user_agent}`)}`;

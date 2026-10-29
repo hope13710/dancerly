@@ -1,0 +1,78 @@
+// send-feedback: saves a Help & feedback message, then copies it to the Notion inbox ("앱 의견함").
+// The message is always saved first; if Notion is down or not connected yet, it stays in app_feedback
+// (notion_page_id empty) and nothing is lost.
+// Secrets: NOTION_TOKEN (an internal integration connected to the inbox database).
+// NOTION_FEEDBACK_DB overrides the inbox database id.
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+
+const NOTION_DB = Deno.env.get("NOTION_FEEDBACK_DB") ?? "4f2cfbf66299449d9d632afc3be69e3d";
+const KINDS: Record<string, string> = { bug: "Bug", idea: "Idea", question: "Question", other: "Other" };
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+const clip = (s: unknown, n: number) => (typeof s === "string" ? s.slice(0, n) : null);
+// Notion text values hold at most 2000 characters each.
+const text = (s: string) => (s.match(/[\s\S]{1,2000}/g) ?? [""]).slice(0, 3).map((content) => ({ text: { content } }));
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Use POST." }, 405);
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const asUser = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } });
+  const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: userData, error: userErr } = await asUser.auth.getUser();
+  if (userErr || !userData.user) return json({ error: "Your session ended. Log in again." }, 401);
+  const user = userData.user;
+
+  let body: { kind?: string; body?: string; page?: string; user_agent?: string; lang?: string };
+  try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
+  const kind = KINDS[body.kind ?? ""] ? body.kind! : "other";
+  const message = (body.body ?? "").trim().slice(0, 4000);
+  if (!message) return json({ error: "Write a message first." }, 400);
+  const row = { user_id: user.id, kind, body: message, page: clip(body.page, 500), user_agent: clip(body.user_agent, 500), lang: clip(body.lang, 10) };
+
+  const { data: saved, error: saveErr } = await admin.from("app_feedback").insert(row).select("id, created_at").single();
+  if (saveErr) return json({ error: saveErr.message }, 500);
+
+  // ---------- Copy to Notion (best effort) ----------
+  const token = Deno.env.get("NOTION_TOKEN");
+  if (!token) return json({ ok: true, id: saved.id, notion: false });
+  const { data: profile } = await admin.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+  const title = message.replace(/\s+/g, " ").slice(0, 80) + (message.length > 80 ? "…" : "");
+  const properties: Record<string, unknown> = {
+    Message: { title: [{ text: { content: title } }] },
+    Kind: { select: { name: KINDS[kind] } },
+    Status: { status: { name: "New" } },
+    "Full message": { rich_text: text(message) },
+    Name: { rich_text: text(profile?.display_name ?? "") },
+    Page: { rich_text: text(row.page ?? "") },
+    Browser: { rich_text: text(row.user_agent ?? "") },
+    "Sent at": { date: { start: saved.created_at } },
+    "Feedback ID": { number: saved.id },
+  };
+  if (user.email) properties.Email = { email: user.email };
+  if (row.lang === "en" || row.lang === "ko") properties.Language = { select: { name: row.lang } };
+  try {
+    const res = await fetch("https://api.notion.com/v1/pages", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" },
+      body: JSON.stringify({ parent: { database_id: NOTION_DB }, properties }),
+    });
+    if (!res.ok) {
+      console.error("notion", res.status, (await res.text()).slice(0, 300));
+      return json({ ok: true, id: saved.id, notion: false });
+    }
+    const page = await res.json();
+    await admin.from("app_feedback").update({ notion_page_id: page.id }).eq("id", saved.id);
+    return json({ ok: true, id: saved.id, notion: true });
+  } catch (e) {
+    console.error("notion", String(e).slice(0, 300));
+    return json({ ok: true, id: saved.id, notion: false });
+  }
+});

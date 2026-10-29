@@ -1,4 +1,5 @@
 -- In-app "Help & feedback": what people tell us from inside the app (bugs, ideas, questions).
+-- The send-feedback Edge Function saves each message here and copies it to the Notion inbox.
 -- Signed-in users can only add their own messages; reading happens in the dashboard (service role).
 -- The page and browser are attached so bugs can be reproduced. Messages stay readable after an account is
 -- deleted, but no longer point to the person.
@@ -10,6 +11,7 @@ create table if not exists public.app_feedback (
   page text check (page is null or char_length(page) <= 500),
   user_agent text check (user_agent is null or char_length(user_agent) <= 500),
   lang text check (lang is null or char_length(lang) <= 10),
+  notion_page_id text, -- set when the send-feedback function copied it to the Notion inbox
   created_at timestamptz not null default now()
 );
 alter table public.app_feedback enable row level security;
