@@ -363,10 +363,13 @@ a {
 }
 .btn.google {
   width: 100%;
+  gap: 10px;
 }
 .g {
-  font-weight: 800;
-  color: #4285f4;
+  flex: none;
+}
+.google-terms {
+  margin: 10px 0 0;
 }
 .or {
   display: flex;

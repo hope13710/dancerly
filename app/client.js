@@ -9,7 +9,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 });
 
 // Turn on after enabling the Google provider in Supabase (Authentication → Sign In / Providers).
-export const GOOGLE_ENABLED = false;
+export const GOOGLE_ENABLED = true;
 
 // Columns added for first-run guidance (migration 018). Until the database has them, queries leave them out
 // and the guidance stays off, so the rest of the app keeps working.
