@@ -5,6 +5,7 @@ import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome } from './onboarding.js';
+import { openHelp } from './help.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
@@ -556,6 +557,9 @@ function renderMe() {
       ${row('/app/settings/plan', 'Plan', '<small>Free</small>')}
     </div>
     <div class="list-group">
+      <a href="#help" data-help><span>Help &amp; feedback</span><i>›</i></a>
+    </div>
+    <div class="list-group">
       <button data-me-signout class="danger-text"><span>Log out</span></button>
     </div>
     <p class="me-delete"><a href="/app/account/delete" data-link>Delete account</a></p>
@@ -617,7 +621,9 @@ ctx.commands = [
   { label: 'Go to Feedback', run: () => navigate('/app/feedback') },
   { label: 'Go to Calendar', run: () => navigate('/app/calendar') },
   { label: 'Go to Insights', run: () => navigate('/app/insights') },
-  { label: 'Go to Settings', run: () => navigate('/app/settings') }
+  { label: 'Go to Settings', run: () => navigate('/app/settings') },
+  { label: 'Send feedback', hint: 'A bug, an idea, or a question', run: () => openHelp({ kind: 'idea' }) },
+  { label: 'Get help', hint: 'Email us or read the FAQ', run: () => openHelp({ kind: 'question' }) }
 ];
 
 Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut, sampleBar: paintSampleBar });
