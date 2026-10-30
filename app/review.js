@@ -1,5 +1,5 @@
 import { cols, schema } from './client.js';
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, TAKE_BUCKET, isPublicMedia } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
@@ -7,7 +7,7 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
-import { copyInvite } from './views/project.js';
+import { copyInvite, confirmDeleteVideo, removeTakeFiles } from './views/project.js';
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 
@@ -886,11 +886,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();
   }
-  // Files go right away when they're yours to remove; anything else is cleared by the hourly storage cleanup.
-  const removeFiles = (list) => {
-    const paths = list.flatMap((t) => [t.storage_path, t.thumb_path]).filter((p) => p && !isPublicMedia(p));
-    if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
-  };
   async function deleteTake() {
     const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('take_id', take.id);
     const sure = await dialog({
@@ -902,28 +897,15 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (!sure) return;
     const { error } = await sb.from('takes').delete().eq('id', take.id);
     if (error) return toast(friendlyError(error), 'error');
-    removeFiles([take]);
+    removeTakeFiles([take]);
     logEvent('take_deleted', {});
     toast(`Take ${take.number} deleted.`);
     navigate(base, { replace: true });
   }
   async function deleteVideo() {
-    const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('video_id', videoId);
-    const parts = [takes.length > 1 ? `all ${takes.length} takes` : null, count ? `${count} ${count === 1 ? 'note' : 'notes'}` : null].filter(Boolean);
-    const sure = await dialog({
-      title: `Delete “${video.title}”?`,
-      body: `${parts.length ? `This deletes ${parts.join(' and ')} ` : 'This deletes the video '}for everyone in ${esc(project.title)}. This can’t be undone.`,
-      confirm: 'Delete video',
-      danger: true
-    });
-    if (!sure) return;
-    const { error } = await sb.from('videos').delete().eq('id', videoId);
-    if (error) return toast(friendlyError(error), 'error');
-    removeFiles(takes);
-    logEvent('video_deleted', { takes: takes.length });
-    toast('Video deleted.');
-    navigate(`/app/p/${projectId}`, { replace: true });
+    if (await confirmDeleteVideo({ projectId, projectTitle: project.title, video, takes })) navigate(`/app/p/${projectId}`, { replace: true });
   }
+
 
   async function mergeInto() {
     const { data: others, error } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });

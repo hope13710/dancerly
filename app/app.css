@@ -544,6 +544,35 @@ a {
 .video-row:first-child {
   border-top: 0;
 }
+/* A row with a ⋯ menu: the link stays the whole row, the button sits at its end */
+.video-item {
+  position: relative;
+}
+.video-item + .video-item .video-row {
+  border-top: 1px solid #f0f1f4;
+}
+.video-item.has-more .video-row {
+  padding-right: 60px;
+}
+@media (max-width: 600px) {
+  .video-item.has-more .video-row {
+    padding-right: 48px;
+  }
+  .video-item.has-more .chev {
+    display: none;
+  }
+  .row-more {
+    right: 6px;
+  }
+}
+.row-more {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  font-size: 18px;
+  line-height: 1;
+}
 .video-row:hover {
   background: #fbfbfe;
 }

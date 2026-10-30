@@ -2,7 +2,7 @@
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema } from '../client.js';
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
@@ -44,6 +44,31 @@ export async function createProject() {
   ctx.navigate(`/app/p/${data.id}`);
 }
 
+// Files go right away when they're yours to remove; anything else is cleared by the hourly storage cleanup.
+export function removeTakeFiles(list) {
+  const paths = list.flatMap((t) => [t.storage_path, t.thumb_path]).filter((p) => p && !isPublicMedia(p));
+  if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
+}
+
+// Deleting a video (from its page or the list): one confirmation that says exactly what goes. True if deleted.
+export async function confirmDeleteVideo({ projectId, projectTitle, video, takes }) {
+  const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('video_id', video.id);
+  const parts = [takes.length > 1 ? `all ${takes.length} takes` : null, count ? `${count} ${count === 1 ? 'note' : 'notes'}` : null].filter(Boolean);
+  const sure = await dialog({
+    title: `Delete “${video.title}”?`,
+    body: `${parts.length ? `This deletes ${parts.join(' and ')} ` : 'This deletes the video '}for everyone in ${esc(projectTitle)}. This can’t be undone.`,
+    confirm: 'Delete video',
+    danger: true
+  });
+  if (!sure) return false;
+  const { error } = await sb.from('videos').delete().eq('id', video.id).eq('project_id', projectId);
+  if (error) { toast(friendlyError(error), 'error'); return false; }
+  removeTakeFiles(takes);
+  track('video_deleted', { takes: takes.length });
+  toast('Video deleted.');
+  return true;
+}
+
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
@@ -75,7 +100,7 @@ export async function renderProject(projectId) {
   const { view, setCrumbs } = ctx;
   const [p, { data: videos, error: vErr }] = await Promise.all([
     loadProject(projectId),
-    sb.from('videos').select('id, title, created_at, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
+    sb.from('videos').select('id, title, created_at, created_by, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (vErr) throw vErr;
   setCrumbs([['Projects', '/app/projects'], [p.project.title]]);
@@ -84,17 +109,24 @@ export async function renderProject(projectId) {
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
-      return `<a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
+      const canDelete = p.isOwner || v.created_by === p.me;
+      return `<div class="video-item${canDelete ? ' has-more' : ''}"><a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
         <span class="video-thumb" ${takes[0] ? `data-thumb="${takes[0].id}"` : ''}><i aria-hidden="true">▶</i>${takes.length > 1 ? `<em>${takes.length} takes</em>` : ''}</span>
         <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
         <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
-      </a>`;
+      </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">⋯</button>` : ''}</div>`;
     }).join('')}</div>`
     : p.isOwner
       ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
+  $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
+    const v = videos.find((x) => x.id === b.dataset.rowMore);
+    const choice = await actionSheet({ title: v.title, actions: [{ value: 'delete', label: 'Delete video', hint: v.takes.length > 1 ? `All ${v.takes.length} takes and their notes` : 'The video and its notes', danger: true }] });
+    if (choice !== 'delete') return;
+    if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes })) renderProject(projectId);
+  }));
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
   // People who just joined get a short welcome once.
   const mine = p.members.find((m) => m.user_id === p.me);
