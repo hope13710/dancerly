@@ -6,7 +6,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
-import { memberWelcome, sampleOffer, samplePeek, track } from '../onboarding.js';
+import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -359,6 +359,7 @@ export async function createVideo(projectId, { request = null } = {}) {
     await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
     toast('Uploaded. Pause on a moment and pin your first note.');
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
+    inviteAfterFirstVideo(projectId);
   } catch (err) {
     // A stopped upload can be resumed from the video's page; anything else leaves nothing worth keeping.
     if (err.resumable) {
@@ -413,21 +414,42 @@ export async function copyInvite(projectId, from) {
   return invite.link;
 }
 
-export async function showInvite(projectId, title) {
+// Right after the first video goes up in a project nobody else is in yet: the moment an invite makes sense,
+// because teammates arrive to something they can watch. Once per project; not for people practicing alone.
+async function inviteAfterFirstVideo(projectId) {
+  const project = ctx.state.projects.find((p) => p.id === projectId);
+  if (!project || project.is_sample || onboarding().team === 'solo' || seen(`invite_prompt:${projectId}`)) return;
+  const members = await loadMembers(projectId).catch(() => []);
+  if (members.length !== 1) return;
+  markSeen(`invite_prompt:${projectId}`);
+  showInvite(projectId, project.title, {
+    heading: 'Your video is up. Now bring in your team.',
+    body: 'They’ll see your video as soon as they join and can leave feedback on any moment. Anyone with this link joins with just their name and email.',
+    from: 'first_video',
+    later: 'Later'
+  });
+}
+
+export async function showInvite(projectId, title, { heading = 'Invite your team', body = null, from = 'invite_dialog', later = 'Done' } = {}) {
   let invite;
   try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
   const { link } = invite;
   const el = document.createElement('dialog');
   el.className = 'dialog';
-  el.innerHTML = `<div class="dialog-card"><h2>Invite your team</h2><p>Anyone with this link can join <b>${esc(title)}</b> with just their name and email. It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
-    <div class="copy-row"><input readonly value="${esc(link)}" /><button class="btn primary" data-copy>Copy</button></div>
-    <div class="dialog-actions"><button class="btn ghost" data-close>Done</button></div></div>`;
+  el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2><p>${body || `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p><p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
+    <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" /><button class="btn primary" data-copy>Copy</button></div>
+    ${navigator.share ? '<button class="btn wide" data-share>Share…</button>' : ''}
+    <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
   el.showModal();
   el.querySelector('input').select();
   el.querySelector('[data-copy]').addEventListener('click', async () => {
-    window.dataLayer?.push({ event: 'invite_link_shared', via: 'copy' });
-    try { await navigator.clipboard.writeText(link); toast('Invite link copied.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
+    track('invite_link_shared', { via: 'copy', from });
+    try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to your team.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
+  });
+  el.querySelector('[data-share]')?.addEventListener('click', () => {
+    track('invite_link_shared', { via: 'share', from });
+    navigator.share({ title: 'dancerly', text: `Join ${title} on dancerly`, url: link }).catch(() => {});
   });
   el.querySelector('[data-close]').addEventListener('click', () => el.close());
   el.addEventListener('close', () => el.remove());

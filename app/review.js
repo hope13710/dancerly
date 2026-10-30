@@ -65,7 +65,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}${canDeleteVideo || canDeleteTake ? '<button class="icon-btn more-btn" data-video-more aria-label="More actions" title="More actions">⋯</button>' : ''}</div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ <span class="wide-only">Upload a new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost wide-only" data-share-video title="A read-only link for people outside the team">Share</button>'}<button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">⋯</button></div>
     </header>
     ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Invite your team so they can watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
     <div class="review-layout">
@@ -831,7 +831,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     .subscribe();
 
   wireUpload();
-  $('[data-merge]')?.addEventListener('click', mergeInto);
   $('[data-video-more]')?.addEventListener('click', moreActions);
   $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
   $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
@@ -881,11 +880,19 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
   // ⋯ on a video: the destructive actions live here, in red, each behind a confirmation that says what goes.
+  // Phones keep only Takes and New take on top; Compare and Share move in here.
   async function moreActions() {
+    const narrow = matchMedia('(max-width: 600px)').matches;
     const choice = await actionSheet({ title: video.title, actions: [
+      ...(narrow ? [{ value: 'compare', label: r.compare.on ? '⧉ Stop comparing' : '⧉ Compare', hint: 'Play another take or video side by side' }] : []),
+      ...(narrow && !project.is_sample ? [{ value: 'share', label: 'Share', hint: 'A read-only link for people outside the team' }] : []),
+      ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: 'Just this take and the notes left on it', danger: true }] : []),
       ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
+    if (choice === 'compare') return toggleCompare();
+    if (choice === 'share') return shareVideo(videoId, video.title);
+    if (choice === 'merge') return mergeInto();
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();
   }

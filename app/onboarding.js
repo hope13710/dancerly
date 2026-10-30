@@ -2,8 +2,8 @@
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
 import { sb, $, $$, esc, toast, friendlyError, dialog, schema } from './client.js';
 import { ctx } from './ctx.js';
-import { getLang, isKo, t } from './i18n.js';
-import { inviteLink, createVideo } from './views/project.js';
+import { getLang, isKo } from './i18n.js';
+import { createVideo } from './views/project.js';
 import { myOpenRequests } from './views/requests.js';
 import { notesForMe } from './views/shared.js';
 
@@ -186,7 +186,8 @@ export async function renderWelcome() {
   await state.projectsReady;
   const ob = onboarding();
   // Pick up where they left off: a project made in step 1 carries into steps 2 and 3.
-  let step = ob.welcome_project && state.projects.some((p) => p.id === ob.welcome_project) ? (ob.welcome_step || 2) : 1;
+  // Two steps: the project, then its first video (the team is invited once there's something to watch).
+  let step = ob.welcome_project && state.projects.some((p) => p.id === ob.welcome_project) ? 2 : 1;
   let projectId = step > 1 ? ob.welcome_project : null;
   let team = ob.team || null;
   let typed = null; // a name they typed beats our suggestion
@@ -197,7 +198,7 @@ export async function renderWelcome() {
   };
 
   const frame = (body) => `<section class="auth welcome"><div class="auth-card welcome-card">
-      <div class="steps" aria-label="Step ${step} of 3">${[1, 2, 3].map((n) => `<i class="${n < step ? 'done' : n === step ? 'now' : ''}"></i>`).join('')}<small>Step ${step} of 3</small></div>
+      <div class="steps" aria-label="Step ${step} of 2">${[1, 2].map((n) => `<i class="${n < step ? 'done' : n === step ? 'now' : ''}"></i>`).join('')}<small>Step ${step} of 2</small></div>
       ${body}
     </div></section>`;
 
@@ -223,37 +224,12 @@ export async function renderWelcome() {
         const { data, error } = await sb.from('projects').insert({ title }).select('id').single();
         if (error) { button.disabled = false; return toast(friendlyError(error), 'error'); }
         projectId = data.id;
-        step = team === 'solo' ? 3 : 2;
+        step = 2;
         await saveOnboarding({ team, welcome_project: projectId, welcome_step: step });
         track('onboarding_step_done', { step: 'project', team });
         await ctx.refreshNav();
         paint();
       });
-    } else if (step === 2) {
-      view.innerHTML = frame(`<h1>Invite your team</h1>
-        <p class="muted">Anyone with the link joins with just their name and email. They’ll get a short welcome that shows them what to do.</p>
-        <div class="copy-row"><input readonly data-invite-link value="" placeholder="Making your link…" aria-label="Invite link" /><button class="btn primary" data-copy disabled>Copy</button></div>
-        <button class="btn wide welcome-share" data-share hidden>Share…</button>
-        <button class="btn primary wide" data-next>Next</button>
-        <div class="welcome-alt"><button type="button" class="link-btn" data-later>I’ll invite them later</button></div>`);
-      inviteLink(projectId).then(({ link }) => {
-        const input = $('[data-invite-link]');
-        if (!input) return;
-        input.value = link;
-        $('[data-copy]').disabled = false;
-        $('[data-share]').hidden = !navigator.share;
-        $('[data-copy]').addEventListener('click', async () => {
-          track('invite_link_shared', { via: 'copy', from: 'welcome' });
-          try { await navigator.clipboard.writeText(link); toast('Invite link copied.'); } catch { input.select(); toast('Press Ctrl+C to copy the link.'); }
-        });
-        $('[data-share]').addEventListener('click', () => {
-          track('invite_link_shared', { via: 'share', from: 'welcome' });
-          navigator.share({ title: 'dancerly', text: t('Join our team on dancerly'), url: link }).catch(() => {});
-        });
-      }).catch((error) => toast(friendlyError(error), 'error'));
-      const next = async () => { step = 3; await saveOnboarding({ welcome_step: 3 }); track('onboarding_step_done', { step: 'invite' }); paint(); };
-      $('[data-next]').addEventListener('click', next);
-      $('[data-later]').addEventListener('click', next);
     } else {
       view.innerHTML = frame(`<h1>Add your first rehearsal</h1>
         <p class="muted">A full run-through works best. Your team pauses on a moment and leaves feedback right there.</p>
@@ -317,7 +293,7 @@ export function reviewTips({ isOwner }) {
   if (!schema.firstRun || seen(key)) return () => {};
   const tips = isOwner
     ? [
-      ['[data-track]', 'Pause on a moment', 'Tap or drag the timeline to find a moment, pause, and type what you see.'],
+      ['[data-track]', 'Pause on a moment', 'Tap or drag the timeline to find a moment, pause, and type what you see.', 'above'], // never over the play controls
       ['[data-composer]', 'Leave feedback right there', 'Mention someone with @, draw on the frame, or send it privately to one person.'],
       ['[data-ab]', 'Loop the hard part', 'Tap A–B at the start and the end. Slow it down with the speed button.']
     ]
@@ -341,7 +317,8 @@ export function reviewTips({ isOwner }) {
     const w = Math.min(300, innerWidth - 32);
     tip.style.width = `${w}px`;
     const h = tip.offsetHeight;
-    const below = innerHeight - box.bottom > h + 20 || box.top < h + 20;
+    const roomAbove = box.top > h + 20;
+    const below = tips[i][3] === 'above' && roomAbove ? false : innerHeight - box.bottom > h + 20 || !roomAbove;
     tip.style.left = `${Math.max(16, Math.min(innerWidth - w - 16, box.left + box.width / 2 - w / 2))}px`;
     tip.style.top = `${below ? Math.min(innerHeight - h - 12, box.bottom + 10) : Math.max(12, box.top - h - 10)}px`;
     tip.dataset.side = below ? 'below' : 'above';

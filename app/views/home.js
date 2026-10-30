@@ -82,8 +82,37 @@ export async function renderHome() {
   const cleanup = sampleCleanupCard();
 
   const first = esc(state.profile.display_name.split(' ')[0]);
+  const dateLine = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  // Before the first real video, a leader gets one card with the one thing to do next instead of a dashboard
+  // of empty boxes. The full Home takes over once something is uploaded (or if they hide the checklist).
+  if (leader && !graduated && !hideChecklist) {
+    const NEXT = {
+      'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project'],
+      'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is perfect. Your team pauses on a moment and leaves feedback right there.', 'Upload a video'],
+      'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video'],
+      'Invite a teammate': ['Bring in your team', 'They’ll see your video and can leave feedback on any moment.', 'Invite your team']
+    };
+    const next = steps.find(([, ok, action]) => !ok && action);
+    const [title, text, cta] = NEXT[next?.[0]] || NEXT['Upload a rehearsal video'];
+    const action = next?.[2] || 'video';
+    view.innerHTML = `<section class="page narrow">
+      <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+      <section class="panel activate">
+        <p class="eyebrow">Get started · ${done} of ${steps.length} done</p>
+        <h2>${title}</h2>
+        <p class="muted">${text}</p>
+        ${action.startsWith('/') ? `<a class="btn primary big" href="${action}" data-link>${cta}</a>` : `<button class="btn primary big" data-step="${action}">${cta}</button>`}
+        <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${label}</li>`).join('')}</ol>
+      </section>
+      ${sampleOffer() ? `<p class="activate-alt">Not ready to film? ${sample ? `<a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : '<button type="button" class="text-btn" data-open-sample="home">Explore a sample project</button>'} to see how a team uses it.</p>` : ''}
+    </section>`;
+    view.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => ctx.startAction(b.dataset.step)));
+    return;
+  }
+
   view.innerHTML = `<section class="page">
-    <header class="page-head"><div><p class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${greeting()}, ${first}</h1></div></header>
+    <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
     ${sampleCard}${cleanup?.html || ''}
     ${recapCard.html}
     <div class="home-strip">

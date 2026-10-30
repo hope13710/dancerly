@@ -301,6 +301,7 @@ const safeNext = (next) => (next && /^\/app(\/|$|\?)/.test(next) && !next.starts
 function renderLogin() {
   const params = new URLSearchParams(location.search);
   const next = safeNext(params.get('next'));
+  const joining = next.startsWith('/app/join/'); // arrived from an invite link
   if (state.session && state.recovering) return navigate('/app/reset', { replace: true });
   if (state.session && state.profile) return navigate(next, { replace: true });
   if (state.session) return renderName();
@@ -317,8 +318,8 @@ function renderLogin() {
       <div class="auth-card">
         <a class="auth-brand" href="/" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
-        <h1>${signup ? 'Start your team’s space' : 'Welcome back'}</h1>
-        <p class="muted">${signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
+        <h1>${joining ? (signup ? 'Join your team on dancerly' : 'Log in to join your team') : signup ? 'Start your team’s space' : 'Welcome back'}</h1>
+        <p class="muted">${joining ? (signup ? 'Create your account and you’re in. We’ll confirm your email once.' : 'You’ll go straight into the project.') : signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
         ${farewell ? '<p class="form-note" role="status">Your account has been deleted. Thanks for rehearsing with us.</p>' : ''}
         ${notice ? `<p class="form-error" role="alert">${esc(notice)}</p>` : ''}
         ${GOOGLE_ENABLED ? `<button type="button" class="btn google" data-google>${GOOGLE_G} Continue with Google</button><div class="or"><span>or with email</span></div>` : ''}
@@ -588,21 +589,36 @@ async function renderJoin(code) {
     return;
   }
   const signedIn = Boolean(state.session);
-  view.innerHTML = `<section class="auth"><div class="auth-card center">
-    <div class="card-mark big">${esc(initials(invite.project_title))}</div>
-    <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
-    <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on rehearsals.</p>
-    ${signedIn
-      ? `<button class="btn primary wide" data-accept>Join project</button>`
-      : `<a class="btn primary wide" href="/app/login?mode=signup&next=${encodeURIComponent(`/app/join/${code}`)}" data-link>Sign up to join</a><a class="btn ghost wide" href="/app/login?next=${encodeURIComponent(`/app/join/${code}`)}" data-link>I already have an account</a>`}
-  </div></section>`;
-  $('[data-accept]')?.addEventListener('click', async () => {
+  // Coming back from signing up or in for this invite: join straight away instead of asking again.
+  const auto = new URLSearchParams(location.search).get('auto') === '1';
+  const back = `/app/join/${code}?auto=1`;
+  const join = async () => {
     if (!state.profile) return renderName();
     const { data: projectId, error: joinErr } = await sb.rpc('accept_invite', { p_code: code });
     if (joinErr) return toast(friendlyError(joinErr), 'error');
     // The project page greets them with what to do first.
     state.justJoined = projectId;
-    navigate(`/app/p/${projectId}`);
+    navigate(`/app/p/${projectId}`, { replace: true });
+  };
+  if (signedIn && auto) {
+    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="card-mark big">${esc(initials(invite.project_title))}</div><h1>Joining ${esc(invite.project_title)}…</h1></div></section>`;
+    return join();
+  }
+  view.innerHTML = `<section class="auth"><div class="auth-card center">
+    <div class="card-mark big">${esc(initials(invite.project_title))}</div>
+    <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
+    <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on rehearsals.</p>
+    ${signedIn
+      ? '<button class="btn primary wide" data-accept>Join project</button>'
+      : `${GOOGLE_ENABLED ? `<button type="button" class="btn google wide" data-join-google>${GOOGLE_G} Continue with Google</button>` : ''}
+        <a class="btn ${GOOGLE_ENABLED ? '' : 'primary '}wide" href="/app/login?mode=signup&next=${encodeURIComponent(back)}" data-link>Sign up with email</a>
+        <a class="btn ghost wide" href="/app/login?next=${encodeURIComponent(back)}" data-link>I already have an account</a>
+        <p class="fine auth-legal" data-no-i18n>${legalLine()}</p>`}
+  </div></section>`;
+  $('[data-accept]')?.addEventListener('click', join);
+  $('[data-join-google]')?.addEventListener('click', async () => {
+    const { error: gErr } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${back}` } });
+    if (gErr) toast(friendlyError(gErr), 'error');
   });
 }
 
@@ -674,7 +690,7 @@ startTranslating();
   state.authError = hashParams.get('error_description') || search.get('error_description');
   if (hashParams.get('type') === 'recovery') state.recovering = true;
   // Tidy the URL after a magic-link or Google redirect.
-  if (location.hash.includes('access_token') || state.authError || search.has('code')) history.replaceState({}, '', location.pathname);
+  if (location.hash.includes('access_token') || state.authError || search.has('code')) history.replaceState({}, '', location.pathname + (search.get('auto') === '1' ? '?auto=1' : ''));
   if (state.session && state.profile && location.pathname.startsWith('/app/login')) {
     history.replaceState({}, '', safeNext(new URLSearchParams(location.search).get('next')));
   }
