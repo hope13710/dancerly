@@ -2082,6 +2082,7 @@ a.row:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
+  margin-bottom: 16px; /* same rhythm as the panels around it */
 }
 .home-grid .panel {
   margin: 0;
