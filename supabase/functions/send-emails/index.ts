@@ -130,10 +130,10 @@ async function loadContext(rows: any[]): Promise<Ctx> {
   const map = (data: any[] | null) => new Map((data ?? []).map((x) => [x.id, x]));
   const { data: notes } = ids("note_id").length ? await admin.from("notes").select("id, body, t_start, take_id, video_id, private_to").in("id", ids("note_id")) : { data: [] };
   const takeIds = [...new Set([...ids("take_id"), ...(notes ?? []).map((n: any) => n.take_id)])];
-  const { data: takes } = takeIds.length ? await admin.from("takes").select("id, number, video_id").in("id", takeIds) : { data: [] };
+  const { data: takes } = takeIds.length ? await admin.from("takes").select("id, number, video_id, deleted_at").in("id", takeIds) : { data: [] };
   const videoIds = [...new Set([...(takes ?? []).map((t: any) => t.video_id), ...(notes ?? []).map((n: any) => n.video_id)])];
   const [{ data: videos }, { data: projects }, { data: requests }, { data: recaps }, { data: people }] = await Promise.all([
-    videoIds.length ? admin.from("videos").select("id, title").in("id", videoIds) : { data: [] },
+    videoIds.length ? admin.from("videos").select("id, title, deleted_at").in("id", videoIds) : { data: [] },
     ids("project_id").length ? admin.from("projects").select("id, title").in("id", ids("project_id")) : { data: [] },
     ids("request_id").length ? admin.from("requests").select("id, title, due_at").in("id", ids("request_id")) : { data: [] },
     ids("recap_id").length ? admin.from("recaps").select("id, content").in("id", ids("recap_id")) : { data: [] },
@@ -202,8 +202,16 @@ async function followUp(key: string) {
   const ctx = await loadContext(open);
   let instant = 0, digest = 0;
 
+  // About a video or take that's now in the Trash: nothing to send.
+  const trashed = open.filter((r) => {
+    const take = ctx.takes.get(r.take_id ?? ctx.notes.get(r.note_id)?.take_id);
+    const video = ctx.videos.get(take?.video_id ?? ctx.notes.get(r.note_id)?.video_id);
+    return Boolean(take?.deleted_at || video?.deleted_at);
+  }).map((r) => r.id);
+  if (trashed.length) await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "skipped" }).in("id", trashed);
+
   for (const user of users) {
-    const mine = open.filter((r) => r.user_id === user && !off.includes(r.id) && !celebrated.has(r.id));
+    const mine = open.filter((r) => r.user_id === user && !off.includes(r.id) && !celebrated.has(r.id) && !trashed.includes(r.id));
     const tz = prefs.get(user)?.timezone || DIGEST_ZONE;
     const h = hourIn(tz);
     const quiet = h >= QUIET_FROM || h < QUIET_TO;
@@ -424,7 +432,7 @@ async function weekly(key: string) {
   for (const p of real ?? []) owned.set(p.created_by, [...(owned.get(p.created_by) ?? []), p]);
   const [{ data: fixed }, { data: takes }] = await Promise.all([
     admin.from("notes").select("id, project_id, author_id, take_id, takes(uploaded_by)").eq("status", "resolved").gte("resolved_at", since).limit(5000),
-    admin.from("takes").select("id, project_id, uploaded_by").gte("created_at", since).limit(5000),
+    admin.from("takes").select("id, project_id, uploaded_by").is("deleted_at", null).gte("created_at", since).limit(5000),
   ]);
   const fx = (fixed ?? []).filter((n: any) => realIds.has(n.project_id));
   const tk = (takes ?? []).filter((t: any) => realIds.has(t.project_id));

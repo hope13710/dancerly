@@ -7,7 +7,7 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
-import { copyInvite, confirmDeleteVideo, removeTakeFiles } from './views/project.js';
+import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash } from './views/project.js';
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 
@@ -887,8 +887,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       ...(narrow ? [{ value: 'compare', label: r.compare.on ? '⧉ Stop comparing' : '⧉ Compare', hint: 'Play another take or video side by side' }] : []),
       ...(narrow && !project.is_sample ? [{ value: 'share', label: 'Share', hint: 'A read-only link for people outside the team' }] : []),
       ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
-      ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: 'Just this take and the notes left on it', danger: true }] : []),
-      ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
+      ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: schema.trash ? 'Moves to Trash for 30 days' : 'Just this take and the notes left on it', danger: true }] : []),
+      ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: schema.trash ? `${takes.length > 1 ? `All ${takes.length} takes` : 'The video'} and its notes · Trash keeps it 30 days` : takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
     if (choice === 'compare') return toggleCompare();
     if (choice === 'share') return shareVideo(videoId, video.title);
@@ -897,6 +897,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (choice === 'video') return deleteVideo();
   }
   async function deleteTake() {
+    if (schema.trash) {
+      const { error } = await sb.rpc('trash_item', { p_kind: 'take', p_id: take.id });
+      if (error) return toast(friendlyError(error), 'error');
+      logEvent('take_deleted', { trash: true });
+      navigate(base, { replace: true });
+      toast(`Take ${take.number} moved to Trash.`, 'info', { label: 'Undo', run: () => restoreFromTrash('take', take.id, () => navigate(`${base}?take=${take.number}`, { replace: true })) });
+      return;
+    }
     const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('take_id', take.id);
     const sure = await dialog({
       title: `Delete Take ${take.number}?`,
@@ -913,7 +921,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     navigate(base, { replace: true });
   }
   async function deleteVideo() {
-    if (await confirmDeleteVideo({ projectId, projectTitle: project.title, video, takes })) navigate(`/app/p/${projectId}`, { replace: true });
+    const back = () => navigate(`${base}`, { replace: true });
+    if (await confirmDeleteVideo({ projectId, projectTitle: project.title, video, takes, afterUndo: back })) navigate(`/app/p/${projectId}`, { replace: true });
   }
 
 

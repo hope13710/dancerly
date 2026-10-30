@@ -20,9 +20,10 @@ Deno.serve(async (req) => {
   if (!share || share.revoked) return json({ error: "This link was turned off." }, 404);
   if (new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
 
-  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title)").eq("id", share.video_id).maybeSingle();
+  // A video or take in the Trash (migration 032) isn't shown to guests.
+  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
   if (!video) return json({ error: "This video was deleted." }, 404);
-  const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).order("number", { ascending: false }).limit(1).maybeSingle();
+  const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle();
   if (!take) return json({ error: "This video has no takes yet." }, 404);
   const { data: signed } = await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 2);
 
@@ -31,9 +32,9 @@ Deno.serve(async (req) => {
     // Private notes (to one person) are never shown to guests.
     const { data } = await admin.from("notes").select("id, body, t_start, t_end, status, author_id, take_id, sketch").eq("video_id", video.id).is("private_to", null).order("t_start");
     // Notes on this take, plus anything from earlier takes that isn't fixed — the same view the team sees.
-    const { data: takes } = await admin.from("takes").select("id, number").eq("video_id", video.id);
+    const { data: takes } = await admin.from("takes").select("id, number").eq("video_id", video.id).is("deleted_at", null);
     const num = Object.fromEntries((takes ?? []).map((t: { id: string; number: number }) => [t.id, t.number]));
-    const visible = (data ?? []).filter((n: { take_id: string; status: string }) => n.take_id === take.id || (num[n.take_id] < take.number && n.status !== "resolved"));
+    const visible = (data ?? []).filter((n: { take_id: string; status: string }) => n.take_id === take.id || (num[n.take_id] !== undefined && num[n.take_id] < take.number && n.status !== "resolved"));
     const ids = [...new Set(visible.map((n: { author_id: string }) => n.author_id))];
     const { data: people } = ids.length ? await admin.from("profiles").select("id, display_name").in("id", ids) : { data: [] };
     const name = Object.fromEntries((people ?? []).map((p: { id: string; display_name: string }) => [p.id, p.display_name]));

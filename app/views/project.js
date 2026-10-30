@@ -50,8 +50,17 @@ export function removeTakeFiles(list) {
   if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
 }
 
-// Deleting a video (from its page or the list): one confirmation that says exactly what goes. True if deleted.
-export async function confirmDeleteVideo({ projectId, projectTitle, video, takes }) {
+// Deleting a video (from its page or the list). With the trash (migration 032) it moves there at once, with
+// Undo on the toast, the way Drive and Notion do it; before that, it asks first and deletes for good.
+// afterUndo runs once a trashed video is back. True if it went.
+export async function confirmDeleteVideo({ projectId, projectTitle, video, takes, afterUndo = () => ctx.route() }) {
+  if (schema.trash) {
+    const { error } = await sb.rpc('trash_item', { p_kind: 'video', p_id: video.id });
+    if (error) { toast(friendlyError(error), 'error'); return false; }
+    track('video_deleted', { takes: takes.length, trash: true });
+    toast('Moved to Trash. You can restore it for 30 days.', 'info', { label: 'Undo', run: () => restoreFromTrash('video', video.id, afterUndo) });
+    return true;
+  }
   const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('video_id', video.id);
   const parts = [takes.length > 1 ? `all ${takes.length} takes` : null, count ? `${count} ${count === 1 ? 'note' : 'notes'}` : null].filter(Boolean);
   const sure = await dialog({
@@ -67,6 +76,16 @@ export async function confirmDeleteVideo({ projectId, projectTitle, video, takes
   track('video_deleted', { takes: takes.length });
   toast('Video deleted.');
   return true;
+}
+
+// Undo on the toast, or Restore in Trash. Returns the video to open, or null.
+export async function restoreFromTrash(kind, id, after = () => {}) {
+  const { data: videoId, error } = await sb.rpc('restore_item', { p_kind: kind, p_id: id });
+  if (error) { toast(friendlyError(error), 'error'); return null; }
+  track('trash_restored', { kind });
+  toast(kind === 'video' ? 'Video restored.' : 'Take restored.');
+  after(videoId);
+  return videoId;
 }
 
 // Shared header + tabs for every project screen.
@@ -125,9 +144,9 @@ export async function renderProject(projectId) {
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
     const v = videos.find((x) => x.id === b.dataset.rowMore);
-    const choice = await actionSheet({ title: v.title, actions: [{ value: 'delete', label: 'Delete video', hint: v.takes.length > 1 ? `All ${v.takes.length} takes and their notes` : 'The video and its notes', danger: true }] });
+    const choice = await actionSheet({ title: v.title, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
     if (choice !== 'delete') return;
-    if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes })) renderProject(projectId);
+    if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes, afterUndo: () => renderProject(projectId) })) renderProject(projectId);
   }));
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
   // People who just joined get a short welcome once.

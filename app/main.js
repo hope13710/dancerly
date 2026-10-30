@@ -9,6 +9,7 @@ import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
 import { startMonitoring, setMonitoredUser } from './monitor.js';
 import { renderDeleteAccount } from './views/delete-account.js';
+import { renderTrash } from './views/trash.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
 import { renderFeedback } from './views/feedback.js';
@@ -50,6 +51,7 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/([0-9a-f-]{36})\/?$/, render: renderRequest },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/calendar\/?$/, render: (id) => renderCalendar(id) },
   { re: /^\/app\/welcome\/?$/, render: renderWelcome },
+  { re: /^\/app\/trash\/?$/, render: renderTrash },
   { re: /^\/app\/account\/delete\/?$/, render: renderDeleteAccount },
   { re: /^\/app\/queue\/?$/, render: renderQueue },
   { re: /^\/app\/calendar\/?$/, render: () => renderCalendar(null) },
@@ -146,10 +148,11 @@ function paintNav() {
     queue: under('/app/queue'),
     calendar: under('/app/calendar'),
     settings: under('/app/settings') || path === '/app/reset',
+    trash: under('/app/trash'),
     'all-projects': path === '/app/projects',
     projects: path === '/app/projects' || Boolean(projectId),
     // Places only reachable from Me on a phone keep the Me tab lit.
-    me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/insights', '/app/settings', '/app/reset'].some(under)
+    me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/insights', '/app/settings', '/app/reset', '/app/trash'].some(under)
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   // Real projects up top; the sample sits apart, under its own label, so it never reads as real work.
@@ -565,6 +568,7 @@ function renderMe() {
       ${row('/app/settings/account', 'Account')}
       ${row('/app/settings/notifications', 'Notifications')}
       ${row('/app/settings/plan', 'Plan', '<small>Free</small>')}
+      ${row('/app/trash', 'Trash')}
     </div>
     <div class="list-group">
       <a href="#help" data-help><span>Help &amp; feedback</span><i>›</i></a>

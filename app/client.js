@@ -18,16 +18,18 @@ export const GOOGLE_ENABLED = true;
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d] = await Promise.all([
+  const [a, b, c, d, e] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
-    sb.from('projects').select('target_event_id').limit(1)
+    sb.from('projects').select('target_event_id').limit(1),
+    sb.from('videos').select('deleted_at').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
   schema.sheetTake = !missing(c.error);
   schema.goal = !missing(d.error); // migration 027
+  schema.trash = !missing(e.error); // migration 032
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id'])];
@@ -129,13 +131,22 @@ export const timeAgo = (iso) => {
 };
 
 let toastTimer;
-export function toast(message, kind = 'info') {
+// action: { label, run } adds a button (e.g. Undo); the toast then stays a little longer.
+export function toast(message, kind = 'info', action = null) {
   const el = $('[data-toast]');
   el.textContent = message;
   el.dataset.kind = kind;
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'toast-action';
+    b.textContent = action.label;
+    b.addEventListener('click', () => { el.classList.remove('show'); action.run(); }, { once: true });
+    el.append(' ', b);
+  }
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+  toastTimer = setTimeout(() => el.classList.remove('show'), action ? 8000 : 4000);
 }
 
 // Supabase errors are often technical; keep the useful part and say what to do.

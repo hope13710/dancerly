@@ -1308,6 +1308,9 @@ a {
   opacity: 1;
   transform: none;
 }
+.toast.show:has(.toast-action) {
+  pointer-events: auto;
+}
 .toast[data-kind="error"] {
   background: #7c2d12;
 }
@@ -6058,5 +6061,64 @@ button.row {
   }
   .take-tabs .more-btn.narrow-only {
     display: inline-grid;
+  }
+}
+
+/* Toast with an action (Undo) */
+.toast-action {
+  margin-left: 10px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #a5a6ff;
+  cursor: pointer;
+}
+/* Trash */
+.trash-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #eef0f4;
+  color: var(--muted);
+  font-size: 13px;
+}
+.trash-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.trash-row .row-meta {
+  white-space: normal;
+}
+.trash-left {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.trash-left.soon {
+  color: var(--danger);
+  font-weight: 600;
+}
+.trash-row .muted.small {
+  font-size: 12px;
+  max-width: 180px;
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .trash-row {
+    flex-wrap: wrap;
+  }
+  .trash-actions,
+  .trash-row .muted.small {
+    width: 100%;
+    max-width: none;
+    padding-left: 48px;
+    text-align: left;
   }
 }
