@@ -571,7 +571,7 @@ function renderMe() {
       ${row('/app/trash', 'Trash')}
     </div>
     <div class="list-group">
-      <a href="#help" data-help><span>Help &amp; feedback</span><i>›</i></a>
+      <a href="#help" data-help><span>Help &amp; support</span><i>›</i></a>
     </div>
     <div class="list-group">
       <button data-me-signout class="danger-text"><span>Log out</span></button>

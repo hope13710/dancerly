@@ -6122,3 +6122,13 @@ button.row {
     text-align: left;
   }
 }
+/* File pickers in dialogs: the browser's own control has a wide minimum; keep it inside the card on phones */
+.field input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.field {
+  min-width: 0;
+}

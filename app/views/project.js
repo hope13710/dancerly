@@ -4,6 +4,7 @@ import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
+import { isKo } from '../i18n.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
@@ -337,12 +338,15 @@ export async function createVideo(projectId, { request = null } = {}) {
     const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
     if (mine) return resubmit(projectId, mine);
   }
+  // The name is a typed value (not translated with the page), so it's written in the reader's language here.
+  const autoName = `${isKo ? '연습' : 'Rehearsal'} · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   const values = await dialog({
     title: request ? `Submit: ${request.title}` : 'New video',
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
+    // The video first (what people reach for), then a name that's already filled in and easy to change.
     fields: [
-      { name: 'title', label: 'What is it?', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : '' },
-      { name: 'file', label: 'First take', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT }
+      { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT },
+      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : autoName }
     ],
     confirm: 'Upload'
   });
@@ -352,7 +356,8 @@ export async function createVideo(projectId, { request = null } = {}) {
   const { data: existing } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId);
   let lastViewed = null;
   try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
-  const match = request ? null : suggestStack(values.title, existing || [], lastViewed);
+  // A name left as filled in says nothing about which video this is, so don't match on it.
+  const match = request ? null : suggestStack(values.title === autoName ? '' : values.title, existing || [], lastViewed);
   if (match) {
     const next = (match.takes[0]?.count ?? 0) + 1;
     const choice = await dialog({

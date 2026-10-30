@@ -1,4 +1,4 @@
-// Help & feedback: one place to tell us anything (a bug, an idea, a question) without leaving the app,
+// Help & support: one place to tell us anything (a bug, an idea, a question) without leaving the app,
 // plus email and the FAQ. Messages go through the send-feedback function into app_feedback (migration 024)
 // and the Notion inbox, with the page and browser attached. If that isn't set up yet, the same message opens
 // in the mail app instead, so nothing typed is lost.
@@ -14,7 +14,7 @@ export function openHelp({ kind = 'bug' } = {}) {
   const el = document.createElement('dialog');
   el.className = 'dialog help-dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card">
-    <div class="help-head"><h2>Help &amp; feedback</h2><button type="button" class="icon-btn" data-help-close aria-label="Close">✕</button></div>
+    <div class="help-head"><h2>Help &amp; support</h2><button type="button" class="icon-btn" data-help-close aria-label="Close">✕</button></div>
     <div data-help-form>
       <p class="muted">Tell us anything. We read every message.</p>
       <div class="chips help-kinds" role="radiogroup" aria-label="What is it about?">${KINDS.map(([k, label]) => `<button type="button" class="chip" role="radio" data-kind="${k}" aria-checked="${k === kind}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>

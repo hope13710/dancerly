@@ -440,10 +440,15 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- Home card ----------
+const RECAP_MIN_NOTES = 3;
 export async function homeRecapCard() {
   const { data } = await noSample(sb.from('recaps').select(SELECT)).order('created_at', { ascending: false }).limit(1);
   const r = data?.[0];
   if (!r) {
+    // A recap summarizes notes, so the first one is offered once there are a few to work with,
+    // not to someone whose team hasn't written any yet (it would come back empty).
+    const { count } = await noSample(sb.from('notes').select('id', { count: 'exact', head: true }));
+    if ((count || 0) < RECAP_MIN_NOTES) return { html: '', wire: () => {} };
     return {
       html: `<section class="panel recap-teaser"><div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI</p><h2>Get ready for your next rehearsal</h2><p class="muted">Turn this week’s notes into a short list of what to work on.</p></div><button class="btn primary" data-home-recap>Create recap</button></div></section>`,
       wire: () => $('[data-home-recap]')?.addEventListener('click', () => newRecap())
