@@ -511,16 +511,29 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .pricing { padding: 40px 0 110px; }
 .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
 .plan { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
-.plan > p:not(.plan-name):not(.price) { color: var(--ink-2); font-size: 15px; }
+.plan > p:not(.plan-name):not(.price):not(.bill-note) { color: var(--ink-2); font-size: 15px; }
 .plan-name { font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .plan-name span { font-size: 11px; font-weight: 650; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 .price { font-size: 42px; font-weight: 750; letter-spacing: -0.03em; }
 .price small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
 .price.small { font-size: 30px; padding: 6px 0; }
-.plan ul { display: grid; gap: 9px; margin: 6px 0 14px; font-size: 14px; flex: 1; }
+.plan ul { display: grid; gap: 9px; align-content: start; margin: 6px 0 14px; font-size: 14px; flex: 1; }
 .plan li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 9px; }
+.plan li.plus { font-weight: 650; }
+.plan li.plus::before { content: none; }
+/* Monthly / Yearly: the yearly price shows by default; both are in the page so the translation sees them */
+.billing { display: flex; width: max-content; margin: 0 auto 28px; padding: 4px; border-radius: 999px; background: #eceef2; }
+.billing button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 650; color: #4b5563; padding: 8px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.billing button[aria-checked="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20, 23, 29, 0.14); }
+.billing .save { font-size: 12px; font-weight: 700; color: #0f7a4a; background: #e3f6ec; padding: 2px 8px; border-radius: 999px; }
+.pricing.yearly .when-monthly, .pricing:not(.yearly) .when-yearly { display: none; }
+.price .cents { font-size: 0.55em; vertical-align: 0.6em; letter-spacing: 0; }
+.bill-note { margin-top: -8px; font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.bill-note s { margin-right: 4px; }
+.plan.featured .bill-note { color: #8f98a8; }
+.storage-note { max-width: 640px; margin: 22px auto 0; }
 .plan.featured { border: 0; background: var(--dark); color: #eef0f5; box-shadow: 0 30px 60px -30px rgba(20, 23, 29, 0.55); }
-.plan.featured > p:not(.plan-name):not(.price) { color: #aab1bf; }
+.plan.featured > p:not(.plan-name):not(.price):not(.bill-note) { color: #aab1bf; }
 .plan.featured .price small { color: #8f98a8; }
 .plan.featured .plan-name span { background: rgba(165, 166, 255, 0.18); color: #c9caff; }
 .plan.featured li::before { color: #a5a6ff; }

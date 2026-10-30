@@ -1997,6 +1997,7 @@ a.row:hover {
 }
 .tag {
   display: inline-block;
+  white-space: nowrap;
   margin-left: 6px;
   padding: 2px 7px;
   border-radius: 6px;
@@ -5891,4 +5892,39 @@ button.row {
 .big-num .text-btn {
   color: inherit;
   font-weight: inherit;
+}
+
+/* Settings › Plan: the paid plans side by side */
+.plan-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.plan-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+.plan-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.plan-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.plan-price b {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 640px) {
+  .plan-cards {
+    grid-template-columns: 1fr;
+  }
 }

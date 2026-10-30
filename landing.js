@@ -64,6 +64,15 @@ $$('[data-set-lang]').forEach((b) => b.addEventListener('click', () => {
   show(step);
 }));
 
+// ---------- Pricing: Monthly / Yearly ----------
+const pricing = $('[data-pricing]');
+$$('[data-billing]').forEach((b) => b.addEventListener('click', () => {
+  const yearly = b.dataset.billing === 'yearly';
+  pricing.classList.toggle('yearly', yearly);
+  $$('[data-billing]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+  track('billing_toggle', { billing: b.dataset.billing });
+}));
+
 // ---------- Nav ----------
 const nav = $('[data-nav]');
 const menu = $('[data-menu]');
