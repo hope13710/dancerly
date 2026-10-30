@@ -4,7 +4,7 @@ import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { startTranslating, isKo } from './i18n.js';
-import { renderWelcome } from './onboarding.js';
+import { renderWelcome, markSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
 import { startMonitoring, setMonitoredUser } from './monitor.js';
@@ -18,7 +18,8 @@ import { renderInsights } from './views/insights.js';
 import { renderSettings } from './views/settings.js';
 import { renderProjectRecaps, renderRecap, renderMyRecaps } from './views/recaps.js';
 import { renderProjectRequests, renderRequest, newRequest } from './views/requests.js';
-import { renderQueue } from './views/queue.js';
+import { renderQueue, unseenVideos } from './views/queue.js';
+import { hasTeammates, noSample } from './views/shared.js';
 import { renderCalendar, editEvent } from './views/calendar.js';
 import { openSearch } from './views/search.js';
 import { renderShared } from './views/share.js';
@@ -79,6 +80,11 @@ document.addEventListener('click', (event) => {
   if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
   event.preventDefault();
   navigate(link.getAttribute('href'));
+});
+// Next-step buttons on empty pages (Upload a video, Invite your team).
+document.addEventListener('click', (event) => {
+  const el = event.target.closest('[data-start-action]');
+  if (el) startAction(el.dataset.startAction);
 });
 
 async function route() {
@@ -214,7 +220,36 @@ async function refreshNav() {
   const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by, created_at')).order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
-  if (state.profile) paintNav();
+  if (state.profile) { paintNav(); paintNavDots(); }
+}
+
+// A dot on a sidebar place someone saw while it was empty, once something has landed there.
+// Opening the place clears it for good. Checked at most once a minute.
+const NAV_DOTS = {
+  queue: async () => (await unseenVideos()).length > 0,
+  feedback: async () => Boolean((await noSample(sb.from('notes').select('id')).neq('author_id', state.session.user.id).limit(1)).data?.length),
+  people: () => hasTeammates(),
+  insights: async () => Boolean((await noSample(sb.from('notes').select('id')).limit(1)).data?.length)
+};
+const dotsOn = new Set();
+let dotsCheckedAt = 0;
+async function paintNavDots() {
+  const seen = state.profile?.onboarding?.seen || {};
+  const here = (k) => location.pathname.startsWith(`/app/${k}`);
+  const pending = Object.keys(NAV_DOTS).filter((k) => seen[`nav_watch_${k}`] && !seen[`nav_new_${k}`]);
+  const clear = (k) => { dotsOn.delete(k); markSeen(`nav_new_${k}`); };
+  for (const k of pending) if (dotsOn.has(k) && here(k)) clear(k);
+  if (pending.length && Date.now() - dotsCheckedAt > 60e3) {
+    dotsCheckedAt = Date.now();
+    const found = await Promise.all(pending.map((k) => NAV_DOTS[k]().catch(() => false)));
+    pending.forEach((k, i) => { if (found[i]) here(k) ? clear(k) : dotsOn.add(k); });
+  }
+  $$('.side-nav [data-nav]').forEach((a) => {
+    const on = dotsOn.has(a.dataset.nav);
+    a.classList.toggle('has-new', on);
+    if (on && !a.querySelector('.nav-dot')) a.insertAdjacentHTML('beforeend', '<span class="nav-dot"><span class="sr-only">New</span></span>');
+    if (!on) a.querySelector('.nav-dot')?.remove();
+  });
 }
 
 async function openNew() {

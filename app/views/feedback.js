@@ -2,7 +2,7 @@
 import { sb, $, esc } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
-import { NOTE_SELECT, noteRow, tabs, empty, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
+import { NOTE_SELECT, noteRow, tabs, empty, previewEmpty, hasRealVideo, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
 
 const VIEWS = [
   ['for-me', 'For me'],
@@ -44,6 +44,7 @@ export async function renderFeedback() {
   const counts = { todo: notes.filter((n) => n.status !== 'resolved').length, resolved: notes.filter((n) => n.status === 'resolved').length, all: notes.length };
   const shown = notes.filter((n) => status === 'all' || (status === 'resolved' ? n.status === 'resolved' : n.status !== 'resolved'));
   const names = await namesFor(shown.map((n) => n.author_id));
+  const noVideo = !notes.length && !(await hasRealVideo());
 
   const emptyCopy = {
     'for-me': ['Nothing waiting on you', 'Notes on videos you added, takes you uploaded, and @mentions of you collect here.'],
@@ -60,7 +61,7 @@ export async function renderFeedback() {
     </div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
       : notes.length && status !== 'all' ? empty('✓', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
-      : empty('◫', emptyCopy[0], emptyCopy[1], samplePeek('feedback'))}
+      : previewEmpty('notes', emptyCopy[0], emptyCopy[1], `${noVideo ? '<button class="btn primary" data-start-action="video">Upload a video</button>' : ''}${samplePeek('feedback')}`, noVideo ? 'feedback' : '')}
   </section>`;
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
 }

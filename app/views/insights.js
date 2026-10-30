@@ -2,7 +2,7 @@
 // who still owes a video — then the trend and the numbers. Cards with too little data behind them stay hidden.
 import { sb, $, $$, esc, timeAgo, avatar, cols, fmt } from '../client.js';
 import { ctx } from '../ctx.js';
-import { pageHead, empty, namesFor, statusPill } from './shared.js';
+import { pageHead, previewEmpty, hasRealVideo, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
 import { shiftBetween } from '../align.js';
 import { isKo, t } from '../i18n.js';
@@ -197,6 +197,7 @@ export async function renderInsights() {
   const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
 
   const hasData = notes.length || takes.length;
+  const noVideo = !hasData && !(await hasRealVideo());
   const heatMax = Math.max(1, ...spots.flatMap((s) => s.cells.map((c) => c.open + c.fixed)));
   view.innerHTML = `<section class="page">
     ${pageHead('Insights', { sub: 'What to work on next, from your team’s feedback' })}
@@ -205,7 +206,7 @@ export async function renderInsights() {
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
       ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
-    ${!hasData ? empty('↗', 'Nothing to measure yet', 'Upload a rehearsal and leave a few notes. This page shows where your team keeps getting stuck and what to work on next.', samplePeek('insights', 'See it with sample data')) : `
+    ${!hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a rehearsal and leave a few notes. This page shows where your team keeps getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload a video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
     <section class="panel insight-lines">
       <div class="panel-head"><div><h2>Before your next rehearsal</h2><p class="muted">The few things worth your attention</p></div></div>
       ${lines.length ? `<ul class="lines">${lines.slice(0, 3).map((l) => `<li><span class="li-icon" aria-hidden="true">${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" ${l.href.startsWith('#') ? '' : 'data-link'}>${l.cta}</a>` : ''}</li>`).join('')}</ul>`

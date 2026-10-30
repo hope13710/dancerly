@@ -3,7 +3,7 @@
 import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
-import { pageHead, tabs, empty, namesFor, noSample, realProjects } from './shared.js';
+import { pageHead, tabs, empty, previewEmpty, hasTeammates, namesFor, noSample, realProjects } from './shared.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 
 export const QUEUE_KEY = 'looproom:queue';
@@ -49,6 +49,8 @@ export async function renderQueue() {
   const overdue = open.filter(inProject).filter((r) => r.due_at && new Date(r.due_at) < new Date());
   const names = await namesFor(needs.map((v) => v.latest.uploaded_by));
   const list = show === 'resubmitted' ? resubmitted : needs;
+  // Nobody else on the team yet: "all caught up" would be misleading, so show what this page is for.
+  const alone = !list.length && show !== 'overdue' && !(await hasTeammates());
 
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Review queue', { sub: 'New takes you haven’t watched yet, oldest first.', actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
@@ -65,6 +67,7 @@ export async function renderQueue() {
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
           <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Request</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
         </a>`).join('')}</div>`
+      : alone ? previewEmpty('rows', 'Your team’s new videos land here', 'When a teammate uploads a video or a new take, it waits here until you’ve watched it. Invite your team to get started.', `<button class="btn primary" data-start-action="invite">Invite your team</button>${samplePeek('queue')}`, 'queue')
       : empty('✓', 'You’re all caught up', 'When teammates upload a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
   </section>`;
 

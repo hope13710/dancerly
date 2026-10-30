@@ -1,7 +1,7 @@
 // Home: what needs you today, what changed, and how to get started.
 import { sb, $, $$, esc, initials, timeAgo, avatar, schema } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample } from './shared.js';
+import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample, watchNav } from './shared.js';
 import { homeRecapCard } from './recaps.js';
 import { showEvent } from './calendar.js';
 import { myOpenRequests, dueLabel } from './requests.js';
@@ -87,6 +87,8 @@ export async function renderHome() {
   // Before the first real video, a leader gets one card with the one thing to do next instead of a dashboard
   // of empty boxes. The full Home takes over once something is uploaded (or if they hide the checklist).
   if (leader && !graduated && !hideChecklist) {
+    // These places are empty for now; the sidebar points at each once something lands there.
+    watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
       'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project'],
       'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is perfect. Your team pauses on a moment and leaves feedback right there.', 'Upload a video'],

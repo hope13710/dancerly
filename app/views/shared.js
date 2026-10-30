@@ -50,6 +50,44 @@ export function empty(icon, title, text, action = '') {
   return `<div class="empty"><div class="empty-icon">${icon}</div><h2>${esc(title)}</h2><p>${text}</p>${action}</div>`;
 }
 
+// An empty page for someone just starting: a faint picture of what will fill it, then the next step.
+// `kind` picks the picture: rows (a list of videos or people), notes (feedback on moments), bars (a chart).
+// It also remembers the page was seen empty, so the sidebar can point back once something lands (main.js).
+export function previewEmpty(kind, title, text, action = '', watch = '') {
+  if (watch) watchNav(watch);
+  const row = (i) => kind === 'notes'
+    ? `<span class="pv-row"><span class="pv-chip">${['0:42', '1:15', '2:03'][i]}</span><span class="pv-lines"><i></i><i></i></span></span>`
+    : `<span class="pv-row"><span class="pv-dot"></span><span class="pv-lines"><i></i><i></i></span><span class="pv-pill"></span></span>`;
+  const picture = kind === 'bars'
+    ? `<span class="pv-bars">${'<i></i>'.repeat(7)}</span>`
+    : [0, 1, 2].map(row).join('');
+  return `<div class="empty preview-empty"><div class="pv-art pv-art-${kind}" aria-hidden="true">${picture}</div><h2>${esc(title)}</h2><p>${text}</p>${action}</div>`;
+}
+
+// Sidebar places someone has seen while they were empty (see paintNavDots in main.js).
+// One save for all of them, so a few at once don't overwrite each other.
+export function watchNav(...keys) {
+  const seen = ctx.state.profile?.onboarding?.seen || {};
+  const fresh = keys.filter((k) => !seen[`nav_watch_${k}`] && !seen[`nav_new_${k}`]);
+  if (!fresh.length) return;
+  import('../onboarding.js').then((m) => m.saveOnboarding({ seen: { ...(m.onboarding().seen || {}), ...Object.fromEntries(fresh.map((k) => [`nav_watch_${k}`, true])) } }));
+}
+
+// Whether anyone else is in your real projects (sample teammates don't count).
+export async function hasTeammates() {
+  const ids = realProjects().map((p) => p.id);
+  if (!ids.length) return false;
+  const { data } = await sb.from('project_members').select('user_id').in('project_id', ids).neq('user_id', ctx.state.session.user.id).limit(1);
+  return Boolean(data?.length);
+}
+
+// Whether any real project has a video yet.
+export async function hasRealVideo() {
+  if (!realProjects().length) return false;
+  const { data } = await noSample(sb.from('videos').select('id')).limit(1);
+  return Boolean(data?.length);
+}
+
 export function pageHead(title, { eyebrow = '', actions = '', sub = '' } = {}) {
   return `<header class="page-head"><div>${eyebrow ? `<p class="eyebrow">${esc(eyebrow)}</p>` : ''}<h1>${esc(title)}</h1>${sub ? `<p class="muted sub">${sub}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</header>`;
 }
