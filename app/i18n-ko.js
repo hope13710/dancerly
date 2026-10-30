@@ -559,6 +559,7 @@ export const KO = {
   'Videos in your largest project': '가장 큰 프로젝트의 영상',
   'Most takes on one video': '한 영상의 최대 테이크',
   'Paid plans': '유료 플랜',
+  'Storage': '저장 공간',
   'Unlimited videos and takes, unlimited AI recaps, and full-history Insights. Each plan has its own storage limit. If you reach it, nothing is deleted; new uploads pause until you free up space or upgrade.': '영상·테이크 무제한, AI 요약 무제한, 전체 기간 리포트. 저장 공간은 플랜마다 한도가 있어요. 한도에 닿아도 아무것도 지워지지 않고, 공간을 비우거나 업그레이드할 때까지 새 업로드만 멈춰요.',
   'For crews, clubs, and teams. Up to 3 teams and 40 members, 20 GB of storage.': '크루, 동아리, 팀을 위한 플랜. 팀 3개, 최대 40명, 저장 공간 20GB.',
   'For studios running many classes. Unlimited teams and members, 100 GB of storage.': '여러 반을 운영하는 학원을 위한 플랜. 팀·인원 무제한, 저장 공간 100GB.',

@@ -36,7 +36,9 @@ const EMAIL_GROUPS = [
 const EMAIL_CHOICES = [['instant', 'Right away'], ['digest', 'Morning summary'], ['off', 'Off']];
 
 // Matches the pricing page. Not enforced yet; shown so teams know where they stand.
-const FREE = { projects: 1, members: 10, videos: 5, takes: 3 };
+const FREE = { projects: 1, members: 10, videos: 5, takes: 3, storage: 2 * 1024 ** 3 };
+// "34 MB", "1.2 GB": GB with one decimal from 1 GB up.
+const size = (b) => (b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace(/\.0$/, '')} GB` : `${Math.max(b > 0 ? 1 : 0, Math.round(b / 1024 ** 2))} MB`);
 
 export async function renderSettings(section = 'account') {
   const { state, view, setCrumbs } = ctx;
@@ -175,8 +177,10 @@ export async function renderSettings(section = 'account') {
   async function plan() {
     const { data: rows } = await sb.from('project_members').select(cols('project_id, projects(is_sample, project_members(count))')).eq('user_id', state.session.user.id).eq('role', 'owner');
     const data = (rows || []).filter((m) => !m.projects?.is_sample);
-    const [recaps, { data: vids }] = await Promise.all([
+    const [recaps, { data: storage, error: storageErr }, { data: vids }] = await Promise.all([
       recapUsage(),
+      // Bytes per project you own (migration 028); counts toward the owner's plan.
+      sb.rpc('my_storage_usage'),
       data.length ? sb.from('videos').select('project_id, takes(count)').in('project_id', data.map((m) => m.project_id)) : { data: [] }
     ]);
     const owned = data?.length || 0;
@@ -185,16 +189,23 @@ export async function renderSettings(section = 'account') {
     for (const v of vids || []) perProject[v.project_id] = (perProject[v.project_id] || 0) + 1;
     const mostVideos = Math.max(0, ...Object.values(perProject));
     const mostTakes = Math.max(0, ...(vids || []).map((v) => v.takes?.[0]?.count ?? 0));
+    const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;
+    const used = (storage || []).reduce((t, r) => t + Number(r.bytes || 0), 0);
+    const ownedTitle = (id) => state.projects.find((x) => x.id === id)?.title || '';
+    const storageRow = storageErr ? '' : `<div class="storage-row"><span>Storage</span><b data-no-i18n>${size(used)} / ${size(FREE.storage)}</b>${meter(used, FREE.storage)}
+            <small data-no-i18n>${used >= FREE.storage
+              ? (getLang() === 'ko' ? '한도에 닿았어요. 지워지는 건 없고, 업로드는 얼리 액세스 동안 계속돼요.' : 'You’ve reached the limit. Nothing is deleted, and uploads keep working during early access.')
+              : (getLang() === 'ko' ? `${size(FREE.storage - used)} 남음` : `${size(FREE.storage - used)} left`)}${(storage || []).length > 1 ? ` · ${(storage || []).filter((r) => Number(r.bytes)).map((r) => `${esc(ownedTitle(r.project_id))} ${size(Number(r.bytes))}`).join(' · ')}` : ''}</small></div>`;
     const ko = getLang() === 'ko';
     const ofText = (used, max, unit = '') => (ko ? `${max}${unit} 중 ${used}${unit}` : `${used} of ${max}`);
-    const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;
-    const over = owned > FREE.projects || largest > FREE.members || mostVideos > FREE.videos || mostTakes > FREE.takes || recaps?.over;
+    const over = used > FREE.storage || owned > FREE.projects || largest > FREE.members || mostVideos > FREE.videos || mostTakes > FREE.takes || recaps?.over;
     const paid = (name, monthly, yearly, perMonth, what) => `<div class="plan-card"><div><h3>${name}</h3><p class="muted">${what}</p></div>
       <p class="plan-price" data-no-i18n><b>$${monthly}</b>${ko ? '/월' : '/month'} <span class="muted">· ${ko ? `연 $${yearly} (월 $${perMonth}, 2개월 무료)` : `or $${yearly}/year ($${perMonth}/month, 2 months free)`}</span></p></div>`;
     return {
       html: `<section class="panel">
         <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">1 team of up to 10 members, 5 videos with up to 3 takes each, 2 GB of storage, every feedback tool, and 3 AI recaps a month per person.</p></div></div>
         <div class="usage">
+          ${storageRow}
           <div><span>Projects you own</span><b data-no-i18n>${ofText(owned, FREE.projects, '개')}</b>${meter(owned, FREE.projects)}</div>
           <div><span>People in your largest project</span><b data-no-i18n>${ofText(largest, FREE.members, '명')}</b>${meter(largest, FREE.members)}</div>
           <div><span>Videos in your largest project</span><b data-no-i18n>${ofText(mostVideos, FREE.videos, '개')}</b>${meter(mostVideos, FREE.videos)}</div>
