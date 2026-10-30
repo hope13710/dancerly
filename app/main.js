@@ -7,6 +7,7 @@ import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
+import { startMonitoring, setMonitoredUser } from './monitor.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
@@ -647,6 +648,7 @@ ctx.commands = [
 Object.assign(ctx, { state, view, navigate, setCrumbs, refreshNav, refreshUnread, startAction, route, signOut, sampleBar: paintSampleBar });
 
 rememberSource(); // credit a later signup to the link that brought them here
+startMonitoring();
 
 let booted = false;
 sb.auth.onAuthStateChange((event, session) => {
@@ -655,6 +657,7 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') state.recovering = true;
   const changed = (session?.user.id || null) !== (state.session?.user.id || null);
   state.session = session;
+  setMonitoredUser(session?.user.id);
   if (booted && changed && (event === 'SIGNED_IN' || event === 'SIGNED_OUT')) setTimeout(async () => { await loadProfile(); route(); }, 0);
 });
 
@@ -662,6 +665,7 @@ startTranslating();
 (async () => {
   const { data } = await sb.auth.getSession();
   state.session = data.session;
+  setMonitoredUser(data.session?.user.id);
   await detectSchema();
   await loadProfile();
   // A failed magic link or Google sign-in lands here with the reason in the URL; keep it for the login page.
