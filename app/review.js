@@ -16,7 +16,7 @@ const SPEEDS = [1, 0.75, 0.5, 0.25];
 // The review screen: one video, its takes, and the team's notes on them.
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, is_sample')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample, created_by')).eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
@@ -27,7 +27,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Remembered so a later upload from the project page can offer to stack onto this video.
   try { localStorage.setItem(`looproom:lastVideo:${projectId}`, videoId); } catch {}
   const isOwner = members.some((m) => m.user_id === me.id && m.role === 'owner');
+  // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
+  const sampleMine = project.is_sample && project.created_by === me.id;
   const canManageVideo = isOwner || video.created_by === me.id;
+  const canDeleteVideo = canManageVideo || sampleMine;
   // Set once the take on screen is known (below).
   let canDeleteTake = false;
   const nameOf = (id) => members.find((m) => m.user_id === id)?.name || 'Former member';
@@ -46,7 +49,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const wanted = Number(new URLSearchParams(location.search).get('take'));
   const take = takes.find((t) => t.number === wanted) || takes[takes.length - 1];
   const takeNo = Object.fromEntries(takes.map((t) => [t.id, t.number]));
-  canDeleteTake = takes.length > 1 && (isOwner || take.uploaded_by === me.id);
+  canDeleteTake = takes.length > 1 && (isOwner || take.uploaded_by === me.id || sampleMine);
   const signed = { signedUrl: await takeUrl(take.storage_path) };
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
@@ -62,7 +65,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}${canManageVideo || canDeleteTake ? '<button class="icon-btn more-btn" data-video-more aria-label="More actions" title="More actions">⋯</button>' : ''}</div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}${canDeleteVideo || canDeleteTake ? '<button class="icon-btn more-btn" data-video-more aria-label="More actions" title="More actions">⋯</button>' : ''}</div>
     </header>
     ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Invite your team so they can watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
     <div class="review-layout">
@@ -881,7 +884,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   async function moreActions() {
     const choice = await actionSheet({ title: video.title, actions: [
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: 'Just this take and the notes left on it', danger: true }] : []),
-      ...(canManageVideo ? [{ value: 'video', label: 'Delete video', hint: takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
+      ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();

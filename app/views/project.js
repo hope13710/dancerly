@@ -104,12 +104,14 @@ export async function renderProject(projectId) {
   ]);
   if (vErr) throw vErr;
   setCrumbs([['Projects', '/app/projects'], [p.project.title]]);
+  // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
+  const sampleMine = p.project.is_sample && p.project.created_by === p.me;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'videos', '<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>+ New video</button>')}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
-      const canDelete = p.isOwner || v.created_by === p.me;
+      const canDelete = p.isOwner || v.created_by === p.me || sampleMine;
       return `<div class="video-item${canDelete ? ' has-more' : ''}"><a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
         <span class="video-thumb" ${takes[0] ? `data-thumb="${takes[0].id}"` : ''}><i aria-hidden="true">▶</i>${takes.length > 1 ? `<em>${takes.length} takes</em>` : ''}</span>
         <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
