@@ -5702,8 +5702,8 @@ body.is-guest .topbar {
 }
 
 /* Help & feedback */
-.help-dialog .dialog-card {
-  width: min(480px, calc(100vw - 32px));
+.help-dialog {
+  width: min(480px, calc(100% - 32px));
 }
 .help-head {
   display: flex;
@@ -5759,6 +5759,7 @@ body.is-guest .topbar {
   border-top: 1px solid var(--line);
 }
 .help-links a {
+  min-width: 0;
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: 8px;
@@ -5786,6 +5787,11 @@ body.is-guest .topbar {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .help-links {
+    grid-template-columns: 1fr;
+  }
 }
 .help-kinds .chip[aria-checked="true"] {
   background: var(--accent-soft);
