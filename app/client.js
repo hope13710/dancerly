@@ -18,17 +18,19 @@ export const GOOGLE_ENABLED = true;
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c] = await Promise.all([
+  const [a, b, c, d] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
-    sb.from('count_sheet_rows').select('take_id').limit(1)
+    sb.from('count_sheet_rows').select('take_id').limit(1),
+    sb.from('projects').select('target_event_id').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
   schema.sheetTake = !missing(c.error);
+  schema.goal = !missing(d.error); // migration 027
 }
 export function cols(list) {
-  const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align'])];
+  const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id'])];
   return drop.reduce((s, c) => s.replace(new RegExp(`,\\s*${c}\\b`, 'g'), '').replace(new RegExp(`\\b${c},\\s*`, 'g'), ''), list);
 }
 
@@ -179,8 +181,12 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
         return [f.name, f.type === 'file' ? input.files?.[0] : input.value.trim()];
       }));
       el.remove();
-      resolve(el.returnValue === 'extra' ? { extra: true } : ok ? values : null);
+      const v = el.returnValue;
+      // Buttons in the body can carry their own value (e.g. value="goal"): resolved as { action }.
+      resolve(v === 'extra' ? { extra: true } : ok ? values : v && v !== 'cancel' ? { action: v } : null);
     });
+    // A link in the body goes somewhere else in the app: close the dialog on the way.
+    el.addEventListener('click', (event) => { if (event.target.closest('a[data-link]')) el.close('cancel'); });
     el.showModal();
     el.querySelector('input')?.focus();
   });

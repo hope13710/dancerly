@@ -1,8 +1,9 @@
 // Home: what needs you today, what changed, and how to get started.
-import { sb, $, esc, initials, timeAgo, avatar, schema } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, avatar, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample } from './shared.js';
 import { homeRecapCard } from './recaps.js';
+import { showEvent } from './calendar.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
 import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard } from '../onboarding.js';
@@ -25,7 +26,7 @@ export async function renderHome() {
     homeRecapCard(),
     myOpenRequests(),
     unseenVideos(),
-    real.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, location, projects(title)').in('project_id', real.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
+    real.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by, projects(title)').in('project_id', real.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
     notesForMe(me, { limit: 50 }),
     noSample(sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)')).order('created_at', { ascending: false }).limit(12),
     noSample(sb.from('notes').select(NOTE_SELECT)).order('created_at', { ascending: false }).limit(12),
@@ -96,7 +97,7 @@ export async function renderHome() {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Coming up</h2><p class="muted">Rehearsals and shows</p></div><a class="link" href="/app/calendar" data-link>Calendar →</a></div>
-        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<a class="row" href="/app/p/${e.project_id}/calendar" data-link><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
+        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}${e.projects?.title ? ` · ${esc(e.projects.title)}` : ''}</span></span><span class="chev">›</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
       </section>
     </div>
     ${hideChecklist ? '' : `<section class="panel checklist">
@@ -128,6 +129,7 @@ export async function renderHome() {
   recapCard.wire();
   // Opening from Home walks the same queue as the Review queue page.
   try { sessionStorage.setItem(QUEUE_KEY, JSON.stringify(toReview.map((v) => `/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}`))); } catch {}
+  $$('[data-event]').forEach((b) => b.addEventListener('click', () => showEvent((upcoming || []).find((e) => e.id === b.dataset.event), () => ctx.route())));
   $('[data-hide-checklist]')?.addEventListener('click', () => {
     saveOnboarding({ checklist_hidden: true });
     $('.checklist').remove();

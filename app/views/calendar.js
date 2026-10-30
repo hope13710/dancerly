@@ -1,11 +1,11 @@
 // Calendar: rehearsals, shows, and request due dates — per project, or across all of them.
 // Month grid on wide screens, an agenda list on phones (or when chosen).
-import { sb, $, $$, esc, toast, friendlyError, dialog } from '../client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
-import { kindLabel, kindClass, realProjects } from './shared.js';
+import { kindLabel, kindClass, realProjects, daysUntil, daysLabel } from './shared.js';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const timeOf = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -98,18 +98,37 @@ export async function renderCalendar(projectId = null) {
   }
 }
 
-async function showEvent(e, refresh, projectId) {
+// One event: when and where, a way to its project, and (for the project's owner) making it the goal.
+// projectId: set when shown inside that project, so the project line is left out.
+export async function showEvent(e, refresh, projectId) {
   const me = ctx.state.session.user.id;
   const project = ctx.state.projects.find((p) => p.id === e.project_id);
   const start = new Date(e.starts_at);
   const when = `${start.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · ${timeOf(start)}${e.ends_at ? `–${timeOf(new Date(e.ends_at))}` : ''}`;
+  const upcoming = daysUntil(e.starts_at) >= 0;
+  const [{ data: proj }, { data: mine }] = await Promise.all([
+    schema.goal ? sb.from('projects').select('target_event_id').eq('id', e.project_id).maybeSingle() : { data: null },
+    sb.from('project_members').select('role').eq('project_id', e.project_id).eq('user_id', me).maybeSingle()
+  ]);
+  const isGoal = proj?.target_event_id === e.id;
+  const canGoal = schema.goal && mine?.role === 'owner' && (upcoming || isGoal);
+  const goalLine = isGoal
+    ? `<p class="event-goal"><span class="pill info">🎯 Project goal</span> ${upcoming ? daysLabel(daysUntil(e.starts_at)) : ''}${canGoal ? ' <button value="ungoal" class="text-btn">Remove as goal</button>' : ''}</p>`
+    : canGoal ? '<p class="event-goal"><button value="goal" class="text-btn">🎯 Set as project goal</button> <small class="muted">Shows a countdown on every page of the project.</small></p>' : '';
   const choice = await dialog({
     title: e.title,
-    body: `<span class="pill ${e.kind === 'show' ? 'info' : ''}">${esc(kindLabel(e.kind))}</span> ${esc(when)}${e.location ? `<br>${esc(e.location)}` : ''}${projectId ? '' : `<br>${esc(project?.title || '')}`}${e.details ? `<br><br>${esc(e.details)}` : ''}`,
+    body: `<span class="pill ${e.kind === 'show' ? 'info' : ''}">${esc(kindLabel(e.kind))}</span> ${esc(when)}${e.location ? `<br>${esc(e.location)}` : ''}${e.details ? `<br><br>${esc(e.details)}` : ''}
+      ${projectId ? '' : `<br><br><a class="link" href="/app/p/${e.project_id}/overview" data-link>${esc(project?.title || 'Open project')} →</a>`}${goalLine}`,
     confirm: e.created_by === me ? 'Edit' : 'Close',
     extra: e.created_by === me ? 'Delete' : null
   });
-  if (!choice || e.created_by !== me) return;
+  if (choice?.action === 'goal' || choice?.action === 'ungoal') {
+    const { error } = await sb.from('projects').update({ target_event_id: choice.action === 'goal' ? e.id : null }).eq('id', e.project_id);
+    if (error) return toast(friendlyError(error), 'error');
+    toast(choice.action === 'goal' ? 'Set as the project goal.' : 'Goal removed.');
+    return refresh();
+  }
+  if (!choice || choice.action || e.created_by !== me) return;
   if (choice.extra) {
     const sure = await dialog({ title: 'Delete this event?', confirm: 'Delete', danger: true });
     if (!sure) return;

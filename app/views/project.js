@@ -4,7 +4,7 @@ import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker } from '../client.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, tabs, empty, namesFor } from './shared.js';
+import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track } from '../onboarding.js';
 
@@ -47,20 +47,24 @@ export async function createProject() {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
+  const goal = await projectGoal(project);
   const me = ctx.state.session.user.id;
   const isOwner = members.some((m) => m.user_id === me && m.role === 'owner');
-  return { project, members, isOwner, me };
+  return { project, members, isOwner, me, goal };
 }
 
-export function projectHead({ project, members }, tab, actions = '') {
+export function projectHead({ project, members, goal }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
+  // What the team is working toward, on every tab: "🎯 Spring Showcase · 12 days".
+  const goalChip = goal ? `<a class="goal-chip" href="${base}/overview" data-link title="${goal.picked ? 'Project goal' : 'Next show'}"><span aria-hidden="true">🎯</span><span class="goal-name">${esc(goal.title)}</span><b>${daysLabel(daysUntil(goal.starts_at))}</b></a>` : '';
   return `<header class="page-head project-head">
       <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">${project.is_sample ? 'Sample project' : 'Project'}</p><h1>${esc(project.title)}</h1>
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
+        ${goalChip}
       </div></div>
       <div class="head-actions">${project.is_sample ? `${actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
     </header>

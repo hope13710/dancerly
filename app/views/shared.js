@@ -70,6 +70,29 @@ export async function notesForMe(me, { limit = 200 } = {}) {
   return data;
 }
 
+// A project's goal: the event its owner picked (projects.target_event_id), else its next show.
+// Only events from today on count; a goal that has passed simply stops showing.
+export async function projectGoal(project) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const { data } = await sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by')
+    .eq('project_id', project.id).gte('starts_at', today.toISOString()).order('starts_at').limit(30);
+  const upcoming = data || [];
+  const picked = project.target_event_id && upcoming.find((e) => e.id === project.target_event_id);
+  if (picked) return { ...picked, picked: true };
+  const show = upcoming.find((e) => e.kind === 'show');
+  return show ? { ...show, picked: false } : null;
+}
+// Calendar days from today, not 24-hour blocks: an evening show tomorrow is "Tomorrow", not "Today".
+export function daysUntil(iso) {
+  const a = new Date();
+  const b = new Date(iso);
+  a.setHours(0, 0, 0, 0);
+  b.setHours(0, 0, 0, 0);
+  return Math.round((b - a) / 864e5);
+}
+export const daysLabel = (n) => (n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : `${n} days`);
+
 // Event types: the built-in ones, plus any a team names (shown in one of five steady colors).
 export const EVENT_KINDS = { rehearsal: 'Rehearsal', show: 'Show', other: 'Other', due: 'Due' };
 export const kindLabel = (k) => EVENT_KINDS[k] || k;

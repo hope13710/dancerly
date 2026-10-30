@@ -2,7 +2,8 @@
 import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema } from '../client.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
-import { kindClass } from './shared.js';
+import { kindClass, daysUntil, daysLabel } from './shared.js';
+import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
 
 const STATUS = [['learning', 'Learning'], ['practicing', 'Practicing'], ['clean', 'Clean']];
@@ -14,15 +15,14 @@ export async function renderProjectOverview(projectId) {
     loadProject(projectId),
     sb.from('projects').select('goal, music_title, music_url').eq('id', projectId).single(),
     sb.from('count_sheet_rows').select('status').eq('project_id', projectId),
-    sb.from('project_events').select('id, title, kind, starts_at, location').eq('project_id', projectId).gte('starts_at', nowIso).order('starts_at').limit(5),
+    sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by').eq('project_id', projectId).gte('starts_at', nowIso).order('starts_at').limit(5),
     sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', projectId).neq('status', 'resolved'),
     sb.from('requests').select('id, title, due_at').eq('project_id', projectId).eq('status', 'active').order('due_at', { ascending: true, nullsFirst: false }).limit(3),
     sb.from('videos').select('id, title, created_at').eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
   ]);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Overview']]);
-  const show = (events || []).find((e) => e.kind === 'show');
+  const goal = p.goal; // picked by the owner, else the next show
   const next = (events || [])[0];
-  const days = (iso) => Math.ceil((new Date(iso) - Date.now()) / 864e5);
   const clean = (rows || []).filter((r) => r.status === 'clean').length;
   const when = (iso) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   view.innerHTML = `<section class="page">
@@ -34,8 +34,8 @@ export async function renderProjectOverview(projectId) {
         ${extra?.music_title || extra?.music_url ? `<p class="music">♪ ${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)} ↗</a>` : esc(extra.music_title)}</p>` : ''}
       </section>
       <section class="panel countdown">
-        ${show ? `<p class="eyebrow">Show</p><b class="big-num">${days(show.starts_at) <= 0 ? 'Today' : `${days(show.starts_at)} ${days(show.starts_at) === 1 ? 'day' : 'days'}`}</b><p class="muted">${esc(show.title)} · ${when(show.starts_at)}${show.location ? ` · ${esc(show.location)}` : ''}</p>`
-          : `<p class="eyebrow">Next</p>${next ? `<b class="big-num small">${esc(next.title)}</b><p class="muted">${when(next.starts_at)}</p>` : `<p class="panel-empty">Nothing scheduled. <a class="link" href="/app/p/${projectId}/calendar" data-link>Add a rehearsal or show →</a></p>`}`}
+        ${goal ? `<p class="eyebrow">${goal.picked ? '🎯 Goal' : 'Next show'}</p><b class="big-num">${daysLabel(daysUntil(goal.starts_at))}</b><p class="muted"><button class="text-btn" data-event="${goal.id}">${esc(goal.title)}</button> · ${when(goal.starts_at)}${goal.location ? ` · ${esc(goal.location)}` : ''}</p>${!goal.picked && p.isOwner && schema.goal ? '<p class="fine left">Working toward something else? Open an event and set it as the goal.</p>' : ''}`
+          : `<p class="eyebrow">Next</p>${next ? `<b class="big-num small"><button class="text-btn" data-event="${next.id}">${esc(next.title)}</button></b><p class="muted">${when(next.starts_at)}</p>${p.isOwner && schema.goal ? '<p class="fine left">Working toward a show or competition? Open its event and set it as the goal for a countdown.</p>' : ''}` : `<p class="panel-empty">Nothing scheduled. <a class="link" href="/app/p/${projectId}/calendar" data-link>Add a rehearsal or show →</a></p>`}`}
       </section>
     </div>
     <div class="stats">
@@ -47,7 +47,7 @@ export async function renderProjectOverview(projectId) {
     <div class="home-grid">
       <section class="panel">
         <div class="panel-head"><div><h2>Coming up</h2></div><a class="link" href="/app/p/${projectId}/calendar" data-link>Calendar →</a></div>
-        ${events?.length ? `<div class="list flush">${events.map((e) => `<div class="row"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span></div>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
+        ${events?.length ? `<div class="list flush">${events.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${e.id === goal?.id && goal.picked ? '🎯 ' : ''}${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span><span class="chev">›</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Latest videos</h2></div><a class="link" href="/app/p/${projectId}" data-link>All videos →</a></div>
@@ -55,6 +55,9 @@ export async function renderProjectOverview(projectId) {
       </section>
     </div>
   </section>`;
+  // Any event on this page opens its details (and, for the owner, "Set as project goal").
+  const byId = Object.fromEntries([...(events || []), ...(goal ? [goal] : [])].map((e) => [e.id, e]));
+  $$('[data-event]').forEach((b) => b.addEventListener('click', () => showEvent(byId[b.dataset.event], () => renderProjectOverview(projectId), projectId)));
   $('[data-edit-goal]')?.addEventListener('click', async () => {
     const values = await dialog({
       title: 'Goal and music',

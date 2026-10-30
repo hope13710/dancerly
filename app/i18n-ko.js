@@ -479,6 +479,18 @@ export const KO = {
 
   // ---------- 개요 · 카운트 시트 ----------
   'Goal': '목표',
+  'Tomorrow': '내일',
+  'Next show': '다음 공연',
+  '🎯 Goal': '🎯 목표',
+  '🎯 Project goal': '🎯 프로젝트 목표',
+  '🎯 Set as project goal': '🎯 프로젝트 목표로 정하기',
+  'Remove as goal': '목표에서 빼기',
+  'Shows a countdown on every page of the project.': '프로젝트의 모든 화면에 남은 날짜가 보여요.',
+  'Set as the project goal.': '프로젝트 목표로 정했어요.',
+  'Goal removed.': '목표에서 뺐어요.',
+  'Working toward something else? Open an event and set it as the goal.': '다른 일정을 목표로 하나요? 일정을 열어 목표로 정해 보세요.',
+  'Working toward a show or competition? Open its event and set it as the goal for a countdown.': '공연이나 대회를 준비하나요? 그 일정을 열어 목표로 정하면 남은 날짜가 보여요.',
+  'Project goal': '프로젝트 목표',
   'Nothing scheduled.': '예정된 일정이 없어요.',
   'Add a rehearsal or show →': '연습이나 공연 일정 추가 →',
   'Sections clean': '완성한 파트',
@@ -1045,6 +1057,7 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^(\d+) days$/, '$1일'],
   [/^All (\d+) others? on the project$/, '프로젝트의 다른 $1명 모두'],
   [/^Most open feedback: (.+) · (.+) \((\d+) open\)$/, '미해결 피드백이 가장 많은 곳: $1 · $2 (미해결 $3개)'],
   [/^(\d+) notes? (?:has|have) been open for 3\+ days$/, '피드백 $1개가 3일 넘게 그대로예요'],
