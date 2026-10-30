@@ -5,6 +5,7 @@
 // screen recording.
 const DSN = 'https://326b7a18886504e90f9559d555f1d131@o4512343165435904.ingest.us.sentry.io/4512343178674176';
 
+let sentry = null;
 let userId = null;
 
 // Same shape as the visit statistics in index.html.
@@ -50,8 +51,23 @@ export function startMonitoring() {
         return event;
       }
     });
+    sentry = S;
   }).catch(() => {});
 }
 
 // Which account hit it (an id only), so we can count how many people one bug reaches.
 export function setMonitoredUser(id) { userId = id || null; }
+
+// Failures the app catches and explains to the person, but that we still need to see — like a phone that
+// can't shrink a video, which never reaches the server. Grouped by area, step, and reason (numbers left out),
+// so "can't read this format" on 40 phones is one issue with a device breakdown, not 40.
+export function reportFailure(area, error, { level = 'error', ...details } = {}) {
+  if (!sentry) return;
+  const reason = String(error?.message || error).replace(/\d+/g, '#').slice(0, 120);
+  sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+    level,
+    tags: { area, step: details.step },
+    contexts: { [area]: details },
+    fingerprint: [area, String(details.step), reason]
+  });
+}

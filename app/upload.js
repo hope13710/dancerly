@@ -11,6 +11,7 @@
 import { Upload } from './vendor/tus-js-client-4.3.1.js';
 import { grabStill, saveThumb } from './thumbs.js';
 import { sb, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, TAKE_BUCKET, MAX_TAKE_BYTES, TAKE_TYPES } from './client.js';
+import { reportFailure } from './monitor.js';
 
 const TARGET_BYTES = 45 * 1024 * 1024; // leaves headroom under the 50 MB storage limit
 const MAX_SECONDS = 15 * 60;
@@ -25,6 +26,8 @@ const LONG_SECONDS = 8 * 60; // long runs re-encode the music at 96 kbps so 15 m
 const AUDIO_LONG_BPS = 96_000;
 const AUDIO_DEFAULT_BPS = 160_000; // assumed when the original's audio bitrate can't be read
 
+// The person's file is the problem (too long, not a video), not this device: reported, but quietly.
+const fileProblem = (message) => Object.assign(new Error(message), { fileProblem: true });
 const typeOf = (file) => file.type || ({ mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' })[file.name.split('.').pop().toLowerCase()] || '';
 
 export function checkTakeFile(file) {
@@ -36,8 +39,9 @@ export function checkTakeFile(file) {
 // ---------- 1. Prepare ----------
 const canConvert = () => typeof window.VideoEncoder === 'function' && typeof window.VideoDecoder === 'function';
 
-export async function prepareVideo(file, onStage) {
+export async function prepareVideo(file, onStage, facts = {}) {
   const tooBig = file.size > MAX_TAKE_BYTES;
+  facts.canConvert = canConvert();
   if (!canConvert()) {
     if (tooBig) throw new Error(`This video is ${mb(file.size)} and this browser can’t shrink it. Try Chrome or Safari, or trim it under 50 MB.`);
     return null;
@@ -54,12 +58,14 @@ export async function prepareVideo(file, onStage) {
     if (tooBig) throw new Error('We couldn’t read this video. Try exporting it again from your camera app.');
     return null;
   }
-  if (!track) throw new Error('This file has no video in it.');
-  if (duration > MAX_SECONDS) throw new Error(`This video is ${Math.round(duration / 60)} minutes long. Keep takes under 15 minutes — trim it to the part you want feedback on.`);
+  Object.assign(facts, { codec: track?.codec, seconds: Math.round(duration || 0), resolution: track ? `${track.displayWidth}x${track.displayHeight}` : null });
+  if (!track) throw fileProblem('This file has no video in it.');
+  if (duration > MAX_SECONDS) throw fileProblem(`This video is ${Math.round(duration / 60)} minutes long. Keep takes under 15 minutes — trim it to the part you want feedback on.`);
   const big = Math.min(track.displayWidth, track.displayHeight) > 1080;
   // What the original really is: frame rate and bitrates, read from the first few seconds of packets.
   const stats = await track.computePacketStats(150).catch(() => null);
   const fps = stats?.averagePacketRate || 30;
+  facts.fps = Math.round(fps);
   const sourceBps = stats?.averageBitrate || (file.size * 8) / Math.max(duration, 1);
   const audioTrack = await input.getPrimaryAudioTrack().catch(() => null);
   const audioStats = audioTrack ? await audioTrack.computePacketStats(200).catch(() => null) : null;
@@ -80,7 +86,7 @@ export async function prepareVideo(file, onStage) {
   };
   const reencodeAudio = Boolean(audioTrack) && duration > LONG_SECONDS;
   let settings = plan(reencodeAudio ? AUDIO_LONG_BPS : sourceAudioBps);
-  if (!settings.fits) throw new Error(`This video is ${Math.round(duration / 60)} minutes long, too long to fit at a watchable quality. Trim it to the part you want feedback on.`);
+  if (!settings.fits) throw fileProblem(`This video is ${Math.round(duration / 60)} minutes long, too long to fit at a watchable quality. Trim it to the part you want feedback on.`);
   if (!(await mbx.canEncodeVideo('avc', { ...settings.size, bitrate: settings.videoBps }))) {
     if (tooBig) throw new Error(`This video is ${mb(file.size)} and this device can’t shrink it. Trim it under 50 MB and try again.`);
     return null;
@@ -181,6 +187,8 @@ function tusUpload(blob, { path, type, key }, onStage) {
           ? 'You’re offline. Pick the same file again when you’re back online — the upload continues where it stopped.'
           : 'The upload stopped. Pick the same file again to continue where it left off.');
         stopped.resumable = true;
+        stopped.status = err?.originalResponse?.getStatus?.() || null;
+        stopped.detail = String(err?.message || '').slice(0, 200);
         reject(stopped);
       }
     });
@@ -193,22 +201,39 @@ function tusUpload(blob, { path, type, key }, onStage) {
 
 // Prepare (or reuse the prepared copy), upload (or resume), then record the take.
 export async function uploadTake({ projectId, videoId, file, onStage = () => {} }) {
+  const facts = { type: (file && typeOf(file)) || 'unknown', mb: Math.round((file?.size || 0) / 1048576), online: navigator.onLine };
+  let step = 'check';
+  try {
+    return await sendTake({ projectId, videoId, file, onStage, facts, at: (s) => { step = s; } });
+  } catch (error) {
+    const level = error.fileProblem || step === 'check' ? 'info' : error.resumable ? 'warning' : 'error';
+    reportFailure('upload', error, { level, step, ...facts, status: error.status, detail: error.detail });
+    throw error;
+  }
+}
+
+async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
   const problem = checkTakeFile(file);
   if (problem) throw new Error(problem);
+  at('prepare');
   const key = `${projectId}/${videoId}/${file.name}/${file.size}/${file.lastModified}`;
   let record = readRecord(key);
   let blob = record?.prepared ? await cacheGet(key) : null;
   if (!blob) {
-    const prepared = await prepareVideo(file, onStage);
+    const prepared = await prepareVideo(file, onStage, facts);
     blob = prepared || file;
     if (prepared) await cachePut(key, prepared);
     const type = prepared ? 'video/mp4' : typeOf(file);
     record = { path: record?.path || `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[type]}`, type, prepared: Boolean(prepared) };
     writeRecord(key, record);
   }
+  facts.converted = record.prepared;
+  facts.sentMb = Math.round(blob.size / 1048576);
+  at('upload');
   // Keep the path stable across retries so a resumed upload lands in the same place.
   if (!record.path.endsWith(`.${TAKE_TYPES[record.type]}`)) record.path = `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[record.type]}`;
   await tusUpload(blob, { ...record, key }, onStage);
+  at('save');
   onStage('Saving');
   const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select('id, number, project_id, video_id').single();
   if (error) {
