@@ -34,7 +34,7 @@ async function editGroup(projectId, p, group, refresh) {
     <label class="field"><span>Name</span><input name="name" maxlength="60" required value="${esc(group?.name || '')}" placeholder="Juniors" /></label>
     <div class="field"><span>People</span></div>
     <div class="pick-people">${p.members.map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" ${current.has(m.user_id) ? 'checked' : ''} />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('')}</div>
-    <div class="dialog-actions">${group ? '<button value="delete" formnovalidate class="btn ghost danger push-left">Delete group</button>' : ''}<button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">${group ? 'Save' : 'Create group'}</button></div>
+    <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">${group ? 'Save' : 'Create group'}</button>${group ? '<button value="delete" formnovalidate class="btn ghost danger push-left">Delete group</button>' : ''}</div>
   </form>`;
   document.body.append(el);
   el.showModal();

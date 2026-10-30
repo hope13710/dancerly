@@ -626,6 +626,21 @@ a {
 .push-left {
   margin-right: auto;
 }
+.dialog-actions .push-left {
+  order: -1;
+}
+/* Phones: three buttons don't fit on one line. The side action (e.g. "Remove from project") gets its own
+   line under Cancel / confirm, away from the main choice. */
+@media (max-width: 520px) {
+  .dialog-actions {
+    flex-wrap: wrap;
+  }
+  .dialog-actions .push-left {
+    order: 3;
+    flex-basis: 100%;
+    margin: 4px 0 0;
+  }
+}
 .copy-row {
   display: flex;
   gap: 8px;
