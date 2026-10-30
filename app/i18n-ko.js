@@ -555,6 +555,13 @@ export const KO = {
   'Notes on their takes': '이 멤버 영상에 달린 피드백',
   'You don’t share a project with this person.': '함께하는 프로젝트가 없는 멤버예요.',
   'Make owner': '관리자로 지정',
+  'More actions': '더보기',
+  'Delete video': '영상 삭제',
+  'Delete take': '테이크 삭제',
+  'Just this take and the notes left on it': '이 테이크와 여기에 남긴 피드백만',
+  'The video and its notes': '영상과 피드백 전체',
+  'Video deleted.': '영상을 삭제했어요.',
+  'Other takes and their notes stay as they are. This can’t be undone.': '다른 테이크와 피드백은 그대로 남아요. 되돌릴 수 없어요.',
   '1 team of up to 10 members, 5 videos with up to 3 takes each, 2 GB of storage, every feedback tool, and 3 AI recaps a month per person.': '팀 1개(최대 10명), 영상 5개(영상당 테이크 3개), 저장 공간 2GB, 모든 피드백 기능, 1인당 월 3회 AI 요약.',
   'Videos in your largest project': '가장 큰 프로젝트의 영상',
   'Most takes on one video': '한 영상의 최대 테이크',
@@ -1063,6 +1070,13 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^Delete Take (\d+)\??$/, (m, n) => `테이크 ${n} 삭제${m.endsWith('?') ? '할까요?' : ''}`],
+  [/^All (\d+) takes and their notes$/, '테이크 $1개와 피드백 전체'],
+  [/^Take (\d+) deleted\.$/, '삭제했어요: 테이크 $1'],
+  [/^Delete “(.+)”\?$/, '“$1”을 삭제할까요?'],
+  [/^Its (\d+) notes? will be deleted too\. Other takes and their notes stay as they are\. This can’t be undone\.$/, '피드백 $1개도 함께 삭제돼요. 다른 테이크와 피드백은 그대로 남아요. 되돌릴 수 없어요.'],
+  [/^This deletes (?:all (\d+) takes)?(?: and )?(?:(\d+) notes?)? ?for everyone in (.+)\. This can’t be undone\.$/, (m, t, n, p) => `${p}의 모든 사람에게서 ${[t ? `테이크 ${t}개` : '', n ? `피드백 ${n}개` : ''].filter(Boolean).join('와 ') || '영상'}가 삭제돼요. 되돌릴 수 없어요.`],
+  [/^This deletes the video for everyone in (.+)\. This can’t be undone\.$/, '$1의 모든 사람에게서 영상이 삭제돼요. 되돌릴 수 없어요.'],
   [/^(\d+) days$/, '$1일'],
   [/^All (\d+) others? on the project$/, '프로젝트의 다른 $1명 모두'],
   [/^Most open feedback: (.+) · (.+) \((\d+) open\)$/, '미해결 피드백이 가장 많은 곳: $1 · $2 (미해결 $3개)'],

@@ -199,7 +199,7 @@ export function actionSheet({ title, actions }) {
     el.className = 'dialog sheet';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>
-      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action"><b>${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</button>`).join('')}</div>
+      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action${a.danger ? ' danger' : ''}"><b>${esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</button>`).join('')}</div>
       <button value="" class="btn ghost wide">Cancel</button>
     </form>`;
     document.body.append(el);

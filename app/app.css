@@ -1680,6 +1680,22 @@ a {
 .sheet-action b {
   font-size: 15px;
 }
+.sheet-action.danger b {
+  color: var(--danger);
+}
+.sheet-action.danger:hover {
+  border-color: var(--danger);
+  background: #fff4f0;
+}
+/* Destructive actions sit below the rest, set apart */
+.sheet-action.danger:first-of-type,
+.sheet-action:not(.danger) + .sheet-action.danger {
+  margin-top: 6px;
+}
+.more-btn {
+  font-size: 18px;
+  line-height: 1;
+}
 .sheet-action small {
   color: var(--muted);
   font-size: 13px;

@@ -1,5 +1,5 @@
 import { cols, schema } from './client.js';
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, TAKE_BUCKET, isPublicMedia } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
@@ -8,7 +8,7 @@ import { offsetByMusic, follow } from './compare.js';
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
 import { copyInvite } from './views/project.js';
-import { reviewTips, explainPrivate, track, seen, markSeen, sampleMoment } from './onboarding.js';
+import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
@@ -18,7 +18,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
     sb.from('projects').select(cols('id, title, is_sample')).eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
-    sb.from('takes').select(cols('id, number, storage_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
+    sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
@@ -28,6 +28,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   try { localStorage.setItem(`looproom:lastVideo:${projectId}`, videoId); } catch {}
   const isOwner = members.some((m) => m.user_id === me.id && m.role === 'owner');
   const canManageVideo = isOwner || video.created_by === me.id;
+  // Set once the take on screen is known (below).
+  let canDeleteTake = false;
   const nameOf = (id) => members.find((m) => m.user_id === id)?.name || 'Former member';
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
@@ -44,6 +46,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const wanted = Number(new URLSearchParams(location.search).get('take'));
   const take = takes.find((t) => t.number === wanted) || takes[takes.length - 1];
   const takeNo = Object.fromEntries(takes.map((t) => [t.id, t.number]));
+  canDeleteTake = takes.length > 1 && (isOwner || take.uploaded_by === me.id);
   const signed = { signedUrl: await takeUrl(take.storage_path) };
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
@@ -59,7 +62,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}</div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ Upload a new take</button>${canManageVideo ? '<button class="btn small ghost" data-merge title="Uploaded this as a separate video by mistake?">Merge into…</button>' : ''}<button class="btn small ghost" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost" data-share-video title="A read-only link for people outside the team">Share</button>'}${canManageVideo || canDeleteTake ? '<button class="icon-btn more-btn" data-video-more aria-label="More actions" title="More actions">⋯</button>' : ''}</div>
     </header>
     ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Invite your team so they can watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
     <div class="review-layout">
@@ -826,6 +829,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   wireUpload();
   $('[data-merge]')?.addEventListener('click', mergeInto);
+  $('[data-video-more]')?.addEventListener('click', moreActions);
   $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
   $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
   $('[data-invite-dismiss]')?.addEventListener('click', () => {
@@ -873,6 +877,54 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
 
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
+  // ⋯ on a video: the destructive actions live here, in red, each behind a confirmation that says what goes.
+  async function moreActions() {
+    const choice = await actionSheet({ title: video.title, actions: [
+      ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: 'Just this take and the notes left on it', danger: true }] : []),
+      ...(canManageVideo ? [{ value: 'video', label: 'Delete video', hint: takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
+    ] });
+    if (choice === 'take') return deleteTake();
+    if (choice === 'video') return deleteVideo();
+  }
+  // Files go right away when they're yours to remove; anything else is cleared by the hourly storage cleanup.
+  const removeFiles = (list) => {
+    const paths = list.flatMap((t) => [t.storage_path, t.thumb_path]).filter((p) => p && !isPublicMedia(p));
+    if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
+  };
+  async function deleteTake() {
+    const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('take_id', take.id);
+    const sure = await dialog({
+      title: `Delete Take ${take.number}?`,
+      body: `${count ? `Its ${count} ${count === 1 ? 'note' : 'notes'} will be deleted too. ` : ''}Other takes and their notes stay as they are. This can’t be undone.`,
+      confirm: 'Delete take',
+      danger: true
+    });
+    if (!sure) return;
+    const { error } = await sb.from('takes').delete().eq('id', take.id);
+    if (error) return toast(friendlyError(error), 'error');
+    removeFiles([take]);
+    logEvent('take_deleted', {});
+    toast(`Take ${take.number} deleted.`);
+    navigate(base, { replace: true });
+  }
+  async function deleteVideo() {
+    const { count } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('video_id', videoId);
+    const parts = [takes.length > 1 ? `all ${takes.length} takes` : null, count ? `${count} ${count === 1 ? 'note' : 'notes'}` : null].filter(Boolean);
+    const sure = await dialog({
+      title: `Delete “${video.title}”?`,
+      body: `${parts.length ? `This deletes ${parts.join(' and ')} ` : 'This deletes the video '}for everyone in ${esc(project.title)}. This can’t be undone.`,
+      confirm: 'Delete video',
+      danger: true
+    });
+    if (!sure) return;
+    const { error } = await sb.from('videos').delete().eq('id', videoId);
+    if (error) return toast(friendlyError(error), 'error');
+    removeFiles(takes);
+    logEvent('video_deleted', { takes: takes.length });
+    toast('Video deleted.');
+    navigate(`/app/p/${projectId}`, { replace: true });
+  }
+
   async function mergeInto() {
     const { data: others, error } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });
     if (error) return toast(friendlyError(error), 'error');
