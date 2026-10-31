@@ -200,6 +200,14 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     });
     // A link in the body goes somewhere else in the app: close the dialog on the way.
     el.addEventListener('click', (event) => { if (event.target.closest('a[data-link]')) el.close('cancel'); });
+    // Enter in a text field confirms. Left to the browser it would press the first button, which is Cancel.
+    // Not while a Korean/Japanese IME is still composing: that Enter only finishes the word.
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229) return;
+      if (!event.target.matches('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])')) return;
+      event.preventDefault();
+      el.querySelector('form').requestSubmit(el.querySelector('button[value="ok"]'));
+    });
     el.showModal();
     el.querySelector('input')?.focus();
   });
