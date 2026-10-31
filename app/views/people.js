@@ -1,9 +1,10 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, esc, initials, timeAgo, avatar, isSamplePerson } from '../client.js';
+import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample } from './shared.js';
 import { paintThumbs } from './project.js';
+import { openCardEditor } from '../progress-card.js';
 
 // Your real teammates. The sample's made-up teammates appear only inside the sample (and on their own page).
 async function roster({ withSample = false } = {}) {
@@ -66,7 +67,7 @@ export async function renderPerson(userId) {
   if (!person) throw new Error('You don’t share a project with this person.');
   setCrumbs([['People', '/app/people'], [person.name]]);
   const show = new URLSearchParams(location.search).get('show');
-  const tab = ['received', 'videos'].includes(show) ? show : 'given';
+  const tab = ['received', 'videos', 'progress'].includes(show) ? show : 'given';
   const [{ data: given }, { data: theirTakes }] = await Promise.all([
     scope(sb.from('notes').select(NOTE_SELECT)).eq('author_id', userId).order('created_at', { ascending: false }).limit(100),
     scope(sb.from('takes').select('id, number, created_at, thumb_path, storage_path, project_id, video_id, videos(title), projects(title)')).eq('uploaded_by', userId).order('created_at', { ascending: false })
@@ -83,6 +84,24 @@ export async function renderPerson(userId) {
     received = data || [];
   }
   const list = tab === 'given' ? given || [] : tab === 'received' ? received : [];
+  // Progress: their videos with two or more takes, Take 1 next to the latest, and how many notes got fixed.
+  let growth = [];
+  if (tab === 'progress' && videos.length) {
+    const ids = videos.map((v) => v.video_id);
+    const [{ data: all }, { data: notes }, { data: projects }] = await Promise.all([
+      sb.from('takes').select('id, number, created_at, thumb_path, storage_path, project_id, video_id').in('video_id', ids).order('number'),
+      sb.from('notes').select('video_id, status, private_to').in('video_id', ids),
+      sb.from('projects').select(cols('id, created_by, allow_share_cards')).in('id', [...new Set(videos.map((v) => v.latest.project_id))])
+    ]);
+    growth = videos.map((v) => {
+      const takes = (all || []).filter((t) => t.video_id === v.video_id);
+      const team = (notes || []).filter((n) => n.video_id === v.video_id && !n.private_to);
+      const p = (projects || []).find((x) => x.id === v.latest.project_id);
+      return { ...v, takes, first: takes[0], last: takes[takes.length - 1], fixed: team.filter((n) => n.status === 'resolved').length, total: team.length,
+        days: takes.length > 1 ? Math.max(1, Math.ceil((new Date(takes[takes.length - 1].created_at) - new Date(takes[0].created_at)) / 864e5)) : 0,
+        canCard: p?.allow_share_cards !== false || p?.created_by === me };
+    }).filter((v) => v.takes.length > 1).sort((a, b) => b.fixed - a.fixed || b.last.created_at.localeCompare(a.last.created_at));
+  }
   const names = await namesFor(list.map((n) => n.author_id));
   const resolvedRate = received.length ? Math.round((received.filter((n) => n.status === 'resolved').length / received.length) * 100) : null;
   const base = `/app/people/${userId}`;
@@ -99,8 +118,18 @@ export async function renderPerson(userId) {
       <div class="stat"><small>Notes received</small><b>${received.length}</b></div>
       <div class="stat"><small>Received & fixed</small><b>${resolvedRate === null ? '—' : `${resolvedRate}%`}</b></div>
     </div>
-    ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`], ['videos', 'Videos', `${base}?show=videos`, videos.length]], tab)}
-    ${tab === 'videos'
+    ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`], ['videos', 'Videos', `${base}?show=videos`, videos.length], ['progress', 'Progress', `${base}?show=progress`]], tab)}
+    ${tab === 'progress'
+      ? (growth.length ? `<div class="growth-list">${growth.map((v) => `<div class="growth-item">
+          <a class="growth-thumbs" href="/app/p/${v.last.project_id}/v/${v.video_id}?take=${v.last.number}" data-link aria-label="${esc(v.latest.videos?.title || 'Video')}">
+            <span class="video-thumb" data-thumb="${v.first.id}"><i aria-hidden="true">▶</i><em>Take ${v.first.number}</em></span><span class="video-thumb" data-thumb="${v.last.id}"><i aria-hidden="true">▶</i><em>Take ${v.last.number}</em></span></a>
+          <div class="growth-copy"><b>${esc(v.latest.videos?.title || 'Video')}</b>
+            <small>${esc(v.latest.projects?.title || '')} · Take ${v.first.number} → ${v.last.number} · ${v.days} ${v.days === 1 ? 'day' : 'days'}</small>
+            ${v.total ? `<span class="growth-bar" role="img" aria-label="${v.fixed} of ${v.total} notes fixed"><i style="width:${Math.round((v.fixed / v.total) * 100)}%"></i></span><small>${v.fixed} of ${v.total} notes fixed</small>` : '<small>No notes yet</small>'}
+            ${v.canCard ? `<button class="btn small" type="button" data-make-card="${v.video_id}" data-project="${v.last.project_id}">✦ Make a card</button>` : ''}</div>
+        </div>`).join('')}</div>`
+        : `<p class="panel-empty">${videos.length ? 'Progress shows up once a video has a second take.' : 'No videos from them yet.'}</p>`)
+      : tab === 'videos'
       ? (videos.length ? `<div class="video-list">${videos.map(({ latest: t, count }) => `<div class="video-item"><a class="video-row" href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link>
           <span class="video-thumb" data-thumb="${t.id}"><i aria-hidden="true">▶</i>${count > 1 ? `<em>${count} takes</em>` : ''}</span>
           <span class="video-copy"><b>${esc(t.videos?.title || 'Video')}</b><small>${esc(t.projects?.title || '')} · Take ${t.number} · ${timeAgo(t.created_at)}</small></span>
@@ -110,5 +139,9 @@ export async function renderPerson(userId) {
       : list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`
       : `<p class="panel-empty">${tab === 'given' ? 'No notes from them yet.' : 'No notes on their takes yet.'}</p>`}
   </section>`;
-  if (tab === 'videos') paintThumbs(videos.map((v) => v.latest));  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
+  if (tab === 'videos') paintThumbs(videos.map((v) => v.latest));
+  if (tab === 'progress') {
+    paintThumbs(growth.flatMap((v) => [v.first, v.last]));
+    $$('[data-make-card]').forEach((b) => b.addEventListener('click', () => openCardEditor({ projectId: b.dataset.project, videoId: b.dataset.makeCard, from: 'profile' })));
+  }  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
 }

@@ -92,7 +92,7 @@ export async function restoreFromTrash(kind, id, after = () => {}) {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -261,6 +261,10 @@ export async function renderProjectSettings(projectId) {
         ${invites?.length ? `<div class="list flush">${invites.map((i) => `<div class="row"><span class="row-main"><span class="row-title mono">…/join/${esc(i.code.slice(0, 6))}…</span><span class="row-meta">Created by ${esc(names[i.created_by] || 'someone')} · expires ${new Date(i.expires_at).toLocaleDateString()}</span></span><span class="row-side"><button class="btn ghost small" data-copy-link="${esc(i.code)}">Copy</button>${canRevoke(i) ? `<button class="btn ghost small danger" data-revoke="${esc(i.code)}">Turn off</button>` : ''}</span></div>`).join('')}</div>`
           : '<p class="panel-empty">No active links.</p>'}
       </section>
+      ${p.isOwner && !p.project.is_sample && schema.shareCards ? `<section class="panel">
+        <label class="row toggle-row"><span class="row-main"><span class="row-title">Teammates can share progress cards</span><span class="row-meta">Anyone on the project can turn its takes into a progress image for Instagram and the like. Turn this off for choreography that’s secret until a show or competition.</span></span>
+          <span class="switch"><input type="checkbox" data-share-cards ${p.project.allow_share_cards !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
+      </section>` : ''}
       <section class="panel danger-zone">
         <div class="panel-head"><div><h2>${p.isOwner ? 'Delete project' : 'Leave project'}</h2><p class="muted">${p.isOwner ? (trashable ? 'Moves it to the Trash for everyone. You can restore it within 30 days.' : 'Deletes every video, take, and note for everyone. This can’t be undone.') : 'You’ll lose access to its videos and notes. Ask for a new invite to come back.'}</p></div>
           <button class="btn danger" data-danger>${p.isOwner ? 'Delete project' : 'Leave project'}</button></div>
@@ -281,6 +285,12 @@ export async function renderProjectSettings(projectId) {
     if (error) return toast(friendlyError(error), 'error');
     toast('Project renamed.');
     ctx.route();
+  });
+  $('[data-share-cards]')?.addEventListener('change', async (event) => {
+    const on = event.target.checked;
+    const { error } = await sb.from('projects').update({ allow_share_cards: on }).eq('id', projectId);
+    if (error) { event.target.checked = !on; return toast(friendlyError(error), 'error'); }
+    toast(on ? 'Teammates can share progress cards.' : 'Progress cards are off for this project.');
   });
   $('[data-new-link]').addEventListener('click', async () => {
     const { error } = await sb.from('project_invites').insert({ project_id: projectId });

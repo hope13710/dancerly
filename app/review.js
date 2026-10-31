@@ -12,6 +12,7 @@ import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, s
 import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
 import { personLink } from './views/shared.js';
+import { shareChoice, celebrate } from './progress-card.js';
 
 // Slow is for learning a move; 1.25–1.5× is for skimming a long run-through. Picked from a menu, or < and >.
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
@@ -78,7 +79,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · ${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ <span class="wide-only">Upload a new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost wide-only" data-share-video title="A read-only link for people outside the team">Share</button>'}<button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">⋯</button></div>
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ <span class="wide-only">Upload a new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button><button class="btn small ghost wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">⋯</button></div>
     </header>
     ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Invite your team so they can watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
     <div class="review-layout">
@@ -675,7 +676,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const { error } = await sb.rpc('set_note_status', { p_note: id, p_status: el.dataset.status });
       if (error) return toast(friendlyError(error), 'error');
       toast(el.dataset.status === 'resolved' ? `Correction landed ✓ ${noteTime(note)}` : el.dataset.status === 'practicing' ? 'Marked as practicing.' : 'Note reopened.');
-      return loadNotes();
+      await loadNotes();
+      // The last open note on this video just got fixed: offer a progress card, once.
+      if (el.dataset.status === 'resolved' && !r.notes.some((n) => !n.private_to && n.status !== 'resolved')) celebrate({ projectId, videoId });
+      return;
     }
     if (el.dataset.delete) {
       const sure = await dialog({ title: 'Delete this note?', body: 'It disappears for everyone on the project.', confirm: 'Delete', danger: true });
@@ -881,7 +885,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   wireUpload();
   $('[data-video-more]')?.addEventListener('click', moreActions);
-  $('[data-share-video]')?.addEventListener('click', () => shareVideo(videoId, video.title));
+  // Share: a progress card (Take 1 next to the latest), or the read-only guest link. In the sample too, as a preview.
+  const openShare = () => shareChoice({ projectId, videoId, videoTitle: video.title, sample: project.is_sample, takes: takes.length, latest: takes[takes.length - 1]?.number, linkShare: shareVideo });
+  $('[data-share-video]')?.addEventListener('click', openShare);
   $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
   $('[data-invite-dismiss]')?.addEventListener('click', () => {
     try { localStorage.setItem(`looproom:inviteStrip:${projectId}`, 'hidden'); } catch {}
@@ -934,13 +940,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const narrow = matchMedia('(max-width: 600px)').matches;
     const choice = await actionSheet({ title: video.title, actions: [
       ...(narrow ? [{ value: 'compare', label: r.compare.on ? '⧉ Stop comparing' : '⧉ Compare', hint: 'Play another take or video side by side' }] : []),
-      ...(narrow && !project.is_sample ? [{ value: 'share', label: 'Share', hint: 'A read-only link for people outside the team' }] : []),
+      ...(narrow ? [{ value: 'share', label: 'Share', hint: 'A progress card for Instagram, or a read-only link' }] : []),
       ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: schema.trash ? 'Moves to Trash for 30 days' : 'Just this take and the notes left on it', danger: true }] : []),
       ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: schema.trash ? `${takes.length > 1 ? `All ${takes.length} takes` : 'The video'} and its notes · Trash keeps it 30 days` : takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
     if (choice === 'compare') return toggleCompare();
-    if (choice === 'share') return shareVideo(videoId, video.title);
+    if (choice === 'share') return openShare();
     if (choice === 'merge') return mergeInto();
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();
