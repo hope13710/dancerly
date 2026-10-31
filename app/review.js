@@ -11,6 +11,7 @@ import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash } fro
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
+import { personLink } from './views/shared.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
@@ -168,7 +169,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const c = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
     return c ? `<span class="count-tag" title="Eight ${c.eight}, count ${c.count}">${countLabel(c)}</span>` : '';
   };
-  const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention">@${esc(m.name)}</span>`), esc(text));
+  const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
+  // A note's or reply's author, opening their profile (someone who left the project stays plain text).
+  const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
   const canResolve = (n) => n.author_id === me.id || isOwner;
 
   function paintNotes() {
@@ -202,7 +205,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
         ${ask}
-        <div class="note-foot"><span class="who">${avatar(nameOf(n.author_id), n.author_id, 'xs')}${esc(nameOf(n.author_id))} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
+        <div class="note-foot"><span class="who">${by(n.author_id)} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
           <button class="mini ${looping ? 'on' : ''}" data-loop="${n.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}">👍 ${agrees || ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
@@ -211,7 +214,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           ${canResolve(n) ? `<button class="mini ghost" data-delete="${n.id}" aria-label="Delete note">🗑</button>` : ''}
         </div>
         ${open ? `<div class="thread">
-          ${replies.map((rp) => `<div class="reply">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
+          ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
           <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;

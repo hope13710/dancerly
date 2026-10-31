@@ -6288,3 +6288,10 @@ button.row {
 .person-link.after-text {
   margin-left: 4px;
 }
+.mention[data-person] {
+  cursor: pointer;
+}
+.mention[data-person]:hover,
+.mention[data-person]:focus-visible {
+  text-decoration: underline;
+}
