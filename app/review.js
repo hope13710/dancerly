@@ -13,7 +13,10 @@ import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
 import { personLink } from './views/shared.js';
 
-const SPEEDS = [1, 0.75, 0.5, 0.25];
+// Slow is for learning a move; 1.25–1.5× is for skimming a long run-through. Picked from a menu, or < and >.
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
+const SPEED_KEY = 'looproom:speed';
+const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(s) ? s : 1; } catch { return 1; } };
 
 // The review screen: one video, its takes, and the team's notes on them.
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
@@ -102,7 +105,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><button data-speed title="Playback speed">1×</button><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
         <div class="counts-panel" data-counts-panel hidden>
           <div class="counts-row">
             <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
@@ -363,7 +366,38 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   videoEl.addEventListener('loadedmetadata', () => { $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
   videoEl.addEventListener('error', () => toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'));
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
-  $('[data-speed]').addEventListener('click', () => { r.speed = SPEEDS[(SPEEDS.indexOf(r.speed) + 1) % SPEEDS.length]; videoEl.playbackRate = r.speed; paintPlayer(); });
+  // Playback speed: a small menu (like YouTube's), < and > to step, and it's remembered on this device.
+  const speedBtn = $('[data-speed]');
+  const speedMenu = $('[data-speed-menu]');
+  const setSpeed = (s) => {
+    r.speed = s;
+    videoEl.defaultPlaybackRate = s;
+    videoEl.playbackRate = s;
+    try { localStorage.setItem(SPEED_KEY, String(s)); } catch {}
+    $$('[data-set-speed]', speedMenu).forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.setSpeed) === s)));
+    paintPlayer();
+  };
+  const stepSpeed = (dir) => { const i = SPEEDS.indexOf(r.speed) + dir; if (i >= 0 && i < SPEEDS.length) { setSpeed(SPEEDS[i]); toast(r.speed === 1 ? 'Normal speed' : `${r.speed}× speed`); } };
+  const closeSpeed = (refocus) => { if (speedMenu.hidden) return; speedMenu.hidden = true; speedBtn.setAttribute('aria-expanded', 'false'); if (refocus) speedBtn.focus(); };
+  speedBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!speedMenu.hidden) return closeSpeed(false);
+    speedMenu.hidden = false;
+    speedBtn.setAttribute('aria-expanded', 'true');
+    speedMenu.querySelector('[aria-checked="true"]')?.focus();
+  });
+  speedMenu.addEventListener('click', (e) => { const b = e.target.closest('[data-set-speed]'); if (b) { setSpeed(Number(b.dataset.setSpeed)); closeSpeed(true); } });
+  speedMenu.addEventListener('keydown', (e) => {
+    const items = $$('[data-set-speed]', speedMenu);
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus(); }
+    else if (e.key === 'Escape' || e.key === 'Tab') closeSpeed(e.key === 'Escape');
+    else return;
+    e.preventDefault();
+    e.stopPropagation(); // the player's own keys (arrows, Escape) stay out of the menu
+  });
+  const outside = (e) => { if (!e.target.closest('.speed-wrap')) closeSpeed(false); };
+  document.addEventListener('click', outside);
   const toggleMirror = () => { r.mirror = !r.mirror; localStorage.setItem('looproom:mirror', r.mirror ? '1' : '0'); paintPlayer(); };
   $('[data-mirror]').addEventListener('click', toggleMirror);
   // Free A–B loop: any part of the video, no note needed.
@@ -825,12 +859,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
       d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
-      escape: () => setLoop(null), arrowup: () => step(-1), arrowdown: () => step(1)
+      escape: () => setLoop(null), arrowup: () => step(-1), arrowdown: () => step(1),
+      '<': () => stepSpeed(-1), '>': () => stepSpeed(1), ',': () => e.shiftKey && stepSpeed(-1), '.': () => e.shiftKey && stepSpeed(1)
     };
     const action = actions[e.key.toLowerCase()];
     if (action) { e.preventDefault(); action(); }
   }
   document.addEventListener('keydown', onKey);
+  setSpeed(savedSpeed()); // the last speed used on this device (after the player is fully set up)
 
   // ---------- Live updates: teammates' notes appear without refreshing ----------
   let reloadTimer;
@@ -979,6 +1015,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     closeTips();
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);
+    document.removeEventListener('click', outside);
     window.removeEventListener('resize', onResize);
     r.drawing?.stop();
     video2.pause();

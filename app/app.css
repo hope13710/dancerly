@@ -6295,3 +6295,47 @@ button.row {
 .mention[data-person]:focus-visible {
   text-decoration: underline;
 }
+
+/* Playback speed menu: opens above the button, on the dark player bar. */
+.speed-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.speed-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 80; /* above the first-visit tip cards */
+  display: grid;
+  min-width: 104px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #1f2228;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.speed-menu[hidden] {
+  display: none;
+}
+.controls .speed-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.speed-menu button::before {
+  content: '';
+  width: 12px;
+  flex: none;
+}
+.speed-menu button[aria-checked="true"] {
+  color: #fff;
+  font-weight: 650;
+}
+.speed-menu button[aria-checked="true"]::before {
+  content: '✓';
+}
