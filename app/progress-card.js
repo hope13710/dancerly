@@ -11,6 +11,8 @@ import { thumbUrls } from './thumbs.js';
 
 const W = 1080, H = 1920;
 const SAFE_TOP = 216, SAFE_BOTTOM = 256; // Instagram's own buttons cover these
+const BRAND_LINE = H - SAFE_BOTTOM - 40; // baseline of the logo row at the bottom
+const BRAND_GAP = 150; // clear space between the content and the logo row
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 const TEMPLATES = isKo ? [['stage', '스테이지'], ['light', '라이트'], ['photo', '포토']] : [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
 const STATS = ['fixed', 'takes', 'days', 'practice'];
@@ -160,7 +162,10 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   y += 100 + (rows - 1) * 96 + 64;
   // The pair, 4:6: Take 1 is where you started, the latest take is the star. Bottoms line up.
   const gap = 22, inner = W - 100 - gap, bw = Math.round(inner * 0.4), aw = inner - bw;
-  const ah = Math.round(aw * 1.2), bh = Math.round(bw * 1.2), top = y;
+  // The pictures take whatever height is left once the numbers, the fixed line, and the logo's clear space fit.
+  const below = 70 + (stats.length ? 190 : 0) + (s.line && c.fixedLine ? 104 : 0);
+  const room = BRAND_LINE - 42 - BRAND_GAP - y - below;
+  const ah = Math.max(420, Math.min(Math.round(aw * 1.2), room)), bh = Math.round(ah * bw / aw), top = y;
   [[s.before, tagB, t.tagB, day(c.first.created_at), 50, top + ah - bh, bw, bh, 30], [s.after, `${tagA} · ${NOW}`, t.tagA, day(c.latest.created_at), 50 + bw + gap, top, aw, ah, 34]].forEach(([img, tag, [bg, fg], when, px, py, pw, ph, size], i) => {
     g.save(); rounded(g, px, py, pw, ph, 34); g.clip(); cover(g, img, px, py, pw, ph);
     const fade = g.createLinearGradient(0, py + ph - 160, 0, py + ph); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.55)');
@@ -217,14 +222,17 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   wrap(g, s.title || c.video.title, 60, H - SAFE_BOTTOM - 150, W - 120, 76, 1);
   const rest = stats.slice(1).map(([n, , k]) => phrase(k, n));
   g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 36px ${FONT}`;
-  wrap(g, [c.project.title, ...rest].join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120 - 220, 40, 1);
-  drawLogo(g, s.logo, W - 60, H - SAFE_BOTTOM - 84, 'right', '#ffffff', '#fff');
+  wrap(g, [c.project.title, ...rest].join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120, 40, 1);
+  // The logo sits top right, level with the Take 1 tag, clear of the title block at the bottom.
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18;
+  drawLogo(g, s.logo, W - 50, SAFE_TOP + 30 + 45, 'right', '#ffffff', '#fff');
+  g.restore();
 }
 
 function brand(g, ink, x, logo, tint) {
-  drawLogo(g, logo, x, H - SAFE_BOTTOM - 40, 'left', tint, ink);
+  drawLogo(g, logo, x, BRAND_LINE, 'left', tint, ink);
   g.globalAlpha = 0.78; g.fillStyle = ink; g.textBaseline = 'alphabetic';
-  g.font = `600 34px ${FONT}`; g.textAlign = 'right'; g.fillText('dancerly.app', W - x, H - SAFE_BOTTOM - 40); g.textAlign = 'left';
+  g.font = `600 34px ${FONT}`; g.textAlign = 'right'; g.fillText('dancerly.app', W - x, BRAND_LINE); g.textAlign = 'left';
   g.globalAlpha = 1;
 }
 
