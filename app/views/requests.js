@@ -9,7 +9,7 @@ import { loadGroups } from './groups.js';
 
 const STATUS = {
   missing: ['Not submitted', ''],
-  overdue: ['Overdue', 'danger'],
+  overdue: ['Late', 'danger'],
   submitted: ['Submitted', 'info'],
   reviewed: ['Reviewed', 'warn'],
   fixed: ['All fixed', 'ok']
@@ -59,13 +59,13 @@ export async function renderProjectRequests(projectId) {
   const me = ctx.state.session.user.id;
   const show = new URLSearchParams(location.search).get('show') === 'closed' ? 'closed' : 'active';
   const [p, { requests, videos }] = await Promise.all([loadProject(projectId), loadRequests(projectId)]);
-  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Requests']]);
+  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Assignments']]);
   const shown = requests.filter((r) => r.status === show)
     .sort((a, b) => (show === 'active' ? (a.due_at || '9999').localeCompare(b.due_at || '9999') : b.closed_at?.localeCompare(a.closed_at || '') || 0));
   const counts = { active: requests.filter((r) => r.status === 'active').length, closed: requests.filter((r) => r.status === 'closed').length };
   const base = `/app/p/${projectId}/requests`;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'requests', '<button class="btn primary" data-new-request>+ New request</button>')}
+    ${projectHead(p, 'requests', '<button class="btn primary" data-new-request>+ New assignment</button>')}
     <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['active', 'Active'], ['closed', 'Closed']].map(([k, l]) => `<a href="${base}${k === 'active' ? '' : '?show=closed'}" data-link aria-selected="${k === show}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((r) => {
       const subs = submissionsFor(r, p.members, videos);
@@ -79,7 +79,7 @@ export async function renderProjectRequests(projectId) {
         <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">›</span></span>
       </a>`;
     }).join('')}</div>`
-      : empty('⇪', show === 'active' ? 'No open requests' : 'No closed requests', show === 'active' ? 'Ask your team for a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Requests you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New request</button>${samplePeek('requests')}` : '')}
+      : empty('⇪', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Give your team a video to send by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
   </section>`;
   $$('[data-new-request]').forEach((b) => b.addEventListener('click', () => newRequest(projectId)));
 }
@@ -96,8 +96,8 @@ export async function newRequest(projectId) {
   el.className = 'dialog';
   const nextFri = new Date(); nextFri.setDate(nextFri.getDate() + ((5 - nextFri.getDay() + 7) % 7 || 7));
   el.innerHTML = `<form method="dialog" class="dialog-card request-form">
-    <h2>New request</h2>
-    <p>Ask for a video by a date. Everyone it’s for gets it in their Inbox.</p>
+    <h2>New assignment</h2>
+    <p>A video to send by a date. Everyone it’s for gets it in their Inbox.</p>
     <label class="field"><span>What do you need?</span><input name="title" maxlength="120" required placeholder="Chorus run-through, full out" /></label>
     <label class="field"><span>Brief <small>optional</small></span><textarea name="brief" rows="3" maxlength="4000" placeholder="Film from the front, full out, with the track. Watch the 5-6 arms."></textarea></label>
     <div class="date-row">
@@ -112,9 +112,9 @@ export async function newRequest(projectId) {
     </div></div>
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
     <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Nobody else has joined yet. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>'}</div>
-    ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” requests too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
+    ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” assignments too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
     ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${videos.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select></label>` : ''}
-    <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Send request</button></div>
+    <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Assign</button></div>
   </form>`;
   document.body.append(el);
   el.querySelectorAll('[data-invite-copy]').forEach((b) => b.addEventListener('click', () => copyInvite(projectId, 'request')));
@@ -146,7 +146,7 @@ export async function newRequest(projectId) {
   if (!values?.title) return;
   if (values.who === 'some' && !values.people.length) return toast('Pick at least one person, or choose Everyone.', 'error');
   if (values.who === 'groups' && !values.groups.length) return toast('Pick at least one group.', 'error');
-  if (values.weekly && !values.date) return toast('A weekly request needs a due date.', 'error');
+  if (values.weekly && !values.date) return toast('A weekly assignment needs a due date.', 'error');
   const due = values.date ? new Date(`${values.date}T${values.time}`).toISOString() : null;
   const { data: rid, error } = await sb.rpc('create_request_v2', {
     p_project: projectId, p_title: values.title, p_brief: values.brief, p_due: due,
@@ -154,7 +154,7 @@ export async function newRequest(projectId) {
     p_reference: values.reference, p_repeat_weekly: values.weekly
   });
   if (error) return toast(friendlyError(error), 'error');
-  toast('Request sent.');
+  toast('Assignment sent to your team.');
   ctx.navigate(`/app/p/${projectId}/requests/${rid}`);
 }
 
@@ -164,8 +164,8 @@ export async function renderRequest(projectId, requestId) {
   const me = ctx.state.session.user.id;
   const [p, { requests, videos }] = await Promise.all([loadProject(projectId), loadRequests(projectId)]);
   const r = requests.find((x) => x.id === requestId);
-  if (!r) throw new Error('This request was deleted or isn’t in this project.');
-  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Requests', `/app/p/${projectId}/requests`], [r.title]]);
+  if (!r) throw new Error('This assignment was deleted or isn’t in this project.');
+  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Assignments', `/app/p/${projectId}/requests`], [r.title]]);
   const subs = submissionsFor(r, p.members, videos);
   const mine = subs.find((s) => s.member.user_id === me);
   const canManage = r.created_by === me || p.isOwner;
@@ -176,15 +176,15 @@ export async function renderRequest(projectId, requestId) {
   const reference = r.reference_video_id ? (await sb.from('videos').select('id, title').eq('id', r.reference_video_id).maybeSingle()).data : null;
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div>
-      <p class="eyebrow">Request${r.status === 'closed' ? ' · Closed' : ''}</p>
+      <p class="eyebrow">Assignment${r.status === 'closed' ? ' · Closed' : ''}</p>
       <h1>${esc(r.title)}</h1>
       <p class="muted sub"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · for ${r.everyone ? 'everyone' : esc(r.audience || `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`)}${r.repeat_weekly ? ' · <span class="tag">↻ Repeats weekly</span>' : ''} · from ${esc(author)} · ${timeAgo(r.created_at)}</p>
     </div>
     <div class="head-actions">
       ${mine && r.status === 'active' ? `<button class="btn primary" data-submit>${mine.video ? `Upload Take ${(mine.latest?.number || 0) + 1}` : 'Submit your video'}</button>` : ''}
-      ${canManage ? '<button class="btn ghost icon" data-manage aria-label="Request settings">•••</button>' : ''}
+      ${canManage ? '<button class="btn ghost icon" data-manage aria-label="Assignment settings">•••</button>' : ''}
     </div></header>
-    ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close request</button></div>' : ''}
+    ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
     ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
       ${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ''}
       ${reference ? `<p class="brief-ref">Reference: <a class="link" href="/app/p/${projectId}/v/${reference.id}" data-link>▶ ${esc(reference.title)}</a></p>` : ''}
@@ -213,13 +213,13 @@ export async function renderRequest(projectId, requestId) {
   $('[data-manage]')?.addEventListener('click', async () => {
     const local = r.due_at ? new Date(new Date(r.due_at).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
     const values = await dialog({
-      title: 'Edit request',
+      title: 'Edit assignment',
       fields: [
         { name: 'title', label: 'Title', value: r.title, required: true },
         { name: 'due', label: 'Due', type: 'datetime-local', value: local, hint: 'Leave empty for no due date' }
       ],
       confirm: 'Save',
-      extra: r.status === 'active' ? 'Close request' : 'Reopen request'
+      extra: r.status === 'active' ? 'Close assignment' : 'Reopen assignment'
     });
     if (!values) return;
     if (values.extra) {
@@ -234,16 +234,16 @@ export async function renderRequest(projectId, requestId) {
   async function setStatus(status) {
     const { error } = await sb.from('requests').update({ status, closed_at: status === 'closed' ? new Date().toISOString() : null }).eq('id', r.id);
     if (error) return toast(friendlyError(error), 'error');
-    toast(status === 'closed' ? 'Request closed. Submissions stay in Videos.' : 'Request reopened.');
+    toast(status === 'closed' ? 'Assignment closed. Submissions stay in Videos.' : 'Assignment reopened.');
     renderRequest(projectId, requestId);
   }
   // Deleting is offered once a request is closed, to keep it out of the way.
   if (canManage && r.status === 'closed') {
     const del = document.createElement('button');
     del.className = 'btn ghost danger small';
-    del.textContent = 'Delete request';
+    del.textContent = 'Delete assignment';
     del.addEventListener('click', async () => {
-      const ok = await dialog({ title: 'Delete this request?', body: 'Submitted videos and their notes stay in the project.', confirm: 'Delete', danger: true });
+      const ok = await dialog({ title: 'Delete this assignment?', body: 'Submitted videos and their notes stay in the project.', confirm: 'Delete', danger: true });
       if (!ok) return;
       const { error } = await sb.from('requests').delete().eq('id', r.id);
       if (error) return toast(friendlyError(error), 'error');

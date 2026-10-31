@@ -21,8 +21,8 @@ function describe(item, names) {
   const project = esc(item.projects?.title || '');
   if (item.kind === 'joined') return `${who} joined <b>${project}</b>`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
-  if (item.kind === 'request_new') return `${who} asked you for a video: <b>${esc(item.requests?.title || '')}</b>`;
-  if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — you haven’t submitted yet`;
+  if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
+  if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
   if (item.kind === 'request_reminder') return `${who} reminded you: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
   if (item.kind === 'private_note') return `🔒 ${who} left you a private note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;

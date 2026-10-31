@@ -30,7 +30,7 @@ const DEFAULTS: Record<string, string> = {
   note_on_your_video: "digest", new_take: "digest", note_resolved: "digest", joined: "digest", recap_shared: "digest",
 };
 const GROUP_LABEL: Record<string, string> = {
-  mention: "@mention emails", private_note: "private note emails", reply: "reply emails", request: "video request emails",
+  mention: "@mention emails", private_note: "private note emails", reply: "reply emails", request: "assignment emails",
   note_on_your_video: "emails about notes on your videos", new_take: "new take emails", note_resolved: "emails about fixed notes",
   joined: "emails about people joining", recap_shared: "recap emails", digest: "morning summary emails", weekly: "weekly progress emails",
   onboarding: "getting started emails",
@@ -118,9 +118,9 @@ function describe(n: any, c: Ctx) {
     case "note_resolved": return { subject: `${who} fixed your note on “${vtitle}”`, line: `✓ <b>${esc(who)}</b> marked your note on <b>${esc(vtitle)}</b> at ${at} as fixed`, href: noteHref, cta: "See it", text: showText ? note.body : null };
     case "joined": return { subject: `${who} joined ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> joined <b>${esc(project?.title ?? "your project")}</b>`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Say hi", text: null };
     case "recap_shared": { const r = c.recaps.get(n.recap_id); return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
-    case "request_new": return { subject: `${who} asked you for a video${req?.due_at ? ` · due ${dueLabel(req.due_at)}` : ""}`, line: `<b>${esc(who)}</b> asked you for a video: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Upload your video", text: null };
-    case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your video"}`, line: `<b>${esc(who)}</b> sent a reminder: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Upload your video", text: null };
-    case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your video"}`, line: `<b>${esc(req?.title ?? "A video request")}</b> is due ${esc(dueLabel(req?.due_at))}. You haven’t sent yours yet.`, href: reqHref, cta: "Upload your video", text: null };
+    case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
+    case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
+    case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your assignment"}`, line: `Your assignment <b>${esc(req?.title ?? "")}</b> is due ${esc(dueLabel(req?.due_at))}. You haven’t submitted yet.`, href: reqHref, cta: "Submit your video", text: null };
     default: return { subject: "New activity on dancerly", line: "New activity on dancerly", href: `${SITE}/app/inbox?${ref}`, cta: "Open dancerly", text: null };
   }
 }

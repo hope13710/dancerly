@@ -230,7 +230,7 @@ export async function renderInsights() {
           : '<p class="panel-empty">Nothing has been sitting around. 👏</p>'}
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>Waiting on videos</h2><p class="muted">Requests people haven’t sent yet</p></div></div>
+        <div class="panel-head"><div><h2>Waiting on videos</h2><p class="muted">Assignments people haven’t submitted yet</p></div></div>
         ${waiting.length ? `<div class="list flush">${waiting.slice(0, 4).map((w) => `<a class="row" href="/app/p/${w.project_id}/requests/${w.id}" data-link><span class="row-main"><span class="row-title">${esc(w.title)}</span><span class="row-meta">${w.sent.length} of ${w.expected.length} sent · ${esc(dueLabel(w.due_at))}</span></span><span class="who-stack">${w.missing.slice(0, 4).map((u) => avatar(nameOf(u), u, 'xs')).join('')}${w.missing.length > 4 ? `<small>+${w.missing.length - 4}</small>` : ''}</span></a>`).join('')}</div>`
           : '<p class="panel-empty">Everyone’s sent what was asked for.</p>'}
       </section>

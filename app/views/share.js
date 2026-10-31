@@ -147,7 +147,7 @@ export async function subscribeCalendar() {
   }
   const url = `${SUPABASE_URL}/functions/v1/calendar-feed?token=${feed.token}`;
   const el = sheet(`<h2>Subscribe in your calendar</h2>
-    <p>Rehearsals, shows, and request due dates from all your projects, kept up to date in Google, Apple, or Outlook Calendar. Keep this link private — anyone with it can see your schedule.</p>
+    <p>Rehearsals, shows, and assignment due dates from all your projects, kept up to date in Google, Apple, or Outlook Calendar. Keep this link private — anyone with it can see your schedule.</p>
     ${copyRow(url)}
     <ul class="how-to">
       <li><b>Google Calendar</b> · Other calendars → + → From URL → paste</li>

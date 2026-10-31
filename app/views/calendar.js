@@ -1,4 +1,4 @@
-// Calendar: rehearsals, shows, and request due dates — per project, or across all of them.
+// Calendar: rehearsals, shows, and assignment due dates — per project, or across all of them.
 // Month grid on wide screens, an agenda list on phones (or when chosen).
 import { sb, $, $$, esc, toast, friendlyError, dialog, schema, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
@@ -48,13 +48,13 @@ export async function renderCalendar(projectId = null) {
   for (const it of items) { const k = dayKey(it.at); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(it); }
 
   const chip = (it, i) => `<button class="cal-item ${kindClass(it.kind)} ${it.closed ? 'closed' : ''}" data-item="${i}" title="${esc(it.title)}">${it.type === 'due' ? 'Due · ' : `${timeOf(it.at)} `}${esc(it.title)}</button>`;
-  const head = `${projectId ? projectHead(p, 'calendar', '<button class="btn primary" data-new-event>+ Add event</button>') : `<header class="page-head"><div><h1>Calendar</h1><p class="muted sub">Rehearsals, shows, and request due dates across your projects.</p></div><div class="head-actions"><button class="btn primary" data-new-event>+ Add event</button></div></header>`}`;
+  const head = `${projectId ? projectHead(p, 'calendar', '<button class="btn primary" data-new-event>+ Add event</button>') : `<header class="page-head"><div><h1>Calendar</h1><p class="muted sub">Rehearsals, shows, and assignment due dates across your projects.</p></div><div class="head-actions"><button class="btn primary" data-new-event>+ Add event</button></div></header>`}`;
   const toolbar = `<div class="cal-toolbar">
     ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
       <button class="btn small ghost" data-subscribe title="Keep Google, Apple, or Outlook Calendar in sync">Subscribe</button><button class="btn small ghost" data-ics title="Download upcoming events as a calendar file">Export .ics</button></div>
   </div>
-  <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span>${[...new Set(items.filter((it) => it.type === 'event' && !['rehearsal', 'show', 'other'].includes(it.kind)).map((it) => it.kind))].map((k) => `<span class="${kindClass(k)}">${esc(k)}</span>`).join('')}<span class="k-due">Request due</span></div>`;
+  <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span>${[...new Set(items.filter((it) => it.type === 'event' && !['rehearsal', 'show', 'other'].includes(it.kind)).map((it) => it.kind))].map((k) => `<span class="${kindClass(k)}">${esc(k)}</span>`).join('')}<span class="k-due">Assignment due</span></div>`;
 
   let body;
   if (mode === 'month') {
@@ -78,7 +78,7 @@ export async function renderCalendar(projectId = null) {
           <span class="row-main"><span class="row-title">${it.type === 'due' ? 'Due: ' : ''}${esc(it.title)}</span><span class="row-meta">${it.type === 'due' ? timeOf(it.at) : `${timeOf(it.at)}${it.end ? `–${timeOf(it.end)}` : ''}`}${it.raw.location ? ` · ${esc(it.raw.location)}` : ''}${projectId ? '' : ` · ${esc(it.project)}`}</span></span>
           <span class="row-side"><span class="pill ${it.kind === 'due' ? (it.closed ? '' : 'warn') : it.kind === 'show' ? 'info' : ''}">${esc(kindLabel(it.kind))}</span></span>
         </button>`).join('')}</div></section>`;
-    }).join('')}</div>` : `<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Request due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button>${samplePeek('calendar')}</div>`;
+    }).join('')}</div>` : `<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Assignment due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button>${samplePeek('calendar')}</div>`;
   }
 
   // An empty month shows a way to see a filled one (the agenda's empty state has its own).

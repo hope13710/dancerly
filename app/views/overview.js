@@ -41,7 +41,7 @@ export async function renderProjectOverview(projectId) {
     <div class="stats">
       <a class="stat link-stat" href="/app/p/${projectId}/counts" data-link><small>Sections clean</small><b>${rows?.length ? `${clean}/${rows.length}` : '—'}</b><span>${rows?.length ? 'on the count sheet' : 'start a count sheet'}</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/notes" data-link><small>Open notes</small><b>${openNotes ?? 0}</b><span>to practice</span></a>
-      <a class="stat link-stat" href="/app/p/${projectId}/requests" data-link><small>Open requests</small><b>${requests?.length ?? 0}</b><span>${requests?.[0]?.due_at ? `next due ${new Date(requests[0].due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'videos asked for'}</span></a>
+      <a class="stat link-stat" href="/app/p/${projectId}/requests" data-link><small>Open assignments</small><b>${requests?.length ?? 0}</b><span>${requests?.[0]?.due_at ? `next due ${new Date(requests[0].due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'videos asked for'}</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/people" data-link><small>People</small><b>${p.members.length}</b><span>on this project</span></a>
     </div>
     <div class="home-grid">

@@ -19,14 +19,14 @@ const KINDS = [
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
   ['recap_shared', 'Recaps shared with you', 'When a teammate shares an AI recap to a project.'],
-  ['request', 'Video requests', 'When someone asks you for a video, and their reminders.']
+  ['request', 'Assignments', 'When someone gives you an assignment, and its reminders.']
 ];
 // Email follow-ups by group (send-emails function). Same defaults as the server.
 const EMAIL_GROUPS = [
   ['mention', 'Someone @mentions you', 'instant', 'mention'],
   ['private_note', 'Private notes to you', 'instant', null],
   ['reply', 'Replies', 'instant', 'reply'],
-  ['request', 'Video requests and due dates', 'instant', 'request'],
+  ['request', 'Assignments and due dates', 'instant', 'request'],
   ['note_on_your_video', 'Notes on your videos', 'digest', 'note_on_your_video'],
   ['new_take', 'New takes', 'digest', 'new_take'],
   ['note_resolved', 'Your notes get fixed', 'digest', 'note_resolved'],

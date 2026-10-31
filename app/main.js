@@ -270,7 +270,7 @@ async function openNew() {
   const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
     { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A rehearsal or run-through' },
-    { value: 'request', label: 'Request a video', hint: project ? `From people in ${project.title}, by a date` : 'Ask people for a video by a date' },
+    { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'A video for your team to send by a date' },
     { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
     { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
@@ -282,8 +282,8 @@ async function openNew() {
   if (choice === 'request') {
     const target = project || (real.length === 1 ? real[0] : null);
     if (target) return newRequest(target.id);
-    if (!real.length) { toast('Requests belong to a project. Create one first.'); return createProject(); }
-    const values = await dialog({ title: 'Request in which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: real.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
+    if (!real.length) { toast('Assignments belong to a project. Create one first.'); return createProject(); }
+    const values = await dialog({ title: 'Assignment for which project?', fields: [{ name: 'project', label: 'Project', type: 'select', options: real.map((p) => ({ value: p.id, label: p.title })) }], confirm: 'Next' });
     if (values?.project) newRequest(values.project);
     return;
   }
@@ -697,7 +697,7 @@ function saveTimezone(userId) {
 // What the ⌘K palette can do besides searching.
 ctx.commands = [
   { label: 'Upload a video', hint: 'New video or take', run: () => newVideo(state.projects.find((p) => p.id === currentProjectId()) || null) },
-  { label: 'Request a video', hint: 'Ask people for a video by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
+  { label: 'New assignment', hint: 'A video for your team to send by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
   { label: 'New recap', hint: 'Summary by AI', run: () => newRecap({ projectId: currentProjectId() }) },
   { label: 'Add to calendar', hint: 'Rehearsal or show', run: () => editEvent({ projectId: currentProjectId() }) },
   { label: 'New project', run: () => createProject() },

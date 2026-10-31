@@ -53,7 +53,7 @@ export async function renderDeleteAccount() {
         </ul></div>
         <div><h3 class="da-stays">Stays with your teams</h3><ul>
           <li>Projects you hand over below, or that another owner already manages</li>
-          <li>Calendar events, pages, video requests, and groups you set up — without your name</li>
+          <li>Calendar events, pages, assignments, and groups you set up — without your name</li>
           <li>Videos where teammates also uploaded takes — their takes stay</li>
         </ul></div>
       </div>

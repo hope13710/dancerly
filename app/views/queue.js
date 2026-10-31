@@ -54,18 +54,18 @@ export async function renderQueue() {
 
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Review queue', { sub: 'New takes you haven’t watched yet, oldest first.', actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
-    ${tabs([['needs', 'Needs review', url({ show: 'needs' }), needs.length], ['resubmitted', 'Re-submitted', url({ show: 'resubmitted' }), resubmitted.length], ['overdue', 'Overdue', url({ show: 'overdue' }), overdue.length]], show)}
+    ${tabs([['needs', 'Needs review', url({ show: 'needs' }), needs.length], ['resubmitted', 'Re-submitted', url({ show: 'resubmitted' }), resubmitted.length], ['overdue', 'Late', url({ show: 'overdue' }), overdue.length]], show)}
     ${realProjects().length > 1 ? `<div class="filters"><label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label></div>` : ''}
     ${show === 'overdue'
       ? (overdue.length ? `<div class="list">${overdue.map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link>
           <span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due overdue">${esc(dueLabel(r.due_at))}</span> · ${esc(r.projects?.title || '')}</span></span>
-          <span class="row-side"><span class="pill danger">You haven’t submitted</span><span class="chev">›</span></span></a>`).join('')}</div>`
-        : empty('✓', 'Nothing overdue', 'Requests you were asked to submit and haven’t yet show up here once they’re past due.'))
+          <span class="row-side"><span class="pill danger">Not submitted</span><span class="chev">›</span></span></a>`).join('')}</div>`
+        : empty('✓', 'Nothing late', 'Assignments you haven’t submitted show up here once they’re past due.'))
       : list.length ? `<div class="list" data-queue>${list.map((v) => `<a class="row" href="${hrefFor(v)}" data-link data-queue-item>
           ${avatar(names[v.latest.uploaded_by], v.latest.uploaded_by, 'sm')}
           <span class="row-main"><span class="row-title">${esc(v.title)}</span>
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
-          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Request</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
+          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
         </a>`).join('')}</div>`
       : alone ? previewEmpty('rows', 'Your team’s new videos land here', 'When a teammate uploads a video or a new take, it waits here until you’ve watched it. Invite your team to get started.', `<button class="btn primary" data-start-action="invite">Invite your team</button>${samplePeek('queue')}`, 'queue')
       : empty('✓', 'You’re all caught up', 'When teammates upload a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}

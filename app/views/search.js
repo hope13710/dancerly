@@ -12,7 +12,7 @@ export function openSearch() {
   el.className = 'dialog palette';
   el.innerHTML = `<div class="palette-card" role="combobox" aria-expanded="true" aria-haspopup="listbox">
     <div class="palette-input"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-      <input data-q placeholder="Search notes, videos, people, requests… or type a command" autocomplete="off" aria-label="Search" aria-controls="palette-list" /><kbd>esc</kbd></div>
+      <input data-q placeholder="Search notes, videos, people, assignments… or type a command" autocomplete="off" aria-label="Search" aria-controls="palette-list" /><kbd>esc</kbd></div>
     <div class="palette-list" id="palette-list" role="listbox" data-list></div>
     <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to open</span></div>
   </div>`;
@@ -79,7 +79,7 @@ export function openSearch() {
       ...projects,
       ...(people.data || []).filter((p) => !isSamplePerson(p.id)).map((p) => ({ group: 'People', icon: esc(initials(p.display_name)), label: p.display_name, href: `/app/people/${p.id}` })),
       ...(videos.data || []).map((v) => ({ group: 'Videos', icon: '▶', label: v.title, hint: v.projects?.title, href: `/app/p/${v.project_id}/v/${v.id}` })),
-      ...(requests.data || []).map((r) => ({ group: 'Requests', icon: '⇪', label: r.title, hint: r.projects?.title, href: `/app/p/${r.project_id}/requests/${r.id}` })),
+      ...(requests.data || []).map((r) => ({ group: 'Assignments', icon: '⇪', label: r.title, hint: r.projects?.title, href: `/app/p/${r.project_id}/requests/${r.id}` })),
       ...(notes.data || []).map((n) => ({ group: 'Notes', icon: '◫', label: n.body.length > 90 ? `${n.body.slice(0, 90)}…` : n.body, hint: `${n.videos?.title || ''} · ${fmt(Number(n.t_start))}`, href: `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}` })),
       ...cmds.slice(0, 4)
     ];

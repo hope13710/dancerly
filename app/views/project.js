@@ -113,7 +113,7 @@ export function projectHead({ project, members, goal }, tab, actions = '') {
       </div></div>
       <div class="head-actions">${project.is_sample ? `${actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
     </header>
-    ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Requests', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+    ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Assignments', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
 }
 
 export async function renderProject(projectId) {

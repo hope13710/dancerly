@@ -56,7 +56,7 @@ export async function renderHome() {
   ] : [
     ['Watch a team video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
     ['Check feedback for you', !todo.length, todo.length ? '/app/feedback' : null],
-    ['Upload your video', (myTakes || 0) > 0, dueFromMe[0] ? `/app/p/${dueFromMe[0].project_id}/requests/${dueFromMe[0].id}` : 'video'],
+    ['Submit your video', (myTakes || 0) > 0, dueFromMe[0] ? `/app/p/${dueFromMe[0].project_id}/requests/${dueFromMe[0].id}` : 'video'],
     ['Reply or leave a note', (myReplies || 0) + (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null]
   ];
   const done = steps.filter((s) => s[1]).length;
@@ -119,7 +119,7 @@ export async function renderHome() {
     ${recapCard.html}
     <div class="home-strip">
       <section class="panel">
-        <div class="panel-head"><div><h2>Due from you</h2><p class="muted">Videos you were asked for</p></div></div>
+        <div class="panel-head"><div><h2>Your assignments</h2><p class="muted">Videos to submit</p></div></div>
         ${dueFromMe.length ? `<div class="list flush">${dueFromMe.slice(0, 3).map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link><span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due ${r.due_at && new Date(r.due_at) < new Date() ? 'overdue' : ''}">${esc(dueLabel(r.due_at))}</span></span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing due. 🎉</p>'}
       </section>
       <section class="panel">

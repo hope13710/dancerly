@@ -11,7 +11,7 @@ export function groupsSection(p, groups) {
   const nameOf = (id) => p.members.find((m) => m.user_id === id)?.name || 'Former member';
   const canManage = (g) => g.created_by === p.me || p.isOwner;
   return `<section class="panel groups-panel">
-    <div class="panel-head"><div><h2>Groups</h2><p class="muted">Send a request to a whole group at once.</p></div><button class="btn small" data-new-group>+ New group</button></div>
+    <div class="panel-head"><div><h2>Groups</h2><p class="muted">Give a whole group an assignment at once.</p></div><button class="btn small" data-new-group>+ New group</button></div>
     ${groups.length ? `<div class="list flush">${groups.map((g) => `<div class="row">
       <span class="row-main"><span class="row-title">${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></span>
         <span class="chips">${g.project_group_members.map((m) => `<span class="chip">${avatar(nameOf(m.user_id), m.user_id, 'xs')} ${esc(nameOf(m.user_id))}</span>`).join('') || '<span class="muted">Nobody yet</span>'}</span></span>
@@ -45,7 +45,7 @@ async function editGroup(projectId, p, group, refresh) {
     el.remove();
   }));
   if (result.action === 'delete') {
-    const sure = await dialog({ title: `Delete “${group.name}”?`, body: 'Requests already sent to it are not affected.', confirm: 'Delete', danger: true });
+    const sure = await dialog({ title: `Delete “${group.name}”?`, body: 'Assignments already given to it are not affected.', confirm: 'Delete', danger: true });
     if (!sure) return;
     const { error } = await sb.from('project_groups').delete().eq('id', group.id);
     if (error) return toast(friendlyError(error), 'error');

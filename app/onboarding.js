@@ -274,7 +274,7 @@ export async function memberWelcome(projectId, project, members) {
     <ol class="welcome-list">
       <li><span class="wl-icon" aria-hidden="true">◎</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} waiting for you — tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
       <li><span class="wl-icon" aria-hidden="true">↻</span><span><b>Practice with loop and mirror</b><small>Loop the part you’re working on, slow it down, flip it to match the mirror.</small></span></li>
-      <li><span class="wl-icon" aria-hidden="true">↑</span><span><b>Upload your video</b><small>${requests[0] ? `Requested: ${esc(requests[0].title)}.` : 'Film from the front, whole body in frame, with the music.'}</small></span></li>
+      <li><span class="wl-icon" aria-hidden="true">↑</span><span><b>Submit your video</b><small>${requests[0] ? `Assignment: ${esc(requests[0].title)}.` : 'Film from the front, whole body in frame, with the music.'}</small></span></li>
     </ol>
     ${latest ? '' : `<p class="fine left">${owner && owner.user_id !== me ? `No videos here yet. When ${esc(owner.name)} uploads one, you’ll get a notification.` : 'No videos here yet. You’ll get a notification when one is uploaded.'}</p>`}
     <div class="dialog-actions"><button class="btn ghost" data-close>${primary ? 'Later' : 'Got it'}</button>${primary ? `<a class="btn primary" href="${primary.href}" data-link data-go>${primary.label}</a>` : ''}</div>
