@@ -172,6 +172,20 @@ export function friendlyError(error) {
 }
 
 // A small promise-based dialog so views can ask for a title or confirm a delete.
+// Enter while typing in a key handler: false while a Korean/Japanese IME is still composing, since that
+// Enter only finishes the word (acting on it would cut or double the last syllable).
+export const isEnter = (event) => event.key === 'Enter' && !event.isComposing && event.keyCode !== 229;
+
+// In a dialog form, Enter in a text field confirms. Left to the browser it would press the first button in
+// the markup, which is Cancel. Required fields are still checked.
+export function enterConfirms(el) {
+  el.addEventListener('keydown', (event) => {
+    if (!isEnter(event) || !event.target.matches('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])')) return;
+    event.preventDefault();
+    el.querySelector('form').requestSubmit(el.querySelector('button[value="ok"]'));
+  });
+}
+
 export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel = 'Cancel', danger = false, extra = null }) {
   return new Promise((resolve) => {
     const el = document.createElement('dialog');
@@ -200,14 +214,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     });
     // A link in the body goes somewhere else in the app: close the dialog on the way.
     el.addEventListener('click', (event) => { if (event.target.closest('a[data-link]')) el.close('cancel'); });
-    // Enter in a text field confirms. Left to the browser it would press the first button, which is Cancel.
-    // Not while a Korean/Japanese IME is still composing: that Enter only finishes the word.
-    el.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229) return;
-      if (!event.target.matches('input:not([type="file"]):not([type="checkbox"]):not([type="radio"])')) return;
-      event.preventDefault();
-      el.querySelector('form').requestSubmit(el.querySelector('button[value="ok"]'));
-    });
+    enterConfirms(el);
     el.showModal();
     el.querySelector('input')?.focus();
   });

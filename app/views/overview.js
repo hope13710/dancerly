@@ -1,5 +1,5 @@
 // Project › Overview (goal, music, what's next, how it's going) and › Count sheet (the piece, section by section).
-import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema } from '../client.js';
+import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema, isEnter } from '../client.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { kindClass, daysUntil, daysLabel } from './shared.js';
@@ -138,7 +138,17 @@ export async function renderCountSheet(projectId) {
         if (field === 'status' || field === 'video_id') setTimeout(() => renderCountSheet(projectId), 150);
       };
       if (input.tagName === 'SELECT') input.addEventListener('change', commit);
-      else input.addEventListener('input', () => { clearTimeout(timers[id + field]); timers[id + field] = setTimeout(commit, 600); });
+      else {
+        input.addEventListener('input', () => { clearTimeout(timers[id + field]); timers[id + field] = setTimeout(commit, 600); });
+        // Enter saves now and moves down a row, like a spreadsheet.
+        input.addEventListener('keydown', (e) => {
+          if (!isEnter(e)) return;
+          e.preventDefault();
+          if (timers[id + field]) { clearTimeout(timers[id + field]); timers[id + field] = null; commit(); }
+          const below = tr.nextElementSibling?.querySelector(`[data-field="${field}"]`);
+          if (below) below.focus(); else input.blur();
+        });
+      }
     });
     tr.querySelector('[data-delete-row]').addEventListener('click', async () => {
       const ok = await dialog({ title: 'Delete this section?', confirm: 'Delete', danger: true });

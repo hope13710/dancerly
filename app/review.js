@@ -1,5 +1,5 @@
 import { cols, schema } from './client.js';
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl } from './client.js';
+import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
@@ -753,6 +753,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       items.forEach((b) => b.classList.toggle('active', b === next));
       return;
     }
+    if (e.key === 'Enter' && !isEnter(e)) return; // a Korean/Japanese IME is finishing a word
     if (!menu.hidden && (e.key === 'Enter' || e.key === 'Tab') && $('[data-pick].active', menu)) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick); return; }
     if (e.key === 'Escape') { if (!menu.hidden) menu.hidden = true; else input.blur(); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pin(); }

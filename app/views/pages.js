@@ -1,5 +1,5 @@
 // Project › Pages: plain-Markdown docs anyone on the project can write — plans, spacing, costume lists.
-import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, isEnter } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor } from './shared.js';
@@ -119,6 +119,8 @@ export async function renderPage(projectId, pageId) {
   const queue = () => { pending = true; state.textContent = 'Editing…'; clearTimeout(timer); timer = setTimeout(save, 700); };
   bodyEl.addEventListener('input', () => { $('[data-preview]').innerHTML = markdown(bodyEl.value) || '<p class="muted">Preview shows here.</p>'; queue(); });
   titleEl.addEventListener('input', queue);
+  // Enter in the title moves on to writing, the way Notion and Google Docs do.
+  titleEl.addEventListener('keydown', (e) => { if (isEnter(e)) { e.preventDefault(); bodyEl.focus(); } });
   bodyEl.focus();
   const beforeUnload = (e) => { if (pending) { e.preventDefault(); e.returnValue = ''; } };
   window.addEventListener('beforeunload', beforeUnload);

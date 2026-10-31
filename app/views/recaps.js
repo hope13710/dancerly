@@ -1,6 +1,6 @@
 // AI recaps: made per project × period, saved automatically, pinned per person, shared on purpose.
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
@@ -125,6 +125,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
     el.querySelector('[data-dates]').hidden = !custom;
     form.elements.namedItem('from').required = custom;
   });
+  enterConfirms(el);
   el.showModal();
   const values = await new Promise((resolve) => el.addEventListener('close', () => {
     const f = form.elements;

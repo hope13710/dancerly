@@ -1,6 +1,6 @@
 // Calendar: rehearsals, shows, and request due dates — per project, or across all of them.
 // Month grid on wide screens, an agenda list on phones (or when chosen).
-import { sb, $, $$, esc, toast, friendlyError, dialog, schema } from '../client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, schema, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
@@ -168,6 +168,7 @@ export async function editEvent({ projectId = null, date = null, event = null, r
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">${event ? 'Save' : 'Add event'}</button></div>
   </form>`;
   document.body.append(el);
+  enterConfirms(el);
   el.showModal();
   const f = el.querySelector('form').elements;
   const kindSelect = el.querySelector('[data-kind]');

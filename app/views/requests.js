@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -125,6 +125,7 @@ export async function newRequest(projectId) {
     const pg = el.querySelector('[data-pick-groups]');
     if (pg) pg.hidden = who !== 'groups';
   }));
+  enterConfirms(el);
   el.showModal();
   form.elements.namedItem('title').focus();
   const values = await new Promise((resolve) => el.addEventListener('close', () => {

@@ -1,5 +1,5 @@
 // Groups inside a project — "Juniors", "Front line" — so requests can go to a group at once.
-import { sb, $$, esc, initials, toast, friendlyError, dialog, avatar } from '../client.js';
+import { sb, $$, esc, initials, toast, friendlyError, dialog, avatar, enterConfirms } from '../client.js';
 
 export async function loadGroups(projectId) {
   const { data, error } = await sb.from('project_groups').select('id, name, created_by, project_group_members(user_id)').eq('project_id', projectId).order('name');
@@ -37,6 +37,7 @@ async function editGroup(projectId, p, group, refresh) {
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">${group ? 'Save' : 'Create group'}</button>${group ? '<button value="delete" formnovalidate class="btn ghost danger push-left">Delete group</button>' : ''}</div>
   </form>`;
   document.body.append(el);
+  enterConfirms(el);
   el.showModal();
   const form = el.querySelector('form');
   const result = await new Promise((resolve) => el.addEventListener('close', () => {

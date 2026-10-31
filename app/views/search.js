@@ -1,5 +1,5 @@
 // ⌘K / Ctrl+K: jump to any project, person, video, request, or note — or run a command.
-import { sb, esc, initials, fmt, isSamplePerson } from '../client.js';
+import { sb, esc, initials, fmt, isSamplePerson, isEnter } from '../client.js';
 import { ctx } from '../ctx.js';
 import { noSample } from './shared.js';
 
@@ -24,6 +24,8 @@ export function openSearch() {
   let active = 0;
   let seq = 0;
   let timer = null;
+  let ready = Promise.resolve();
+  let searched = '';
 
   const close = () => { if (el.open) el.close(); };
   el.addEventListener('close', () => { el.remove(); open = false; });
@@ -51,6 +53,7 @@ export function openSearch() {
   }
 
   async function search(q) {
+    searched = q;
     const mine = ++seq;
     const term = q.trim();
     const lower = term.toLowerCase();
@@ -84,11 +87,16 @@ export function openSearch() {
     paint();
   }
 
-  input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => search(input.value), 160); });
+  input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { ready = search(input.value); }, 160); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(results.length - 1, active + 1); paint(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(0, active - 1); paint(); }
-    else if (e.key === 'Enter' && results[active]) { e.preventDefault(); choose(results[active]); }
+    else if (isEnter(e)) {
+      // Typed and pressed Enter at once: search what's in the box first, so the pick matches it.
+      e.preventDefault();
+      if (input.value !== searched) { clearTimeout(timer); ready = search(input.value); }
+      ready.then(() => { if (el.open && results[active]) choose(results[active]); });
+    }
   });
   list.addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) choose(results[Number(b.dataset.i)]); });
   search('');
