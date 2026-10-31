@@ -6676,3 +6676,21 @@ button.row {
     grid-template-columns: 112px minmax(0, 1fr);
   }
 }
+.ce-title {
+  margin: 0;
+}
+.ce-title small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ce-tip {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 13px;
+  line-height: 1.45;
+}

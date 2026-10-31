@@ -156,7 +156,7 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   g.fillStyle = t.soft; g.font = `700 34px ${FONT}`; g.textBaseline = 'alphabetic';
   g.fillText(c.project.title.toUpperCase().slice(0, 40), x, y);
   g.fillStyle = t.ink; g.font = `800 92px ${FONT}`;
-  const rows = wrap(g, c.video.title, x, y + 100, W - x * 2, 96, 2);
+  const rows = wrap(g, s.title || c.video.title, x, y + 100, W - x * 2, 96, 2);
   y += 100 + (rows - 1) * 96 + 64;
   // The pair, 4:6: Take 1 is where you started, the latest take is the star. Bottoms line up.
   const gap = 22, inner = W - 100 - gap, bw = Math.round(inner * 0.4), aw = inner - bw;
@@ -214,7 +214,7 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   const fade = g.createLinearGradient(0, H - 760, 0, H); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.85)');
   g.fillStyle = fade; g.fillRect(0, H - 760, W, 760);
   g.fillStyle = '#fff'; g.font = `800 72px ${FONT}`; g.textBaseline = 'alphabetic';
-  wrap(g, c.video.title, 60, H - SAFE_BOTTOM - 150, W - 120, 76, 1);
+  wrap(g, s.title || c.video.title, 60, H - SAFE_BOTTOM - 150, W - 120, 76, 1);
   const rest = stats.slice(1).map(([n, , k]) => phrase(k, n));
   g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 36px ${FONT}`;
   wrap(g, [c.project.title, ...rest].join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120 - 220, 40, 1);
@@ -237,6 +237,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
 
   const s = {
     template: 'stage',
+    title: c.video.title, // editable on the card only, e.g. to add the song; the video keeps its name
     stats: (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
     line: Boolean(c.fixedLine),
     beforeAt: c.moment, afterAt: null, before: null, after: null
@@ -251,6 +252,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     <div class="ce-body">
       <div class="ce-preview"><canvas data-ce-canvas width="${W}" height="${H}" aria-label="Preview of your progress card"></canvas><p class="ce-loading" data-ce-loading>Getting the frames…</p></div>
       <div class="ce-panel">
+        <label class="field ce-title"><span>Card title</span><input data-ce-title maxlength="60" value="${esc(c.video.title)}" placeholder="${esc(c.video.title)}" autocomplete="off" /><small>Only on the card. Add the song if you like, e.g. “Supernova · Chorus”.</small></label>
         <div class="seg ce-seg" role="group" aria-label="Style" data-no-i18n>${TEMPLATES.map(([k, l]) => `<button type="button" data-ce-template="${k}" aria-pressed="${k === s.template}">${l}</button>`).join('')}</div>
         <div class="ce-pick">
           <button type="button" data-ce-pick="before"><img alt="" data-ce-thumb="before" /><b>Take ${c.first.number}</b><small>Change moment ›</small></button>
@@ -260,7 +262,8 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
         <div class="ce-chips">${STATS.map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}">${esc(label(k, 2))}</button>`).join('')}${c.fixedLine ? '<button type="button" class="ce-chip" data-ce-line>What got fixed</button>' : ''}</div>
         ${c.project.is_sample
           ? `<div class="ce-sample"><p><b>This is the sample.</b> Make one from your own team’s takes and share it to Instagram.</p><button type="button" class="btn primary wide" data-ce-own>Start my own project</button></div>`
-          : `<p class="fine ce-fine">Anyone you share the image with can see it. It’s made on your device; nothing is posted for you.</p>
+          : `<p class="ce-tip">🎵 Add the song with Instagram or TikTok’s music sticker. The card itself is silent.</p>
+            <p class="fine ce-fine">Anyone you share the image with can see it. It’s made on your device; nothing is posted for you.</p>
             <div class="ce-actions"><button type="button" class="btn primary" data-ce-share>${navigator.canShare ? 'Share…' : 'Download image'}</button>${navigator.canShare ? '<button type="button" class="btn" data-ce-save>Save</button>' : ''}</div>`}
       </div>
     </div>
@@ -287,6 +290,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     $(`[data-ce-thumb="${which}"]`, el).src = f.canvas.toDataURL('image/jpeg', 0.6);
     return true;
   };
+  $('[data-ce-title]', el).addEventListener('input', (e) => { s.title = e.target.value.trim(); paint(); });
   await document.fonts?.ready;
   paint();
   const ok = await setFrame('before', s.beforeAt);
@@ -321,11 +325,11 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     if (t.hasAttribute('data-ce-share') || t.hasAttribute('data-ce-save')) {
       const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
       if (!blob) return toast('Couldn’t make the image. Try again.', 'error');
-      const name = `dancerly-${c.video.title.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '') || 'progress'}.png`;
+      const name = `dancerly-${(s.title || c.video.title).toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '') || 'progress'}.png`;
       const file = new File([blob], name, { type: 'image/png' });
       if (t.hasAttribute('data-ce-share') && navigator.canShare?.({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: c.video.title });
+          await navigator.share({ files: [file], title: s.title || c.video.title });
           track('card_shared', { via: 'share', template: s.template });
         } catch (err) { if (err?.name !== 'AbortError') toast(friendlyError(err), 'error'); }
         return;
