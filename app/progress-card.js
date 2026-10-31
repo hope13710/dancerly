@@ -24,6 +24,7 @@ const label = (key, n) => (isKo
 const phrase = (key, n) => (isKo
   ? { fixed: `고친 피드백 ${n}개`, takes: `테이크 ${n}개`, days: `${n}일`, practice: `연습한 날 ${n}일` }[key]
   : `${n} ${label(key, n)}`);
+const NOW = isKo ? '지금' : 'NOW';
 const day = (iso) => new Date(iso).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
 
 // ---------- Data ----------
@@ -157,18 +158,22 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   g.fillStyle = t.ink; g.font = `800 92px ${FONT}`;
   const rows = wrap(g, c.video.title, x, y + 100, W - x * 2, 96, 2);
   y += 100 + (rows - 1) * 96 + 64;
-  // The pair
-  const gap = 22, pw = (W - 100 - gap) / 2, ph = Math.round(pw * 4 / 3);
-  [[s.before, tagB, t.tagB, day(c.first.created_at), 50], [s.after, tagA, t.tagA, day(c.latest.created_at), 50 + pw + gap]].forEach(([img, tag, [bg, fg], when, px]) => {
-    g.save(); rounded(g, px, y, pw, ph, 38); g.clip(); cover(g, img, px, y, pw, ph);
-    const fade = g.createLinearGradient(0, y + ph - 160, 0, y + ph); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.55)');
-    g.fillStyle = fade; g.fillRect(px, y + ph - 160, pw, 160); g.restore();
-    pill(g, tag, px + 22, y + 22, { bg, fg });
-    g.fillStyle = '#fff'; g.font = `600 30px ${FONT}`; g.textBaseline = 'alphabetic'; g.fillText(when, px + 24, y + ph - 26);
+  // The pair, 4:6: Take 1 is where you started, the latest take is the star. Bottoms line up.
+  const gap = 22, inner = W - 100 - gap, bw = Math.round(inner * 0.4), aw = inner - bw;
+  const ah = Math.round(aw * 1.2), bh = Math.round(bw * 1.2), top = y;
+  [[s.before, tagB, t.tagB, day(c.first.created_at), 50, top + ah - bh, bw, bh, 30], [s.after, `${tagA} · ${NOW}`, t.tagA, day(c.latest.created_at), 50 + bw + gap, top, aw, ah, 34]].forEach(([img, tag, [bg, fg], when, px, py, pw, ph, size], i) => {
+    g.save(); rounded(g, px, py, pw, ph, 34); g.clip(); cover(g, img, px, py, pw, ph);
+    const fade = g.createLinearGradient(0, py + ph - 160, 0, py + ph); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.55)');
+    g.fillStyle = fade; g.fillRect(px, py + ph - 160, pw, 160); g.restore();
+    if (i === 1) { rounded(g, px - 3, py - 3, pw + 6, ph + 6, 37); g.strokeStyle = t.hi; g.lineWidth = 6; g.stroke(); }
+    pill(g, tag, px + 20, py + 20, { bg, fg, size, h: size + 24, pad: 16 });
+    g.fillStyle = '#fff'; g.font = `600 ${size - 2}px ${FONT}`; g.textBaseline = 'alphabetic'; g.fillText(when, px + 22, py + ph - 24);
   });
-  g.beginPath(); g.arc(W / 2, y + ph / 2, 46, 0, Math.PI * 2); g.fillStyle = t.arrow[0]; g.fill();
-  g.fillStyle = t.arrow[1]; g.font = `800 46px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('→', W / 2, y + ph / 2 + 2); g.textAlign = 'left';
-  y += ph + 70;
+  // The arrow sits on the seam, level with the middle of Take 1.
+  const ax = 50 + bw + gap / 2, ay = top + ah - bh / 2;
+  g.beginPath(); g.arc(ax, ay, 40, 0, Math.PI * 2); g.fillStyle = t.arrow[0]; g.fill();
+  g.fillStyle = t.arrow[1]; g.font = `800 40px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('→', ax, ay + 2); g.textAlign = 'left';
+  y = top + ah + 70;
   // Numbers
   if (stats.length) {
     const colW = (W - x * 2) / stats.length;
@@ -190,18 +195,21 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
 
 function drawPhoto(g, c, s, stats, tagB, tagA) {
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  cover(g, s.before, 0, 0, W, H / 2);
-  cover(g, s.after, 0, H / 2, W, H / 2);
-  pill(g, `${tagB} · ${day(c.first.created_at)}`, 50, SAFE_TOP + 30, { bg: 'rgba(0,0,0,0.6)', fg: '#fff', size: 34, h: 60 });
-  pill(g, `${tagA} · ${day(c.latest.created_at)}`, 50, H / 2 + 40, { bg: '#fff', fg: '#000', size: 34, h: 60 });
+  // 4:6, top to bottom: Take 1 smaller, the latest take bigger.
+  const seam = Math.round(H * 0.4);
+  cover(g, s.before, 0, 0, W, seam);
+  cover(g, s.after, 0, seam, W, H - seam);
+  g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(0, 0, W, seam); // the past, a touch dimmer
+  pill(g, `${tagB} · ${day(c.first.created_at)}`, 50, SAFE_TOP + 30, { bg: 'rgba(0,0,0,0.6)', fg: '#fff', size: 32, h: 58 });
+  pill(g, `${tagA} · ${NOW}`, 50, seam + 64, { bg: '#fff', fg: '#000', size: 36, h: 64 });
   // The headline number sits on the seam.
   if (stats[0]) {
     const text = `${phrase(stats[0][2], stats[0][0])} ✓`;
     g.font = `900 44px ${FONT}`;
     const w = g.measureText(text).width + 64;
     g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 40;
-    rounded(g, (W - w) / 2, H / 2 - 44, w, 88, 44); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0;
-    g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, W / 2, H / 2 + 2); g.textAlign = 'left';
+    rounded(g, (W - w) / 2, seam - 44, w, 88, 44); g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, W / 2, seam + 2); g.textAlign = 'left';
   }
   const fade = g.createLinearGradient(0, H - 760, 0, H); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.85)');
   g.fillStyle = fade; g.fillRect(0, H - 760, W, 760);
