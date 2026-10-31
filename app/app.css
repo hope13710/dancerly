@@ -6115,6 +6115,13 @@ button.row {
   display: grid;
   place-items: center;
 }
+.activate-steps li.activate-hide {
+  margin-left: auto;
+}
+.activate-steps .link-btn {
+  margin: 0;
+  color: var(--muted);
+}
 .activate-steps li.done {
   color: var(--ink);
   font-weight: 600;
@@ -6323,7 +6330,7 @@ button.row {
   color: #e5e7eb;
   box-shadow: 0 14px 34px rgba(20, 23, 29, 0.22);
 }
-.pv-row {
+.pv-crow {
   display: flex;
   gap: 8px;
   align-items: center;

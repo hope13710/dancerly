@@ -23,7 +23,7 @@ function stepPreview(kind, project, goal, days) {
       <div class="pv-tabs"><span>${isKo ? '개요' : 'Overview'}</span><span class="on">${isKo ? '영상' : 'Videos'}</span><span>${isKo ? '과제' : 'Assignments'}</span></div>
       <div class="pv-vrow"><span class="pv-ph">＋</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
     video: `${player(true)}${cap(isKo ? '영상 위 그 순간에 피드백이 붙어요' : 'Feedback lands on the exact moment')}`,
-    note: `<div class="pv-compose"><div class="pv-row"><span class="pv-t">▸ 0:42</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
+    note: `<div class="pv-compose"><div class="pv-crow"><span class="pv-t">▸ 0:42</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
     invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
       <div class="pv-joined">👋 ${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
   }[kind] || '';
@@ -70,10 +70,12 @@ export async function renderHome() {
   const owned = real.filter((p) => p.created_by === me);
   const leader = owned.length > 0 || !real.length;
   const firstReal = (owned[0] || real[0])?.id;
+  const latestVideo = (takes || []).find((t) => t.uploaded_by === me) || (takes || [])[0];
   const steps = leader ? [
     ['Create a project', real.length > 0, 'project'],
     ['Upload a rehearsal video', (myTakes || 0) > 0, 'video'],
-    ['Pin your first note', (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null],
+    // The first note is written on a video: open the newest one (yours if there is one).
+    ['Pin your first note', (myNotes || 0) > 0, latestVideo ? `/app/p/${latestVideo.project_id}/v/${latestVideo.video_id}` : firstReal ? `/app/p/${firstReal}` : null],
     ['Invite a teammate', (roster || []).length > 0, 'invite']
   ] : [
     ['Watch a team video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
@@ -106,11 +108,13 @@ export async function renderHome() {
   const first = esc(state.profile.display_name.split(' ')[0]);
   const dateLine = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
-  // Before the first real video, a leader gets one card with the one thing to do next instead of a dashboard
-  // of empty boxes. The full Home takes over once something is uploaded (or if they hide the checklist).
-  if (leader && !graduated && !hideChecklist) {
+  // A leader gets one getting-started card with the one thing to do next, until all four steps are done (or
+  // they hide it). Before the first real video it's the whole Home instead of a dashboard of empty boxes;
+  // after that it sits on top of the regular Home, so the first note and the first teammate get the same help.
+  let activation = null;
+  if (leader && !hideChecklist) {
     // These places are empty for now; the sidebar points at each once something lands there.
-    watchNav('queue', 'feedback', 'people', 'insights');
+    if (!graduated) watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
       'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project', 'project'],
       'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is plenty. Your team pauses on any moment and leaves feedback right on it.', 'Upload a video', 'video'],
@@ -128,8 +132,7 @@ export async function renderHome() {
     const days = goal ? daysUntil(goal.starts_at) : null;
     // On a computer, the video is usually still on the phone: offer to continue there.
     const handoff = kind === 'video' && project && !matchMedia('(pointer: coarse)').matches;
-    view.innerHTML = `<section class="page">
-      <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+    const html = `
       <section class="panel activate">
         <div class="activate-main">
           <p class="activate-meta"><span>Get started · ${done} of ${steps.length} done</span><span class="muted">· ${left <= 1 ? 'About 1 min left' : `About ${left} min left`}</span>${goal ? `<span class="goal-chip activate-goal"><span aria-hidden="true">🎯</span><span class="goal-name">${esc(goal.title)}</span><b>${days <= 0 ? 'Today' : `D-${days}`}</b></span>` : ''}</p>
@@ -144,36 +147,46 @@ export async function renderHome() {
             <div><b>Is the video on your phone?</b><small>Point your phone’s camera at the code. The upload for ${esc(project.title)} opens right there.</small>
               <button type="button" class="link-btn inline" data-send-link>Or email the link to myself →</button></div>
           </div>` : ''}
-          <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${SHORT[label] || label}</li>`).join('')}</ol>
+          <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${SHORT[label] || label}</li>`).join('')}${graduated ? '<li class="activate-hide"><button type="button" class="link-btn inline" data-hide-checklist>Hide</button></li>' : ''}</ol>
         </div>
         <div class="activate-preview" aria-hidden="true">${stepPreview(kind, project, goal, days)}</div>
-      </section>
+      </section>`;
+    const wire = () => {
+      if (handoff) {
+        const url = `${location.origin}/app/p/${project.id}?upload=1&ref=qr_home`;
+        import('../vendor/qrcode-generator-1.4.4.js').then(({ default: qrcode }) => {
+          const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+          const box = $('[data-qr]'); if (box) box.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true });
+        }).catch(() => $('.handoff')?.classList.add('no-qr'));
+        $('[data-send-link]').addEventListener('click', async (e) => {
+          const b = e.currentTarget; b.disabled = true;
+          const { data, error } = await sb.functions.invoke('send-upload-link', { body: { project_id: project.id } });
+          b.disabled = false;
+          if (error) {
+            let msg = 'Couldn’t send the email. Try again in a minute.';
+            try { msg = (await error.context.json()).error || msg; } catch {}
+            return toast(msg, 'error');
+          }
+          track('upload_link_sent');
+          toast(`Sent to ${data.to}. Open it on your phone.`);
+        });
+      }
+    };
+    activation = { html, wire };
+  }
+  if (activation && !graduated) {
+    view.innerHTML = `<section class="page">
+      <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+      ${activation.html}
     </section>`;
-    if (handoff) {
-      const url = `${location.origin}/app/p/${project.id}?upload=1&ref=qr_home`;
-      import('../vendor/qrcode-generator-1.4.4.js').then(({ default: qrcode }) => {
-        const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
-        const box = $('[data-qr]'); if (box) box.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true });
-      }).catch(() => $('.handoff')?.classList.add('no-qr'));
-      $('[data-send-link]').addEventListener('click', async (e) => {
-        const b = e.currentTarget; b.disabled = true;
-        const { data, error } = await sb.functions.invoke('send-upload-link', { body: { project_id: project.id } });
-        b.disabled = false;
-        if (error) {
-          let msg = 'Couldn’t send the email. Try again in a minute.';
-          try { msg = (await error.context.json()).error || msg; } catch {}
-          return toast(msg, 'error');
-        }
-        track('upload_link_sent');
-        toast(`Sent to ${data.to}. Open it on your phone.`);
-      });
-    }
+    activation.wire();
     view.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => ctx.startAction(b.dataset.step)));
     return;
   }
 
   view.innerHTML = `<section class="page">
     <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+    ${activation?.html || ''}
     ${sampleCard}${cleanup?.html || ''}
     ${recapCard.html}
     <div class="home-strip">
@@ -190,7 +203,7 @@ export async function renderHome() {
         ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}${e.projects?.title ? ` · ${esc(e.projects.title)}` : ''}</span></span><span class="chev">›</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
       </section>
     </div>
-    ${hideChecklist ? '' : `<section class="panel checklist">
+    ${hideChecklist || activation ? '' : `<section class="panel checklist">
       <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
       <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
@@ -220,9 +233,10 @@ export async function renderHome() {
   // Opening from Home walks the same queue as the Review queue page.
   try { sessionStorage.setItem(QUEUE_KEY, JSON.stringify(toReview.map((v) => `/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}`))); } catch {}
   $$('[data-event]').forEach((b) => b.addEventListener('click', () => showEvent((upcoming || []).find((e) => e.id === b.dataset.event), () => ctx.route())));
+  activation?.wire();
   $('[data-hide-checklist]')?.addEventListener('click', () => {
     saveOnboarding({ checklist_hidden: true });
-    $('.checklist').remove();
+    ($('.panel.activate') || $('.checklist'))?.remove();
   });
   cleanup?.wire(view);
   $('[data-hide-sample-card]')?.addEventListener('click', () => {
