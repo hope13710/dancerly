@@ -160,7 +160,7 @@ export async function renderProject(projectId) {
 }
 
 // Each row shows a still from its latest take; missing ones are made in the background.
-async function paintThumbs(latest) {
+export async function paintThumbs(latest) {
   const show = (takeId, url) => {
     const box = document.querySelector(`[data-thumb="${takeId}"]`);
     if (!box || box.querySelector('img')) return;

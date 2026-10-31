@@ -3,6 +3,7 @@ import { sb, esc, initials, timeAgo, avatar, isSamplePerson } from '../client.js
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample } from './shared.js';
+import { paintThumbs } from './project.js';
 
 // Your real teammates. The sample's made-up teammates appear only inside the sample (and on their own page).
 async function roster({ withSample = false } = {}) {
@@ -64,17 +65,24 @@ export async function renderPerson(userId) {
   const scope = (q) => (sampleOnly ? q : noSample(q));
   if (!person) throw new Error('You don’t share a project with this person.');
   setCrumbs([['People', '/app/people'], [person.name]]);
-  const tab = new URLSearchParams(location.search).get('show') === 'received' ? 'received' : 'given';
+  const show = new URLSearchParams(location.search).get('show');
+  const tab = ['received', 'videos'].includes(show) ? show : 'given';
   const [{ data: given }, { data: theirTakes }] = await Promise.all([
     scope(sb.from('notes').select(NOTE_SELECT)).eq('author_id', userId).order('created_at', { ascending: false }).limit(100),
-    scope(sb.from('takes').select('id, video_id')).eq('uploaded_by', userId)
+    scope(sb.from('takes').select('id, number, created_at, thumb_path, storage_path, project_id, video_id, videos(title), projects(title)')).eq('uploaded_by', userId).order('created_at', { ascending: false })
   ]);
+  // The videos they put takes into, newest first: each opens at their latest take there.
+  const videos = [];
+  for (const t of theirTakes || []) {
+    const v = videos.find((x) => x.video_id === t.video_id);
+    if (v) v.count += 1; else videos.push({ video_id: t.video_id, latest: t, count: 1 });
+  }
   let received = [];
   if (theirTakes?.length) {
     const { data } = await scope(sb.from('notes').select(NOTE_SELECT)).in('take_id', theirTakes.map((t) => t.id)).neq('author_id', userId).order('created_at', { ascending: false }).limit(100);
     received = data || [];
   }
-  const list = tab === 'given' ? given || [] : received;
+  const list = tab === 'given' ? given || [] : tab === 'received' ? received : [];
   const names = await namesFor(list.map((n) => n.author_id));
   const resolvedRate = received.length ? Math.round((received.filter((n) => n.status === 'resolved').length / received.length) * 100) : null;
   const base = `/app/people/${userId}`;
@@ -91,8 +99,16 @@ export async function renderPerson(userId) {
       <div class="stat"><small>Notes received</small><b>${received.length}</b></div>
       <div class="stat"><small>Received & fixed</small><b>${resolvedRate === null ? '—' : `${resolvedRate}%`}</b></div>
     </div>
-    ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`]], tab)}
-    ${list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`
+    ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`], ['videos', 'Videos', `${base}?show=videos`, videos.length]], tab)}
+    ${tab === 'videos'
+      ? (videos.length ? `<div class="video-list">${videos.map(({ latest: t, count }) => `<div class="video-item"><a class="video-row" href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link>
+          <span class="video-thumb" data-thumb="${t.id}"><i aria-hidden="true">▶</i>${count > 1 ? `<em>${count} takes</em>` : ''}</span>
+          <span class="video-copy"><b>${esc(t.videos?.title || 'Video')}</b><small>${esc(t.projects?.title || '')} · Take ${t.number} · ${timeAgo(t.created_at)}</small></span>
+          <span class="chev">→</span>
+        </a></div>`).join('')}</div>`
+        : `<p class="panel-empty">No videos from them yet.</p>`)
+      : list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`
       : `<p class="panel-empty">${tab === 'given' ? 'No notes from them yet.' : 'No notes on their takes yet.'}</p>`}
-  </section>`;  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
+  </section>`;
+  if (tab === 'videos') paintThumbs(videos.map((v) => v.latest));  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
 }
