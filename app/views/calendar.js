@@ -12,7 +12,7 @@ const timeOf = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute:
 
 async function loadItems(projectIds, from, to) {
   const [{ data: events, error }, { data: requests, error: rErr }] = await Promise.all([
-    sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by, projects(title)').in('project_id', projectIds).gte('starts_at', from.toISOString()).lt('starts_at', to.toISOString()).order('starts_at'),
+    sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by, projects!project_events_project_id_fkey(title)').in('project_id', projectIds).gte('starts_at', from.toISOString()).lt('starts_at', to.toISOString()).order('starts_at'),
     sb.from('requests').select('id, project_id, title, due_at, status, projects(title)').in('project_id', projectIds).not('due_at', 'is', null).gte('due_at', from.toISOString()).lt('due_at', to.toISOString())
   ]);
   if (error || rErr) throw error || rErr;
