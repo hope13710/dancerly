@@ -128,7 +128,7 @@ function wrap(g, text, x, y, maxW, lineH, lines) {
 }
 
 const THEMES = {
-  stage: { ink: '#ffffff', soft: 'rgba(255,255,255,0.68)', hi: '#a5a6ff', tagB: ['rgba(255,255,255,0.16)', '#fff'], tagA: ['#7d7ef0', '#fff'], arrow: ['#fff', '#14171d'], line: ['rgba(125,126,240,0.18)', '#dcdcff'],
+  stage: { logoTint: '#ffffff', ink: '#ffffff', soft: 'rgba(255,255,255,0.68)', hi: '#a5a6ff', tagB: ['rgba(255,255,255,0.16)', '#fff'], tagA: ['#7d7ef0', '#fff'], arrow: ['#fff', '#14171d'], line: ['rgba(125,126,240,0.18)', '#dcdcff'],
     bg: (g) => { const r = g.createRadialGradient(540, 0, 0, 540, 0, 1500); r.addColorStop(0, '#2c2a5e'); r.addColorStop(0.62, '#14171d'); r.addColorStop(1, '#14171d'); g.fillStyle = r; g.fillRect(0, 0, W, H); } },
   light: { ink: '#17191c', soft: 'rgba(23,25,28,0.62)', hi: '#5b5ce2', tagB: ['rgba(255,255,255,0.9)', '#17191c'], tagA: ['#17191c', '#fff'], arrow: ['#17191c', '#fff'], line: ['#ffffff', '#17191c'],
     bg: (g) => { g.fillStyle = '#f6f3ee'; g.fillRect(0, 0, W, H); } }
@@ -190,7 +190,7 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
     g.fillStyle = t.line[1]; g.font = `600 37px ${FONT}`; g.textBaseline = 'middle';
     wrap(g, `✓ ${c.fixedLine}`, x + 34, y + 53, W - x * 2 - 68, 40, 1);
   }
-  brand(g, t.ink, x);
+  brand(g, t.ink, x, s.logo, t.logoTint);
 }
 
 function drawPhoto(g, c, s, stats, tagB, tagA) {
@@ -218,14 +218,41 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   const rest = stats.slice(1).map(([n, , k]) => phrase(k, n));
   g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 36px ${FONT}`;
   wrap(g, [c.project.title, ...rest].join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120 - 220, 40, 1);
-  g.fillStyle = '#fff'; g.font = `900 48px ${FONT}`; g.textAlign = 'right'; g.fillText('dancerly', W - 60, H - SAFE_BOTTOM - 84); g.textAlign = 'left';
+  drawLogo(g, s.logo, W - 60, H - SAFE_BOTTOM - 84, 'right', '#ffffff', '#fff');
 }
 
-function brand(g, ink, x) {
+function brand(g, ink, x, logo, tint) {
+  drawLogo(g, logo, x, H - SAFE_BOTTOM - 40, 'left', tint, ink);
   g.globalAlpha = 0.78; g.fillStyle = ink; g.textBaseline = 'alphabetic';
-  g.font = `900 48px ${FONT}`; g.fillText('dancerly', x, H - SAFE_BOTTOM - 40);
   g.font = `600 34px ${FONT}`; g.textAlign = 'right'; g.fillText('dancerly.app', W - x, H - SAFE_BOTTOM - 40); g.textAlign = 'left';
   g.globalAlpha = 1;
+}
+
+// The real wordmark (the same file as the site's logo): as it is on light cards, in white on dark ones.
+let logoFile = null;
+const loadLogo = () => (logoFile ||= new Promise((res) => {
+  const img = new Image();
+  img.onload = () => res(img);
+  img.onerror = () => res(null);
+  img.src = '/logo-wordmark.png';
+}));
+// x is the left edge (or right edge with align 'right'); baseline lines up with text set beside it.
+function drawLogo(g, logo, x, baseline, align, tint, ink) {
+  if (!logo) { // couldn't load it: the name in type, as before
+    g.fillStyle = ink; g.font = `900 48px ${FONT}`; g.textBaseline = 'alphabetic'; g.textAlign = align;
+    g.fillText('dancerly', x, baseline); g.textAlign = 'left';
+    return;
+  }
+  const h = 54, w = Math.round(h * logo.width / logo.height);
+  const left = align === 'right' ? x - w : x, top = baseline - 42; // the y's tail hangs below the line, like type
+  if (!tint) { g.drawImage(logo, left, top, w, h); return; }
+  const o = document.createElement('canvas');
+  o.width = w * 2; o.height = h * 2;
+  const og = o.getContext('2d');
+  og.drawImage(logo, 0, 0, o.width, o.height);
+  og.globalCompositeOperation = 'source-in';
+  og.fillStyle = tint; og.fillRect(0, 0, o.width, o.height);
+  g.drawImage(o, left, top, w, h);
 }
 
 // ---------- Editor ----------
@@ -292,6 +319,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   };
   $('[data-ce-title]', el).addEventListener('input', (e) => { s.title = e.target.value.trim(); paint(); });
   await document.fonts?.ready;
+  s.logo = await loadLogo();
   paint();
   const ok = await setFrame('before', s.beforeAt);
   // The latest take at the same beat, when the takes are lined up.
