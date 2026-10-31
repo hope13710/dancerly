@@ -6245,3 +6245,21 @@ button.row {
   background: var(--accent);
   opacity: 0.55;
 }
+
+/* Video header: who uploaded the take, linking to their profile. */
+.uploader {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 2px;
+  vertical-align: middle;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.uploader:hover span {
+  text-decoration: underline;
+}
+.uploader .avatar {
+  flex: none;
+}

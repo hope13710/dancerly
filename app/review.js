@@ -10,6 +10,7 @@ import { shareVideo } from './views/share.js';
 import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash } from './views/project.js';
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
+import { isKo } from './i18n.js';
 
 const SPEEDS = [1, 0.75, 0.5, 0.25];
 
@@ -34,6 +35,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Set once the take on screen is known (below).
   let canDeleteTake = false;
   const nameOf = (id) => members.find((m) => m.user_id === id)?.name || 'Former member';
+  // Who uploaded this take: their photo and name, opening their profile. Someone who left the project is plain text.
+  const uploader = (id) => {
+    const name = nameOf(id);
+    const who = members.some((m) => m.user_id === id)
+      ? `<a class="uploader" href="/app/people/${id}" data-link>${avatar(name, id, 'xs')}<span>${esc(name)}</span></a>`
+      : esc(name);
+    return `<span data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who}`}</span>`;
+  };
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
   if (!takes.length) {
@@ -63,7 +72,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
-      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · uploaded by ${esc(nameOf(take.uploaded_by))} · ${timeAgo(take.created_at)}</p></div>
+      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'a request')}</a>` : ''} · ${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ <span class="wide-only">Upload a new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button>${project.is_sample ? '' : '<button class="btn small ghost wide-only" data-share-video title="A read-only link for people outside the team">Share</button>'}<button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">⋯</button></div>
     </header>
