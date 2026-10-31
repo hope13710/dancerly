@@ -15,7 +15,9 @@ Deno.serve(async (req) => {
   if (!feed) return new Response("This calendar link was turned off.", { status: 404 });
   admin.from("calendar_feeds").update({ last_used_at: new Date().toISOString() }).eq("token", token).then(() => {});
 
-  const { data: memberships } = await admin.from("project_members").select("project_id, projects(title)").eq("user_id", feed.user_id);
+  // Projects in the Trash (migration 033) drop out of the feed.
+  const { data: all } = await admin.from("project_members").select("project_id, projects(title, deleted_at)").eq("user_id", feed.user_id);
+  const memberships = (all ?? []).filter((m: { projects: { deleted_at: string | null } | null }) => m.projects && !m.projects.deleted_at);
   const ids = (memberships ?? []).map((m: { project_id: string }) => m.project_id);
   const title = Object.fromEntries((memberships ?? []).map((m: { project_id: string; projects: { title: string } | null }) => [m.project_id, m.projects?.title ?? ""]));
   const since = new Date(Date.now() - 30 * 864e5).toISOString();

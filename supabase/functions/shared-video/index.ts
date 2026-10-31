@@ -20,9 +20,9 @@ Deno.serve(async (req) => {
   if (!share || share.revoked) return json({ error: "This link was turned off." }, 404);
   if (new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
 
-  // A video or take in the Trash (migration 032) isn't shown to guests.
-  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
-  if (!video) return json({ error: "This video was deleted." }, 404);
+  // A video, take, or project in the Trash (migrations 032, 033) isn't shown to guests.
+  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title, deleted_at)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
+  if (!video || (video as { projects?: { deleted_at?: string | null } }).projects?.deleted_at) return json({ error: "This video was deleted." }, 404);
   const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle();
   if (!take) return json({ error: "This video has no takes yet." }, 404);
   const { data: signed } = await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 2);

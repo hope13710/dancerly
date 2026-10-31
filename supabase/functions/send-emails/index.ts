@@ -180,7 +180,8 @@ async function followUp(key: string) {
   // Read in the app, too old to be useful by email, or anything in a sample project (its teammates aren't real
   // people, and practice there shouldn't land in anyone's inbox): done, no email.
   const projectIds = [...new Set(rows.map((r) => r.project_id))];
-  const { data: samples } = await admin.from("projects").select("id").eq("is_sample", true).in("id", projectIds);
+  // Sample projects and projects in the Trash (migration 033) send nothing.
+  const { data: samples } = await admin.from("projects").select("id").or("is_sample.eq.true,deleted_at.not.is.null").in("id", projectIds);
   const sampleIds = new Set((samples ?? []).map((p: any) => p.id));
   const done = rows.filter((r) => r.read_at || Date.parse(r.created_at) < now - 2 * 864e5 || sampleIds.has(r.project_id) || r.user_id.startsWith("5a3b0000-")).map((r) => r.id);
   if (done.length) await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "skipped" }).in("id", done);
@@ -278,7 +279,7 @@ async function firstTeammate(key: string, open: any[], prefs: Map<string, any>, 
   if (!owners.length) return handled;
   const { data: logged } = await admin.from("email_log").select("user_id").eq("kind", "first_teammate").in("user_id", owners);
   const done = new Set((logged ?? []).map((l: any) => l.user_id));
-  const { data: owned } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false).in("created_by", owners);
+  const { data: owned } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false).is("deleted_at", null).in("created_by", owners);
   for (const owner of owners.filter((u) => !done.has(u))) {
     const join = joins.filter((r) => r.user_id === owner).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))[0];
     const mine = (owned ?? []).filter((p: any) => p.created_by === owner);
@@ -389,7 +390,7 @@ async function startNudge(key: string) {
   const [{ data: settings }, { data: logged }, { data: members }, { data: takes }] = await Promise.all([
     admin.from("notification_settings").select("user_id, email, timezone").in("user_id", ids),
     admin.from("email_log").select("user_id").eq("kind", "start_nudge").in("user_id", ids),
-    admin.from("project_members").select("user_id, role, project_id, projects(title, is_sample, created_at)").in("user_id", ids),
+    admin.from("project_members").select("user_id, role, project_id, projects(title, is_sample, created_at, deleted_at)").in("user_id", ids),
     admin.from("takes").select("uploaded_by, projects(is_sample)").in("uploaded_by", ids).limit(2000),
   ]);
   const prefs = new Map((settings ?? []).map((s: any) => [s.user_id, s]));
@@ -399,7 +400,7 @@ async function startNudge(key: string) {
   for (const p of users) {
     if (done.has(p.id) || uploaded.has(p.id) || prefs.get(p.id)?.email?.onboarding === false) continue;
     if (hourIn(prefs.get(p.id)?.timezone || DIGEST_ZONE) !== NUDGE_HOUR) continue;
-    const mine = (members ?? []).filter((m: any) => m.user_id === p.id);
+    const mine = (members ?? []).filter((m: any) => m.user_id === p.id && !m.projects?.deleted_at);
     if (mine.some((m: any) => m.role === "member" && !m.projects?.is_sample)) continue; // joined someone else's team
     const real = mine.filter((m: any) => m.role === "owner" && !m.projects?.is_sample)
       .sort((a: any, b: any) => Date.parse(b.projects?.created_at) - Date.parse(a.projects?.created_at))[0];
@@ -426,7 +427,7 @@ async function weekly(key: string) {
   if (weekdayIn(DIGEST_ZONE) !== "Mon" || hourIn(DIGEST_ZONE) !== DIGEST_HOUR) return 0;
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
   const week = isoWeek(new Date());
-  const { data: real } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false);
+  const { data: real } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false).is("deleted_at", null);
   const realIds = new Set((real ?? []).map((p: any) => p.id));
   const owned = new Map<string, any[]>();
   for (const p of real ?? []) owned.set(p.created_by, [...(owned.get(p.created_by) ?? []), p]);

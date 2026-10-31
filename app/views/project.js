@@ -84,7 +84,7 @@ export async function restoreFromTrash(kind, id, after = () => {}) {
   const { data: videoId, error } = await sb.rpc('restore_item', { p_kind: kind, p_id: id });
   if (error) { toast(friendlyError(error), 'error'); return null; }
   track('trash_restored', { kind });
-  toast(kind === 'video' ? 'Video restored.' : 'Take restored.');
+  toast(kind === 'project' ? 'Project restored.' : kind === 'video' ? 'Video restored.' : 'Take restored.');
   after(videoId);
   return videoId;
 }
@@ -238,6 +238,8 @@ export async function renderProjectSettings(projectId) {
   const { data: invites } = await sb.from('project_invites').select('code, created_at, expires_at, created_by').eq('project_id', projectId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
   const names = await namesFor((invites || []).map((i) => i.created_by));
   const canRevoke = (i) => p.isOwner || i.created_by === p.me;
+  // A project goes to the Trash first (migration 033); the sample keeps its own Remove sample.
+  const trashable = schema.projectTrash && !p.project.is_sample;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'settings')}
     <div class="settings-stack">
@@ -260,7 +262,7 @@ export async function renderProjectSettings(projectId) {
           : '<p class="panel-empty">No active links.</p>'}
       </section>
       <section class="panel danger-zone">
-        <div class="panel-head"><div><h2>${p.isOwner ? 'Delete project' : 'Leave project'}</h2><p class="muted">${p.isOwner ? 'Deletes every video, take, and note for everyone. This can’t be undone.' : 'You’ll lose access to its videos and notes. Ask for a new invite to come back.'}</p></div>
+        <div class="panel-head"><div><h2>${p.isOwner ? 'Delete project' : 'Leave project'}</h2><p class="muted">${p.isOwner ? (trashable ? 'Moves it to the Trash for everyone. You can restore it within 30 days.' : 'Deletes every video, take, and note for everyone. This can’t be undone.') : 'You’ll lose access to its videos and notes. Ask for a new invite to come back.'}</p></div>
           <button class="btn danger" data-danger>${p.isOwner ? 'Delete project' : 'Leave project'}</button></div>
         ${p.isOwner && p.members.length > 1 ? '<p class="fine left">Want to step back instead? Make someone else the owner from the People tab, then leave.</p>' : ''}
       </section>
@@ -297,6 +299,18 @@ export async function renderProjectSettings(projectId) {
     renderProjectSettings(projectId);
   }));
   $('[data-danger]').addEventListener('click', async () => {
+    if (p.isOwner && trashable) {
+      const title = p.project.title;
+      const sure = await dialog({ title: 'Delete this project?', body: `<b>${esc(title)}</b> and everything in it disappear for everyone on the team. It stays in your Trash for 30 days, so you can restore it exactly as it was.`, confirm: 'Delete project', danger: true });
+      if (!sure) return;
+      const { error } = await sb.rpc('trash_item', { p_kind: 'project', p_id: projectId });
+      if (error) return toast(friendlyError(error), 'error');
+      track('project_deleted', { trash: true });
+      await ctx.refreshNav();
+      ctx.navigate('/app/projects');
+      toast(`“${title}” moved to Trash.`, 'info', { label: 'Undo', run: () => restoreFromTrash('project', projectId, async () => { await ctx.refreshNav(); ctx.navigate(`/app/p/${projectId}`); }) });
+      return;
+    }
     if (p.isOwner) {
       const sure = await dialog({ title: 'Delete this project?', body: `Every video, take, and note in <b>${esc(p.project.title)}</b> will be deleted for everyone. This can’t be undone.`, confirm: 'Delete project', danger: true });
       if (!sure) return;

@@ -41,14 +41,15 @@ Deno.serve(async (req) => {
   await check.auth.signOut().catch(() => {});
 
   // 2. Every project they manage alone, with other people in it, needs a decision.
-  const { data: owned } = await admin.from("project_members").select("project_id, projects(id, title, is_sample)").eq("user_id", user.id).eq("role", "owner");
+  const { data: owned } = await admin.from("project_members").select("project_id, projects(id, title, is_sample, deleted_at)").eq("user_id", user.id).eq("role", "owner");
   const decisions = body.decisions || {};
   const toDelete: string[] = [];
   const transfers: { project: string; to: string }[] = [];
   const undecided: { id: string; title: string }[] = [];
   for (const row of owned || []) {
-    const project = (row as { projects: { id: string; title: string; is_sample?: boolean } | null }).projects;
+    const project = (row as { projects: { id: string; title: string; is_sample?: boolean; deleted_at?: string | null } | null }).projects;
     if (!project) continue;
+    if (project.deleted_at) { toDelete.push(project.id); continue; } // already in their Trash: it just goes
     const { data: members } = await admin.from("project_members").select("user_id, role").eq("project_id", project.id);
     const others = (members || []).filter((m) => m.user_id !== user.id && !isSamplePerson(m.user_id));
     if (project.is_sample || !others.length) { toDelete.push(project.id); continue; }

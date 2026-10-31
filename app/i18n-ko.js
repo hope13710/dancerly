@@ -560,6 +560,9 @@ export const KO = {
   'Delete forever': '영구 삭제',
   'Moved to Trash. You can restore it for 30 days.': '휴지통으로 옮겼어요. 30일 동안 복원할 수 있어요.',
   'Video restored.': '영상을 복원했어요.',
+  'Project restored.': '프로젝트를 복원했어요.',
+  'Moves it to the Trash for everyone. You can restore it within 30 days.': '팀 전체에게서 사라지고 휴지통으로 옮겨져요. 30일 안에 복원할 수 있어요.',
+  '1 video': '영상 1개',
   'Take restored.': '테이크를 복원했어요.',
   'Deleted for good.': '영구 삭제했어요.',
   'Trash is empty': '휴지통이 비어 있어요',
@@ -567,6 +570,7 @@ export const KO = {
   'Deleted videos are removed right away for now.': '지금은 삭제한 영상이 바로 지워져요.',
   'Moves to Trash for 30 days': '휴지통에 30일 동안 보관돼요',
   'The owner or who made it can restore it': '관리자나 만든 사람이 복원할 수 있어요',
+  'The project, its videos, takes, notes, and schedule are deleted for everyone. This can’t be undone.': '프로젝트와 그 안의 영상, 테이크, 피드백, 일정이 모두에게서 삭제돼요. 되돌릴 수 없어요.',
   'The video, its takes, and their notes are deleted for everyone. This can’t be undone.': '영상과 모든 테이크, 피드백이 모두에게서 삭제돼요. 되돌릴 수 없어요.',
   'The take and its notes are deleted for everyone. This can’t be undone.': '테이크와 피드백이 모두에게서 삭제돼요. 되돌릴 수 없어요.',
   'Join your team on dancerly': 'dancerly에서 팀에 합류하세요',
@@ -1108,8 +1112,11 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
-  [/^Deleted videos and takes stay here for (\d+) days, then they’re gone for good\.$/, '삭제한 영상과 테이크는 $1일 동안 여기 있다가 영구 삭제돼요.'],
-  [/^When you delete a video or a take, it waits here for (\d+) days in case you change your mind\.$/, '영상이나 테이크를 삭제하면 마음이 바뀔 때를 대비해 $1일 동안 여기 보관돼요.'],
+  [/^Deleted (?:projects, )?videos,? and takes stay here for (\d+) days, then they’re gone for good\.$/, '삭제한 프로젝트·영상·테이크는 $1일 동안 여기 있다가 영구 삭제돼요.'],
+  [/^When you delete (?:a project, )?a video,? or a take, it waits here for (\d+) days in case you change your mind\.$/, '프로젝트나 영상, 테이크를 삭제하면 마음이 바뀔 때를 대비해 $1일 동안 여기 보관돼요.'],
+  [/^“(.+)” moved to Trash\.$/, '“$1”을 휴지통으로 옮겼어요.'],
+  [/^(\d+) videos$/, '영상 $1개'],
+  [/^and everything in it disappear for everyone on the team\. It stays in your Trash for 30 days, so you can restore it exactly as it was\.$/, '프로젝트와 그 안의 모든 내용이 팀 전체에게서 사라져요. 휴지통에 30일 동안 보관되니 그대로 복원할 수 있어요.'],
   [/^Take (\d+) moved to Trash\.$/, '테이크 $1을 휴지통으로 옮겼어요.'],
   [/^Delete Take (\d+) forever\?$/, '테이크 $1을 영구 삭제할까요?'],
   [/^Delete “(.+)” forever\?$/, '“$1”을 영구 삭제할까요?'],
