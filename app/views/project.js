@@ -157,6 +157,14 @@ export async function renderProject(projectId) {
     memberWelcome(projectId, p.project, p.members);
   }
   paintThumbs(videos.map((v) => [...v.takes].sort((a, b) => b.number - a.number)[0]).filter(Boolean));
+  // Opened from Home's QR code or the "send to my phone" email: straight to the upload.
+  const params = new URLSearchParams(location.search);
+  if (params.get('upload') === '1') {
+    params.delete('upload');
+    history.replaceState(history.state, '', `${location.pathname}${params.toString() ? `?${params}` : ''}`);
+    track('upload_link_opened', { from: params.get('ref') || 'qr' });
+    createVideo(projectId);
+  }
 }
 
 // Each row shows a still from its latest take; missing ones are made in the background.

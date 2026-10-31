@@ -1,12 +1,34 @@
 // Home: what needs you today, what changed, and how to get started.
-import { sb, $, $$, esc, initials, timeAgo, avatar, schema } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, avatar, schema, cols, toast } from '../client.js';
+import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
-import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample, watchNav } from './shared.js';
+import { NOTE_SELECT, noteRow, noteTime, noteHref, namesFor, notesForMe, kindClass, noSample, watchNav, projectGoal, daysUntil } from './shared.js';
 import { homeRecapCard } from './recaps.js';
 import { showEvent } from './calendar.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
-import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard } from '../onboarding.js';
+import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard, track } from '../onboarding.js';
+
+// What each getting-started step leads to, drawn with the app's own pieces and marked as an example:
+// seeing the result is what makes the step worth doing. Example text follows the app's language.
+function stepPreview(kind, project, goal, days) {
+  const ex = `<span class="pv-ex">${isKo ? '예시' : 'Example'}</span>`;
+  const note = isKo ? '5-6 팔 동작, 다 같이 맞춰요' : 'Arms on 5-6, all together';
+  const cap = (t) => `<p class="pv-cap">${t}</p>`;
+  const player = (withNote) => `<div class="pv-player"><img src="/samples/sample-take-2.jpg" alt="" /><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i style="left:22%"></i><i class="pop" style="left:38%"></i><i style="left:71%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:42</span><span>${note}</span></div>` : ''}</div>`;
+  const title = esc(project?.title || (isKo ? '봄 쇼케이스' : 'Spring Showcase'));
+  const html = {
+    project: `<div class="pv-proj"><div class="pv-k">${isKo ? '프로젝트' : 'Project'}</div><h4><span class="pv-mk">${esc(initials(project?.title || 'Spring Showcase'))}</span>${title}</h4>
+      <span class="pv-goal">🎯 ${goal ? `${esc(goal.title)} · ${days <= 0 ? 'D-DAY' : `D-${days}`}` : `${isKo ? '봄 쇼케이스' : 'Spring Showcase'} · D-12`}</span>
+      <div class="pv-tabs"><span>${isKo ? '개요' : 'Overview'}</span><span class="on">${isKo ? '영상' : 'Videos'}</span><span>${isKo ? '과제' : 'Assignments'}</span></div>
+      <div class="pv-vrow"><span class="pv-ph">＋</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
+    video: `${player(true)}${cap(isKo ? '영상 위 그 순간에 피드백이 붙어요' : 'Feedback lands on the exact moment')}`,
+    note: `<div class="pv-compose"><div class="pv-row"><span class="pv-t">▸ 0:42</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
+    invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
+      <div class="pv-joined">👋 ${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
+  }[kind] || '';
+  return `<div class="pv-wrap" data-no-i18n>${ex}${html}</div>`;
+}
 
 function greeting() {
   const h = new Date().getHours();
@@ -90,25 +112,62 @@ export async function renderHome() {
     // These places are empty for now; the sidebar points at each once something lands there.
     watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
-      'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project'],
-      'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is perfect. Your team pauses on a moment and leaves feedback right there.', 'Upload a video'],
-      'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video'],
-      'Invite a teammate': ['Bring in your team', 'They’ll see your video and can leave feedback on any moment.', 'Invite your team']
+      'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project', 'project'],
+      'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is plenty. Your team pauses on any moment and leaves feedback right on it.', 'Upload a video', 'video'],
+      'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video', 'note'],
+      'Invite a teammate': ['Bring in your team', 'They’ll see your video and can leave feedback on any moment.', 'Invite your team', 'invite']
     };
+    const SHORT = { 'Create a project': 'Project', 'Upload a rehearsal video': 'Upload a video', 'Pin your first note': 'First note', 'Invite a teammate': 'Invite your team' };
     const next = steps.find(([, ok, action]) => !ok && action);
-    const [title, text, cta] = NEXT[next?.[0]] || NEXT['Upload a rehearsal video'];
+    const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a rehearsal video'];
     const action = next?.[2] || 'video';
-    view.innerHTML = `<section class="page narrow">
+    const left = steps.filter(([, ok]) => !ok).length;
+    // The project's goal, as on the project's own header: a countdown makes each step part of the show.
+    const project = real.find((p) => p.id === firstReal);
+    const goal = project ? await projectGoal({ ...project, target_event_id: (await sb.from('projects').select(cols('target_event_id')).eq('id', project.id).maybeSingle()).data?.target_event_id }) : null;
+    const days = goal ? daysUntil(goal.starts_at) : null;
+    // On a computer, the video is usually still on the phone: offer to continue there.
+    const handoff = kind === 'video' && project && !matchMedia('(pointer: coarse)').matches;
+    view.innerHTML = `<section class="page">
       <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
       <section class="panel activate">
-        <p class="eyebrow">Get started · ${done} of ${steps.length} done</p>
-        <h2>${title}</h2>
-        <p class="muted">${text}</p>
-        ${action.startsWith('/') ? `<a class="btn primary big" href="${action}" data-link>${cta}</a>` : `<button class="btn primary big" data-step="${action}">${cta}</button>`}
-        <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${label}</li>`).join('')}</ol>
+        <div class="activate-main">
+          <p class="activate-meta"><span>Get started · ${done} of ${steps.length} done</span><span class="muted">· ${left <= 1 ? 'About 1 min left' : `About ${left} min left`}</span>${goal ? `<span class="goal-chip activate-goal"><span aria-hidden="true">🎯</span><span class="goal-name">${esc(goal.title)}</span><b>${days <= 0 ? 'Today' : `D-${days}`}</b></span>` : ''}</p>
+          <h2>${title}</h2>
+          <p class="muted lead">${text}</p>
+          <div class="activate-ctas">
+            ${action.startsWith('/') ? `<a class="btn primary big" href="${action}" data-link>${cta}</a>` : `<button class="btn primary big" data-step="${action}">${cta}</button>`}
+            ${sampleOffer() ? (sample ? `<a class="btn big ghost-border" href="/app/p/${sample.id}" data-link>✦ Open the sample first</a>` : '<button type="button" class="btn big ghost-border" data-open-sample="home">✦ See a sample first</button>') : ''}
+          </div>
+          ${handoff ? `<div class="handoff">
+            <span class="handoff-qr" data-qr aria-hidden="true"></span>
+            <div><b>Is the video on your phone?</b><small>Point your phone’s camera at the code. The upload for ${esc(project.title)} opens right there.</small>
+              <button type="button" class="link-btn inline" data-send-link>Or email the link to myself →</button></div>
+          </div>` : ''}
+          <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${SHORT[label] || label}</li>`).join('')}</ol>
+        </div>
+        <div class="activate-preview" aria-hidden="true">${stepPreview(kind, project, goal, days)}</div>
       </section>
-      ${sampleOffer() ? `<p class="activate-alt">Not ready to film? ${sample ? `<a class="link" href="/app/p/${sample.id}" data-link>Open the sample project</a>` : '<button type="button" class="text-btn" data-open-sample="home">Explore a sample project</button>'} to see how a team uses it.</p>` : ''}
     </section>`;
+    if (handoff) {
+      const url = `${location.origin}/app/p/${project.id}?upload=1&ref=qr_home`;
+      import('../vendor/qrcode-generator-1.4.4.js').then(({ default: qrcode }) => {
+        const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+        const box = $('[data-qr]'); if (box) box.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true });
+      }).catch(() => $('.handoff')?.classList.add('no-qr'));
+      $('[data-send-link]').addEventListener('click', async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        const { data, error } = await sb.functions.invoke('send-upload-link', { body: { project_id: project.id } });
+        b.disabled = false;
+        if (error) {
+          let msg = 'Couldn’t send the email. Try again in a minute.';
+          try { msg = (await error.context.json()).error || msg; } catch {}
+          return toast(msg, 'error');
+        }
+        track('upload_link_sent');
+        toast(`Sent to ${data.to}. Open it on your phone.`);
+      });
+    }
     view.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => ctx.startAction(b.dataset.step)));
     return;
   }
