@@ -17,19 +17,24 @@ const BRAND_GAP = 150; // clear space between the content and the logo row
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 const TEMPLATES = isKo ? [['stage', '스테이지'], ['light', '라이트'], ['photo', '포토']] : [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
 const STATS = ['fixed', 'dday', 'takes', 'days', 'practice'];
+// With one take there's nothing to compare yet, and no day counts either (one take isn't one day of practice):
+// just the countdown and how much feedback the team gave.
+const SINGLE_STATS = ['dday', 'notes'];
+const chipKeys = (c) => (c.single ? SINGLE_STATS : STATS);
 const MAX_STATS = 3;
 const PROMPTED = 'looproom:cardPrompt:';
 
 // What each number on a card says, in three forms: the big value, the small label under it, and a one-line
 // phrase for the Photo style. Days count calendar days; "active days" are days with a take or a note here.
 const CHIPS = isKo
-  ? { fixed: ['고친 피드백', '해결된 팀 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
-  : { fixed: ['Notes fixed', 'Team notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
+  ? { notes: ['팀 피드백', '이 영상에 팀이 남긴 피드백 수'], fixed: ['고친 피드백', '해결된 팀 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
+  : { notes: ['Team notes', 'Notes your team left on this video'], fixed: ['Notes fixed', 'Team notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
 function stat(c, s, key) {
   const n = c.stats[key];
   const one = n === 1;
   switch (key) {
     case 'fixed': return { value: String(n), label: isKo ? '고친 피드백' : one ? 'note fixed' : 'notes fixed', phrase: isKo ? `고친 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} fixed` };
+    case 'notes': return { value: String(n), label: isKo ? '팀 피드백' : one ? 'note from the team' : 'notes from the team', phrase: isKo ? `팀 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} from the team` };
     case 'takes': return { value: String(n), label: isKo ? '테이크' : one ? 'take' : 'takes', phrase: isKo ? `테이크 ${n}개` : `${n} ${one ? 'take' : 'takes'}` };
     case 'days': return { value: isKo ? `${n}일` : String(n), label: isKo ? 'Take 1부터' : one ? 'day since Take 1' : 'days since Take 1', phrase: isKo ? `Take 1부터 ${n}일` : `${n} ${one ? 'day' : 'days'} since Take 1` };
     case 'practice': return { value: isKo ? `${n}일` : String(n), label: isKo ? '기록한 날' : one ? 'active day' : 'active days', phrase: isKo ? `기록한 날 ${n}일` : `${n} active ${one ? 'day' : 'days'}` };
@@ -44,6 +49,7 @@ function stat(c, s, key) {
   return null;
 }
 const NOW = isKo ? '지금' : 'NOW';
+const REHEARSAL = isKo ? '연습' : 'REHEARSAL';
 const day = (iso) => new Date(iso).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
 
 // ---------- Data ----------
@@ -56,7 +62,7 @@ export async function loadCard(projectId, videoId) {
     sb.from('notes').select('id, take_id, t_start, status, resolved_at, private_to, body, created_at').eq('video_id', videoId),
     sb.from('project_members').select('user_id').eq('project_id', projectId).eq('role', 'owner').eq('user_id', ctx.state.session.user.id)
   ]);
-  if (!project || !video || !takes || takes.length < 2) return null;
+  if (!project || !video || !takes?.length) return null;
   // What a D-day can count down to: upcoming events except rehearsals (the project's goal always counts).
   // The default matches the goal chip on the project: the goal, or else the next show.
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -70,14 +76,16 @@ export async function loadCard(projectId, videoId) {
   const dates = new Set([...takes.map((t) => t.created_at), ...team.map((n) => n.created_at)].map((iso) => new Date(iso).toDateString()));
   return {
     project, video, takes, first, latest, events, goal,
+    single: takes.length === 1, // one take: a rehearsal card, not a before-and-after
     isOwner: Boolean(owner?.length),
     allowed: project.allow_share_cards !== false,
-    stats: { fixed: fixedNotes.length, takes: takes.length, days: span, practice: dates.size },
+    stats: { fixed: fixedNotes.length, takes: takes.length, days: span, practice: dates.size, notes: team.length },
     open: team.filter((n) => n.status !== 'resolved').length,
     fixedLine: fixedNotes[0] ? clip(fixedNotes[0].body.split('\n')[0], 46) : '',
     // Default moment: where the latest fixed note was pinned, moved onto Take 1 (lined-up takes share a beat).
     moment: (() => {
-      const n = fixedNotes.find((x) => x.t_start !== null);
+      // (With nothing fixed yet, the moment the team last talked about.)
+      const n = fixedNotes.find((x) => x.t_start !== null) || [...team].sort((a, b) => b.created_at.localeCompare(a.created_at)).find((x) => x.t_start !== null);
       if (!n) return null;
       const on = takes.find((t) => t.id === n.take_id) || first;
       return Math.max(0, Number(n.t_start) + (shiftBetween(on, first) || 0));
@@ -183,6 +191,8 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   g.fillStyle = t.ink; g.font = `800 92px ${FONT}`;
   const rows = wrap(g, s.title || c.video.title, x, y + 100, W - x * 2, 96, 2);
   y += 100 + (rows - 1) * 96 + 64;
+  if (c.single) y = drawOne(g, t, c, s, stats, y);
+  else {
   // The pair, 4:6: Take 1 is where you started, the latest take is the star. Bottoms line up.
   const gap = 22, inner = W - 100 - gap, bw = Math.round(inner * 0.4), aw = inner - bw;
   // The pictures take whatever height is left once the numbers, the fixed line, and the logo's clear space fit.
@@ -202,11 +212,12 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   g.beginPath(); g.arc(ax, ay, 40, 0, Math.PI * 2); g.fillStyle = t.arrow[0]; g.fill();
   g.fillStyle = t.arrow[1]; g.font = `800 40px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('→', ax, ay + 2); g.textAlign = 'left';
   y = top + ah + 70;
+  }
   // Numbers
   if (stats.length) {
     // Each column is as wide as its value (or its label, up to a limit), and the space left is shared evenly
     // between them, so "D-12" and "27일" never crowd each other. Everything shrinks together if it can't fit.
-    const avail = W - x * 2, minGap = 48, maxLabel = 300;
+    const avail = W - x * 2, minGap = 48, maxLabel = Math.max(300, avail / stats.length - minGap); // fewer numbers, longer labels
     let size = stats.length > 2 ? 104 : 120, widths;
     const measure = () => stats.map((st) => {
       g.font = `800 ${size}px ${FONT}`; const v = g.measureText(st.value).width;
@@ -234,8 +245,20 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   brand(g, t.ink, x, s.logo, t.logoTint);
 }
 
+// One take: a single big frame, tagged with the date it was filmed. Returns where the numbers start.
+function drawOne(g, t, c, s, stats, y) {
+  const w = W - 100;
+  const below = 70 + (stats.length ? 190 : 0) + (s.line && c.fixedLine ? 104 : 0);
+  const h = Math.max(480, Math.min(Math.round(w * 1.1), BRAND_LINE - 42 - BRAND_GAP - y - below));
+  g.save(); rounded(g, 50, y, w, h, 34); g.clip(); cover(g, s.before, 50, y, w, h); g.restore();
+  rounded(g, 47, y - 3, w + 6, h + 6, 37); g.strokeStyle = t.hi; g.lineWidth = 6; g.stroke();
+  pill(g, `${REHEARSAL} · ${day(c.first.created_at)}`, 70, y + 20, { bg: t.tagA[0], fg: t.tagA[1], size: 34, h: 58, pad: 16 });
+  return y + h + 70;
+}
+
 function drawPhoto(g, c, s, stats, tagB, tagA) {
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  if (c.single) return drawPhotoOne(g, c, s, stats);
   // 4:6, top to bottom: Take 1 smaller, the latest take bigger.
   const seam = Math.round(H * 0.4);
   cover(g, s.before, 0, 0, W, seam);
@@ -265,6 +288,22 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18;
   drawLogo(g, s.logo, W - 50, SAFE_TOP + 30 + 45, 'right', '#ffffff', '#fff');
   g.restore();
+}
+
+// Photo with one take: the frame fills the card; the date tag top left, the logo top right, words at the bottom.
+function drawPhotoOne(g, c, s, stats) {
+  cover(g, s.before, 0, 0, W, H);
+  pill(g, `${REHEARSAL} · ${day(c.first.created_at)}`, 50, SAFE_TOP + 30, { bg: 'rgba(0,0,0,0.6)', fg: '#fff', size: 32, h: 58 });
+  g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18;
+  drawLogo(g, s.logo, W - 50, SAFE_TOP + 30 + 45, 'right', '#ffffff', '#fff');
+  g.restore();
+  const fade = g.createLinearGradient(0, H - 760, 0, H); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,0.85)');
+  g.fillStyle = fade; g.fillRect(0, H - 760, W, 760);
+  g.fillStyle = '#fff'; g.font = `800 72px ${FONT}`; g.textBaseline = 'alphabetic';
+  wrap(g, s.title || c.video.title, 60, H - SAFE_BOTTOM - 150, W - 120, 76, 1);
+  g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 36px ${FONT}`;
+  const words = stats.map((st) => st.phrase);
+  wrap(g, (stats.some((st) => st.key === 'dday') ? words : [c.project.title, ...words]).join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120, 44, 2);
 }
 
 function brand(g, ink, x, logo, tint) {
@@ -304,7 +343,7 @@ function drawLogo(g, logo, x, baseline, align, tint, ink) {
 // ---------- Editor ----------
 export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   const c = await loadCard(projectId, videoId);
-  if (!c) return toast('A progress card needs at least two takes of this video.');
+  if (!c) return toast('This video has no takes yet.');
   if (!canMake(c)) return toast('The project owner turned off progress cards for this project.');
   track('card_opened', { from, sample: Boolean(c.project.is_sample) });
 
@@ -312,7 +351,9 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     template: 'stage',
     title: c.video.title, // editable on the card only, e.g. to add the song; the video keeps its name
     // With a show coming up, the countdown is part of the story from the start.
-    stats: c.goal ? (c.stats.fixed ? ['fixed', 'dday', 'days'] : ['dday', 'takes', 'days']) : (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
+    stats: c.single
+      ? [...(c.goal ? ['dday'] : []), ...(c.stats.notes ? ['notes'] : [])]
+      : c.goal ? (c.stats.fixed ? ['fixed', 'dday', 'days'] : ['dday', 'takes', 'days']) : (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
     eventId: c.goal?.id || null,
     line: Boolean(c.fixedLine),
     beforeAt: c.moment, afterAt: null, before: null, after: null
@@ -323,18 +364,18 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   const el = document.createElement('dialog');
   el.className = 'dialog card-editor';
   el.innerHTML = `<div class="ce">
-    <header class="ce-head"><button type="button" class="link-btn" data-ce-close>Cancel</button><b>Progress card</b><span></span></header>
+    <header class="ce-head"><button type="button" class="link-btn" data-ce-close>Cancel</button><b>${c.single ? 'Rehearsal card' : 'Progress card'}</b><span></span></header>
     <div class="ce-body">
       <div class="ce-preview"><canvas data-ce-canvas width="${W}" height="${H}" aria-label="Preview of your progress card"></canvas><p class="ce-loading" data-ce-loading>Getting the frames…</p></div>
       <div class="ce-panel">
         <label class="field ce-title"><span>Card title</span><input data-ce-title maxlength="60" value="${esc(c.video.title)}" placeholder="${esc(c.video.title)}" autocomplete="off" /><small>Only on the card. Add the song if you like, e.g. “Supernova · Chorus”.</small></label>
         <div class="seg ce-seg" role="group" aria-label="Style" data-no-i18n>${TEMPLATES.map(([k, l]) => `<button type="button" data-ce-template="${k}" aria-pressed="${k === s.template}">${l}</button>`).join('')}</div>
-        <div class="ce-pick">
-          <button type="button" data-ce-pick="before"><img alt="" data-ce-thumb="before" /><b>Take ${c.first.number}</b><small>Change moment ›</small></button>
-          <button type="button" data-ce-pick="after"><img alt="" data-ce-thumb="after" /><b>Take ${c.latest.number}</b><small>Change moment ›</small></button>
+        <div class="ce-pick ${c.single ? 'single' : ''}">
+          <button type="button" data-ce-pick="before"><img alt="" data-ce-thumb="before" /><b>${c.single ? 'Your take' : `Take ${c.first.number}`}</b><small>Change moment ›</small></button>
+          ${c.single ? '' : `<button type="button" data-ce-pick="after"><img alt="" data-ce-thumb="after" /><b>Take ${c.latest.number}</b><small>Change moment ›</small></button>`}
         </div>
         <p class="ce-label">On the card <small data-ce-count></small></p>
-        <div class="ce-chips" data-no-i18n>${STATS.filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
+        <div class="ce-chips" data-no-i18n>${chipKeys(c).filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
         ${c.events.length ? `<label class="ce-event" data-ce-event-row hidden><span>Counting down to</span>${c.events.length > 1
           ? `<select data-ce-event>${c.events.map((e) => `<option value="${e.id}" ${e.id === s.eventId ? 'selected' : ''}>${esc(e.title)} · ${esc(day(e.starts_at))}</option>`).join('')}</select>`
           : `<b>${esc(c.events[0].title)} · ${esc(day(c.events[0].starts_at))}</b>`}</label>` : ''}
@@ -376,7 +417,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   paint();
   const ok = await setFrame('before', s.beforeAt);
   // The latest take at the same beat, when the takes are lined up.
-  await setFrame('after', shift !== null && s.beforeAt !== null ? s.beforeAt + shift : s.beforeAt);
+  if (!c.single) await setFrame('after', shift !== null && s.beforeAt !== null ? s.beforeAt + shift : s.beforeAt);
   $('[data-ce-loading]', el)?.remove();
   if (!ok) toast('Couldn’t read this take’s frames in this browser. The card shows without them.', 'error');
   paint();
@@ -389,7 +430,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
       const k = t.dataset.ceStat;
       if (s.stats.includes(k)) s.stats = s.stats.filter((x) => x !== k);
       else if (s.stats.length >= MAX_STATS) return toast(isKo ? `숫자는 ${MAX_STATS}개까지 넣을 수 있어요. 하나를 먼저 빼 주세요.` : `Up to ${MAX_STATS} numbers. Turn one off first.`);
-      else s.stats = STATS.filter((x) => x === k || s.stats.includes(x));
+      else s.stats = chipKeys(c).filter((x) => x === k || s.stats.includes(x));
       if (k === 'dday' && !s.eventId) s.eventId = c.events[0]?.id || null; // no goal set: the soonest event
       return paint();
     }
@@ -450,12 +491,12 @@ function pickMoment(url, at, number) {
 // ---------- Ways in ----------
 // The video's Share button: a progress card, or the read-only link for people outside the team.
 export async function shareChoice({ projectId, videoId, videoTitle, sample, takes, latest, linkShare }) {
-  const card = { value: 'card', label: 'Make a progress card', hint: takes >= 2 ? `Take 1 next to Take ${latest}, as an image for Instagram Stories` : 'Needs a second take of this video to show progress' };
+  // One take: a rehearsal card (the take itself); two or more: Take 1 next to the latest.
+  const card = takes >= 2
+    ? { value: 'card', label: 'Make a progress card', hint: `Take 1 next to Take ${latest}, as an image for Instagram Stories` }
+    : { value: 'card', label: 'Make a rehearsal card', hint: 'A moment from your take, as an image for Instagram Stories' };
   const choice = await actionSheet({ title: 'Share', actions: [card, { value: 'link', label: 'Send a link', hint: 'A read-only link for a coach or family, no account needed' }] });
-  if (choice === 'card') {
-    if (takes < 2) return toast(isKo ? '같은 영상에 테이크를 하나 더 올리면 전후 비교 카드를 만들 수 있어요.' : 'Upload another take of this video to make a before-and-after card.');
-    return openCardEditor({ projectId, videoId, from: 'share' });
-  }
+  if (choice === 'card') return openCardEditor({ projectId, videoId, from: 'share' });
   if (choice !== 'link') return;
   if (!sample) return linkShare(videoId, videoTitle);
   // Sample media ship with the site, so a guest link couldn't play it; explain what it does instead.
@@ -467,7 +508,7 @@ export async function shareChoice({ projectId, videoId, videoTitle, sample, take
 export async function celebrate({ projectId, videoId }) {
   try { if (localStorage.getItem(PROMPTED + videoId)) return; } catch { return; }
   const c = await loadCard(projectId, videoId);
-  if (!c || c.open || !c.stats.fixed || !canMake(c)) return;
+  if (!c || c.single || c.open || !c.stats.fixed || !canMake(c)) return;
   try { localStorage.setItem(PROMPTED + videoId, '1'); } catch {}
   const urls = await thumbUrls([c.first.thumb_path, c.latest.thumb_path].filter(Boolean));
   const thumb = (t) => (t.thumb_path && urls[t.thumb_path] ? `<img src="${esc(urls[t.thumb_path])}" alt="" />` : '<span class="ce-blank"></span>');

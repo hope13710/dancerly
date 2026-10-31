@@ -6721,3 +6721,9 @@ button.row {
   background: var(--surface);
   color: var(--ink);
 }
+.ce-pick.single {
+  grid-template-columns: 1fr;
+}
+.ce-pick.single img {
+  aspect-ratio: 16 / 8;
+}
