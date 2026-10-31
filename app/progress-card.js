@@ -17,9 +17,9 @@ const BRAND_GAP = 150; // clear space between the content and the logo row
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 const TEMPLATES = isKo ? [['stage', '스테이지'], ['light', '라이트'], ['photo', '포토']] : [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
 const STATS = ['fixed', 'dday', 'takes', 'days', 'practice'];
-// With one take there's nothing to compare yet, and no day counts either (one take isn't one day of practice):
-// just the countdown and how much feedback the team gave.
-const SINGLE_STATS = ['dday', 'notes'];
+// With one take there's nothing to compare, but every number still holds (one take isn't one day of
+// practice), plus how much feedback the team gave.
+const SINGLE_STATS = ['notes', 'fixed', 'dday', 'takes', 'days', 'practice'];
 const chipKeys = (c) => (c.single ? SINGLE_STATS : STATS);
 const MAX_STATS = 3;
 const PROMPTED = 'looproom:cardPrompt:';
@@ -34,7 +34,7 @@ function stat(c, s, key) {
   const one = n === 1;
   switch (key) {
     case 'fixed': return { value: String(n), label: isKo ? '고친 피드백' : one ? 'note fixed' : 'notes fixed', phrase: isKo ? `고친 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} fixed` };
-    case 'notes': return { value: String(n), label: isKo ? '팀 피드백' : one ? 'note from the team' : 'notes from the team', phrase: isKo ? `팀 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} from the team` };
+    case 'notes': return { value: String(n), label: isKo ? '팀 피드백' : one ? 'team note' : 'team notes', phrase: isKo ? `팀 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} from the team` };
     case 'takes': return { value: String(n), label: isKo ? '테이크' : one ? 'take' : 'takes', phrase: isKo ? `테이크 ${n}개` : `${n} ${one ? 'take' : 'takes'}` };
     case 'days': return { value: isKo ? `${n}일` : String(n), label: isKo ? 'Take 1부터' : one ? 'day since Take 1' : 'days since Take 1', phrase: isKo ? `Take 1부터 ${n}일` : `${n} ${one ? 'day' : 'days'} since Take 1` };
     case 'practice': return { value: isKo ? `${n}일` : String(n), label: isKo ? '기록한 날' : one ? 'active day' : 'active days', phrase: isKo ? `기록한 날 ${n}일` : `${n} active ${one ? 'day' : 'days'}` };
@@ -72,7 +72,9 @@ export async function loadCard(projectId, videoId) {
   const team = (notes || []).filter((n) => !n.private_to); // private notes never count on a public image
   const fixedNotes = team.filter((n) => n.status === 'resolved').sort((a, b) => String(b.resolved_at).localeCompare(String(a.resolved_at)));
   const first = takes[0], latest = takes[takes.length - 1];
-  const span = Math.max(1, Math.ceil((new Date(latest.created_at) - new Date(first.created_at)) / 864e5));
+  // Days since Take 1: up to the latest take, or, with only one take, up to today.
+  const end = takes.length > 1 ? new Date(latest.created_at) : new Date();
+  const span = Math.max(1, Math.ceil((end - new Date(first.created_at)) / 864e5));
   const dates = new Set([...takes.map((t) => t.created_at), ...team.map((n) => n.created_at)].map((iso) => new Date(iso).toDateString()));
   return {
     project, video, takes, first, latest, events, goal,
@@ -352,7 +354,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     title: c.video.title, // editable on the card only, e.g. to add the song; the video keeps its name
     // With a show coming up, the countdown is part of the story from the start.
     stats: c.single
-      ? [...(c.goal ? ['dday'] : []), ...(c.stats.notes ? ['notes'] : [])]
+      ? [...(c.stats.notes ? ['notes'] : []), ...(c.stats.fixed ? ['fixed'] : []), ...(c.goal ? ['dday'] : ['days'])].slice(0, 3)
       : c.goal ? (c.stats.fixed ? ['fixed', 'dday', 'days'] : ['dday', 'takes', 'days']) : (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
     eventId: c.goal?.id || null,
     line: Boolean(c.fixedLine),
@@ -375,7 +377,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
           ${c.single ? '' : `<button type="button" data-ce-pick="after"><img alt="" data-ce-thumb="after" /><b>Take ${c.latest.number}</b><small>Change moment ›</small></button>`}
         </div>
         <p class="ce-label">On the card <small data-ce-count></small></p>
-        <div class="ce-chips" data-no-i18n>${chipKeys(c).filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
+        <div class="ce-chips" data-no-i18n>${chipKeys(c).filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(k === 'days' && c.single ? (isKo ? 'Take 1을 올린 날부터 오늘까지 지난 날' : 'Calendar days from Take 1 to today') : CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
         ${c.events.length ? `<label class="ce-event" data-ce-event-row hidden><span>Counting down to</span>${c.events.length > 1
           ? `<select data-ce-event>${c.events.map((e) => `<option value="${e.id}" ${e.id === s.eventId ? 'selected' : ''}>${esc(e.title)} · ${esc(day(e.starts_at))}</option>`).join('')}</select>`
           : `<b>${esc(c.events[0].title)} · ${esc(day(c.events[0].starts_at))}</b>`}</label>` : ''}
