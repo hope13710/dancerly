@@ -1,4 +1,4 @@
-# Looproom 서비스 기획 문서
+# dancerly 서비스 기획 문서
 
 > **댄스팀이 리허설 영상에 서로 피드백을 주고받는** 영상 피드백 · 프로젝트 · 성장 기록 SaaS. 코치는 있어도 되고 없어도 된다.
 > 기준: 현재 랜딩페이지(`index.html`), 워크스페이스 프로토타입(`/app`), [`product-plan.md`](product-plan.md)
