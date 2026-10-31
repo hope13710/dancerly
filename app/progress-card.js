@@ -8,6 +8,7 @@ import { isKo } from './i18n.js';
 import { track } from './onboarding.js';
 import { shiftBetween } from './align.js';
 import { thumbUrls } from './thumbs.js';
+import { daysUntil } from './views/shared.js';
 
 const W = 1080, H = 1920;
 const SAFE_TOP = 216, SAFE_BOTTOM = 256; // Instagram's own buttons cover these
@@ -15,17 +16,33 @@ const BRAND_LINE = H - SAFE_BOTTOM - 40; // baseline of the logo row at the bott
 const BRAND_GAP = 150; // clear space between the content and the logo row
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 const TEMPLATES = isKo ? [['stage', '스테이지'], ['light', '라이트'], ['photo', '포토']] : [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
-const STATS = ['fixed', 'takes', 'days', 'practice'];
+const STATS = ['fixed', 'dday', 'takes', 'days', 'practice'];
 const MAX_STATS = 3;
 const PROMPTED = 'looproom:cardPrompt:';
 
-const label = (key, n) => (isKo
-  ? { fixed: '고친 피드백', takes: '테이크', days: '일', practice: '연습한 날' }[key]
-  : { fixed: n === 1 ? 'note fixed' : 'notes fixed', takes: n === 1 ? 'take' : 'takes', days: n === 1 ? 'day' : 'days', practice: n === 1 ? 'rehearsal day' : 'rehearsal days' }[key]);
-// "12 notes fixed" / "고친 피드백 12개", for one-line spots.
-const phrase = (key, n) => (isKo
-  ? { fixed: `고친 피드백 ${n}개`, takes: `테이크 ${n}개`, days: `${n}일`, practice: `연습한 날 ${n}일` }[key]
-  : `${n} ${label(key, n)}`);
+// What each number on a card says, in three forms: the big value, the small label under it, and a one-line
+// phrase for the Photo style. Days count calendar days; "active days" are days with a take or a note here.
+const CHIPS = isKo
+  ? { fixed: ['고친 피드백', '해결된 팀 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
+  : { fixed: ['Notes fixed', 'Team notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
+function stat(c, s, key) {
+  const n = c.stats[key];
+  const one = n === 1;
+  switch (key) {
+    case 'fixed': return { value: String(n), label: isKo ? '고친 피드백' : one ? 'note fixed' : 'notes fixed', phrase: isKo ? `고친 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} fixed` };
+    case 'takes': return { value: String(n), label: isKo ? '테이크' : one ? 'take' : 'takes', phrase: isKo ? `테이크 ${n}개` : `${n} ${one ? 'take' : 'takes'}` };
+    case 'days': return { value: isKo ? `${n}일` : String(n), label: isKo ? 'Take 1부터' : one ? 'day since Take 1' : 'days since Take 1', phrase: isKo ? `Take 1부터 ${n}일` : `${n} ${one ? 'day' : 'days'} since Take 1` };
+    case 'practice': return { value: isKo ? `${n}일` : String(n), label: isKo ? '기록한 날' : one ? 'active day' : 'active days', phrase: isKo ? `기록한 날 ${n}일` : `${n} active ${one ? 'day' : 'days'}` };
+    case 'dday': {
+      const e = c.events.find((x) => x.id === s.eventId);
+      if (!e) return null;
+      const d = daysUntil(e.starts_at);
+      const value = d <= 0 ? 'D-DAY' : `D-${d}`;
+      return { value, label: e.title, phrase: isKo ? `${e.title}까지 ${value}` : `${value} to ${e.title}` };
+    }
+  }
+  return null;
+}
 const NOW = isKo ? '지금' : 'NOW';
 const day = (iso) => new Date(iso).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
 
@@ -33,20 +50,26 @@ const day = (iso) => new Date(iso).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', 
 // Everything a card needs about one video. null when there's nothing to compare yet.
 export async function loadCard(projectId, videoId) {
   const [{ data: project }, { data: video }, { data: takes }, { data: notes }, { data: owner }] = await Promise.all([
-    sb.from('projects').select(cols('id, title, is_sample, created_by, allow_share_cards')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample, created_by, allow_share_cards, target_event_id')).eq('id', projectId).single(),
     sb.from('videos').select('id, title').eq('id', videoId).single(),
     sb.from('takes').select(cols('id, number, created_at, storage_path, thumb_path, count_start, align')).eq('video_id', videoId).order('number'),
     sb.from('notes').select('id, take_id, t_start, status, resolved_at, private_to, body, created_at').eq('video_id', videoId),
     sb.from('project_members').select('user_id').eq('project_id', projectId).eq('role', 'owner').eq('user_id', ctx.state.session.user.id)
   ]);
   if (!project || !video || !takes || takes.length < 2) return null;
+  // What a D-day can count down to: upcoming events except rehearsals (the project's goal always counts).
+  // The default matches the goal chip on the project: the goal, or else the next show.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { data: upcoming } = await sb.from('project_events').select('id, title, kind, starts_at').eq('project_id', projectId).gte('starts_at', today.toISOString()).order('starts_at').limit(30);
+  const events = (upcoming || []).filter((e) => e.kind !== 'rehearsal' || e.id === project.target_event_id).slice(0, 8);
+  const goal = events.find((e) => e.id === project.target_event_id) || events.find((e) => e.kind === 'show') || null;
   const team = (notes || []).filter((n) => !n.private_to); // private notes never count on a public image
   const fixedNotes = team.filter((n) => n.status === 'resolved').sort((a, b) => String(b.resolved_at).localeCompare(String(a.resolved_at)));
   const first = takes[0], latest = takes[takes.length - 1];
   const span = Math.max(1, Math.ceil((new Date(latest.created_at) - new Date(first.created_at)) / 864e5));
   const dates = new Set([...takes.map((t) => t.created_at), ...team.map((n) => n.created_at)].map((iso) => new Date(iso).toDateString()));
   return {
-    project, video, takes, first, latest,
+    project, video, takes, first, latest, events, goal,
     isOwner: Boolean(owner?.length),
     allowed: project.allow_share_cards !== false,
     stats: { fixed: fixedNotes.length, takes: takes.length, days: span, practice: dates.size },
@@ -140,7 +163,7 @@ export function drawCard(canvas, c, s) {
   const g = canvas.getContext('2d');
   canvas.width = W; canvas.height = H;
   g.textBaseline = 'alphabetic';
-  const stats = s.stats.map((k) => [c.stats[k], label(k, c.stats[k]), k]);
+  const stats = s.stats.map((k) => ({ key: k, ...stat(c, s, k) })).filter((x) => x.value);
   const tagB = `TAKE ${c.first.number}`, tagA = `TAKE ${c.latest.number}`;
   if (s.template === 'photo') drawPhoto(g, c, s, stats, tagB, tagA);
   else drawPanel(g, THEMES[s.template], c, s, stats, tagB, tagA);
@@ -181,11 +204,24 @@ function drawPanel(g, t, c, s, stats, tagB, tagA) {
   y = top + ah + 70;
   // Numbers
   if (stats.length) {
-    const colW = (W - x * 2) / stats.length;
-    stats.forEach(([n, l], i) => {
+    // Each column is as wide as its value (or its label, up to a limit), and the space left is shared evenly
+    // between them, so "D-12" and "27일" never crowd each other. Everything shrinks together if it can't fit.
+    const avail = W - x * 2, minGap = 48, maxLabel = 300;
+    let size = stats.length > 2 ? 104 : 120, widths;
+    const measure = () => stats.map((st) => {
+      g.font = `800 ${size}px ${FONT}`; const v = g.measureText(st.value).width;
+      g.font = `600 33px ${FONT}`; const l = Math.min(maxLabel, g.measureText(st.label).width);
+      return Math.max(v, l);
+    });
+    while ((widths = measure()).reduce((a, b) => a + b, 0) + minGap * (stats.length - 1) > avail && size > 64) size -= 4;
+    const used = widths.reduce((a, b) => a + b, 0);
+    const gapX = stats.length > 1 ? Math.max(minGap, (avail - used) / (stats.length - 1)) : 0;
+    let cx = x;
+    stats.forEach((st, i) => {
       g.textBaseline = 'alphabetic';
-      g.fillStyle = i === 0 ? t.hi : t.ink; g.font = `800 ${stats.length > 2 ? 104 : 120}px ${FONT}`; g.fillText(String(n), x + i * colW, y + 96);
-      g.fillStyle = t.soft; g.font = `600 33px ${FONT}`; g.fillText(l, x + i * colW + 2, y + 146);
+      g.fillStyle = i === 0 ? t.hi : t.ink; g.font = `800 ${size}px ${FONT}`; g.fillText(st.value, cx, y + 96);
+      g.fillStyle = t.soft; g.font = `600 33px ${FONT}`; wrap(g, st.label, cx + 2, y + 146, Math.max(widths[i], 120), 36, 1);
+      cx += widths[i] + gapX;
     });
     y += 190;
   }
@@ -209,7 +245,7 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   pill(g, `${tagA} · ${NOW}`, 50, seam + 64, { bg: '#fff', fg: '#000', size: 36, h: 64 });
   // The headline number sits on the seam.
   if (stats[0]) {
-    const text = `${phrase(stats[0][2], stats[0][0])} ✓`;
+    const text = stats[0].key === 'fixed' ? `${stats[0].phrase} ✓` : stats[0].phrase;
     g.font = `900 44px ${FONT}`;
     const w = g.measureText(text).width + 64;
     g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 40;
@@ -220,9 +256,11 @@ function drawPhoto(g, c, s, stats, tagB, tagA) {
   g.fillStyle = fade; g.fillRect(0, H - 760, W, 760);
   g.fillStyle = '#fff'; g.font = `800 72px ${FONT}`; g.textBaseline = 'alphabetic';
   wrap(g, s.title || c.video.title, 60, H - SAFE_BOTTOM - 150, W - 120, 76, 1);
-  const rest = stats.slice(1).map(([n, , k]) => phrase(k, n));
+  const rest = stats.slice(1).map((st) => st.phrase);
   g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `600 36px ${FONT}`;
-  wrap(g, [c.project.title, ...rest].join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120, 40, 1);
+  // A countdown already names the event, so the project name steps aside for it.
+  const sub = stats.some((st) => st.key === 'dday') ? rest : [c.project.title, ...rest];
+  wrap(g, sub.join(' · '), 60, H - SAFE_BOTTOM - 84, W - 120, 44, 2);
   // The logo sits top right, level with the Take 1 tag, clear of the title block at the bottom.
   g.save(); g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18;
   drawLogo(g, s.logo, W - 50, SAFE_TOP + 30 + 45, 'right', '#ffffff', '#fff');
@@ -273,7 +311,9 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   const s = {
     template: 'stage',
     title: c.video.title, // editable on the card only, e.g. to add the song; the video keeps its name
-    stats: (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
+    // With a show coming up, the countdown is part of the story from the start.
+    stats: c.goal ? (c.stats.fixed ? ['fixed', 'dday', 'days'] : ['dday', 'takes', 'days']) : (c.stats.fixed ? ['fixed', 'takes', 'days'] : ['takes', 'days', 'practice']),
+    eventId: c.goal?.id || null,
     line: Boolean(c.fixedLine),
     beforeAt: c.moment, afterAt: null, before: null, after: null
   };
@@ -294,7 +334,10 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
           <button type="button" data-ce-pick="after"><img alt="" data-ce-thumb="after" /><b>Take ${c.latest.number}</b><small>Change moment ›</small></button>
         </div>
         <p class="ce-label">On the card <small data-ce-count></small></p>
-        <div class="ce-chips">${STATS.map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}">${esc(label(k, 2))}</button>`).join('')}${c.fixedLine ? '<button type="button" class="ce-chip" data-ce-line>What got fixed</button>' : ''}</div>
+        <div class="ce-chips" data-no-i18n>${STATS.filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
+        ${c.events.length ? `<label class="ce-event" data-ce-event-row hidden><span>Counting down to</span>${c.events.length > 1
+          ? `<select data-ce-event>${c.events.map((e) => `<option value="${e.id}" ${e.id === s.eventId ? 'selected' : ''}>${esc(e.title)} · ${esc(day(e.starts_at))}</option>`).join('')}</select>`
+          : `<b>${esc(c.events[0].title)} · ${esc(day(c.events[0].starts_at))}</b>`}</label>` : ''}
         ${c.project.is_sample
           ? `<div class="ce-sample"><p><b>This is the sample.</b> Make one from your own team’s takes and share it to Instagram.</p><button type="button" class="btn primary wide" data-ce-own>Start my own project</button></div>`
           : `<p class="ce-tip">🎵 Add the song with Instagram or TikTok’s music sticker. The card itself is silent.</p>
@@ -316,6 +359,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     $$('[data-ce-stat]', el).forEach((b) => { const on = s.stats.includes(b.dataset.ceStat); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const line = $('[data-ce-line]', el); if (line) { line.classList.toggle('on', s.line); line.setAttribute('aria-pressed', String(s.line)); }
     $('[data-ce-count]', el).textContent = isKo ? `숫자 ${s.stats.length}/${MAX_STATS}` : `${s.stats.length} of ${MAX_STATS} numbers`;
+    const row = $('[data-ce-event-row]', el); if (row) row.hidden = !s.stats.includes('dday');
   };
   const setFrame = async (which, at) => {
     const f = await grabFrame(which === 'before' ? urlB : urlA, at);
@@ -326,6 +370,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     return true;
   };
   $('[data-ce-title]', el).addEventListener('input', (e) => { s.title = e.target.value.trim(); paint(); });
+  $('[data-ce-event]', el)?.addEventListener('change', (e) => { s.eventId = e.target.value; paint(); });
   await document.fonts?.ready;
   s.logo = await loadLogo();
   paint();
@@ -345,6 +390,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
       if (s.stats.includes(k)) s.stats = s.stats.filter((x) => x !== k);
       else if (s.stats.length >= MAX_STATS) return toast(isKo ? `숫자는 ${MAX_STATS}개까지 넣을 수 있어요. 하나를 먼저 빼 주세요.` : `Up to ${MAX_STATS} numbers. Turn one off first.`);
       else s.stats = STATS.filter((x) => x === k || s.stats.includes(x));
+      if (k === 'dday' && !s.eventId) s.eventId = c.events[0]?.id || null; // no goal set: the soonest event
       return paint();
     }
     if (t.hasAttribute('data-ce-line')) { s.line = !s.line; return paint(); }

@@ -558,6 +558,7 @@ export const KO = {
   'Progress card': '성장 카드',
   'On the card': '카드에 넣을 것',
   'Card title': '카드 제목',
+  'Counting down to': '카운트다운 일정',
   'Only on the card. Add the song if you like, e.g. “Supernova · Chorus”.': '카드에만 적용돼요. 원하면 곡 이름을 넣어 보세요. 예: “Supernova · 후렴”',
   '🎵 Add the song with Instagram or TikTok’s music sticker. The card itself is silent.': '🎵 인스타그램이나 틱톡의 음악 스티커로 곡을 붙여 보세요. 카드에는 소리가 없어요.',
   'Make a progress card': '성장 카드 만들기',

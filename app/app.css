@@ -6694,3 +6694,30 @@ button.row {
   font-size: 13px;
   line-height: 1.45;
 }
+.ce-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ce-event[hidden] {
+  display: none;
+}
+.ce-event b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.ce-event select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
