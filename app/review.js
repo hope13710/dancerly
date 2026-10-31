@@ -41,7 +41,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const who = members.some((m) => m.user_id === id)
       ? `<a class="uploader" href="/app/people/${id}" data-link>${avatar(name, id, 'xs')}<span>${esc(name)}</span></a>`
       : esc(name);
-    return `<span data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who}`}</span>`;
+    return `<span data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}`}</span>`;
   };
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 

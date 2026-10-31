@@ -75,6 +75,17 @@ export function navigate(path, { replace = false } = {}) {
   route();
 }
 window.addEventListener('popstate', route);
+// A person's name or photo inside a row that's itself a link (see personLink): open their profile, not the row.
+const openPerson = (event) => {
+  const el = event.target.closest('[data-person]');
+  if (!el) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  navigate(`/app/people/${el.dataset.person}`);
+  return true;
+};
+document.addEventListener('click', openPerson, true);
+document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.target.matches?.('[data-person]')) openPerson(event); }, true);
 document.addEventListener('click', (event) => {
   const link = event.target.closest('a[data-link]');
   if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;

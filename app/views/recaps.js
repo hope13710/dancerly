@@ -5,7 +5,7 @@ import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
 import { loadProject, projectHead, inviteLink } from './project.js';
-import { empty, namesFor, tabs, noSample, realProjects } from './shared.js';
+import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './shared.js';
 
 const SECTIONS = [
   ['worked_on', 'Worked on'],
@@ -202,7 +202,7 @@ export function recapBody(r, { interactive = false } = {}) {
 }
 
 function recapMeta(r, names) {
-  return `<span class="chip ai">${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>by ${esc(names[r.created_by] || 'a teammate')}</span>`;
+  return `<span class="chip ai">${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>${byPerson(names[r.created_by], r.created_by)}</span>`;
 }
 
 function recapRow(group, names, { showProject = false } = {}) {
@@ -212,7 +212,7 @@ function recapRow(group, names, { showProject = false } = {}) {
       <span class="spark-mark">${sparkle()}</span>
       <span class="row-main">
         <span class="row-title">${esc(r.content?.headline || 'Recap')}</span>
-        <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · by ${esc(names[r.created_by] || 'a teammate')}</span>
+        <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · ${byPerson(names[r.created_by], r.created_by)}</span>
       </span>
       <span class="row-side">${isPinned(r) ? '<span title="Pinned">📌</span>' : ''}${r.shared_at ? '<span class="pill info">Shared</span>' : '<span class="pill">Only you</span>'}<small>${timeAgo(r.created_at)}</small></span>
     </a>
@@ -459,7 +459,7 @@ export async function homeRecapCard() {
   const next = (r.content?.next || []).slice(0, 3);
   return {
     html: `<section class="panel recap-teaser">
-      <div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI<span>· ${esc(r.projects?.title || '')}</span></p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · by ${esc(names[r.created_by] || 'a teammate')} · ${timeAgo(r.created_at)}</p></div>
+      <div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI<span>· ${esc(r.projects?.title || '')}</span></p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · ${byPerson(names[r.created_by], r.created_by)} · ${timeAgo(r.created_at)}</p></div>
         <div class="head-actions"><button class="btn small ghost" data-home-recap>New</button><a class="btn small" href="/app/recaps/${r.id}" data-link>Open</a></div></div>
       ${next.length ? `<ul class="todo compact">${next.map((it, i) => `<li class="${(r.checked || []).includes(i) ? 'done' : ''}"><span class="todo-dot ${(r.checked || []).includes(i) ? 'done' : ''}"></span><span>${esc(it.text)}</span></li>`).join('')}</ul>` : ''}
     </section>`,

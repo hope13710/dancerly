@@ -6250,8 +6250,7 @@ button.row {
 .uploader {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-left: 2px;
+  gap: 6px;
   vertical-align: middle;
   color: var(--ink);
   font-weight: 600;
@@ -6262,4 +6261,30 @@ button.row {
 }
 .uploader .avatar {
   flex: none;
+}
+
+/* A person's name (and photo) inside a row link: opens their profile. */
+.person-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.person-link:hover > span:last-child,
+.person-link:focus-visible > span:last-child {
+  text-decoration: underline;
+}
+.person-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.person-link .avatar {
+  flex: none;
+}
+/* After a word ("uploaded by", "by"), a little more room before the photo. */
+.uploader.after-text,
+.person-link.after-text {
+  margin-left: 4px;
 }

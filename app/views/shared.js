@@ -1,6 +1,7 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
 import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos } from '../client.js';
 import { ctx } from '../ctx.js';
+import { isKo } from '../i18n.js';
 
 // The sample project is a sandbox: it shows up only inside itself (and Insights' demo), never in the
 // screens that gather work across projects — Home, Feedback, Inbox, Calendar, People, Queue, Search, Recaps.
@@ -28,14 +29,24 @@ export async function namesFor(ids) {
   return Object.fromEntries((data || []).map((p) => [p.id, p.display_name]));
 }
 
+// Someone's photo and name, opening their profile. Rows here are whole links already and a link can't sit
+// inside another, so it's a span that acts as a link (main.js routes clicks and Enter on [data-person]).
+// Someone no longer around (no name) stays plain text.
+export function personLink(name, id, { photo = true } = {}) {
+  if (!id || !name) return esc(name || 'a teammate');
+  return `<span class="person-link" role="link" tabindex="0" data-person="${id}">${photo ? avatar(name, id, 'xs') : ''}<span>${esc(name)}</span></span>`;
+}
+// "by Maya" / "Maya님", with Maya linked.
+export const byPerson = (name, id) => `<span data-no-i18n>${isKo ? `${personLink(name, id)}님` : `by ${personLink(name, id).replace('class="person-link"', 'class="person-link after-text"')}`}</span>`;
+
 export function noteRow(n, names, { showAuthor = true, showProject = true } = {}) {
   const author = names[n.author_id] || 'Former member';
   const agrees = n.note_reactions?.length || 0;
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
-    ${showAuthor ? avatar(author, n.author_id, 'sm') : ''}
+    ${showAuthor ? (names[n.author_id] ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${n.author_id}">${avatar(author, n.author_id, 'sm')}</span>` : avatar(author, n.author_id, 'sm')) : ''}
     <span class="row-main">
       <span class="row-title">${n.private_to ? '<span class="lock" title="Private: only the two of you">🔒</span> ' : ''}${esc(n.body)}</span>
-      <span class="row-meta">${showAuthor ? `<b>${esc(author)}</b> · ` : ''}<span class="time-tag">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
+      <span class="row-meta">${showAuthor ? `<b>${names[n.author_id] ? personLink(author, n.author_id, { photo: false }) : esc(author)}</b> · ` : ''}<span class="time-tag">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
     </span>
     <span class="row-side">${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">💬 ${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">👍 ${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>
   </a>`;
