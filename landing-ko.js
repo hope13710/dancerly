@@ -2,6 +2,16 @@
 // Glossary (same as the app): note → 피드백, recap → AI 요약, insights → 리포트, mirror → 거울 모드,
 // coach → 강사, studio → 연습실/학원, rehearsal → 연습, eight → 에잇.
 export const LANDING_KO = {
+  '· 1d ago': '· 1일 전',
+  '· 2m ago': '· 2분 전',
+  '↻ Loop ±2s': '↻ 앞뒤 2초 반복 재생',
+  '↻ Loop this part': '↻ 이 구간 반복 재생',
+  '↻ Looping': '↻ 반복 재생 중',
+  'I’m on it': '연습할게요',
+  'Resolve ✓': '해결 ✓',
+  'Reopen': '다시 열기',
+  '💬 Reply': '💬 답글 남기기',
+  'Reply…': '답글 남기기…',
   'Teams that upload their first video during early access get': '얼리 액세스 기간에 첫 영상을 업로드한 팀에는 유료 요금제가 출시되면',
   '3 months of Team free': 'Team 요금제 3개월 무료 이용',
   'when paid plans launch.': '혜택을 드려요.',
