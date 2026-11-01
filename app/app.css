@@ -7374,3 +7374,13 @@ button.row {
     animation: none;
   }
 }
+
+/* Segmented controls keep each option on one line (Korean would otherwise break letter by letter),
+   and one sitting beside a panel title takes only the room it needs. */
+.seg button {
+  white-space: nowrap;
+}
+.panel-head > .seg {
+  flex: none;
+  width: auto;
+}
