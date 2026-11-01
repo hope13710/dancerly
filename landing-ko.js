@@ -224,8 +224,8 @@ export const LANDING_KO = {
   'Delete a video, a project, or your account whenever you want.': '영상이나 프로젝트, 계정은 원할 때 언제든 삭제할 수 있어요.',
 
   // 요금
-  'Start free. Upgrade when it sticks.': '무료로 시작하고, 팀이 커지면 요금제를 변경하세요.',
-  'No sales call, no credit card, no rollout plan. Bring your team and start today.': '상담이나 카드 등록, 복잡한 도입 절차 없이 시작할 수 있어요. 지금 바로 팀을 초대해 보세요.',
+  'A free plan you’ll actually use.': '무료라면, 진짜 쓸 만해야죠.',
+  'Unlimited videos and takes, no time limit, no card. Upgrade only when your team outgrows it.': '영상·테이크 무제한, 기간 제한도 카드 등록도 없어요. 팀이 커졌을 때만 업그레이드하세요.',
   'Free': 'Free',
   '/ forever': '/ 평생 무료',
   '1 team, up to 10 members': '팀 1개 · 최대 10명',
@@ -241,7 +241,7 @@ export const LANDING_KO = {
   '2 months free': '2개월 무료',
   'For trying dancerly with your first team.': '첫 팀과 dancerly를 시작해 보는 플랜',
   'No credit card · No time limit': '카드 등록 없이 · 기간 제한 없이',
-  'A real free plan, not a trial. Rehearse with your whole team, take after take.': '체험판이 아닌 무료 플랜이에요. 팀원 모두가 제한 없이 영상과 테이크를 올리고 피드백을 주고받을 수 있어요.',
+  'Everything your first team needs to rehearse together.': '첫 팀이 함께 연습하는 데 필요한 기능을 모두 담았어요.',
   '2 GB storage': '저장 공간 최대 2GB',
   'Notes, sketches, loops, mirror mode': '피드백 · 스케치 · 구간 반복 · 거울 모드',
   'Basic Insights': '기본 리포트 기능',
