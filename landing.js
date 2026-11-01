@@ -186,6 +186,11 @@ if (video) {
   requestAnimationFrame(tick);
 }
 
+let toolTimer = 0;
+function pickTool(tool, color) {
+  document.querySelectorAll('[data-hero-skbar] [data-tool]').forEach((el) => el.classList.toggle('on', el.dataset.tool === tool));
+  document.querySelectorAll('[data-hero-skbar] [data-c]').forEach((el) => el.classList.toggle('on', el.dataset.c === color));
+}
 function show(next) {
   step = next;
   stageFor(step);
@@ -195,6 +200,7 @@ function show(next) {
   status.textContent = STATUS[lang][step >= 3 ? 2 : step >= 2 ? 1 : 0];
   status.className = `status ${step >= 3 ? 'ok' : step >= 2 ? 'info' : ''}`;
   clearInterval(typing);
+  clearTimeout(toolTimer);
   typed.textContent = '';
   if (step === 0) {
     // Draw the sketch from scratch alongside the typing, including the very first time.
@@ -205,6 +211,9 @@ function show(next) {
       sk.style.transition = '';
       sk.style.strokeDashoffset = '';
     });
+    // The toolbar follows the drawing: circle in yellow first, then the arrow in red.
+    pickTool('circle', 'y');
+    toolTimer = setTimeout(() => pickTool('arrow', 'r'), 1550);
     let i = 0;
     typing = setInterval(() => { const note = NOTE[lang]; typed.textContent = note.slice(0, (i += 1)); if (i >= note.length) clearInterval(typing); }, 45);
   }

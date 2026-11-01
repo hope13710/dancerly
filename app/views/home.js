@@ -15,7 +15,11 @@ function stepPreview(kind, project, goal, days) {
   const ex = `<span class="pv-ex">${isKo ? '예시' : 'Example'}</span>`;
   const note = isKo ? '팔 뻗을 때 끝까지 뻗기' : 'Reach all the way out on the arm hit';
   const cap = (t) => `<p class="pv-cap">${t}</p>`;
-  const player = (withNote) => `<div class="pv-player"><img src="/samples/hero-preview.jpg" alt="" /><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span></div>` : ''}</div>`;
+  // The same circle-and-arrow sketch as the landing page, on the same frame.
+  const sketch = '<svg class="pv-sketch" viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><ellipse class="pv-sk" cx="142" cy="102" rx="24" ry="20" /><path class="pv-sk pv-sk-2" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>';
+  // The real sketch toolbar: pen, arrow, circle · four colors · undo, clear · Done.
+  const sketchBar = `<div class="pv-skbar" aria-hidden="true"><span class="pv-skg"><b>✎</b><b>↗</b><b class="on">◯</b></span><span class="pv-skg"><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i></span><span class="pv-skg"><b>↶</b><b>✕</b></span><em>${isKo ? '완료' : 'Done'}</em></div>`;
+  const player = (withNote) => `<div class="pv-player"><div class="pv-frame"><img src="/samples/hero-preview.jpg" alt="" />${sketch}</div><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span><span class="pv-sktag">✎</span></div>` : ''}</div>`;
   const title = esc(project?.title || (isKo ? '봄 쇼케이스' : 'Spring Showcase'));
   const html = {
     project: `<div class="pv-proj"><div class="pv-k">${isKo ? '프로젝트' : 'Project'}</div><h4><span class="pv-mk">${esc(initials(project?.title || 'Spring Showcase'))}</span>${title}</h4>
@@ -23,7 +27,7 @@ function stepPreview(kind, project, goal, days) {
       <div class="pv-tabs"><span>${isKo ? '개요' : 'Overview'}</span><span class="on">${isKo ? '영상' : 'Videos'}</span><span>${isKo ? '과제' : 'Assignments'}</span></div>
       <div class="pv-vrow"><span class="pv-ph">＋</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
     video: `${player(true)}${cap(isKo ? '영상 위 그 순간에 피드백이 붙어요' : 'Feedback lands on the exact moment')}`,
-    note: `<div class="pv-compose"><div class="pv-crow"><span class="pv-t">▸ 0:01</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
+    note: `<div class="pv-compose"><div class="pv-frame pv-frame-draw"><img src="/samples/hero-preview.jpg" alt="" />${sketch}${sketchBar}</div><div class="pv-crow"><span class="pv-t">▸ 0:01.4</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Maya</b></div><div class="pv-pin"><em class="pv-skchip">✎ ${isKo ? '그림' : 'Sketch'}</em><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 그리고, 쓰면 끝' : 'Pause, sketch, type. Done')}`,
     invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
       <div class="pv-joined">👋 ${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
   }[kind] || '';
