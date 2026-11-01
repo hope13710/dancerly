@@ -142,17 +142,15 @@ const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['미해결', '
 let step = 0;
 let typing = 0;
 let visible = true;
-// The stage plays the sample project's real rehearsal video: Take 2 has the late 5-6 arms; Take 3 fixed them.
+// The stage plays one rehearsal clip (generated with Higgsfield). "Take 2" is the wide shot where the note lands;
+// "Take 3" is the later push-in, standing in for the next take.
 const video = $('[data-hero-video]');
-const TAKES = ['/samples/sample-take-1.mp4', '/samples/sample-take-2.mp4'];
-const MOMENT = 3.6; // count 5 of the first eight in Take 2
-const LOOP = [3.6, 4.8];
-const NEXT_TAKE = [4.4, 7.4]; // the same eight in Take 3
-const DURATION = 21.4;
+const MOMENT = 2.0; // the accent the note is about
+const LOOP = [2.0, 3.2];
+const NEXT_TAKE = [3.6, 7.2];
+const DURATION = 7.3;
 const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function useTake(n) {
-  const src = TAKES[n];
-  if (!video.src.endsWith(src)) { video.src = src; video.poster = src.replace('.mp4', '.jpg'); }
   $$('[data-hero-takes] span').forEach((s, i) => s.classList.toggle('on', i === n));
 }
 function stageFor(s) {
@@ -164,7 +162,7 @@ function stageFor(s) {
   };
   if (s === 3) { useTake(1); at(NEXT_TAKE[0], true); return; }
   useTake(0);
-  if (s === 0) at(2.4, true); // plays up to the moment, then holds there while the note is typed and sketched
+  if (s === 0) at(0.6, true); // plays up to the moment, then holds there while the note is typed and sketched
   else if (s === 2) at(LOOP[0], true);
   else at(MOMENT, false);
 }
