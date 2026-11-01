@@ -343,6 +343,11 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .dancer.solo { left: 36%; width: 22%; height: 78%; bottom: 6%; }
 .mod-sketch .sk { stroke-width: 3.5; stroke: #64d2ff; }
 .mod-sketch .sk-y { stroke: #ffd60a; transition-delay: 0.6s; }
+/* A frame from the sample project: the back row sits higher in the squat. */
+.frame-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.frame-photo .sk { stroke-width: 7; stroke-dasharray: 720; stroke-dashoffset: 720; }
+.frame-photo .sk-y { transition-delay: 0s; }
+.frame-photo .sk-r { stroke: #ff453a; transition-delay: 0.7s; }
 .play .mod-sketch .sk { stroke-dashoffset: 0; }
 .sketch-bar { position: absolute; z-index: 3; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 9px; background: rgba(20, 23, 29, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 12px; }
 .sketch-bar span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: #dbe0f0; }
@@ -644,7 +649,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .sk { stroke-dashoffset: 0; }
+  .sk, .frame-photo .sk { stroke-dashoffset: 0; }
 }
 
 /* Korean: break lines between words, not inside them */
