@@ -91,7 +91,7 @@ export const LANDING_KO = {
   'Pin a note to a single frame or drag across a phrase. @mention anyone on the project and it lands in their inbox.': '한 장면을 콕 집거나 한 소절 전체를 지정해 피드백하세요. 팀원을 @멘션하면 바로 알림이 가요.',
   'Done': '완료',
   'Draw what words can’t': '말로 어려우면 그려서',
-  'Circle the arm, arrow the pathway. Sketches sit right on the frame and play back at that exact moment, even in mirror mode.': '팔에는 동그라미, 동선에는 화살표. 그림은 그 장면에 그대로 남고, 거울 모드에서도 정확히 맞아요.',
+  'Circle who’s sitting high, arrow how low to go. Sketches sit right on the frame and play back at that exact moment, even in mirror mode.': '높게 앉은 사람에 동그라미, 내려갈 만큼 화살표. 그림은 그 장면에 그대로 남고, 거울 모드에서도 정확히 맞아요.',
   'Practice mode, built in': '연습 모드, 기본으로',
   'Loop any eight counts, slow it to half speed, and flip to mirror so the video matches the studio mirror. Scrub, or step frame by frame.': '원하는 에잇만 구간 반복하고, 0.5배속으로 천천히, 거울 모드로 연습실 거울처럼 보세요. 재생바를 끌어 한 동작씩 확인할 수도 있어요.',
   'Heads snap on 1': '1에 고개 스냅',
