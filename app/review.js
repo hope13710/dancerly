@@ -67,7 +67,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const signed = { signedUrl: await takeUrl(take.storage_path) };
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
-  const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, nowIds: new Set(), nowKey: '', listTouched: 0, justPinned: null, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
   // Carried notes someone answered “Not yet” on for this take.
   try { r.notYet = new Set(JSON.parse(localStorage.getItem(`looproom:notYet:${take.id}`) || '[]')); } catch { r.notYet = new Set(); }
 
@@ -126,6 +126,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         <div class="take-summary" data-summary></div>
         <div class="note-list" data-list></div>
         <form class="composer" data-composer>
+          <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">＋</span><span>Add a note</span><span class="co-at">▸ <span data-at2>00:00.0</span></span></button>
+          <div class="composer-body">
           <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">▸ At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">⟷ Range</button></div>
           <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>→</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small><button type="button" class="mini" data-loop-range hidden>↻ Loop</button></div>
           <div class="composer-field"><textarea data-input rows="2" maxlength="2000" placeholder="What should change at this moment? Type @ to mention someone"></textarea><div class="mention-menu" data-mentions role="listbox" hidden></div></div>
@@ -133,6 +135,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
             <option value="">👥 Whole team</option>
             ${members.filter((m) => m.user_id !== me.id).sort((a, b) => (b.user_id === take.uploaded_by) - (a.user_id === take.uploaded_by)).map((m) => `<option value="${m.user_id}">🔒 Only ${esc(m.name)}${m.user_id === take.uploaded_by ? ' (in this take)' : ''}</option>`).join('')}
           </select></label><button type="button" class="btn small ghost draw-btn" data-draw aria-pressed="false" title="Draw on the frame (D)">✎ Draw</button><span class="sketch-chip" data-sketch-chip hidden></span><button class="btn primary small" type="submit">Pin note ↵</button></div>
+          </div>
         </form>
       </aside>
     </div>
@@ -204,7 +207,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const other = n.private_to ? (n.author_id === me.id ? n.private_to : n.author_id) : null;
       const replies = n.note_replies || [];
       const open = r.openThreads.has(n.id);
-      return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''}" data-note="${n.id}">
+      return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
         <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
@@ -225,6 +228,26 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     }).join('') : '<p class="notes-empty">No notes on this take yet. Pause on a moment and write what should change.</p>';
     paintMarkers(notes);
     paintSummary();
+  }
+
+  // While the video plays, the notes at this moment light up, and the list follows them
+  // unless you're reading or scrolling it yourself.
+  function paintNow(t) {
+    const ids = visibleNotes().filter((n) => (n.t_end === null ? t >= n.t_start - 0.15 && t < n.t_start + 2 : t >= n.t_start - 0.15 && t <= n.t_end)).map((n) => n.id);
+    const key = ids.join();
+    if (key === r.nowKey) return;
+    r.nowKey = key;
+    r.nowIds = new Set(ids);
+    const list = $('[data-list]');
+    if (!list) return;
+    list.querySelectorAll('.note.now').forEach((el) => el.classList.remove('now'));
+    ids.forEach((id) => list.querySelector(`[data-note="${id}"]`)?.classList.add('now'));
+    const el = ids.length && list.querySelector(`[data-note="${ids[0]}"]`);
+    const scrolls = list.scrollHeight > list.clientHeight + 4;
+    if (!el || videoEl.paused || !scrolls || list.matches(':hover') || list.contains(document.activeElement) || Date.now() - r.listTouched < 3000) return;
+    const box = list.getBoundingClientRect();
+    const at = el.getBoundingClientRect();
+    if (at.top < box.top || at.bottom > box.bottom) list.scrollBy({ top: at.top - box.top - 8, behavior: 'smooth' });
   }
 
   function paintSummary() {
@@ -266,6 +289,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-speed]').textContent = `${r.speed}×`;
     $('[data-time-overlay]').textContent = fmtFine(t);
     $('[data-at]').textContent = fmtFine(t);
+    $('[data-at2]').textContent = fmtFine(t);
     $('[data-cur]').textContent = fmt(t);
     $('[data-tfill]').style.width = pct(t);
     $('[data-thead]').style.left = pct(t);
@@ -288,6 +312,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-rs]').textContent = r.rangeStart === null ? '—' : fmt(r.rangeStart);
     $('[data-re]').textContent = r.rangeEnd === null ? '—' : fmt(r.rangeEnd);
     paintSketchLayer(t);
+    paintNow(t);
     paintCounts(t);
     $('[data-compare]').classList.toggle('mirrored', r.mirror);
   }
@@ -791,7 +816,26 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     input.focus();
     paintMentions();
   }
-  input.addEventListener('focus', () => play(false));
+  input.addEventListener('focus', () => { play(false); setComposer(true); });
+  // On phones the composer is a bar fixed to the bottom of the screen: tap it to open, and it folds away
+  // again once the note is pinned (or you leave it empty). On wider screens it's always open.
+  const composer = $('[data-composer]');
+  function setComposer(open) { composer.classList.toggle('open', open); }
+  $('[data-composer-open]').addEventListener('click', () => { setComposer(true); input.focus(); });
+  composer.addEventListener('focusout', () => setTimeout(() => {
+    if (!composer.contains(document.activeElement) && !input.value.trim() && !r.sketch && !r.drawing && r.mode === 'point') setComposer(false);
+  }, 150));
+  // Keep that bar above the on-screen keyboard (iOS doesn't move fixed elements for it).
+  const vv = window.visualViewport;
+  const onViewport = () => composer.style.setProperty('--kb', `${Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop))}px`);
+  vv?.addEventListener('resize', onViewport);
+  vv?.addEventListener('scroll', onViewport);
+  // How tall the pinned video is on phones, so a note scrolled into view isn't hidden under it.
+  const stickObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(([entry]) => view.style.setProperty('--stick-h', `${Math.round(entry.contentRect.height)}px`)) : null;
+  stickObserver?.observe($('.player-col', view));
+  // Reading or scrolling the list yourself pauses its follow-along for a few seconds.
+  const touchList = () => { r.listTouched = Date.now(); };
+  ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach((ev) => $('[data-list]').addEventListener(ev, touchList, { passive: true }));
   input.addEventListener('input', paintMentions);
   input.addEventListener('keydown', (e) => {
     const menu = $('[data-mentions]');
@@ -838,7 +882,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     setMode('point');
     paintMentions();
     r.selected = note.id;
+    r.justPinned = note.id;
+    setTimeout(() => { if (r.justPinned === note.id) r.justPinned = null; }, 1600);
     await loadNotes();
+    view.querySelector(`[data-note="${note.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (!seen('first_note')) { markSeen('first_note'); track('first_note', { sample: Boolean(project.is_sample), private: Boolean(privateTo) }); }
     if (project.is_sample) sampleMoment('note');
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
@@ -1021,6 +1068,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     closeTips();
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);
+    vv?.removeEventListener('resize', onViewport);
+    vv?.removeEventListener('scroll', onViewport);
+    stickObserver?.disconnect();
     document.removeEventListener('click', outside);
     window.removeEventListener('resize', onResize);
     r.drawing?.stop();

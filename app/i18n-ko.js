@@ -289,6 +289,7 @@ export const KO = {
   '✎ Draw': '✎ 그리기',
   '✎ Edit sketch': '✎ 그림 수정',
   'Pin note ↵': '피드백 남기기 ↵',
+  'Add a note': '피드백 남기기',
   'This take can’t play in this browser.': '이 브라우저에서는 재생할 수 없는 영상이에요.',
   'This take couldn’t be played in this browser. Try MP4 (H.264).': '이 브라우저에서 재생할 수 없는 영상이에요. MP4(H.264) 파일로 올려 주세요.',
   'Reopen': '다시 열기',

@@ -7146,3 +7146,107 @@ button.row {
 .ce-pick.single img {
   aspect-ratio: 16 / 8;
 }
+
+/* ---------- Review: the video and the composer stay in view however many notes pile up ---------- */
+.composer-body {
+  display: grid;
+  gap: 8px;
+}
+.composer-open {
+  display: none;
+}
+.note.now {
+  border-color: rgba(124, 196, 255, 0.45);
+}
+.note.now .time-chip {
+  background: #7cc4ff;
+  color: #0b0d11;
+}
+.note.just-pinned {
+  animation: note-pinned 1.4s ease-out;
+}
+@keyframes note-pinned {
+  from { background: rgba(124, 196, 255, 0.22); }
+}
+@media (min-width: 901px) {
+  /* The notes column takes the player's height; only the list between the summary and the composer scrolls. */
+  .notes-col {
+    contain: size;
+  }
+  .note-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+  .player {
+    max-height: calc(100dvh - 300px);
+    min-height: 260px;
+  }
+}
+@media (max-width: 900px) {
+  .review-layout {
+    overflow: clip;
+  }
+  .notes-col {
+    padding-bottom: 88px;
+  }
+  .note {
+    scroll-margin-top: calc(var(--stick-h, 0px) + 72px);
+    scroll-margin-bottom: 96px;
+  }
+  /* The composer is a bar on the bottom edge; tapping it opens the full form. */
+  .composer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--kb, 0px);
+    z-index: 25;
+    margin: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--dark-2);
+    border-top: 1px solid #2b3039;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.35);
+  }
+  .composer:not(.open) .composer-body {
+    display: none;
+  }
+  .composer:not(.open) .composer-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid #3e4757;
+    background: #232935;
+    color: #c4c9d6;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: text;
+  }
+  .co-plus {
+    color: #7cc4ff;
+    font-weight: 700;
+  }
+  .co-at {
+    margin-left: auto;
+    font-size: 12px;
+    color: #8993a1;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The composer owns the bottom edge here, so messages show at the top. */
+  body.is-review .toast {
+    top: calc(var(--topbar-h, 60px) + 10px);
+    bottom: auto;
+  }
+}
+/* Phones held upright: the video stays pinned under the top bar while the notes scroll. */
+@media (max-width: 900px) and (min-height: 600px) {
+  .player-col {
+    position: sticky;
+    top: var(--topbar-h, 60px);
+    z-index: 6;
+  }
+}
