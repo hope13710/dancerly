@@ -613,7 +613,7 @@ function renderMe() {
     <div class="list-group">
       ${row('/app/settings/account', 'Account')}
       ${row('/app/settings/notifications', 'Notifications')}
-      ${row('/app/settings/plan', 'Plan', '<small>Free</small>')}
+      ${row('/app/settings/plan', 'Plan', '<small data-no-i18n>Free</small>')}
       ${row('/app/trash', 'Trash')}
     </div>
     <div class="list-group">

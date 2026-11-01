@@ -195,11 +195,11 @@ export async function renderSettings(section = 'account') {
     const ko = getLang() === 'ko';
     const ofText = (used, max, unit = '') => (ko ? `${max}${unit} 중 ${used}${unit}` : `${used} of ${max}`);
     const over = used > FREE.storage || owned > FREE.projects || largest > FREE.members || recaps?.over;
-    const paid = (name, monthly, yearly, perMonth, what) => `<div class="plan-card"><div><h3>${name}</h3><p class="muted">${what}</p></div>
+    const paid = (name, monthly, yearly, perMonth, what) => `<div class="plan-card"><div><h3 data-no-i18n>${name}</h3><p class="muted">${what}</p></div>
       <p class="plan-price" data-no-i18n><b>$${monthly}</b>${ko ? '/월' : '/month'} <span class="muted">· ${ko ? `연 $${yearly} (월 $${perMonth}, 2개월 무료)` : `or $${yearly}/year ($${perMonth}/month, 2 months free)`}</span></p></div>`;
     return {
       html: `<section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2>Free</h2><p class="muted">A real free plan, not a trial: 1 team of up to 10 members, unlimited videos and takes, 2 GB of storage, every feedback tool, and 3 AI recaps a month per person.</p></div></div>
+        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2 data-no-i18n>Free</h2><p class="muted">A real free plan, not a trial: 1 team of up to 10 members, unlimited videos and takes, 2 GB of storage, every feedback tool, and 3 AI recaps a month per person.</p></div></div>
         <div class="usage">
           ${storageRow}
           <div><span>Projects you own</span><b data-no-i18n>${ofText(owned, FREE.projects, '개')}</b>${meter(owned, FREE.projects)}</div>

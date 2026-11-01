@@ -29,8 +29,8 @@ export const LANDING_KO = {
 
   // 첫 화면
   'Rehearsal video review for dance': '댄스팀을 위한 연습 영상 피드백',
-  'Feedback that lands': '카운트에 맞춰 정확하게',
-  'on the count.': '필요한 순간에 도착하는 피드백.',
+  'Feedback that lands': '정확하게',
+  'on the count.': '필요한 순간에 남기는 피드백.',
   'Every dancer deserves to see their progress. dancerly is where teams review rehearsals together. Pin notes to the exact moment, loop the tricky part, and watch each fix land in the next take.': '누구나 자신의 성장을 눈으로 확인할 수 있어야 해요. dancerly에서는 팀원들과 연습 영상을 함께 보고 피드백을 주고받을 수 있어요. 필요한 장면에 바로 의견을 남기고, 어려운 구간은 반복해서 연습해 보세요. 다음 테이크에서 달라진 모습을 확인할 수 있어요.',
   'Start free, no card needed': '무료로 시작하기 · 카드 등록 필요 없음',
   'See how it works': '사용 방법 보기',
@@ -226,7 +226,7 @@ export const LANDING_KO = {
   // 요금
   'Start free. Upgrade when it sticks.': '무료로 시작하고, 팀이 커지면 요금제를 변경하세요.',
   'No sales call, no credit card, no rollout plan. Bring your team and start today.': '상담이나 카드 등록, 복잡한 도입 절차 없이 시작할 수 있어요. 지금 바로 팀을 초대해 보세요.',
-  'Free': '무료',
+  'Free': 'Free',
   '/ forever': '/ 평생 무료',
   '1 team, up to 10 members': '팀 1개 · 최대 10명',
   '3 AI recaps a month per person': 'AI 요약 월 3회 (1인당)',
@@ -249,7 +249,7 @@ export const LANDING_KO = {
   '$120 billed yearly': '연간 $120 결제',
   'Billed monthly': '월간 결제',
   'For crews, clubs, and teams that rehearse together.': '함께 연습하고 성장하는 댄스팀과 크루를 위한 요금제',
-  'Everything in Free, plus:': '무료 플랜의 모든 기능에 다음 혜택이 추가돼요.',
+  'Everything in Free, plus:': 'Free 플랜의 모든 기능에 다음 혜택이 추가돼요.',
   'Unlimited videos and takes': '영상 및 테이크 무제한',
   '20 GB storage': '저장 공간 최대 20GB',
   '$290 billed yearly': '$290 연간 결제',
@@ -284,7 +284,7 @@ export const LANDING_KO = {
   'Give your team a place to see how far they’ve come. Set it up in under a minute with just an email and a password.': '팀의 연습과 성장을 한곳에서 기록해 보세요. 이메일과 비밀번호만 있으면 1분 안에 시작할 수 있어요.',
   'Your email': '이메일 주소',
   'No credit card': '신용카드 등록 없이',
-  'Feedback that lands on the count.': '카운트에 맞춰 정확하게 도착하는 피드백.',
+  'Feedback that lands on the count.': '정확하게, 필요한 순간에 남기는 피드백.',
   'Try dancerly free →': 'dancerly 무료로 시작하기 →',
   '↻ A–B 00:16–00:20': '↻ 구간 반복 00:16–00:20',
   'dancerly review screen: a coach pins a note and sketches on the frame at once, a dancer loops her part, and the next take resolves it.': '강사가 영상에 피드백과 스케치를 남기고, 댄서가 해당 구간을 반복 연습한 뒤 다음 테이크에서 개선하는 화면',
