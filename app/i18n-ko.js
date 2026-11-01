@@ -636,6 +636,7 @@ export const KO = {
   'Couldn’t send the email. Try again in a minute.': '이메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.',
   'We just sent it. Check your email on your phone.': '방금 보냈어요. 휴대폰에서 이메일을 확인해 주세요.',
   'A phone video from your last practice is perfect. Your team pauses on a moment and leaves feedback right there.': '지난 연습 때 휴대폰으로 찍은 영상이면 충분해요. 팀원이 원하는 순간에 멈추고 바로 피드백을 남겨요.',
+  'Open your video, pause on a moment, and write what should change.': '영상을 열고, 고칠 순간에 멈춰서 바꿀 점을 적어 보세요.',
   'Open my video': '내 영상 열기',
   'Bring in your team': '팀 불러오기',
   'They’ll see your video and can leave feedback on any moment.': '팀원이 영상을 보고 원하는 순간에 피드백을 남길 수 있어요.',

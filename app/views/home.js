@@ -13,9 +13,9 @@ import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, 
 // seeing the result is what makes the step worth doing. Example text follows the app's language.
 function stepPreview(kind, project, goal, days) {
   const ex = `<span class="pv-ex">${isKo ? '예시' : 'Example'}</span>`;
-  const note = isKo ? '8 스쿼트, 앞줄 깊이까지' : 'Squat on 8, as low as the front row';
+  const note = isKo ? '팔 뻗을 때 끝까지 뻗기' : 'Reach all the way out on the arm hit';
   const cap = (t) => `<p class="pv-cap">${t}</p>`;
-  const player = (withNote) => `<div class="pv-player"><img src="/samples/opener-take-2.jpg" alt="" /><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i style="left:11%"></i><i class="pop" style="left:60%"></i><i style="left:93%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:09</span><span>${note}</span></div>` : ''}</div>`;
+  const player = (withNote) => `<div class="pv-player"><img src="/samples/hero-preview.jpg" alt="" /><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span></div>` : ''}</div>`;
   const title = esc(project?.title || (isKo ? '봄 쇼케이스' : 'Spring Showcase'));
   const html = {
     project: `<div class="pv-proj"><div class="pv-k">${isKo ? '프로젝트' : 'Project'}</div><h4><span class="pv-mk">${esc(initials(project?.title || 'Spring Showcase'))}</span>${title}</h4>
@@ -23,7 +23,7 @@ function stepPreview(kind, project, goal, days) {
       <div class="pv-tabs"><span>${isKo ? '개요' : 'Overview'}</span><span class="on">${isKo ? '영상' : 'Videos'}</span><span>${isKo ? '과제' : 'Assignments'}</span></div>
       <div class="pv-vrow"><span class="pv-ph">＋</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
     video: `${player(true)}${cap(isKo ? '영상 위 그 순간에 피드백이 붙어요' : 'Feedback lands on the exact moment')}`,
-    note: `<div class="pv-compose"><div class="pv-crow"><span class="pv-t">▸ 0:42</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
+    note: `<div class="pv-compose"><div class="pv-crow"><span class="pv-t">▸ 0:01</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Jordan</b></div><div class="pv-pin"><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 쓰고, 끝' : 'Pause, type, done')}`,
     invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
       <div class="pv-joined">👋 ${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
   }[kind] || '';
