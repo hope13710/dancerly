@@ -137,7 +137,7 @@ applyLang();
 const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
 const status = $('[data-hero-status]');
-const NOTE = { en: '@Maya arms are late on the 5-6…', ko: '@Maya 5-6에서 팔이 늦어요…' };
+const NOTE = { en: '@Maya reach all the way out on the arm hit…', ko: '@Maya 팔을 끝까지 뻗어 주세요…' };
 const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['미해결', '연습 중', '해결 ✓'] };
 let step = 0;
 let typing = 0;
@@ -145,8 +145,8 @@ let visible = true;
 // The stage plays one rehearsal clip (generated with Higgsfield). "Take 2" is the wide shot where the note lands;
 // "Take 3" is the later push-in, standing in for the next take.
 const video = $('[data-hero-video]');
-const MOMENT = 2.0; // the accent the note is about
-const LOOP = [2.0, 3.2];
+const MOMENT = 1.4; // the arm hit the note is about
+const LOOP = [1.0, 2.0];
 const NEXT_TAKE = [3.6, 7.2];
 const DURATION = 7.3;
 const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -162,7 +162,7 @@ function stageFor(s) {
   };
   if (s === 3) { useTake(1); at(NEXT_TAKE[0], true); return; }
   useTake(0);
-  if (s === 0) at(0.6, true); // plays up to the moment, then holds there while the note is typed and sketched
+  if (s === 0) at(0.2, true); // plays up to the moment, then holds there while the note is typed and sketched
   else if (s === 2) at(LOOP[0], true);
   else at(MOMENT, false);
 }
