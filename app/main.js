@@ -232,6 +232,21 @@ async function refreshNav() {
   if (!data) return;
   state.projects = data;
   if (state.profile) { paintNav(); paintNavDots(); }
+  matchSampleLanguage();
+}
+
+// The sample project is written in the language chosen when it was opened. If the app is now in the other
+// language, swap it for one in this language (your notes, replies and 👍 in it come along; migration 037).
+let sampleLanguageChecked = false;
+async function matchSampleLanguage() {
+  const sample = state.projects.find((p) => p.is_sample && p.created_by === state.session?.user.id);
+  if (!sample || sampleLanguageChecked || /^샘플/.test(sample.title) === isKo) return;
+  sampleLanguageChecked = true;
+  const { data, error } = await sb.rpc('relocalize_sample', { p_lang: isKo ? 'ko' : 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
+  if (error || data?.status !== 'done') return; // not set up yet, or kept because there's work of yours in it
+  await refreshNav();
+  if (location.pathname.includes(sample.id)) navigate(`/app/p/${data.project}`, { replace: true });
+  else route();
 }
 
 // A dot on a sidebar place someone saw while it was empty, once something has landed there.
