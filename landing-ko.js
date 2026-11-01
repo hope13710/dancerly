@@ -31,7 +31,7 @@ export const LANDING_KO = {
   'Rehearsal video review for dance': '댄스팀을 위한 연습 영상 피드백',
   'Feedback that lands': '정확하게',
   'on the count.': '필요한 순간에 남기는 피드백.',
-  'Every dancer deserves to see their progress. dancerly is where teams review rehearsals together. Pin notes to the exact moment, loop the tricky part, and watch each fix land in the next take.': '누구나 자신의 성장을 눈으로 확인할 수 있어야 해요. dancerly에서는 팀원들과 연습 영상을 함께 보고 피드백을 주고받을 수 있어요. 필요한 장면에 바로 의견을 남기고, 어려운 구간은 반복해서 연습해 보세요. 다음 테이크에서 달라진 모습을 확인할 수 있어요.',
+  'Every dancer deserves to see their progress. Drop in your team’s practice video, pin notes to the exact moment, loop the tricky part, and watch each fix land in the next take.': '누구나 자신의 성장을 눈으로 확인할 수 있어야 해요. 팀 연습 영상을 올리고, 필요한 장면에 바로 피드백을 남기고, 어려운 구간은 반복해서 연습해 보세요. 다음 테이크에서 달라진 모습을 확인할 수 있어요.',
   'Start free, no card needed': '무료로 시작하기 · 카드 등록 필요 없음',
   'See how it works': '사용 방법 보기',
   'Works on any phone, no app to install': '앱 설치 없이 휴대폰에서 바로',
@@ -264,6 +264,10 @@ export const LANDING_KO = {
   'Early access: everything’s unlocked for now. We’ll give you plenty of notice before anything changes.': '얼리 액세스 기간에는 모든 기능을 자유롭게 이용할 수 있어요. 이용 조건이 변경되기 전에는 충분한 시간을 두고 미리 안내해 드릴게요.',
 
   // 자주 묻는 질문
+  'K-pop cover teams': '케이팝 커버팀',
+  'Review your dance practice videos together and match every member to the original, count by count, before you film the final cover.': '팀 연습 영상을 함께 보며 피드백하세요. 최종 커버를 찍기 전에 멤버 모두를 원곡 안무에 카운트 단위로 맞춰 갈 수 있어요.',
+  'Does it work for K-pop dance covers?': '케이팝 커버 연습에도 쓸 수 있나요?',
+  'Yes. Upload each practice video as a take, pin notes on the counts where you drift from the original, and compare takes side by side until it’s ready to film.': '네. 연습 영상을 테이크로 올리고, 원곡과 어긋나는 카운트에 피드백을 남겨 보세요. 테이크를 나란히 비교하며 촬영 전까지 완성도를 높일 수 있어요.',
   'Good to know': '이용 전 확인해 보세요',
   'Do dancers need to download an app?': '앱을 설치해야 하나요?',
   'No. dancerly runs in the browser on any phone, tablet, or laptop. Share an invite link and they’re in.': '아니요. 휴대폰, 태블릿, 노트북에서 브라우저로 바로 사용할 수 있어요. 초대 링크를 보내면 별도 설치 없이 참여할 수 있어요.',

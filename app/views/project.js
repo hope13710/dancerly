@@ -32,7 +32,7 @@ export async function renderProjects() {
     ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
       ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
         : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
-    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a rehearsal, invite your team, and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
+    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a practice video, invite your team, and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -139,7 +139,7 @@ export async function renderProject(projectId) {
       </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">⋯</button>` : ''}</div>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first rehearsal video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      ? empty('▶', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));

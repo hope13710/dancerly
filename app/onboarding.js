@@ -231,7 +231,7 @@ export async function renderWelcome() {
         paint();
       });
     } else {
-      view.innerHTML = frame(`<h1>Add your first rehearsal</h1>
+      view.innerHTML = frame(`<h1>Add your first practice video</h1>
         <p class="muted">A full run-through works best. Your team pauses on a moment and leaves feedback right there.</p>
         <ul class="film-tips"><li><b>From the front</b><span>Where the audience sits</span></li><li><b>Whole body in frame</b><span>Feet and hands included</span></li><li><b>With the music</b><span>So counts and sync work</span></li><li><b>Start to finish</b><span>Not just the hard part</span></li></ul>
         <button class="btn primary wide" data-upload>Upload a video</button>

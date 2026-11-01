@@ -77,7 +77,7 @@ export async function renderHome() {
   const latestVideo = (takes || []).find((t) => t.uploaded_by === me) || (takes || [])[0];
   const steps = leader ? [
     ['Create a project', real.length > 0, 'project'],
-    ['Upload a rehearsal video', (myTakes || 0) > 0, 'video'],
+    ['Upload a practice video', (myTakes || 0) > 0, 'video'],
     // The first note is written on a video: open the newest one (yours if there is one).
     ['Pin your first note', (myNotes || 0) > 0, latestVideo ? `/app/p/${latestVideo.project_id}/v/${latestVideo.video_id}` : firstReal ? `/app/p/${firstReal}` : null],
     ['Invite a teammate', (roster || []).length > 0, 'invite']
@@ -121,13 +121,13 @@ export async function renderHome() {
     if (!graduated) watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
       'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project', 'project'],
-      'Upload a rehearsal video': ['Upload your first rehearsal', 'A phone video from your last practice is plenty. Your team pauses on any moment and leaves feedback right on it.', 'Upload a video', 'video'],
+      'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Your team pauses on any moment and leaves feedback right on it.', 'Upload a video', 'video'],
       'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video', 'note'],
       'Invite a teammate': ['Bring in your team', 'They’ll see your video and can leave feedback on any moment.', 'Invite your team', 'invite']
     };
-    const SHORT = { 'Create a project': 'Project', 'Upload a rehearsal video': 'Upload a video', 'Pin your first note': 'First note', 'Invite a teammate': 'Invite your team' };
+    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload a video', 'Pin your first note': 'First note', 'Invite a teammate': 'Invite your team' };
     const next = steps.find(([, ok, action]) => !ok && action);
-    const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a rehearsal video'];
+    const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a practice video'];
     const action = next?.[2] || 'video';
     const left = steps.filter(([, ok]) => !ok).length;
     // The project's goal, as on the project's own header: a countdown makes each step part of the show.
@@ -228,7 +228,7 @@ export async function renderHome() {
           }
           const n = a.note;
           return `<li><a href="${noteHref(n)}" data-link>${avatar(names[a.who], a.who, 'xs')}<span><b>${who}</b> noted <span class="time-tag">${noteTime(n)}</span> on <b>${esc(n.videos?.title || '')}</b><small>“${esc(n.body.slice(0, 80))}${n.body.length > 80 ? '…' : ''}” · ${timeAgo(n.created_at)}</small></span></a></li>`;
-        }).join('')}</ul>` : '<p class="panel-empty">No activity yet. Upload a rehearsal to get things moving.</p>'}
+        }).join('')}</ul>` : '<p class="panel-empty">No activity yet. Upload a practice video to get things moving.</p>'}
       </section>
     </div>
   </section>`;

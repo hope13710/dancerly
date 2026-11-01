@@ -286,7 +286,7 @@ async function openNew() {
   // Outside a project, the pickers offer real projects only.
   const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
-    { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A rehearsal or run-through' },
+    { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
     { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'A video for your team to send by a date' },
     { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
