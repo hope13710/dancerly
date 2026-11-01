@@ -1,92 +1,133 @@
 <!doctype html>
-<!-- Link preview image (Open Graph, 1200×630). Render with: node tools/og/render.cjs -->
+<!-- Link preview image (Open Graph, 1200×630). Render with: node tools/og/render.cjs
+     The same pieces as the landing page: a frame with a sketch and the sketch toolbar, a note with an @mention,
+     a video assignment with a deadline, the calendar, and Insights. The frame is the hero clip at 00:01.4. -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <style>
-  :root { --ink: #15171b; --muted: #6b7280; --accent: #4948d4; --accent-soft: #ededff; --line: #e6e8ec; --dark: #14171d; --dark-2: #1d222a; --ok: #16845b; --warn: #b66c21; }
+  :root { --ink: #15171b; --muted: #6b7280; --accent: #5b5ce2; --accent-soft: #ededff; --line: #e6e8ec; --dark: #14171d; --dark-2: #1d222a; --ok: #16845b; --warn: #b66c21; }
   * { box-sizing: border-box; margin: 0; }
   body { width: 1200px; height: 630px; overflow: hidden; font-family: Inter, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
-    background: radial-gradient(60% 80% at 85% 20%, #e4e4ff 0%, rgba(228,228,255,0) 60%), #f7f8fa; position: relative; }
-  .copy { position: absolute; left: 72px; top: 76px; width: 470px; }
-  .logo { height: 42px; display: block; margin-bottom: 44px; }
-  h1 { font-size: 54px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
+    background: radial-gradient(55% 75% at 82% 18%, #e4e4ff 0%, rgba(228,228,255,0) 62%), #f7f8fa; position: relative; }
+  .copy { position: absolute; left: 64px; top: 64px; width: 410px; }
+  .logo { height: 38px; display: block; margin-bottom: 40px; }
+  h1 { font-size: 46px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
   h1 em { font-style: normal; color: var(--accent); }
-  .sub { margin-top: 22px; font-size: 22px; line-height: 1.4; color: #4b5260; letter-spacing: -0.01em; }
-  .url { position: absolute; left: 72px; bottom: 56px; font-size: 20px; font-weight: 650; color: var(--accent); letter-spacing: -0.01em; }
+  .sub { margin-top: 20px; font-size: 20px; line-height: 1.42; color: #4b5260; letter-spacing: -0.01em; }
+  .url { position: absolute; left: 64px; bottom: 52px; font-size: 19px; font-weight: 650; color: var(--accent); letter-spacing: -0.01em; }
 
-  /* Module 1: the review — a frame with a sketch, and a note with an @mention */
-  .review { position: absolute; left: 600px; top: 56px; width: 540px; background: var(--dark); border-radius: 20px; padding: 14px; box-shadow: 0 30px 60px rgba(20,23,29,.22); }
-  .frame { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; }
+  .card { position: absolute; background: #fff; border-radius: 16px; box-shadow: 0 18px 40px rgba(20,23,29,.14); border: 1px solid rgba(20,23,29,.04); }
+  .k { font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
+  .chip { font-size: 11.5px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: #eef0f4; color: #3b4048; white-space: nowrap; }
+
+  /* Review: the frame, the sketch on it, and the sketch toolbar */
+  .review { position: absolute; left: 488px; top: 34px; width: 452px; background: var(--dark); border-radius: 18px; padding: 12px; box-shadow: 0 30px 60px rgba(20,23,29,.24); }
+  .frame { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; }
   .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .frame svg { position: absolute; inset: 0; }
-  .time { position: absolute; top: 10px; right: 12px; font-size: 13px; font-weight: 600; color: #dbe0f0; font-variant-numeric: tabular-nums; }
-  .track { position: relative; height: 6px; background: #333945; border-radius: 4px; margin: 14px 4px 4px; }
-  .track i { position: absolute; top: -2px; width: 10px; height: 10px; border-radius: 50%; background: #f5a524; }
-  .track .fill { position: absolute; inset: 0 auto 0 0; width: 18%; background: var(--accent); border-radius: 4px; }
-  .track .range { position: absolute; top: -4px; bottom: -4px; left: 16.8%; width: 5.6%; border-radius: 3px; background: rgba(255,214,10,.3); box-shadow: inset 0 0 0 1px rgba(255,214,10,.7); }
-  .note { position: absolute; left: 560px; top: 300px; width: 330px; background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 18px 40px rgba(20,23,29,.18); }
-  .note-top { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-  .chip { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #eef0f4; color: #3b4048; }
-  .chip.sketch { background: #fff6cf; color: #8a6400; }
+  .frame svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sk { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+  .time { position: absolute; top: 9px; right: 11px; font-size: 12px; font-weight: 600; color: #dbe0f0; font-variant-numeric: tabular-nums; }
+  .skbar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 9px; background: rgba(20,23,29,.9); border: 1px solid rgba(255,255,255,.14); }
+  .skbar b { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: #dbe0f0; font-size: 13px; font-weight: 500; }
+  .skbar b.on { background: rgba(255,255,255,.18); color: #fff; }
+  .skbar i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); margin: 0 3px; }
+  .skbar i.on { box-shadow: 0 0 0 2px #14171d, 0 0 0 3.5px var(--c); }
+  .skbar u { width: 1px; height: 16px; background: rgba(255,255,255,.16); margin: 0 2px; }
+  .skbar em { font-style: normal; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 6px; background: #fff; color: var(--dark); margin-left: 2px; }
+  .track { position: relative; height: 5px; background: #333945; border-radius: 4px; margin: 13px 4px 3px; }
+  .track .fill { position: absolute; inset: 0 auto 0 0; width: 19%; background: var(--accent); border-radius: 4px; }
+  .track .range { position: absolute; top: -4px; bottom: -4px; left: 13.7%; width: 13.7%; border-radius: 3px; background: rgba(255,214,10,.28); box-shadow: inset 0 0 0 1px rgba(255,214,10,.7); }
+  .track i { position: absolute; top: -3px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: #f5a524; border: 2px solid var(--dark); }
+
+  /* A note with an @mention and its sketch */
+  .note { left: 468px; top: 318px; width: 316px; padding: 13px 15px; }
+  .note-top { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; }
+  .chip.sketch { background: #ededff; color: #4b4cc4; }
   .chip.status { margin-left: auto; background: #fff1e3; color: var(--warn); }
-  .note p { font-size: 16px; line-height: 1.4; font-weight: 500; letter-spacing: -0.01em; }
+  .note p { font-size: 15px; line-height: 1.38; font-weight: 500; letter-spacing: -0.01em; }
   .mention { color: var(--accent); font-weight: 700; }
-  .who { margin-top: 9px; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
-  .av { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-weight: 800; display: grid; place-items: center; }
+  .who { margin-top: 8px; display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+  .av { width: 21px; height: 21px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 9.5px; font-weight: 800; display: grid; place-items: center; }
 
-  /* Module 2: AI recap */
-  .recap { position: absolute; left: 912px; top: 300px; width: 262px; background: #fff; border-radius: 16px; padding: 15px 16px; box-shadow: 0 18px 40px rgba(20,23,29,.16); }
-  .ai { font-size: 12px; font-weight: 750; color: var(--accent); margin-bottom: 7px; }
-  .recap b { display: block; font-size: 15px; line-height: 1.3; letter-spacing: -0.015em; }
-  .recap ul { list-style: none; padding: 0; margin-top: 9px; display: grid; gap: 5px; }
-  .recap li { font-size: 12.5px; color: #4b5260; display: flex; gap: 6px; }
-  .recap li i { font-style: normal; color: var(--ok); font-weight: 800; }
+  /* A video assignment with a deadline */
+  .assign { left: 958px; top: 34px; width: 214px; padding: 13px 14px; }
+  .assign h4 { font-size: 14px; letter-spacing: -0.01em; margin: 6px 0 2px; line-height: 1.25; }
+  .due { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: #fff1e3; color: var(--warn); }
+  .sub-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .sub-row b { color: var(--ink); }
+  .bar { height: 6px; border-radius: 4px; background: #eef0f4; margin-top: 6px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 70%; background: var(--accent); }
+  .nudge { margin-top: 9px; font-size: 11.5px; font-weight: 700; text-align: center; padding: 6px; border-radius: 8px; border: 1px solid var(--line); }
 
-  /* Module 3: insights — where feedback piles up */
-  .insights { position: absolute; left: 616px; top: 456px; width: 420px; background: #fff; border-radius: 16px; padding: 15px 16px 14px; box-shadow: 0 18px 40px rgba(20,23,29,.14); }
-  .insights h3 { font-size: 14px; letter-spacing: -0.01em; }
-  .insights small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .heat { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 10px; }
-  .heat span { height: 30px; border-radius: 6px; background: rgba(73,72,212,var(--o)); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+  /* The calendar */
+  .cal { left: 958px; top: 238px; width: 214px; padding: 13px 12px; }
+  .ev { display: grid; grid-template-columns: 38px 1fr; gap: 6px; align-items: center; margin-top: 7px; font-size: 11.5px; }
+  .ev small { color: var(--muted); font-size: 11px; font-weight: 600; }
+  .ev span { padding: 5px 7px; border-radius: 7px; border-left: 3px solid var(--c); background: var(--b); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Insights */
+  .ins { left: 800px; top: 418px; width: 372px; padding: 14px 15px; }
+  .ins-top { display: flex; gap: 18px; margin-top: 6px; }
+  .stat b { display: block; font-size: 24px; letter-spacing: -0.03em; }
+  .stat small { font-size: 11.5px; color: var(--muted); }
+  .stat em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--ok); margin-left: 4px; }
+  .heat { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 10px; }
+  .heat span { height: 22px; border-radius: 5px; background: rgba(91,92,226,var(--o)); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .heat-cap { font-size: 11px; color: var(--muted); margin-top: 6px; }
 </style>
 </head>
 <body>
   <div class="copy">
     <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
-    <h1>Rehearsal feedback that lands <em>on the count.</em></h1>
-    <p class="sub">Pin notes to the moment, sketch the fix, get AI recaps and insights — built for dance teams.</p>
+    <h1>Rehearsal feedback<br />that lands<br /><em>on the count.</em></h1>
+    <p class="sub">Notes and sketches on the exact moment, assignments with deadlines, and proof of what’s improving.</p>
   </div>
   <p class="url">dancerly.app</p>
 
   <div class="review">
     <div class="frame">
       <img src="demo-frame.jpg" alt="" />
-      <svg viewBox="0 0 400 225" preserveAspectRatio="none">
-        <ellipse cx="303" cy="104" rx="34" ry="46" fill="none" stroke="#ffd60a" stroke-width="4" />
-        <path d="M200 34 C232 30 258 42 272 66 M272 66 L257 63 M272 66 L273 51" fill="none" stroke="#ff453a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <ellipse class="sk" stroke="#ffd60a" cx="142" cy="102" rx="24" ry="20" />
+        <path class="sk" stroke="#ff453a" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" />
       </svg>
-      <span class="time">00:03.6</span>
+      <span class="time">00:01.4</span>
+      <div class="skbar"><b>✎</b><b>↗</b><b class="on">◯</b><u></u><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i><u></u><b>↶</b><em>Done</em></div>
     </div>
-    <div class="track"><span class="fill"></span><span class="range"></span><i style="left:5%"></i><i style="left:41%"></i><i style="left:70%"></i></div>
+    <div class="track"><span class="fill"></span><span class="range"></span><i style="left:13.7%"></i><i style="left:68.5%"></i><i style="left:89%"></i></div>
   </div>
 
-  <div class="note">
-    <div class="note-top"><span class="chip">⟷ 00:03–00:04</span><span class="chip sketch">✎ Sketch</span><span class="chip status">Open</span></div>
-    <p><span class="mention">@Maya</span> arms are late on the 5-6. Hit the accent with the beat.</p>
+  <div class="card note">
+    <div class="note-top"><span class="chip">⟷ 00:01–00:02</span><span class="chip sketch">✎ Sketch</span><span class="chip status">Open</span></div>
+    <p><span class="mention">@Maya</span> reach all the way out on the arm hit. Match the center’s line.</p>
     <div class="who"><span class="av">HK</span>Hope · Coach · 👍 3</div>
   </div>
 
-  <div class="recap">
-    <p class="ai">✦ Summary by AI</p>
-    <b>Nail the 5-6 arm hit and the opener is nearly there.</b>
-    <ul><li><i>✓</i>Formation spacing fixed in Take 2</li><li><i>→</i>Next: ripple timing, 3rd eight</li></ul>
+  <div class="card assign">
+    <p class="k">Assignment</p>
+    <h4>Solo section — your 16 counts</h4>
+    <span class="due">Due Fri 6:00 PM</span>
+    <div class="sub-row"><span>Submitted</span><b>7 / 10</b></div>
+    <div class="bar"><span></span></div>
+    <div class="nudge">Remind 3 people</div>
   </div>
 
-  <div class="insights">
-    <h3>Where feedback piles up</h3>
-    <small>Opener · most open feedback at 00:00–00:05</small>
-    <div class="heat"><span style="--o:.95">4</span><span style="--o:.35">1</span><span style="--o:.6">2</span><span style="--o:.15"></span><span style="--o:.5">2</span><span style="--o:.12"></span><span style="--o:.3">1</span><span style="--o:.12"></span></div>
+  <div class="card cal">
+    <p class="k">Calendar</p>
+    <div class="ev"><small>Thu 14</small><span style="--c:#5b5ce2;--b:#efefff">6 PM Full rehearsal</span></div>
+    <div class="ev"><small>Fri 17</small><span style="--c:#d97706;--b:#fff4e5">Due · Solo section</span></div>
+    <div class="ev"><small>Sat 25</small><span style="--c:#db2777;--b:#ffeef6">7 PM Showcase</span></div>
+  </div>
+
+  <div class="card ins">
+    <p class="k">Insights · last 30 days</p>
+    <div class="ins-top">
+      <div class="stat"><b>82%</b><small>notes fixed</small><em>↑ 9%p</em></div>
+      <div class="stat"><b>2.4 days</b><small>to fix</small><em>↓ 1.1</em></div>
+    </div>
+    <div class="heat"><span style="--o:.95">4</span><span style="--o:.35">1</span><span style="--o:.6">2</span><span style="--o:.14"></span><span style="--o:.5">2</span><span style="--o:.12"></span><span style="--o:.3">1</span><span style="--o:.12"></span></div>
+    <p class="heat-cap">Where feedback piles up</p>
   </div>
 </body>
 </html>
