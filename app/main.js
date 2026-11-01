@@ -134,6 +134,8 @@ function setCrumbs(items) {
 function renderChrome() {
   const signedIn = Boolean(state.session && state.profile);
   document.body.classList.toggle('signed-in', signedIn);
+  // Signed out (log in, sign up), the logo leads back to the landing page; signed in, to Home.
+  $$('a.brand').forEach((a) => { a.setAttribute('href', signedIn ? '/app' : '/'); a.toggleAttribute('data-link', signedIn); });
   // Detail screens (the review) get the whole phone screen; the back link leads out.
   document.body.classList.toggle('is-review', /\/v\//.test(location.pathname));
   $('[data-sidebar]').hidden = !signedIn;
