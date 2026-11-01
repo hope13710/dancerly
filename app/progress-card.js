@@ -500,10 +500,7 @@ export async function shareChoice({ projectId, videoId, videoTitle, sample, take
   const choice = await actionSheet({ title: 'Share', actions: [card, { value: 'link', label: 'Send a link', hint: 'A read-only link for a coach or family, no account needed' }] });
   if (choice === 'card') return openCardEditor({ projectId, videoId, from: 'share' });
   if (choice !== 'link') return;
-  if (!sample) return linkShare(videoId, videoTitle);
-  // Sample media ship with the site, so a guest link couldn't play it; explain what it does instead.
-  const go = await dialog({ title: 'Links work in your own projects', body: 'Send a read-only link to a coach or family: they watch the latest take, with your team’s notes if you like, without an account. Links expire, and you can turn them off.', confirm: 'Start my own project', cancel: 'Not now' });
-  if (go) ctx.startAction('project');
+  return linkShare(videoId, videoTitle);
 }
 
 // Right after the last open note on a video is fixed: a one-time nudge to make a card. Once per video.

@@ -25,7 +25,10 @@ Deno.serve(async (req) => {
   if (!video || (video as { projects?: { deleted_at?: string | null } }).projects?.deleted_at) return json({ error: "This video was deleted." }, 404);
   const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle();
   if (!take) return json({ error: "This video has no takes yet." }, 404);
-  const { data: signed } = await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 2);
+  // Sample-project takes ship with the site ("public:/samples/…"); everything else is signed from storage.
+  const url = take.storage_path.startsWith("public:")
+    ? take.storage_path.slice("public:".length)
+    : (await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 2)).data?.signedUrl ?? null;
 
   let notes: unknown[] = [];
   if (share.include_notes) {
@@ -48,7 +51,7 @@ Deno.serve(async (req) => {
     project: (video as { projects?: { title?: string } }).projects?.title ?? "",
     take: take.number,
     uploaded_at: take.created_at,
-    url: signed?.signedUrl ?? null,
+    url,
     expires_at: share.expires_at,
     bpm: (video as { bpm?: number | null }).bpm ?? null,
     count_start: take.count_start ?? null,
