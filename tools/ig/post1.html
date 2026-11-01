@@ -1,0 +1,278 @@
+<!doctype html>
+<!-- Instagram feed post #1: an 8-slide carousel, 1080×1350 (4:5). Render with: node tools/ig/render.cjs
+     Every UI piece is the app's own: the hero clip with its sketch, notes, practice controls, takes, Insights. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { --ink: #15171b; --ink-2: #4b5260; --muted: #6b7280; --accent: #5b5ce2; --accent-soft: #ededff; --line: #e6e8ec;
+    --dark: #14171d; --dark-2: #1d222a; --dark-3: #262c36; --dline: #2f3542; --ok: #46d39a; --warn: #ffb547; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; background: #ccc; }
+  .slide { width: 1080px; height: 1350px; position: relative; overflow: hidden; color: var(--ink);
+    background: radial-gradient(70% 55% at 88% 12%, #e2e2ff 0%, rgba(226,226,255,0) 62%), #f7f8fa; margin-bottom: 20px; }
+  .slide.dark { background: radial-gradient(70% 55% at 85% 8%, #2a2b66 0%, rgba(42,43,102,0) 60%), #0f1217; color: #fff; }
+  .logo { position: absolute; left: 84px; top: 76px; height: 40px; }
+  .dark .logo { filter: brightness(0) invert(1); }
+  .count { position: absolute; right: 84px; top: 84px; font-size: 22px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .dark .count { color: #8a92a1; }
+  .kicker { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; margin-bottom: 22px; }
+  .dark .kicker { color: #a5a6ff; }
+  h1 { font-size: 92px; line-height: 1.02; letter-spacing: -0.048em; font-weight: 800; }
+  h2 { font-size: 76px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
+  h1 em, h2 em { font-style: normal; color: var(--accent); }
+  .dark h2 em { color: #a5a6ff; }
+  .lead { margin-top: 28px; font-size: 34px; line-height: 1.38; letter-spacing: -0.018em; color: var(--ink-2); font-weight: 500; }
+  .dark .lead { color: #b9bfcc; }
+  .copy { position: absolute; left: 84px; right: 84px; top: 190px; }
+  .swipe { position: absolute; right: 84px; bottom: 76px; font-size: 24px; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+
+  /* ---------- App pieces ---------- */
+  .win { background: var(--dark); border-radius: 26px; padding: 18px; box-shadow: 0 40px 80px rgba(15,18,23,.28); color: #e3e6ed; }
+  .frame { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; background: #000; }
+  .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .frame svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .frame.mirror img { transform: scaleX(-1); }
+  .sk { fill: none; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+  .badge { position: absolute; top: 14px; right: 16px; display: flex; gap: 8px; font-size: 19px; font-weight: 650; color: #dbe0f0; font-variant-numeric: tabular-nums; }
+  .badge b { background: rgba(91,92,226,.85); color: #fff; padding: 2px 10px; border-radius: 7px; font-size: 17px; }
+  .skbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 13px; background: rgba(20,23,29,.92); border: 1px solid rgba(255,255,255,.14); }
+  .skbar b { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #dbe0f0; font-size: 20px; font-weight: 500; }
+  .skbar b.on { background: rgba(255,255,255,.18); color: #fff; }
+  .skbar i { width: 19px; height: 19px; border-radius: 50%; background: var(--c); margin: 0 5px; }
+  .skbar i.on { box-shadow: 0 0 0 3px #14171d, 0 0 0 5.5px var(--c); }
+  .skbar u { width: 1px; height: 24px; background: rgba(255,255,255,.16); margin: 0 3px; }
+  .skbar em { font-style: normal; font-size: 18px; font-weight: 700; padding: 7px 15px; border-radius: 9px; background: #fff; color: var(--dark); margin-left: 4px; }
+  .track { position: relative; height: 8px; background: #333945; border-radius: 6px; margin: 22px 6px 6px; }
+  .track .fill { position: absolute; inset: 0 auto 0 0; width: var(--f, 19%); background: var(--accent); border-radius: 6px; }
+  .track .loop { position: absolute; top: -7px; bottom: -7px; left: 13.7%; width: 13.7%; border-radius: 5px; background: rgba(255,214,10,.25); box-shadow: inset 0 0 0 2px rgba(255,214,10,.7); }
+  .track i { position: absolute; top: -5px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #f5a524; border: 3px solid var(--dark); }
+  .track .head { position: absolute; top: -7px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px var(--accent); }
+  .ctrls { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .ctl { font-size: 20px; font-weight: 650; padding: 10px 16px; border-radius: 11px; border: 1px solid var(--dline); color: #dbe0f0; white-space: nowrap; }
+  .ctl.loop { background: rgba(255,214,10,.14); border-color: rgba(255,214,10,.55); color: #ffd60a; }
+  .ctl.mirror { background: rgba(91,92,226,.3); border-color: rgba(165,166,255,.6); color: #fff; }
+  .grow { flex: 1; }
+
+  .note { background: var(--dark-2); border: 1px solid var(--dline); border-radius: 18px; padding: 20px 22px; color: #e3e6ed; display: grid; gap: 12px; }
+  .note.light { background: #fff; color: var(--ink); border-color: var(--line); box-shadow: 0 30px 60px rgba(15,18,23,.14); }
+  .ntop { display: flex; align-items: center; gap: 10px; }
+  .chip { font-size: 17px; font-weight: 700; padding: 4px 11px; border-radius: 8px; background: #38404e; color: #e3e6ed; white-space: nowrap; }
+  .light .chip { background: #eef0f4; color: #3b4048; }
+  .chip.sk2 { background: rgba(91,92,226,.25); color: #c9caff; }
+  .light .chip.sk2 { background: var(--accent-soft); color: #4b4cc4; }
+  .chip.st { margin-left: auto; background: rgba(255,181,71,.16); color: var(--warn); }
+  .chip.st.ok { background: rgba(70,211,154,.16); color: var(--ok); }
+  .light .chip.st { background: #fff1e3; color: #b66c21; }
+  .note p { font-size: 25px; line-height: 1.4; font-weight: 500; letter-spacing: -0.012em; }
+  .mention { color: #a5a6ff; font-weight: 700; }
+  .light .mention { color: var(--accent); }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 19px; color: #aab1bf; }
+  .light .who { color: var(--muted); }
+  .av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); flex: none; }
+  .role { font-size: 15px; padding: 2px 9px; border-radius: 7px; background: rgba(91,92,226,.25); color: #c9caff; }
+  .light .role { background: var(--accent-soft); color: #4b4cc4; }
+  .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mini { font-size: 17px; font-weight: 650; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--dline); color: #c9ced9; white-space: nowrap; }
+  .light .mini { border-color: var(--line); color: #3b4048; }
+  .mini.ok { border-color: rgba(70,211,154,.5); color: var(--ok); }
+  .light .mini.ok { border-color: #b7e8d2; color: #16845b; }
+
+  .takes { background: var(--dark); border-radius: 26px; padding: 26px; color: #e3e6ed; box-shadow: 0 40px 80px rgba(15,18,23,.28); }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tabs span { font-size: 20px; font-weight: 700; padding: 9px 18px; border-radius: 11px; color: #8a92a1; }
+  .tabs span.on { background: #fff; color: var(--dark); }
+  .sum { font-size: 20px; color: #aab1bf; padding: 14px 16px; border: 1px solid var(--dline); border-radius: 13px; margin-bottom: 14px; }
+  .sum .ok { color: var(--ok); } .sum .warn { color: var(--warn); }
+  .fix { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 14px; padding: 16px 6px; border-top: 1px solid var(--dline); font-size: 23px; font-weight: 600; }
+  .fix .tk { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; background: rgba(70,211,154,.16); color: var(--ok); }
+  .fix .tk.p { background: rgba(255,181,71,.16); color: var(--warn); }
+  .fix small { font-size: 17px; color: #8a92a1; font-weight: 600; }
+
+  .ins { background: #fff; border-radius: 26px; padding: 30px 32px; box-shadow: 0 40px 80px rgba(15,18,23,.14); border: 1px solid var(--line); }
+  .ins .k { font-size: 18px; font-weight: 750; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  .stat { border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  .stat small { font-size: 19px; color: var(--muted); font-weight: 600; }
+  .stat b { display: block; font-size: 68px; letter-spacing: -0.045em; line-height: 1.05; margin-top: 6px; }
+  .stat em { font-style: normal; font-size: 19px; font-weight: 750; color: #16845b; }
+  .heat-h { display: flex; justify-content: space-between; align-items: baseline; margin-top: 26px; }
+  .heat-h b { font-size: 24px; letter-spacing: -0.01em; }
+  .heat-h small { font-size: 17px; color: var(--muted); }
+  .heat { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 14px; }
+  .heat span { height: 64px; border-radius: 10px; background: rgba(91,92,226,var(--o)); color: #fff; font-size: 22px; font-weight: 750; display: grid; place-items: center; }
+  .heat-x { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 8px; font-size: 15px; color: var(--muted); text-align: center; font-weight: 600; }
+
+  .bubble { max-width: 760px; padding: 22px 28px; border-radius: 30px; font-size: 32px; line-height: 1.35; letter-spacing: -0.012em; background: #fff; box-shadow: 0 18px 40px rgba(15,18,23,.1); }
+  .bubble small { display: block; font-size: 20px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  .bubble.me { background: var(--accent); color: #fff; margin-left: auto; }
+  .bubble.me small { color: rgba(255,255,255,.75); }
+
+  /* ---------- Slide 1: the title and the app, laid back and tilted ---------- */
+  .tilt { position: absolute; left: 110px; top: 650px; width: 1300px; height: 1100px; transform-origin: 0 0;
+    transform: perspective(3200px) rotateX(46deg) rotateZ(-34deg); }
+  .tilt > * { position: absolute; }
+  .t-review { left: 0; top: 120px; width: 700px; }
+  .t-note { left: 730px; top: 300px; width: 470px; }
+  .t-ins { left: 0; top: 620px; width: 560px; }
+  .t-takes { left: 640px; top: 620px; width: 520px; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Title -->
+<section class="slide" data-slide="1">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">1/8</span>
+  <div class="copy" style="top: 210px">
+    <p class="kicker">Rehearsal video feedback for dance teams</p>
+    <h1>Feedback that lands <em>on the count.</em></h1>
+  </div>
+  <div class="tilt">
+    <div class="win t-review">
+      <div class="frame"><img src="frame-arm.jpg" alt="" />
+        <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice"><ellipse class="sk" stroke="#ffd60a" cx="142" cy="102" rx="24" ry="20" /><path class="sk" stroke="#ff453a" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>
+        <div class="skbar"><b>✎</b><b>↗</b><b class="on">◯</b><u></u><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#fff"></i><em>Done</em></div>
+      </div>
+      <div class="track"><span class="fill"></span><span class="loop"></span><i style="left:13.7%"></i><i style="left:68%"></i><i style="left:89%"></i></div>
+    </div>
+    <div class="note light t-note">
+      <div class="ntop"><span class="chip">⟷ 00:01–00:02</span><span class="chip sk2">✎ Sketch</span><span class="chip st">Open</span></div>
+      <p><span class="mention">@Maya</span> reach all the way out on the arm hit. Match the center’s line.</p>
+      <div class="who"><span class="av">HK</span>Hope Kim <span class="role">Coach</span></div>
+      <div class="acts"><span class="mini">↻ Loop this part</span><span class="mini">👍 3</span><span class="mini ok">Resolve ✓</span><span class="mini">💬 1</span></div>
+    </div>
+    <div class="ins t-ins">
+      <p class="k">Insights · last 30 days</p>
+      <div class="stats"><div class="stat"><small>Notes fixed</small><b>82%</b><em>↑ 9%p</em></div><div class="stat"><small>Time to fix</small><b>2.4d</b><em>↓ 1.1 days</em></div></div>
+    </div>
+    <div class="takes t-takes">
+      <div class="tabs"><span>Take 1</span><span>Take 2</span><span class="on">Take 3</span></div>
+      <div class="fix"><span class="tk">✓</span>Squat on 3, all together<small>Take 2</small></div>
+      <div class="fix"><span class="tk">✓</span>Spacing in the transition<small>Take 3</small></div>
+      <div class="fix"><span class="tk p">•</span>Back row low on 8<small>Practicing</small></div>
+    </div>
+  </div>
+  <span class="swipe">Swipe →</span>
+</section>
+
+<!-- 2 · The problem -->
+<section class="slide" data-slide="2">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">2/8</span>
+  <div class="copy">
+    <h2>Your team’s feedback is <em>buried in a group chat.</em></h2>
+  </div>
+  <div style="position:absolute; left:84px; right:84px; top:600px; display:grid; gap:22px;">
+    <div class="bubble"><small>Coach</small>Fix the timing in the second chorus</div>
+    <div class="bubble me"><small>Maya</small>wait which part?? 0:47 or the one after the turn</div>
+    <div class="bubble"><small>Jordan</small>can someone resend last week’s video 🙏</div>
+    <div class="bubble me" style="opacity:.55"><small>Leo</small>did I actually fix it…?</div>
+  </div>
+  <p style="position:absolute; left:84px; right:84px; bottom:96px; font-size:30px; line-height:1.4; color:var(--ink-2); font-weight:500; letter-spacing:-0.015em;">Video in someone’s camera roll. Notes in a thread. By the next rehearsal, nobody remembers which eight.</p>
+</section>
+
+<!-- 3 · The turn -->
+<section class="slide dark" data-slide="3">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">3/8</span>
+  <div class="copy">
+    <h2>What if the note lived <em>on the exact count?</em></h2>
+  </div>
+  <div class="win" style="position:absolute; left:84px; right:84px; top:660px;">
+    <div class="frame"><img src="frame-arm.jpg" alt="" />
+      <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice"><ellipse class="sk" stroke="#ffd60a" cx="142" cy="102" rx="24" ry="20" /><path class="sk" stroke="#ff453a" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>
+      <span class="badge"><b>Eight 1 · 3</b>00:01.4</span>
+    </div>
+    <div class="track"><span class="fill"></span><span class="loop"></span><i style="left:13.7%"></i><span class="head" style="left:19%"></span></div>
+  </div>
+</section>
+
+<!-- 4 · Notes and sketches -->
+<section class="slide" data-slide="4">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">4/8</span>
+  <div class="copy">
+    <p class="kicker">Notes &amp; sketches</p>
+    <h2>Pin it to the moment. <em>Circle it. Arrow it.</em></h2>
+  </div>
+  <div class="win" style="position:absolute; left:84px; right:84px; top:540px;">
+    <div class="frame"><img src="frame-arm.jpg" alt="" />
+      <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice"><ellipse class="sk" stroke="#ffd60a" cx="142" cy="102" rx="24" ry="20" /><path class="sk" stroke="#ff453a" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>
+      <div class="skbar"><b>✎</b><b>↗</b><b class="on">◯</b><u></u><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#fff"></i><u></u><b>↶</b><em>Done</em></div>
+    </div>
+  </div>
+  <div class="note light" style="position:absolute; left:84px; right:84px; top:1112px;">
+    <div class="ntop"><span class="chip">⟷ 00:01–00:02</span><span class="chip sk2">✎ Sketch</span><span class="chip st">Open</span></div>
+    <p><span class="mention">@Maya</span> reach all the way out on the arm hit. Match the center’s line.</p>
+    <div class="who"><span class="av">HK</span>Hope Kim <span class="role">Coach</span> · 2m ago</div>
+  </div>
+</section>
+
+<!-- 5 · Practice -->
+<section class="slide dark" data-slide="5">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">5/8</span>
+  <div class="copy">
+    <p class="kicker">Practice mode</p>
+    <h2>Loop the eight. Slow it down. <em>Flip it like the studio mirror.</em></h2>
+  </div>
+  <div class="win" style="position:absolute; left:84px; right:84px; top:640px;">
+    <div class="frame mirror"><img src="frame-push.jpg" alt="" /><span class="badge"><b>⇋ Mirrored</b>00:01.6</span></div>
+    <div class="track" style="--f:22%"><span class="fill"></span><span class="loop"></span><span class="head" style="left:22%"></span></div>
+    <div class="ctrls"><span class="ctl">▶</span><span class="ctl">0.5×</span><span class="ctl loop">↻ Looping 00:01–00:02</span><span class="grow"></span><span class="ctl mirror">⇋ Mirror</span></div>
+  </div>
+</section>
+
+<!-- 6 · Takes -->
+<section class="slide" data-slide="6">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">6/8</span>
+  <div class="copy">
+    <p class="kicker">Take by take</p>
+    <h2>Upload the next take. <em>Watch every fix land.</em></h2>
+  </div>
+  <div class="takes" style="position:absolute; left:84px; right:84px; top:660px;">
+    <div class="tabs"><span>Take 1</span><span>Take 2</span><span class="on">Take 3</span></div>
+    <div class="sum"><b style="color:#fff">Take 3</b> · <span class="ok">✓ 4 fixed from earlier takes</span> · <span class="warn">1 open</span></div>
+    <div class="fix"><span class="tk">✓</span>Squat on 3, all together<small>Fixed in Take 2</small></div>
+    <div class="fix"><span class="tk">✓</span>Walk-up stays in its lanes<small>Fixed in Take 2</small></div>
+    <div class="fix"><span class="tk">✓</span>Leo out of hiding in the transition<small>Fixed in Take 3</small></div>
+    <div class="fix"><span class="tk">✓</span>Ending pose, one arm shape<small>Fixed in Take 3</small></div>
+    <div class="fix"><span class="tk p">•</span>Back row as low as the front on 8<small>Practicing</small></div>
+  </div>
+</section>
+
+<!-- 7 · Insights -->
+<section class="slide" data-slide="7">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <span class="count">7/8</span>
+  <div class="copy">
+    <p class="kicker">Insights</p>
+    <h2>See where your team gets stuck, <em>and how fast it gets fixed.</em></h2>
+  </div>
+  <div class="ins" style="position:absolute; left:84px; right:84px; top:640px;">
+    <p class="k">Insights · last 30 days</p>
+    <div class="stats"><div class="stat"><small>Notes fixed</small><b>82%</b><em>↑ 9%p</em></div><div class="stat"><small>Time to fix</small><b>2.4 days</b><em>↓ 1.1 days</em></div></div>
+    <div class="heat-h"><b>Where feedback piles up</b><small>Opener · by eight</small></div>
+    <div class="heat"><span style="--o:.95">4</span><span style="--o:.35">1</span><span style="--o:.6">2</span><span style="--o:.12"></span><span style="--o:.5">2</span><span style="--o:.12"></span><span style="--o:.3">1</span><span style="--o:.12"></span></div>
+    <div class="heat-x"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+  </div>
+</section>
+
+<!-- 8 · Why, and the one thing to do -->
+<section class="slide dark" data-slide="8">
+  <span class="count">8/8</span>
+  <div class="copy" style="top: 300px; text-align:center;">
+    <img src="../../logo-wordmark.png" alt="dancerly" style="height:78px; filter:brightness(0) invert(1); margin-bottom:70px;" />
+    <h2 style="font-size:84px;">Every dancer deserves to see <em>their progress.</em></h2>
+    <p class="lead" style="margin-top:40px;">Notes on the exact count, loops, mirror mode,<br />and proof of what’s improving.</p>
+  </div>
+  <div style="position:absolute; left:0; right:0; bottom:180px; display:grid; justify-items:center; gap:22px;">
+    <span style="font-size:36px; font-weight:750; padding:26px 56px; border-radius:20px; background:#fff; color:var(--dark); letter-spacing:-0.02em;">Free for your first team</span>
+    <span style="font-size:28px; font-weight:650; color:#a5a6ff;">Link in bio · dancerly.app</span>
+  </div>
+</section>
+
+</body>
+</html>
