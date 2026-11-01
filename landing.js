@@ -42,7 +42,8 @@ function applyLang() {
     const en = originalText.get(node);
     const key = en.replace(/\s+/g, ' ').trim();
     const ko = lang === 'ko' ? LANDING_KO[key] : undefined;
-    node.nodeValue = ko === undefined ? en : en.replace(key, ko);
+    // Korean honorifics attach to the name before them: "Maya" + " 님이…" → "Maya님이…".
+    node.nodeValue = ko === undefined ? en : ko.startsWith('님') ? en.replace(key, ko).trimStart() : en.replace(key, ko);
   }
   for (const el of document.querySelectorAll(ATTRS.map((a) => `[${a}]`).join(','))) {
     for (const name of ATTRS) {
@@ -138,7 +139,7 @@ const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
 const status = $('[data-hero-status]');
 const NOTE = { en: '@Maya reach all the way out on the arm hit…', ko: '@Maya 팔을 끝까지 뻗어 주세요…' };
-const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['미해결', '연습 중', '해결 ✓'] };
+const STATUS = { en: ['Open', 'Practicing', 'Resolved ✓'], ko: ['미해결', '연습 중', '해결 완료 ✓'] };
 let step = 0;
 let typing = 0;
 let visible = true;
