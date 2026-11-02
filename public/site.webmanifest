@@ -1,7 +1,7 @@
 {
   "name": "dancerly",
   "short_name": "dancerly",
-  "description": "Rehearsal video feedback for dance teams.",
+  "description": "Practice video feedback for dance teams.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

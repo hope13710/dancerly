@@ -87,7 +87,7 @@ export const LANDING_KO = {
   "Footer": "하단 메뉴",
   "Language": "언어",
   // 첫 화면
-  "Rehearsal video review for dance": "댄스팀 연습 영상을 위한 피드백",
+  "Practice video feedback for dance teams": "댄스팀 연습 영상을 위한 피드백",
   "Feedback that lands": "카운트에 딱 맞는",
   "on the count.": "피드백.",
   "Still giving feedback in the group chat? Pin notes to the exact count of your practice video, sketch the fix right on the frame, and see what improved in every new take.": "아직도 단톡방에서 피드백을 주고받나요? 연습 영상의 정확한 카운트에 피드백을 남기고, 화면 위에 직접 그려 설명해 보세요. 새로운 테이크를 올릴 때마다 무엇이 나아졌는지도 확인할 수 있어요.",
