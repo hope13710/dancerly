@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- Instagram feed post #2: one text-only story slide, 1080×1350 (4:5). Render with: node tools/ig/render.cjs post2 -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; background: #ccc; }
+  .slide { width: 1080px; height: 1350px; position: relative; overflow: hidden; color: #15171b;
+    background: radial-gradient(60% 45% at 92% 6%, #e6e6ff 0%, rgba(230,230,255,0) 65%), #f7f8fa; padding: 112px 104px 0; }
+  .logo { height: 38px; display: block; margin-bottom: 84px; }
+  .story { display: grid; gap: 30px; }
+  .story p { font-size: 39px; line-height: 1.38; letter-spacing: -0.02em; color: #3d434f; font-weight: 500; }
+  .story p.quote { color: #6b7280; }
+  .story p.turn { color: #15171b; font-weight: 700; }
+  .story p.big { font-size: 58px; line-height: 1.1; letter-spacing: -0.04em; font-weight: 800; color: #15171b; margin-top: 10px; }
+  .story em { font-style: normal; color: #5b5ce2; }
+  .rule { width: 72px; height: 4px; border-radius: 2px; background: #5b5ce2; margin: 6px 0; }
+  .foot { position: absolute; left: 104px; right: 104px; bottom: 88px; display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 650; color: #6b7280; letter-spacing: -0.01em; }
+  .foot b { color: #5b5ce2; }
+</style>
+</head>
+<body>
+<section class="slide" data-slide="1">
+  <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
+  <div class="story">
+    <p>We grew up dancing like this.</p>
+    <p class="quote">“Fix the second chorus.” “Wait, which part?”<br />The video sat in someone’s camera roll. The notes sank in the group chat. By the next rehearsal, nobody remembered which eight.</p>
+    <p class="turn">We practiced. We got better.<br />But we could never <em>see</em> it.</p>
+    <div class="rule"></div>
+    <p>So we built dancerly: notes that live on the exact count, and every fix, take after take.</p>
+    <p class="big">Because every dancer deserves to see <em>their progress.</em></p>
+  </div>
+  <div class="foot"><span>The rehearsal app for dance teams</span><b>Free · link in bio</b></div>
+</section>
+</body>
+</html>
