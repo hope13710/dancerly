@@ -537,7 +537,7 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 
 /* ---------- Pricing ---------- */
 .pricing { padding: 40px 0 110px; }
-.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .plan { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
 .plan > p:not(.plan-name):not(.price):not(.bill-note) { color: var(--ink-2); font-size: 15px; }
 .plan-name { font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -609,7 +609,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
   .tile, .bento-projects .tile { grid-column: span 1; }
   .split, .split.reverse { grid-template-columns: 1fr; gap: 40px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .who-grid, .plans { grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; }
+  .who-grid, .plans { grid-template-columns: minmax(0, 1fr); max-width: 560px; margin: 0 auto; }
   .trust-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -735,3 +735,4 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
   .steps3 ol { grid-template-columns: 1fr; }
   .bento-projects .t-recap, .bento-projects .t-ins { grid-column: span 1; }
 }
+.plan .btn { white-space: normal; text-align: center; text-wrap: balance; }
