@@ -686,3 +686,52 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 @media (min-width: 1021px) {
   .hero-app:is([data-step="2"], [data-step="3"]) .n-team .note-acts { display: none; }
 }
+
+/* ---------- How it works: three steps right after the problem ---------- */
+.steps3 { padding: 0 0 96px; }
+.steps3 ol { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.steps3 li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 22px 24px; display: grid; gap: 8px; align-content: start; }
+.steps3 .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 15px; }
+.steps3 h3 { font-size: 19px; letter-spacing: -0.02em; margin-top: 6px; }
+.steps3 p { color: var(--ink-2); font-size: 15px; }
+
+/* ---------- Practice ---------- */
+.prac-win { background: #0f1217; border-radius: 22px; padding: 16px; box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6); border: 1px solid #222731; }
+.prac-frame { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 9; background: #000; }
+.prac-frame img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+.prac-badge { position: absolute; top: 10px; right: 12px; display: flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 650; color: #dbe0f0; }
+.prac-badge b { background: rgba(91, 92, 226, 0.85); color: #fff; padding: 2px 8px; border-radius: 6px; }
+.mod.prac-mod { min-height: 0; background: transparent; padding: 18px 4px 4px; }
+
+/* ---------- Take by take ---------- */
+.takes-win { background: var(--dark); border-radius: 22px; padding: 16px; box-shadow: 0 40px 80px -36px rgba(45, 46, 120, 0.45); }
+.tk-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tk-pair figure { margin: 0; position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 10; }
+.tk-pair img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tk-pair figcaption { position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(20, 23, 29, 0.8); color: #fff; }
+.tk-sync { margin: 10px 2px 0; font-size: 12px; font-weight: 650; color: #a5a6ff; }
+.mod.tk-mod { min-height: 0; background: transparent; padding: 12px 4px 4px; }
+
+/* ---------- Your team: compact AI recap and Insights tiles ---------- */
+.bento-projects .t-recap, .bento-projects .t-ins { grid-column: span 3; }
+.mod-recap { justify-content: flex-start; gap: 10px; }
+.mr-label { font-size: 12px; font-weight: 650; color: #aab1bf; }
+.mr-label span { color: #a5a6ff; }
+.mod-recap strong { font-size: 17px; line-height: 1.35; letter-spacing: -0.015em; color: #fff; }
+.mr-line { font-size: 13px; color: #c9ced9; padding-left: 12px; position: relative; }
+.mr-line::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #a5a6ff; }
+.mr-line.ok::before { background: #46d39a; }
+.mr-line a { font-size: 11px; font-weight: 600; color: #c9caff; background: rgba(91, 92, 226, 0.25); padding: 1px 6px; border-radius: 5px; margin-left: 4px; }
+.mi-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mi-stats div { background: #1d222a; border: 1px solid #2c323d; border-radius: 10px; padding: 10px 12px; }
+.mi-stats small { display: block; font-size: 11px; color: #8f98a8; }
+.mi-stats b { display: block; font-size: 24px; letter-spacing: -0.03em; color: #fff; }
+.mi-stats i { font-style: normal; font-size: 11px; font-weight: 700; color: #46d39a; }
+.mi-heat { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.mi-heat span { height: 26px; border-radius: 6px; background: rgba(91, 92, 226, var(--o)); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.mi-cap { font-size: 11px; color: #8f98a8; }
+
+@media (max-width: 1020px) {
+  .steps3 ol { grid-template-columns: 1fr; }
+  .bento-projects .t-recap, .bento-projects .t-ins { grid-column: span 1; }
+}
