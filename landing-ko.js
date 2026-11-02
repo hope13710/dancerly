@@ -41,7 +41,7 @@ export const LANDING_KO = {
   'Rehearsal video review for dance': '댄스팀을 위한 연습 영상 피드백',
   'Feedback that lands': '정확하게',
   'on the count.': '필요한 순간에 남기는 피드백.',
-  'Every dancer deserves to see their progress. Pin notes on your team’s practice video and watch each fix land in the next take.': '모든 댄서는 자기 성장을 눈으로 볼 수 있어야 해요. 팀 연습 영상에 피드백을 콕 찍고, 다음 테이크에서 달라진 걸 확인하세요.',
+  'Still giving feedback in the group chat? Pin notes to the exact count of your practice video, sketch the fix right on the frame, and see what improved in every new take.': '아직도 단톡방에서 피드백하고 있나요? 연습 영상의 그 카운트에 피드백을 콕 찍고, 화면 위에 바로 그려 보여 주세요. 테이크마다 뭐가 나아졌는지 한눈에 보여요.',
   'Start free, no card needed': '무료로 시작하기 · 카드 등록 필요 없음',
   'See how it works': '사용 방법 보기',
   'Works on any phone, no app to install': '앱 설치 없이 휴대폰에서 바로',
@@ -295,7 +295,7 @@ export const LANDING_KO = {
   // 마지막
   'Make the next take': '다음 테이크는',
   'the one that lands.': '더 나은 테이크로.',
-  'Give your team a place to see how far they’ve come. Set up takes under a minute.': '팀이 얼마나 성장했는지 보이는 공간을 만들어 보세요. 1분이면 시작할 수 있어요.',
+  'Every dancer deserves to see their progress. Give your team a place to see it. Set up takes under a minute.': '모든 댄서는 자기 성장을 눈으로 볼 수 있어야 해요. 우리 팀이 그걸 볼 공간을 만들어 보세요. 1분이면 시작할 수 있어요.',
   'Your email': '이메일 주소',
   'No credit card': '신용카드 등록 없이',
   'Feedback that lands on the count.': '정확하게, 필요한 순간에 남기는 피드백.',
