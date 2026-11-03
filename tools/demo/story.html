@@ -1,0 +1,342 @@
+<!doctype html>
+<!-- 30-second storytelling demo (1080×1920): the group-chat mess first, then the same note in dancerly. Frame 0 doubles as the Instagram cover. Each frame is drawn by window.render(t); tools/demo/render.cjs captures them.
+     Needs the sample video frames: ffmpeg -i public/samples/opener-take-N.mp4 -vf fps=24 -q:v 3 tools/demo/frames/tN/%04d.jpg -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 540px; height: 960px; overflow: hidden; }
+  body { font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; color: #15171b;
+    background: radial-gradient(70% 40% at 85% 0%, #e3e3ff 0%, rgba(227,227,255,0) 70%), radial-gradient(60% 35% at 0% 100%, #ececff 0%, rgba(236,236,255,0) 70%), #f7f8fa; }
+  .layer { position: absolute; inset: 0; transition: none; }
+
+  /* captions */
+  .cap { position: absolute; left: 32px; right: 32px; top: 64px; }
+  .cap .step { font-size: 14px; font-weight: 700; color: #5b5ce2; letter-spacing: 0.02em; margin-bottom: 10px; }
+  .cap h2 { font-size: 36px; line-height: 1.08; letter-spacing: -0.035em; font-weight: 800; }
+  .cap h2 em { font-style: normal; color: #5b5ce2; }
+
+  /* app card */
+  .app { position: absolute; left: 18px; right: 18px; top: 214px; height: 660px; border-radius: 26px; background: #14171d; color: #eef0f5;
+    box-shadow: 0 40px 80px -40px rgba(20,23,29,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset; overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 14px 16px 12px; font-size: 13px; }
+  .bar .title { font-weight: 650; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tab { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 650; color: #8f98a8; }
+  .tab.on { background: #fff; color: #15171b; }
+
+  .player { position: relative; margin: 0 12px; border-radius: 14px; overflow: hidden; background: #000; }
+  .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+  .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .frame svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  body.compare .frame { aspect-ratio: 16 / 6.6; }
+  body.compare .frame img { object-position: 50% 78%; }
+  .frame.mirror img, .frame.mirror svg { transform: scaleX(-1); }
+  .badge { position: absolute; top: 10px; left: 10px; font-size: 12px; font-weight: 750; padding: 4px 9px; border-radius: 7px; background: rgba(91,92,226,0.92); color: #fff; }
+  .badge2 { position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 650; padding: 4px 8px; border-radius: 7px; background: rgba(20,23,29,0.75); color: #dfe3ec; }
+  .tlabel { position: absolute; bottom: 8px; left: 10px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(20,23,29,0.8); color: #fff; }
+  .toolbar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 11px; background: rgba(20,23,29,0.88); }
+  .toolbar i { width: 16px; height: 16px; border-radius: 50%; display: block; }
+  .toolbar .t { font-size: 13px; color: #c9ced9; width: 18px; text-align: center; }
+  .toolbar .t.on { color: #fff; background: #313845; border-radius: 5px; }
+  .toolbar .done { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #fff; color: #15171b; }
+
+  .transport { padding: 12px 16px 4px; }
+  .track { position: relative; height: 6px; border-radius: 3px; background: #2a303b; }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #5b5ce2; }
+  .track .ab { position: absolute; top: -3px; bottom: -3px; border-radius: 4px; background: rgba(255,214,10,0.28); border: 1px solid #ffd60a; }
+  .track .pin { position: absolute; top: -5px; width: 4px; height: 16px; border-radius: 2px; background: #ffd60a; transform: translateX(-2px); }
+  .track .head { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: #fff; transform: translate(-7px, -50%); box-shadow: 0 0 0 3px rgba(91,92,226,0.35); }
+  .ctrls { display: flex; gap: 7px; margin-top: 12px; font-size: 12px; }
+  .chip { padding: 5px 10px; border-radius: 8px; border: 1px solid #343b48; background: #1e232c; color: #c3c9d6; font-weight: 600; white-space: nowrap; }
+  .chip.on { background: rgba(255,214,10,0.14); border-color: #ffd60a; color: #ffe27a; }
+  .chip.on.b { background: rgba(91,92,226,0.22); border-color: #8f90ff; color: #d6d6ff; }
+  .time { margin-left: auto; color: #8f98a8; font-variant-numeric: tabular-nums; padding-top: 5px; }
+
+  .notes { padding: 12px 12px 0; display: grid; gap: 10px; }
+  .note { border-radius: 14px; background: #1b1f27; border: 1px solid #2b313c; padding: 12px 13px; font-size: 13.5px; line-height: 1.42; }
+  .note.flash { box-shadow: 0 0 0 2px #8f90ff; }
+  .note .meta { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 11.5px; }
+  .at { font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #262c36; color: #dfe3ec; }
+  .st { margin-left: auto; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(255,170,60,0.16); color: #ffbe6b; }
+  .st.ok { background: rgba(52,199,123,0.16); color: #5fe0a0; }
+  .men { color: #a5a6ff; font-weight: 650; }
+  .by { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 11.5px; color: #8f98a8; }
+  .av { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: #5b5ce2; }
+  .role { padding: 1px 6px; border-radius: 5px; background: #262c36; color: #c3c9d6; }
+  .composer { display: flex; align-items: center; gap: 7px; margin: 0 12px; border-radius: 12px; border: 1px solid #5b5ce2; background: #1b1f27; padding: 10px 11px; font-size: 13.5px; min-height: 44px; }
+  .composer .pill { flex: none; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: #5b5ce2; color: #fff; }
+  .composer .txt { white-space: nowrap; overflow: hidden; text-overflow: clip; direction: rtl; text-align: left; flex: 1; }
+  .composer .txt span { direction: ltr; unicode-bidi: plaintext; }
+  .caret { flex: none; width: 2px; height: 17px; background: #a5a6ff; }
+  .fixed { display: flex; align-items: center; gap: 8px; margin: 10px 12px 0; padding: 11px 13px; border-radius: 12px; background: rgba(52,199,123,0.12); color: #7ee8b4; font-size: 13.5px; font-weight: 650; }
+  .sync { margin: 8px 16px 0; font-size: 12px; color: #a5a6ff; font-weight: 650; }
+
+  /* cover */
+  .cover-t { position: absolute; left: 34px; right: 34px; top: 300px; font-size: 66px; line-height: 1.0; letter-spacing: -0.05em; font-weight: 850; }
+  .cover-t em { font-style: normal; color: #5b5ce2; }
+  .cover-sub { position: absolute; left: 36px; top: 548px; font-size: 20px; color: #3b4048; font-weight: 550; letter-spacing: -0.01em; }
+  .bub { position: absolute; padding: 11px 15px; border-radius: 18px; font-size: 17px; font-weight: 550; background: #fff; box-shadow: 0 18px 40px -18px rgba(20,23,29,0.35); display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+  .bub .av { width: 26px; height: 26px; font-size: 10px; }
+  .cover-logo { position: absolute; left: 36px; top: 770px; height: 30px; }
+  /* group chat */
+  .chat { position: absolute; left: 18px; right: 18px; top: 214px; height: 660px; border-radius: 26px; background: #fff; box-shadow: 0 40px 80px -40px rgba(20,23,29,0.45), 0 0 0 1px #e6e8ec inset; overflow: hidden; display: flex; flex-direction: column; }
+  .chat-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #eef0f3; }
+  .chat-h .gav { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #ff9f43, #db2777); display: grid; place-items: center; font-size: 18px; }
+  .chat-h b { display: block; font-size: 15px; } .chat-h small { color: #6b7280; font-size: 12px; }
+  .msgs { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 12px 14px 14px; overflow: hidden; background: #f4f5f8; }
+  .m { display: flex; align-items: flex-end; gap: 8px; max-width: 86%; }
+  .m .av { flex: none; width: 26px; height: 26px; font-size: 10px; }
+  .m .b { background: #fff; border-radius: 16px 16px 16px 5px; padding: 8px 12px; font-size: 15px; line-height: 1.35; box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+  .m .b small { display: block; font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+  .m .vid { width: 220px; border-radius: 12px; overflow: hidden; margin-top: 4px; position: relative; }
+  .m .vid img { width: 100%; display: block; }
+  .m .vid span { position: absolute; left: 8px; bottom: 6px; font-size: 11px; font-weight: 650; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  .m .vid i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 38px; height: 38px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; display: grid; place-items: center; font-style: normal; font-size: 15px; }
+  .newpill { position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: #15171b; color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 10px 24px -10px rgba(0,0,0,0.5); }
+  .chat-in { display: flex; align-items: center; gap: 8px; padding: 10px 14px 14px; background: #f4f5f8; }
+  .chat-in span { flex: 1; border-radius: 999px; background: #fff; border: 1px solid #e6e8ec; padding: 10px 14px; font-size: 14px; color: #9aa1ad; }
+  .typing { display: inline-flex; gap: 4px; } .typing i { width: 6px; height: 6px; border-radius: 50%; background: #9aa1ad; display: block; }
+  .turn h1 { font-size: 44px; }
+  .cap .bubline { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 16px; background: #fff; box-shadow: 0 10px 24px -14px rgba(20,23,29,0.4); font-size: 14px; font-weight: 600; color: #15171b; letter-spacing: 0; margin-bottom: 4px; }
+  .cap .bubline .av { width: 22px; height: 22px; font-size: 9px; }
+  /* intro + end */
+  .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 0 40px; }
+  .logo { height: 40px; margin: 0 auto 30px; display: block; }
+  .center h1 { font-size: 46px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
+  .center h1 em { font-style: normal; color: #5b5ce2; }
+  .center p { margin-top: 18px; font-size: 18px; color: #3b4048; line-height: 1.45; }
+  .url { display: inline-block; margin-top: 34px; padding: 14px 26px; border-radius: 14px; background: #5b5ce2; color: #fff; font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
+  .ticks { margin-top: 22px; display: grid; gap: 8px; font-size: 16px; color: #3b4048; font-weight: 550; }
+  .ticks b { color: #16845b; margin-right: 6px; }
+  .foot { position: absolute; left: 0; right: 0; bottom: 40px; text-align: center; }
+  .foot img { height: 24px; }
+</style>
+</head>
+<body>
+<div id="cover" class="layer">
+  <div class="bub" style="top: 170px; right: 34px; transform: rotate(4deg)"><span class="av" style="background:#0ea5e9">JL</span>which part?? 0:47?</div>
+  <h1 class="cover-t">Still giving feedback in the <em>group chat?</em></h1>
+  <p class="cover-sub">There’s a better way for dance teams.</p>
+  <div class="bub" style="top: 640px; left: 36px; transform: rotate(-3deg)"><span class="av" style="background:#db2777">MC</span>wait, the one after the turn?</div>
+  <div class="bub" style="top: 700px; right: 40px; transform: rotate(2deg)"><span class="av" style="background:#0ea5e9">JL</span>did I fix it or…? 😅</div>
+  <img class="cover-logo" src="../../logo-wordmark.png" alt="" />
+</div>
+
+<div id="chatL" class="layer">
+  <div class="cap" id="chatCap"><div class="step">Sound familiar?</div><h2 style="font-size: 31px">The video’s in a camera roll.<br /><em>The note’s 48 messages up.</em></h2></div>
+  <div class="chat" id="chat">
+    <div class="chat-h"><span class="gav">💃</span><div><b>Opener crew</b><small>9 members</small></div></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="newpill" id="newpill">48 new messages ↓</div>
+    <div class="chat-in"><span>Message…</span></div>
+  </div>
+</div>
+
+<div id="turn" class="layer">
+  <div class="center turn"><img class="logo" src="../../logo-wordmark.png" alt="" /><h1>There’s a<br /><em>better way.</em></h1></div>
+</div>
+
+<div id="intro" class="layer" style="display: none">
+  <div class="center">
+    <img class="logo" src="../../logo-wordmark.png" alt="" />
+    <h1>Feedback that lands<br /><em>on the count.</em></h1>
+    <p>The practice video app for dance teams</p>
+  </div>
+</div>
+
+<div id="main" class="layer">
+  <div class="cap" id="cap"><div class="step" id="capStep"></div><h2 id="capText"></h2></div>
+  <div class="app">
+    <div class="bar"><span class="title">Opener · first three eights</span><span class="tab" id="tab1">Take 1</span><span class="tab" id="tab2">Take 2</span></div>
+    <div class="player" id="player">
+      <div class="frame" id="f1">
+        <img id="img1" alt="" />
+        <svg viewBox="0 0 1 0.5625" preserveAspectRatio="none" id="sk">
+          <ellipse id="skCircle" cx="0.6175" cy="0.3431" rx="0.0525" ry="0.0956" fill="none" stroke="#ffd60a" stroke-width="0.006" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" />
+          <g id="skArrow" stroke="#ff453a" stroke-width="0.006" stroke-linecap="round" fill="none">
+            <line x1="0.62" y1="0.135" x2="0.62" y2="0.226" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" id="skLine" />
+            <path d="M0.603 0.205 L0.62 0.228 L0.637 0.205" id="skHead" opacity="0" />
+          </g>
+        </svg>
+        <span class="badge" id="badge">Eight 2 · 8</span>
+        <span class="badge2" id="badge2">⇋ Mirrored</span>
+        <span class="tlabel" id="lab1">Take 1</span>
+        <div class="toolbar" id="toolbar"><span class="t">✎</span><span class="t">↗</span><span class="t on">◯</span><i style="background:#ffd60a;box-shadow:0 0 0 2px #fff"></i><i style="background:#ff453a"></i><i style="background:#30d158"></i><i style="background:#fff"></i><span class="done">Done</span></div>
+      </div>
+      <div class="frame" id="f2" style="margin-top: 2px">
+        <img id="img2" alt="" />
+        <span class="tlabel">Take 2</span>
+      </div>
+    </div>
+    <div class="sync" id="sync">♫ Synced by music · same moment in both takes</div>
+    <div class="transport" id="transport">
+      <div class="track"><div class="fill" id="fill"></div><div class="ab" id="ab"></div><div class="pin" id="pin"></div><div class="head" id="head"></div></div>
+      <div class="ctrls"><span class="chip" id="cLoop">↻ Loop</span><span class="chip" id="cSlow">0.5×</span><span class="chip" id="cMir">⇋ Mirror</span><span class="time" id="time">00:00</span></div>
+    </div>
+    <div class="fixed" id="fixed">✓ Squat on 8: fixed in Take 2</div>
+    <div class="notes" id="notes">
+      <div class="note" id="note">
+        <div class="meta"><span class="at">↔ 00:09.6 · Eight 2 · 8</span><span class="at" id="noteSk">✎ Sketch</span><span class="st" id="noteSt">Open</span></div>
+        <div><span class="men">@Jordan</span> the back row sits higher on 8. Drop to the front row’s depth.</div>
+        <div class="by"><span class="av" style="background:#16a34a">RS</span>Rina Sato <span class="role">Coach</span> · just now</div>
+      </div>
+    </div>
+    <div style="height: 10px"></div>
+    <div class="composer" id="composer"><span class="pill">▸ At 00:09.6</span><span class="txt"><span id="typed"></span></span><span class="caret" id="caret"></span></div>
+  </div>
+  <div class="foot"><img src="../../logo-wordmark.png" alt="" /></div>
+</div>
+
+<div id="end" class="layer">
+  <div class="center">
+    <img class="logo" src="../../logo-wordmark.png" alt="" />
+    <h1 style="font-size: 40px">Every dancer deserves<br /><em>to see their progress.</em></h1>
+    <div class="ticks"><span><b>✓</b>Free for your first team</span><span><b>✓</b>No app to install, works on any phone</span><span><b>✓</b>Private to the people you invite</span></div>
+    <div><span class="url">dancerly.app</span></div>
+  </div>
+</div>
+
+<script>
+const BEAT = 60 / 98, C1 = 0.43, FPS_SRC = 24, N_SRC = 361;
+const NOTE_T = 9.63;                     // the squat on 8 of the 2nd eight
+const LOOP = [8.95, 10.25];
+const TYPED = '@Jordan the back row sits higher on 8. Drop to the front row’s depth.';
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => 1 - Math.pow(1 - x, 3);
+const fmt = (s) => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(1).padStart(4, '0')}`; };
+const countAt = (vt) => { const n = Math.max(0, Math.floor((vt - C1) / BEAT + 0.5)); return `Eight ${Math.floor(n / 8) + 1} · ${(n % 8) + 1}`; };
+const src = (take, vt) => `frames/t${take}/${String(clamp(Math.round(vt * FPS_SRC) + 1, 1, N_SRC)).padStart(4, '0')}.jpg`;
+
+const CAPS = [
+  [2.5, 9.0, 'In dancerly', 'Say it once,<br /><em>right on the count.</em>'],
+  [9.0, 14.0, 'In dancerly', 'Show it.<br /><em>Don’t type it.</em>'],
+  [14.0, 20.0, 'In dancerly', 'Jordan loops<br /><em>just that part.</em>'],
+  [20.0, 26.0, '<span class="bubline"><span class="av" style="background:#0ea5e9">JL</span>did I fix it or…?</span>', 'Now everyone<br /><em>can see it land.</em>'],
+];
+
+// Where the video is at demo time t (seconds into the sample take).
+function videoTime(t) {
+  if (t < 6.1) return 6.0 + (t - 2.5);                     // plays up to the squat
+  if (t < 14.3) return NOTE_T;                              // holds while the note is typed and sketched
+  if (t < 20) {                                              // loop the part: full speed, then half speed from 15.5
+    const len = LOOP[1] - LOOP[0];
+    const played = t < 15.5 ? t - 14.3 : (15.5 - 14.3) + (t - 15.5) * 0.5;
+    return LOOP[0] + ((NOTE_T - LOOP[0]) + played) % len;
+  }
+  return Math.min(NOTE_T, 8.9 + (t - 20.2));                // compare: both takes run into the squat and hold
+}
+
+const pending = [];
+function setImg(el, url) { if (el.getAttribute('src') !== url) { el.setAttribute('src', url); pending.push(el.decode().catch(() => {})); } }
+const show = (el, on) => { el.style.display = on ? '' : 'none'; };
+const fade = (el, o) => { el.style.opacity = o; };
+
+// Story time → the demo timeline the app scenes were built on.
+const MAP = [[0, 2.0], [9.6, 2.0], [9.9, 2.6], [15.4, 9.0], [18.9, 14.0], [22.9, 20.0], [27.3, 25.9], [27.6, 26.2], [30, 28.5]];
+const mapT = (s) => { for (let i = 1; i < MAP.length; i++) { const [a, x] = MAP[i - 1], [b, y] = MAP[i]; if (s <= b) return x + (y - x) * (s - a) / (b - a); } return MAP[MAP.length - 1][1]; };
+const MSGS = [
+  [2.9, 'RS', '#16a34a', 'Rina · Coach', null, 'vid'],
+  [3.5, 'RS', '#16a34a', 'Rina · Coach', 'ok watched it. the squat in the 2nd eight is off'],
+  [4.1, 'JL', '#0ea5e9', 'Jordan', 'which part?? 0:47?'],
+  [4.6, 'MC', '#db2777', 'Maya', 'wait, the one after the turn?'],
+  [5.1, 'LO', '#f59e0b', 'Leo', 'is this the old video or the new one'],
+  [5.5, 'MC', '#db2777', 'Maya', 'can someone resend it 😭'],
+  [5.9, 'CK', '#8b5cf6', 'Chris', 'my phone deleted it lol'],
+  [6.3, 'RS', '#16a34a', 'Rina · Coach', 'the SQUAT. on 8. back row.'],
+  [6.8, 'JL', '#0ea5e9', 'Jordan', 'did I fix it or…? 😅'],
+];
+function renderStory(t) {
+  fade($('cover'), 1 - prog(t, 2.3, 2.6));
+  const chatIn = prog(t, 2.5, 2.8), chatOut = 1 - prog(t, 8.3, 8.7);
+  fade($('chatL'), Math.min(chatIn, chatOut));
+  $('chat').style.transform = `scale(${1 - 0.04 * prog(t, 8.3, 8.7)})`;
+  $('msgs').innerHTML = MSGS.filter((m) => t >= m[0]).map(([at, ini, col, name, text, kind]) => {
+    const pop = ease(prog(t, at, at + 0.25));
+    const body = kind === 'vid' ? `<small style="color:${col}">${name}</small><div class="vid"><img src="../../public/samples/opener-take-1.jpg" alt="" /><i>▶</i><span>IMG_2042.MOV · 0:15</span></div>` : `<small style="color:${col}">${name}</small>${text}`;
+    return `<div class="m" style="opacity:${pop};transform:translateY(${(1 - pop) * 10}px)"><span class="av" style="background:${col}">${ini}</span><div class="b">${body}</div></div>`;
+  }).join('') + (t >= 7.1 && t < 8.6 ? `<div class="m"><span class="av" style="background:#8b5cf6">CK</span><div class="b"><span class="typing"><i></i><i></i><i style="opacity:${Math.floor(t * 4) % 2 ? 1 : 0.35}"></i></span></div></div>` : '');
+  show($('newpill'), t >= 7.3); fade($('newpill'), ease(prog(t, 7.3, 7.6)));
+  fade($('chatCap'), ease(prog(t, 2.8, 3.2)));
+  const turn = Math.min(prog(t, 8.6, 8.9), 1 - prog(t, 9.4, 9.7));
+  fade($('turn'), turn); $('turn').querySelector('.center').style.transform = `translateY(${(1 - ease(prog(t, 8.6, 9.2))) * 20}px)`;
+}
+
+window.render = async function (st) {
+  pending.length = 0;
+  renderStory(st);
+  const t = mapT(st);
+  const intro = 1 - prog(t, 2.0, 2.3), end = prog(t, 26.2, 26.5);
+  fade($('intro'), intro); fade($('main'), Math.min(prog(t, 2.3, 2.6), 1 - prog(t, 25.9, 26.2))); fade($('end'), end);
+  $('intro').querySelector('.center').style.transform = `translateY(${(1 - ease(prog(t, 0, 0.8))) * 24}px)`;
+  fade($('intro').querySelector('.center'), ease(prog(t, 0, 0.6)));
+  $('end').querySelector('.center').style.transform = `translateY(${(1 - ease(prog(t, 26, 26.8))) * 24}px)`;
+
+  // caption
+  const cap = CAPS.find(([a, b]) => t >= a && t < b) || CAPS[t < 2.5 ? 0 : 3];
+  $('capStep').innerHTML = cap[2]; $('capText').innerHTML = cap[3];
+  const cin = ease(prog(t, cap[0], cap[0] + 0.45)), cout = 1 - prog(t, cap[1] - 0.3, cap[1]);
+  fade($('cap'), Math.min(cin, cap[1] >= 26 ? 1 : cout)); $('cap').style.transform = `translateY(${(1 - cin) * 14}px)`;
+
+  const compare = t >= 20, vt = videoTime(t);
+  document.body.classList.toggle('compare', compare);
+  setImg($('img1'), src(1, vt));
+  show($('f2'), compare); show($('sync'), compare); show($('fixed'), compare && t >= 23.2); show($('lab1'), compare);
+  if (compare) setImg($('img2'), src(2, vt));
+  $('tab1').className = 'tab' + (compare ? '' : ' on'); $('tab2').className = 'tab' + (compare ? ' on' : '');
+  show($('transport'), !compare); show($('composer'), !compare);
+
+  // count badge, mirror
+  const mirror = t >= 17.0 && t < 20;
+  $('f1').classList.toggle('mirror', mirror);
+  show($('badge2'), mirror);
+  $('badge').textContent = countAt(vt);
+  show($('badge'), !compare);
+
+  // sketch: circle 9.6–10.5, arrow 10.8–11.5, stays afterwards (also in mirror); hidden in compare
+  const c = ease(prog(t, 9.6, 10.5)), a = ease(prog(t, 10.8, 11.4));
+  $('skCircle').setAttribute('stroke-dashoffset', 1 - c);
+  $('skLine').setAttribute('stroke-dashoffset', 1 - a);
+  $('skHead').setAttribute('opacity', t >= 11.4 ? 1 : 0);
+  $('sk').style.display = compare || t < 9.6 ? 'none' : '';
+  $('skArrow').style.display = t < 10.8 ? 'none' : '';
+  show($('toolbar'), t >= 9.2 && t < 12.6);
+  $('toolbar').querySelector('.done').style.background = t >= 12.2 ? '#a5a6ff' : '#fff';
+
+  // transport
+  const dur = 15.1;
+  $('fill').style.width = `${(vt / dur) * 100}%`; $('head').style.left = `${(vt / dur) * 100}%`;
+  $('time').textContent = `${fmt(vt)} / 00:15.1`;
+  const pinned = t >= 8.8;
+  show($('pin'), pinned); $('pin').style.left = `${(NOTE_T / dur) * 100}%`;
+  const looping = t >= 14.3 && t < 20;
+  show($('ab'), looping); $('ab').style.left = `${(LOOP[0] / dur) * 100}%`; $('ab').style.width = `${((LOOP[1] - LOOP[0]) / dur) * 100}%`;
+  $('cLoop').className = 'chip' + (looping ? ' on' : ''); $('cLoop').textContent = looping ? '↻ Looping 00:09–00:10' : '↻ Loop';
+  $('cSlow').className = 'chip' + (t >= 15.5 && t < 20 ? ' on b' : '');
+  $('cMir').className = 'chip' + (mirror ? ' on b' : '');
+
+  // composer typing 6.3–8.5, then the note pins at 8.8
+  const typed = t < 8.8 ? TYPED.slice(0, Math.floor(prog(t, 6.3, 8.5) * TYPED.length)) : '';
+  $('typed').textContent = typed;
+  $('composer').querySelector('.pill').textContent = t >= 6.1 ? '▸ At 00:09.6' : '▸ At ' + fmt(vt);
+  fade($('caret'), (t < 8.8 && Math.floor(t * 2.2) % 2 === 0) || (t >= 6.3 && t < 8.5) ? 1 : 0);
+  show($('note'), pinned);
+  const pin = ease(prog(t, 8.8, 9.15));
+  $('note').style.transform = `translateY(${(1 - pin) * 18}px)`; fade($('note'), pin);
+  $('note').classList.toggle('flash', t >= 8.8 && t < 9.8);
+  show($('noteSk'), t >= 12.2);
+  const ok = t >= 23.2;
+  $('noteSt').className = 'st' + (ok ? ' ok' : ''); $('noteSt').textContent = ok ? 'Resolved ✓' : 'Open';
+  $('note').style.boxShadow = ok && t < 24.2 ? '0 0 0 2px #34c77b' : '';
+
+  await Promise.all(pending);
+};
+
+// Preload every frame so seeking is instant.
+window.ready = Promise.all([1, 2].flatMap((k) => Array.from({ length: N_SRC }, (_, i) => { const im = new Image(); im.src = `frames/t${k}/${String(i + 1).padStart(4, '0')}.jpg`; return im.decode().catch(() => {}); })))
+  .then(() => document.fonts.ready);
+</script>
+</body>
+</html>
