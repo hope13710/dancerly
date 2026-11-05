@@ -517,7 +517,8 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
   el.className = 'dialog';
   el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2><p>${body || `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p><p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
     <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" /><button class="btn primary" data-copy>Copy</button></div>
-    ${navigator.share ? '<button class="btn wide" data-share>Share…</button>' : ''}
+    <div class="invite-more">${navigator.share ? '<button class="btn" data-share>Share…</button>' : ''}<button class="btn" data-qr-open>▦ Show QR code</button></div>
+    <p class="fine left">In the studio? Show the QR code and everyone can scan it with their phone camera to join.</p>
     <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
   el.showModal();
@@ -530,7 +531,92 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
     track('invite_link_shared', { via: 'share', from });
     navigator.share({ title: 'dancerly', text: `Join ${title} on dancerly`, url: link }).catch(() => {});
   });
+  el.querySelector('[data-qr-open]').addEventListener('click', () => {
+    track('invite_link_shared', { via: 'qr', from });
+    showInviteQr(link, title, invite.expires_at);
+  });
   el.querySelector('[data-close]').addEventListener('click', () => el.close());
   el.addEventListener('close', () => el.remove());
+}
+
+// ---------- Invite QR: one code per project, the same one everyone in it sees ----------
+// Made for the studio: a full-screen code to hold up or put on the TV, and a poster to print or post.
+// Scans are tagged ?ref=qr_invite, so signups from it show up as such in the admin alerts.
+const qrUrl = (link) => `${link}${link.includes('?') ? '&' : '?'}ref=qr_invite`;
+async function makeQr(text) {
+  const { default: qrcode } = await import('../vendor/qrcode-generator-1.4.4.js');
+  const qr = qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  return qr;
+}
+
+export async function showInviteQr(link, title, expiresAt) {
+  let qr;
+  try { qr = await makeQr(qrUrl(link)); } catch { return toast('Couldn’t make the QR code. Copy the link instead.', 'error'); }
+  const until = new Date(expiresAt).toLocaleDateString();
+  const el = document.createElement('dialog');
+  el.className = 'qr-full';
+  el.innerHTML = `<div class="qr-full-card">
+    <img class="qr-full-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" />
+    <p class="qr-full-eyebrow">Scan to join</p>
+    <h2 class="qr-full-title">${esc(title)}</h2>
+    <div class="qr-full-code">${qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true })}</div>
+    <p class="qr-full-help">Point your phone’s camera at the code. No app to install.</p>
+    <p class="qr-full-until">Works until ${esc(until)}</p>
+    <div class="qr-full-actions"><button class="btn" data-qr-poster>↓ Save as poster</button><button class="btn primary" data-qr-close>Done</button></div>
+  </div>`;
+  document.body.append(el);
+  el.showModal();
+  el.querySelector('[data-qr-close]').addEventListener('click', () => el.close());
+  el.addEventListener('click', (e) => { if (e.target === el) el.close(); });
+  el.querySelector('[data-qr-poster]').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    try { await savePoster(qr, title, until); } catch { toast('Couldn’t save the poster. Try a screenshot instead.', 'error'); }
+    b.disabled = false;
+  });
+  el.addEventListener('close', () => el.remove());
+}
+
+// A 1080×1350 image (fits Instagram and prints fine): logo, the project, the code, and how to use it.
+async function savePoster(qr, title, until) {
+  const W = 1080, H = 1350;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#f2f2ff'; g.fillRect(0, 0, W, 300);
+  const logo = new Image();
+  logo.src = '/logo-wordmark.png';
+  await logo.decode().catch(() => {});
+  if (logo.naturalWidth) g.drawImage(logo, (W - 300) / 2, 96, 300, 300 * (logo.naturalHeight / logo.naturalWidth));
+  const font = (w, px) => `${w} ${px}px Inter, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+  g.textAlign = 'center';
+  g.fillStyle = '#5b5ce2'; g.font = font(700, 34);
+  g.fillText(isKo ? '스캔해서 참여하기' : 'SCAN TO JOIN', W / 2, 250);
+  g.fillStyle = '#15171b'; g.font = font(800, 64);
+  const name = title.length > 26 ? `${title.slice(0, 25)}…` : title;
+  g.fillText(name, W / 2, 400);
+  // The code itself, drawn module by module so it stays sharp.
+  const n = qr.getModuleCount(), size = 640, cell = Math.floor(size / (n + 4)), side = cell * (n + 4);
+  const x0 = Math.round((W - side) / 2), y0 = 470; // whole pixels, so the modules meet without seams
+  g.fillStyle = '#ffffff'; g.fillRect(x0, y0, side, side);
+  g.strokeStyle = '#e6e8ec'; g.lineWidth = 3; g.strokeRect(x0, y0, side, side);
+  g.fillStyle = '#15171b';
+  for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (qr.isDark(r, col)) g.fillRect(x0 + (col + 2) * cell, y0 + (r + 2) * cell, cell, cell);
+  g.fillStyle = '#3b4048'; g.font = font(500, 34);
+  g.fillText(isKo ? '휴대폰 카메라로 스캔하면 바로 참여할 수 있어요.' : 'Point your phone’s camera at the code to join.', W / 2, y0 + side + 80);
+  g.fillText(isKo ? '연습 영상을 보고, 그 순간에 피드백을 남겨요.' : 'Watch our practice videos and leave feedback on the count.', W / 2, y0 + side + 128);
+  g.fillStyle = '#8b93a3'; g.font = font(500, 26);
+  g.fillText(isKo ? `${until}까지 사용할 수 있어요 · dancerly.app` : `Works until ${until} · dancerly.app`, W / 2, H - 60);
+  const blob = await new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'dancerly'}-invite-qr.png`;
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Poster saved.');
 }
 

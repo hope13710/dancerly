@@ -7663,3 +7663,85 @@ body.player-full {
   color: inherit;
   cursor: pointer;
 }
+
+/* Invite QR: full screen, for holding up in the studio or showing on a TV */
+.invite-more {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.invite-more .btn {
+  flex: 1;
+}
+.qr-full {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  border: 0;
+  background: #fff;
+  color: #15171b;
+  display: grid;
+  place-items: center;
+}
+.qr-full::backdrop {
+  background: #fff;
+}
+.qr-full-card {
+  width: min(560px, 100%);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.qr-full-logo {
+  height: 30px;
+  width: auto;
+  margin-bottom: 14px;
+}
+.qr-full-eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 750;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.qr-full-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 5vw, 40px);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.qr-full-code {
+  width: min(78vw, 58dvh, 460px);
+  aspect-ratio: 1;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+.qr-full-code svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.qr-full-help {
+  margin: 12px 0 0;
+  font-size: 16px;
+  color: #3b4048;
+}
+.qr-full-until {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.qr-full-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}

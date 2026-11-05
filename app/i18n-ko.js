@@ -1201,12 +1201,21 @@ export const KO = {
   '· approved': '· 승인됨',
   '· declined': '· 거절됨',
   'Loop any part: tap at the start, then at the end': '구간 반복: 시작 지점과 끝 지점을 차례로 눌러 주세요',
+  '▦ Show QR code': '▦ QR 코드 보기',
+  'In the studio? Show the QR code and everyone can scan it with their phone camera to join.': '연습실에 함께 있나요? QR 코드를 보여 주면 모두 휴대폰 카메라로 스캔해서 바로 참여할 수 있어요.',
+  'Scan to join': '스캔해서 참여하기',
+  'Point your phone’s camera at the code. No app to install.': '휴대폰 카메라로 코드를 비춰 주세요. 앱 설치는 필요 없어요.',
+  '↓ Save as poster': '↓ 포스터로 저장',
+  'Poster saved.': '포스터를 저장했어요.',
+  'Couldn’t make the QR code. Copy the link instead.': 'QR 코드를 만들지 못했어요. 링크를 복사해 주세요.',
+  'Couldn’t save the poster. Try a screenshot instead.': '포스터를 저장하지 못했어요. 화면을 캡처해 주세요.',
 };
 
 // Phrases with numbers or names in them. First match wins.
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^Works until (.+)$/, '$1까지 사용할 수 있어요'],
   [/^Your note goes to (.+) with a request to join\.$/, '피드백이 참여 요청과 함께 $1님에게 전달돼요.'],
   [/^Sent to (.+)\.$/, '$1님에게 보냈어요.'],
   [/^Waiting for (.+) to approve\. Your note will post then\.$/, '$1님의 승인을 기다리고 있어요. 승인되면 피드백이 올라가요.'],
