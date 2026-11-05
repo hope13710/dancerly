@@ -7384,3 +7384,48 @@ button.row {
   flex: none;
   width: auto;
 }
+
+/* Full screen player: the whole player column fills the screen (native full screen, or the window on iPhone). */
+.player-col.is-full {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  top: 0;
+  margin: 0;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: #000;
+  gap: 10px;
+  justify-content: center;
+}
+.player-col.is-full .player-pair {
+  flex: 1;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  place-items: center;
+}
+.player-col.is-full .player,
+.player-col.is-full .player-pair.comparing .player {
+  aspect-ratio: auto;
+  min-height: 0;
+  max-height: none;
+  background: #000;
+  border-radius: 6px;
+}
+.player-col.is-full .timeline,
+.player-col.is-full .controls {
+  padding: 0 4px;
+}
+.player-col.is-full .counts-panel {
+  display: none;
+}
+body.player-full {
+  overflow: hidden;
+}
+.full-btn {
+  font-size: 15px;
+  line-height: 1;
+}
+.player-col.is-full .player video {
+  position: absolute;
+  inset: 0;
+}

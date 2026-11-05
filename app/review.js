@@ -106,7 +106,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">⛶</button></div>
         <div class="counts-panel" data-counts-panel hidden>
           <div class="counts-row">
             <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
@@ -426,6 +426,59 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   document.addEventListener('click', outside);
   const toggleMirror = () => { r.mirror = !r.mirror; localStorage.setItem('looproom:mirror', r.mirror ? '1' : '0'); paintPlayer(); };
   $('[data-mirror]').addEventListener('click', toggleMirror);
+
+  // Full screen keeps the whole player (sketches, counts, mirror, loop, timeline) — not just the bare <video>.
+  // iPhones can't put a page element in full screen, so there it fills the window instead.
+  const playerCol = $('[data-pair]').closest('.player-col');
+  const fullBtn = $('[data-full]');
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const setFull = (on) => {
+    playerCol.classList.toggle('is-full', on);
+    document.body.classList.toggle('player-full', on);
+    fullBtn.setAttribute('aria-pressed', String(on));
+    fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+    fullBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
+    fullBtn.textContent = on ? '✕' : '⛶';
+    requestAnimationFrame(fitFull);
+  };
+  // In full screen each player is sized to its video's shape, so badges and sketches sit on the picture.
+  const pairEl = $('[data-pair]');
+  function fitFull() {
+    const players = [...pairEl.querySelectorAll('.player')].filter((p) => !p.hidden);
+    const on = playerCol.classList.contains('is-full');
+    const box = pairEl.getBoundingClientRect();
+    const side = players.length > 1 && getComputedStyle(pairEl).gridTemplateColumns.trim().split(/\s+/).length > 1;
+    const cw = side ? (box.width - 8) / 2 : box.width;
+    const ch = players.length > 1 && !side ? (box.height - 8) / 2 : box.height;
+    for (const p of players) {
+      if (!on) { p.style.width = ''; p.style.height = ''; continue; }
+      const v = p.querySelector('video');
+      const ar = (v.videoWidth || 16) / (v.videoHeight || 9);
+      const w = Math.max(0, Math.min(cw, ch * ar));
+      p.style.width = `${Math.floor(w)}px`; p.style.height = `${Math.floor(w / ar)}px`;
+    }
+    onResize();
+  }
+  const fullObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (playerCol.classList.contains('is-full')) fitFull(); }) : null;
+  fullObserver?.observe(pairEl);
+  pairEl.querySelectorAll('video').forEach((v) => v.addEventListener('loadedmetadata', () => { if (playerCol.classList.contains('is-full')) fitFull(); }));
+  const toggleFull = async () => {
+    if (!playerCol.classList.contains('is-full')) {
+      const req = playerCol.requestFullscreen || playerCol.webkitRequestFullscreen;
+      if (req) {
+        try { await req.call(playerCol); await screen.orientation?.lock?.('landscape').catch(() => {}); } catch { /* falls back to filling the window */ }
+      }
+      setFull(true);
+    } else {
+      if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+      try { screen.orientation?.unlock?.(); } catch { /* not supported */ }
+      setFull(false);
+    }
+  };
+  const onFsChange = () => { if (!fsElement() && playerCol.classList.contains('is-full')) setFull(false); };
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
+  fullBtn.addEventListener('click', toggleFull);
   // Free A–B loop: any part of the video, no note needed.
   function loopPart(start, end) {
     r.abStart = null;
@@ -910,7 +963,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
       d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
-      escape: () => setLoop(null), arrowup: () => step(-1), arrowdown: () => step(1),
+      f: toggleFull, escape: () => (playerCol.classList.contains('is-full') && !fsElement() ? toggleFull() : setLoop(null)), arrowup: () => step(-1), arrowdown: () => step(1),
       '<': () => stepSpeed(-1), '>': () => stepSpeed(1), ',': () => e.shiftKey && stepSpeed(-1), '.': () => e.shiftKey && stepSpeed(1)
     };
     const action = actions[e.key.toLowerCase()];
@@ -1068,6 +1121,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     closeTips();
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);
+    document.removeEventListener('fullscreenchange', onFsChange);
+    fullObserver?.disconnect();
+    document.removeEventListener('webkitfullscreenchange', onFsChange);
+    if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+    document.body.classList.remove('player-full');
     vv?.removeEventListener('resize', onViewport);
     vv?.removeEventListener('scroll', onViewport);
     stickObserver?.disconnect();
