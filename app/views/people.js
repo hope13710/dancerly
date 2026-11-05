@@ -51,7 +51,7 @@ export async function renderPeople() {
           <td class="num">${s.notes}</td><td class="num">${s.takes}</td><td class="muted hide-sm">${s.last ? timeAgo(s.last) : '—'}</td>
         </tr>`;
       }).join('')}</tbody></table></div>`
-      : previewEmpty('rows', 'It’s just you so far', 'Invite teammates to a project. Everyone you share a project with shows up here, with the notes they give and the takes they send.', `<button class="btn primary" data-invite-any>Invite people</button>${samplePeek('people')}`, 'people')}
+      : previewEmpty('rows', 'It’s just you so far', 'Invite people to a project. Everyone you share a project with shows up here, with the notes they give and the takes they send.', `<button class="btn primary" data-invite-any>Invite people</button>${samplePeek('people')}`, 'people')}
   </section>`;
   view.querySelectorAll('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) ctx.navigate(tr.dataset.href); }));
   view.querySelector('[data-invite-any]')?.addEventListener('click', () => ctx.startAction('invite'));
@@ -109,7 +109,7 @@ export async function renderPerson(userId) {
   view.innerHTML = `<section class="page narrow-wide">
     <div class="me-card">
       ${avatar(person.name, person.id, 'xl')}
-      <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}${sampleOnly ? ' <span class="tag sample-tag">Sample teammate</span>' : ''}</h1>
+      <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}${sampleOnly ? ' <span class="tag sample-tag">Sample member</span>' : ''}</h1>
         <p class="chips">${person.projects.map((x) => `<a class="chip" href="/app/p/${x.id}" data-link>${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</a>`).join('')}</p></div>
     </div>
     <div class="stats">

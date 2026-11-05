@@ -16,7 +16,7 @@ export function groupsSection(p, groups) {
       <span class="row-main"><span class="row-title">${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></span>
         <span class="chips">${g.project_group_members.map((m) => `<span class="chip">${avatar(nameOf(m.user_id), m.user_id, 'xs')} ${esc(nameOf(m.user_id))}</span>`).join('') || '<span class="muted">Nobody yet</span>'}</span></span>
       ${canManage(g) ? `<span class="row-side"><button class="btn ghost small" data-edit-group="${g.id}">Edit</button></span>` : ''}
-    </div>`).join('')}</div>` : '<p class="panel-empty">No groups yet. Make one for each part of the team — “Juniors”, “Front line”, “Soloists”.</p>'}
+    </div>`).join('')}</div>` : '<p class="panel-empty">No groups yet. Group people by part — “Juniors”, “Front line”, “Soloists”.</p>'}
   </section>`;
 }
 

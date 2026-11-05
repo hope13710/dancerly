@@ -15,10 +15,10 @@ const KINDS = [
   ['mention', 'Someone @mentions you', 'In a note on any video.'],
   ['note_on_your_video', 'Notes on your videos', 'On a video you added or a take you uploaded.'],
   ['reply', 'Replies', 'When someone replies to a note you wrote or a thread you’re in.'],
-  ['new_take', 'New takes', 'Whenever a teammate uploads to one of your projects.'],
+  ['new_take', 'New takes', 'When someone uploads to one of your projects.'],
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
-  ['recap_shared', 'Recaps shared with you', 'When a teammate shares an AI recap to a project.'],
+  ['recap_shared', 'Recaps shared with you', 'When someone shares an AI recap to a project.'],
   ['request', 'Assignments', 'When someone gives you an assignment, and its reminders.']
 ];
 // Email follow-ups by group (send-emails function). Same defaults as the server.
@@ -58,7 +58,7 @@ export async function renderSettings(section = 'account') {
         <div class="panel-head"><div><h2>Profile</h2><p class="muted">Your name appears on your notes and in @mentions.</p></div></div>
         <div class="image-row">
           ${avatar(state.profile.display_name, state.session.user.id, 'xl')}
-          <div><b>Photo</b><p class="muted">Helps teammates recognize your notes. A square works best.</p>
+          <div><b>Photo</b><p class="muted">Helps people recognize your notes. A square works best.</p>
             <div class="image-actions"><button class="btn small" type="button" data-pick-image>${state.profile.avatar_url ? 'Change photo' : 'Upload photo'}</button>${state.profile.avatar_url ? '<button class="btn small ghost" type="button" data-remove-image>Remove</button>' : ''}</div><input type="file" accept="image/*" hidden data-image-file />
           </div>
         </div>
@@ -132,7 +132,7 @@ export async function renderSettings(section = 'account') {
         }).join('')}
           <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning, after a week with fixes or new takes.</span></span>
             <span class="switch"><input type="checkbox" data-weekly ${email.weekly !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
-          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most two emails, early on: a tip for your first video, and a note when your first teammate joins.</span></span>
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most two emails, early on: a tip for your first video, and a note when someone first joins your project.</span></span>
             <span class="switch"><input type="checkbox" data-onboarding ${email.onboarding !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
         </div>
         <p class="fine left">The morning summary arrives around 8 AM US Eastern Time.</p>

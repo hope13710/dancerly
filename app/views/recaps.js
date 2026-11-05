@@ -91,7 +91,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
     ${projects.length > 1 ? `<label class="field"><span>Project</span><select name="project">${projects.map((p) => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : `<input type="hidden" name="project" value="${pid}" />`}
     <div class="field"><span>Whose notes</span><div class="choices" role="radiogroup">
       <label><input type="radio" name="scope" value="me" ${scope === 'me' ? 'checked' : ''} /><b>Just me</b><small>Notes by you, on your takes, or mentioning you</small></label>
-      <label><input type="radio" name="scope" value="project" ${scope === 'project' ? 'checked' : ''} /><b>Whole project</b><small>Everything your team noted</small></label>
+      <label><input type="radio" name="scope" value="project" ${scope === 'project' ? 'checked' : ''} /><b>Whole project</b><small>Every note in the project</small></label>
     </div></div>
     <label class="field"><span>Period</span><select name="period">${Object.entries(PERIODS).map(([k, l]) => `<option value="${k}" ${k === 'week' ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     <div class="date-row" data-dates hidden>
@@ -174,7 +174,7 @@ function chatMessage(r, link, invite) {
     `✦ ${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
     next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
     `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${link}`,
-    invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not on the team yet? Join here'}: ${invite}` : ''
+    invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not in this project yet? Join here'}: ${invite}` : ''
   ].filter(Boolean).join('\n');
 }
 
@@ -250,7 +250,7 @@ export async function renderProjectRecaps(projectId) {
       ${pinned.length ? `<h2 class="group-title">📌 Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`
       : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next rehearsal: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
-    <p class="fine left">Recaps are AI summaries of your team’s notes. Only you see a recap until you share it.</p>
+    <p class="fine left">Recaps are AI summaries of the notes in your projects. Only you see a recap until you share it.</p>
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap({ projectId })));
 }
@@ -360,7 +360,7 @@ export async function renderRecap(recapId) {
   // full recap, and the invite link for anyone who isn't on dancerly yet. Sharing it also makes it visible in the project.
   $('[data-chat-share]')?.addEventListener('click', async () => {
     if (!r.shared_at) {
-      const ok = await dialog({ title: 'Share to your group chat?', body: 'This also shares the recap with the project, so teammates can open it from the link.', confirm: 'Continue' });
+      const ok = await dialog({ title: 'Share to your group chat?', body: 'This also shares the recap with the project, so members can open it from the link.', confirm: 'Continue' });
       if (!ok) return;
       const { error: shareErr } = await sb.from('recaps').update({ shared_at: new Date().toISOString() }).eq('id', r.id);
       if (shareErr) return toast(friendlyError(shareErr), 'error');

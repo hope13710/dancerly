@@ -200,13 +200,13 @@ export async function renderInsights() {
   const noVideo = !hasData && !(await hasRealVideo());
   const heatMax = Math.max(1, ...spots.flatMap((s) => s.cells.map((c) => c.open + c.fixed)));
   view.innerHTML = `<section class="page">
-    ${pageHead('Insights', { sub: 'What to work on next, from your team’s feedback' })}
+    ${pageHead('Insights', { sub: 'What to work on next, from your feedback' })}
     ${demo ? teamNote('insights') : ''}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
       ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
-    ${!hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where your team keeps getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload a video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
+    ${!hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload a video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
     <section class="panel insight-lines">
       <div class="panel-head"><div><h2>Before your next rehearsal</h2><p class="muted">The few things worth your attention</p></div></div>
       ${lines.length ? `<ul class="lines">${lines.slice(0, 3).map((l) => `<li><span class="li-icon" aria-hidden="true">${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" ${l.href.startsWith('#') ? '' : 'data-link'}>${l.cta}</a>` : ''}</li>`).join('')}</ul>`
@@ -237,7 +237,7 @@ export async function renderInsights() {
     </div>
 
     ${agreed.length ? `<section class="panel">
-      <div class="panel-head"><div><h2>What the team agrees on</h2><p class="muted">Open notes with the most 👍 — usually the biggest wins</p></div></div>
+      <div class="panel-head"><div><h2>What everyone agrees on</h2><p class="muted">Open notes with the most 👍 — usually the biggest wins</p></div></div>
       <div class="list flush">${agreed.map((n) => `<a class="row" href="${noteLink(n)}" data-link><span class="row-main"><span class="row-title">${esc(snippet(n.body))}</span><span class="row-meta">${esc(n.videos?.title || '')}</span></span><span class="agree-count">👍 ${n.note_reactions.length}</span></a>`).join('')}</div>
     </section>` : ''}
 

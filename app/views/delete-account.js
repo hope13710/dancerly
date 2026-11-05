@@ -51,16 +51,16 @@ export async function renderDeleteAccount() {
           <li>Your 👍 reactions, AI summaries, share links, and calendar links</li>
           ${alone.length ? `<li data-no-i18n>${isKo ? `나만 있는 프로젝트: ${alone.map((p) => esc(p.title)).join(', ')}` : `Projects only you are in: ${alone.map((p) => esc(p.title)).join(', ')}`}</li>` : ''}
         </ul></div>
-        <div><h3 class="da-stays">Stays with your teams</h3><ul>
+        <div><h3 class="da-stays">Stays with your projects</h3><ul>
           <li>Projects you hand over below, or that another owner already manages</li>
           <li>Calendar events, pages, assignments, and groups you set up — without your name</li>
-          <li>Videos where teammates also uploaded takes — their takes stay</li>
+          <li>Videos where others also uploaded takes — their takes stay</li>
         </ul></div>
       </div>
     </section>
 
     ${decide.length ? `<section class="panel">
-      <div class="panel-head"><div><h2>Projects you manage</h2><p class="muted">Your teammates are still using these. Choose who takes over, or delete the project for everyone.</p></div></div>
+      <div class="panel-head"><div><h2>Projects you manage</h2><p class="muted">Other members are still using these. Choose who takes over, or delete the project for everyone.</p></div></div>
       <div class="da-projects">${decide.map((p) => `<div class="da-project" data-project="${p.id}">
         <div class="da-project-head"><b>${esc(p.title)}</b><small data-no-i18n>${isKo ? `나 외 ${p.others.length}명` : `${p.others.length} other ${p.others.length === 1 ? 'member' : 'members'}`}</small></div>
         <label class="da-choice"><input type="radio" name="d-${p.id}" value="transfer" checked /><span>Hand over to</span>

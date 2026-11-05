@@ -70,7 +70,7 @@ export async function renderInbox() {
         </span>
         ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}
       </a>`).join('')}</div>`
-      : empty('✉', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When a teammate @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes your team makes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
+      : empty('✉', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
   </section>`;
 
   $$('[data-item]').forEach((a) => a.addEventListener('click', () => {

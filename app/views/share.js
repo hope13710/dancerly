@@ -27,7 +27,7 @@ function sheet(html) {
 export async function shareVideo(videoId, videoTitle) {
   const me = ctx.state.session.user.id;
   const { data: links } = await sb.from('video_shares').select('token, include_notes, expires_at, created_by, views').eq('video_id', videoId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
-  const el = sheet(`<h2>Share outside the team</h2>
+  const el = sheet(`<h2>Share outside the project</h2>
     <p>Anyone with the link can watch the latest take of <b>${esc(videoTitle)}</b> — no account needed. They can’t comment or download, and the link stops working when it expires.</p>
     <form class="share-form" data-new-share>
       <label class="check-row"><input type="checkbox" name="notes" checked /> <span><b>Include notes</b><small>Guests see the notes on this take, read-only.</small></span></label>

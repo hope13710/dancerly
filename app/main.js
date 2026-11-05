@@ -92,7 +92,7 @@ document.addEventListener('click', (event) => {
   event.preventDefault();
   navigate(link.getAttribute('href'));
 });
-// Next-step buttons on empty pages (Upload a video, Invite your team).
+// Next-step buttons on empty pages (Upload a video, Invite people).
 document.addEventListener('click', (event) => {
   const el = event.target.closest('[data-start-action]');
   if (el) startAction(el.dataset.startAction);
@@ -287,7 +287,7 @@ async function openNew() {
   const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
     { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
-    { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'A video for your team to send by a date' },
+    { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'Ask people to send a video by a date' },
     { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
     { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
@@ -343,7 +343,7 @@ $('[data-password]').addEventListener('click', () => { $('[data-account-menu]').
 $('[data-rename]').addEventListener('click', renameMe);
 async function renameMe() {
   $('[data-account-menu]').hidden = true;
-  const values = await dialog({ title: 'Your name', fields: [{ name: 'name', label: 'Shown to your team', value: state.profile.display_name, max: 60, required: true }] });
+  const values = await dialog({ title: 'Your name', fields: [{ name: 'name', label: 'Shown to people in your projects', value: state.profile.display_name, max: 60, required: true }] });
   if (!values?.name) return;
   const { error } = await sb.from('profiles').update({ display_name: values.name }).eq('id', state.session.user.id);
   if (error) return toast(friendlyError(error), 'error');
@@ -384,8 +384,8 @@ function renderLogin() {
       <div class="auth-card">
         <a class="auth-brand" href="/" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
-        <h1>${joining ? (signup ? 'Join your team on dancerly' : 'Log in to join your team') : signup ? 'Start your team’s space' : 'Welcome back'}</h1>
-        <p class="muted">${joining ? (signup ? 'Create your account and you’re in. We’ll confirm your email once.' : 'You’ll go straight into the project.') : signup ? 'Free for your first team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
+        <h1>${joining ? (signup ? 'Join the project on dancerly' : 'Log in to join the project') : signup ? 'Create your free account' : 'Welcome back'}</h1>
+        <p class="muted">${joining ? (signup ? 'Create your account and you’re in. We’ll confirm your email once.' : 'You’ll go straight into the project.') : signup ? 'Free to start, on your own or with your team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
         ${farewell ? '<p class="form-note" role="status">Your account has been deleted. Thanks for rehearsing with us.</p>' : ''}
         ${notice ? `<p class="form-error" role="alert">${esc(notice)}</p>` : ''}
         ${GOOGLE_ENABLED ? `<button type="button" class="btn google" data-google>${GOOGLE_G} Continue with Google</button><div class="or"><span>or with email</span></div>` : ''}
@@ -587,7 +587,7 @@ function renderName() {
   const suggested = meta.full_name || meta.name || '';
   const unsigned = !meta.terms_version; // signed up with Google, not the email form
   view.innerHTML = `<section class="auth"><form class="auth-card" data-name-form>
-    <h1>What should your team call you?</h1>
+    <h1>What should people call you?</h1>
     <p class="muted">This name appears on your notes and in @mentions.</p>
     <label class="field"><span>Your name</span><input name="name" maxlength="60" required value="${esc(suggested)}" placeholder="Maya Chen" /></label>
     <button class="btn primary wide" type="submit">Continue</button>
@@ -714,7 +714,7 @@ function saveTimezone(userId) {
 // What the ⌘K palette can do besides searching.
 ctx.commands = [
   { label: 'Upload a video', hint: 'New video or take', run: () => newVideo(state.projects.find((p) => p.id === currentProjectId()) || null) },
-  { label: 'New assignment', hint: 'A video for your team to send by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
+  { label: 'New assignment', hint: 'Ask people to send a video by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
   { label: 'New recap', hint: 'Summary by AI', run: () => newRecap({ projectId: currentProjectId() }) },
   { label: 'Add to calendar', hint: 'Rehearsal or show', run: () => editEvent({ projectId: currentProjectId() }) },
   { label: 'New project', run: () => createProject() },

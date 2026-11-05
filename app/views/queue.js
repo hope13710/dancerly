@@ -67,8 +67,8 @@ export async function renderQueue() {
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
           <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
         </a>`).join('')}</div>`
-      : alone ? previewEmpty('rows', 'Your team’s new videos land here', 'When a teammate uploads a video or a new take, it waits here until you’ve watched it. Invite your team to get started.', `<button class="btn primary" data-start-action="invite">Invite your team</button>${samplePeek('queue')}`, 'queue')
-      : empty('✓', 'You’re all caught up', 'When teammates upload a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
+      : alone ? previewEmpty('rows', 'New videos land here', 'When someone uploads a video or a new take to your projects, it waits here until you’ve watched it. Invite people to get started.', `<button class="btn primary" data-start-action="invite">Invite people</button>${samplePeek('queue')}`, 'queue')
+      : empty('✓', 'You’re all caught up', 'When someone uploads a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
   </section>`;
 
   $('[data-project]')?.addEventListener('change', (e) => navigate(url({ project: e.target.value })));

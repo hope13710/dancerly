@@ -27,14 +27,14 @@ const PROMPTED = 'looproom:cardPrompt:';
 // What each number on a card says, in three forms: the big value, the small label under it, and a one-line
 // phrase for the Photo style. Days count calendar days; "active days" are days with a take or a note here.
 const CHIPS = isKo
-  ? { notes: ['팀 피드백', '이 영상에 팀이 남긴 피드백 수'], fixed: ['고친 피드백', '해결된 팀 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
-  : { notes: ['Team notes', 'Notes your team left on this video'], fixed: ['Notes fixed', 'Team notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
+  ? { notes: ['피드백', '이 영상에 남긴 피드백 수'], fixed: ['고친 피드백', '해결된 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
+  : { notes: ['Notes', 'Notes left on this video'], fixed: ['Notes fixed', 'Notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
 function stat(c, s, key) {
   const n = c.stats[key];
   const one = n === 1;
   switch (key) {
     case 'fixed': return { value: String(n), label: isKo ? '고친 피드백' : one ? 'note fixed' : 'notes fixed', phrase: isKo ? `고친 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} fixed` };
-    case 'notes': return { value: String(n), label: isKo ? '팀 피드백' : one ? 'team note' : 'team notes', phrase: isKo ? `팀 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} from the team` };
+    case 'notes': return { value: String(n), label: isKo ? '피드백' : one ? 'note' : 'notes', phrase: isKo ? `피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'}` };
     case 'takes': return { value: String(n), label: isKo ? '테이크' : one ? 'take' : 'takes', phrase: isKo ? `테이크 ${n}개` : `${n} ${one ? 'take' : 'takes'}` };
     case 'days': return { value: isKo ? `${n}일` : String(n), label: isKo ? 'Take 1부터' : one ? 'day since Take 1' : 'days since Take 1', phrase: isKo ? `Take 1부터 ${n}일` : `${n} ${one ? 'day' : 'days'} since Take 1` };
     case 'practice': return { value: isKo ? `${n}일` : String(n), label: isKo ? '기록한 날' : one ? 'active day' : 'active days', phrase: isKo ? `기록한 날 ${n}일` : `${n} active ${one ? 'day' : 'days'}` };

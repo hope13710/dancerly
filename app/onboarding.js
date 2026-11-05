@@ -84,7 +84,7 @@ async function removeSample(projectId) {
 }
 
 async function deleteSample(projectId) {
-  const sure = await dialog({ title: 'Delete the sample project?', body: 'Its videos, notes, and teammates go away. You can open a fresh one any time from Projects.', confirm: 'Delete sample', danger: true });
+  const sure = await dialog({ title: 'Delete the sample project?', body: 'Its videos, notes, and sample members go away. You can open a fresh one any time from Projects.', confirm: 'Delete sample', danger: true });
   if (sure && await removeSample(projectId)) ctx.navigate(ctx.state.projects.length ? '/app/projects' : '/app');
 }
 
@@ -97,9 +97,9 @@ export const teamNote = (key) => `<p class="team-note"><span class="tag team-tag
 
 // Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
 const MOMENTS = {
-  note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. Your team can do this on your own videos.'],
-  recap: ['This is what your team gets before each rehearsal.', 'It’s written from your own notes once there are a few.'],
-  insights: ['This is Insights for the sample team.', 'Where people keep getting stuck, what got fixed, what’s waiting — yours fills in as your team leaves notes.']
+  note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. You can do this on your own videos, and so can anyone you invite.'],
+  recap: ['A quick recap of the notes, before each practice.', 'It’s written from your own notes once there are a few.'],
+  insights: ['This is Insights for the sample project.', 'Where people keep getting stuck, what got fixed, what’s waiting — yours fills in as notes come in.']
 };
 export function sampleMoment(key) {
   const bar = $('[data-sample-bar]');
@@ -126,7 +126,7 @@ export function sampleCleanupCard() {
   return {
     html: `<section class="panel home-sample sample-cleanup">
       <span class="sample-dot" aria-hidden="true">✦</span>
-      <div class="grow"><h2>Clear away the sample?</h2><p class="muted">You haven’t opened it in a few weeks — your team’s real work has taken over. You can always open a fresh one from Projects.</p></div>
+      <div class="grow"><h2>Clear away the sample?</h2><p class="muted">You haven’t opened it in a few weeks — your real work has taken over. You can always open a fresh one from Projects.</p></div>
       <button class="btn" data-cleanup="delete">Delete sample</button>
       <button class="btn ghost small" data-cleanup="keep">Keep it</button>
     </section>`,
@@ -151,7 +151,7 @@ window.addEventListener('take-uploaded', (event) => {
   markSeen('sample_graduated');
   track('sample_graduated');
   setTimeout(async () => {
-    const clear = await dialog({ title: 'Your first real video is in 🎉', body: 'That’s the real thing now — your team’s notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
+    const clear = await dialog({ title: 'Your first real video is in 🎉', body: 'That’s the real thing now — your notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
     if (clear) removeSample(sample.id);
   }, 800);
 });
@@ -177,7 +177,7 @@ const TEAMS = [
   ['school', 'School or club team', 'Spring Concert {year}', '{year} 축제 무대'],
   ['studio', 'Studio or academy', 'Recital {year}', '{year} 발표회'],
   ['comp', 'Competition team', 'Competition Set {year}', '{year} 대회 준비'],
-  ['solo', 'Just me, practicing', 'My practice', '내 연습']
+  ['solo', 'On my own', 'My practice', '내 연습']
 ];
 
 export async function renderWelcome() {
@@ -206,9 +206,10 @@ export async function renderWelcome() {
     if (step === 1) {
       const pick = TEAMS.find((x) => x[0] === team) || TEAMS[0];
       const suggest = (isKo ? pick[3] : pick[2]).replace('{year}', year);
-      view.innerHTML = frame(`<h1>What are you rehearsing for?</h1>
-        <p class="muted">One project per goal. Your team’s videos, feedback, and schedule live inside it.</p>
-        <div class="chips" role="group" aria-label="Your team">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === team}">${label}</button>`).join('')}</div>
+      view.innerHTML = frame(`<h1>What are you practicing for?</h1>
+        <p class="muted">One project per goal. Its videos, feedback, and schedule live inside it.</p>
+        <div class="chips" role="group" aria-label="Who you practice with">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === team}">${label}</button>`).join('')}</div>
+        ${team === 'solo' ? '<p class="muted small solo-hint">Track your progress, and invite a coach whenever you want feedback.</p>' : ''}
         <form data-step-form>
           <label class="field"><span>Project name</span><input name="title" maxlength="120" required value="${esc(typed ?? suggest)}" /></label>
           <button class="btn primary wide" type="submit">Create project</button>
@@ -232,7 +233,7 @@ export async function renderWelcome() {
       });
     } else {
       view.innerHTML = frame(`<h1>Add your first practice video</h1>
-        <p class="muted">A full run-through works best. Your team pauses on a moment and leaves feedback right there.</p>
+        <p class="muted">A full run-through works best. Pause on any moment and leave feedback right there.</p>
         <ul class="film-tips"><li><b>From the front</b><span>Where the audience sits</span></li><li><b>Whole body in frame</b><span>Feet and hands included</span></li><li><b>With the music</b><span>So counts and sync work</span></li><li><b>Start to finish</b><span>Not just the hard part</span></li></ul>
         <button class="btn primary wide" data-upload>Upload a video</button>
         <button class="btn wide" data-open-sample="welcome-video">No video yet? See a sample</button>
@@ -270,7 +271,7 @@ export async function memberWelcome(projectId, project, members) {
   el.innerHTML = `<div class="dialog-card">
     <p class="eyebrow">Welcome</p>
     <h2>You’re in ${esc(project.title)}</h2>
-    <p>${owner && owner.user_id !== me ? `${esc(owner.name)} and the team review rehearsals here.` : 'Your team reviews rehearsals here.'} Three things you’ll do most:</p>
+    <p>${owner && owner.user_id !== me ? `${esc(owner.name)} and everyone here review practice videos together.` : 'This is where practice videos get reviewed.'} Three things you’ll do most:</p>
     <ol class="welcome-list">
       <li><span class="wl-icon" aria-hidden="true">◎</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} waiting for you — tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
       <li><span class="wl-icon" aria-hidden="true">↻</span><span><b>Practice with loop and mirror</b><small>Loop the part you’re working on, slow it down, flip it to match the mirror.</small></span></li>
@@ -365,7 +366,7 @@ export async function explainPrivate(name) {
   if (!schema.firstRun || seen('private')) return true;
   const ok = await dialog({
     title: 'Private feedback',
-    body: `Only you and <b>${esc(name)}</b> will see this note and its replies. It doesn’t show up for the rest of the team, in AI recaps for others, or on shared links.`,
+    body: `Only you and <b>${esc(name)}</b> will see this note and its replies. It doesn’t show up for anyone else in the project, in AI recaps for others, or on shared links.`,
     confirm: 'Got it'
   });
   if (ok) markSeen('private');

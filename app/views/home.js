@@ -80,9 +80,9 @@ export async function renderHome() {
     ['Upload a practice video', (myTakes || 0) > 0, 'video'],
     // The first note is written on a video: open the newest one (yours if there is one).
     ['Pin your first note', (myNotes || 0) > 0, latestVideo ? `/app/p/${latestVideo.project_id}/v/${latestVideo.video_id}` : firstReal ? `/app/p/${firstReal}` : null],
-    ['Invite a teammate', (roster || []).length > 0, 'invite']
+    ['Invite people', (roster || []).length > 0, 'invite']
   ] : [
-    ['Watch a team video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
+    ['Watch a project video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
     ['Check feedback for you', !todo.length, todo.length ? '/app/feedback' : null],
     ['Submit your video', (myTakes || 0) > 0, dueFromMe[0] ? `/app/p/${dueFromMe[0].project_id}/requests/${dueFromMe[0].id}` : 'video'],
     ['Reply or leave a note', (myReplies || 0) + (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null]
@@ -102,7 +102,7 @@ export async function renderHome() {
       <span class="sample-dot" aria-hidden="true">✦</span>
       <div class="grow">${sample
         ? '<h2>Pick up the sample where you left off</h2><p class="muted">A finished team project to try things in. Only you can see it, and it never mixes into your own work.</p>'
-        : '<h2>See a finished project first</h2><p class="muted">A sample team with rehearsal videos, notes on the moment, and an AI recap. Only you can see it — try anything.</p>'}</div>
+        : '<h2>See a finished project first</h2><p class="muted">A sample project with practice videos, notes on the moment, and an AI recap. Only you can see it — try anything.</p>'}</div>
       ${sample ? `<a class="btn primary" href="/app/p/${sample.id}" data-link>Open the sample</a>` : '<button class="btn primary" data-open-sample="home">Explore the sample</button>'}
       <button class="btn ghost small" data-hide-sample-card title="Hide for a week">Not now</button>
     </section>` : '';
@@ -120,12 +120,12 @@ export async function renderHome() {
     // These places are empty for now; the sidebar points at each once something lands there.
     if (!graduated) watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
-      'Create a project': ['Create your project', 'One project per show, competition, or class. Your team’s videos and feedback live inside it.', 'Create project', 'project'],
-      'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Your team pauses on any moment and leaves feedback right on it.', 'Upload a video', 'video'],
+      'Create a project': ['Create your project', 'One project per goal: a show, a competition, a class, or your own practice.', 'Create project', 'project'],
+      'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Pause on any moment and leave feedback right on it.', 'Upload a video', 'video'],
       'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video', 'note'],
-      'Invite a teammate': ['Bring in your team', 'They’ll see your video and can leave feedback on any moment.', 'Invite your team', 'invite']
+      'Invite people': ['Invite people', 'A coach, your team, anyone you want feedback from. They’ll see your video and can leave feedback on any moment.', 'Invite people', 'invite']
     };
-    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload a video', 'Pin your first note': 'First note', 'Invite a teammate': 'Invite your team' };
+    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload a video', 'Pin your first note': 'First note', 'Invite people': 'Invite people' };
     const next = steps.find(([, ok, action]) => !ok && action);
     const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a practice video'];
     const action = next?.[2] || 'video';
@@ -208,7 +208,7 @@ export async function renderHome() {
       </section>
     </div>
     ${hideChecklist || activation ? '' : `<section class="panel checklist">
-      <div class="panel-head"><div><h2>Get your team going</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
+      <div class="panel-head"><div><h2>Get started</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
       <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
     </section>`}
@@ -216,7 +216,7 @@ export async function renderHome() {
       <section class="panel">
         <div class="panel-head"><div><h2>For you</h2><p class="muted">Notes on your videos and @mentions that aren’t fixed yet</p></div>${todo.length ? `<a class="link" href="/app/feedback" data-link>See all ${todo.length} →</a>` : ''}</div>
         ${todo.length ? `<div class="list flush">${todo.slice(0, 5).map((n) => noteRow(n, names)).join('')}</div>`
-          : '<p class="panel-empty">Nothing waiting on you. When teammates leave notes on your videos or @mention you, they’ll show up here.</p>'}
+          : '<p class="panel-empty">Nothing waiting on you. When someone leaves notes on your videos or @mentions you, it shows up here.</p>'}
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Recent activity</h2><p class="muted">Across your projects</p></div></div>

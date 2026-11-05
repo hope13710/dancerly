@@ -32,7 +32,7 @@ export async function renderProjects() {
     ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
       ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
         : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
-    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, or weekly practice. Upload a practice video, invite your team, and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
+    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -140,7 +140,7 @@ export async function renderProject(projectId) {
     }).join('')}</div>`
     : p.isOwner
       ? empty('▶', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
-      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it and your team can leave feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
+      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
@@ -270,7 +270,7 @@ export async function renderProjectSettings(projectId) {
           : '<p class="panel-empty">No active links.</p>'}
       </section>
       ${p.isOwner && !p.project.is_sample && schema.shareCards ? `<section class="panel">
-        <label class="row toggle-row"><span class="row-main"><span class="row-title">Teammates can share progress cards</span><span class="row-meta">Anyone on the project can turn its takes into a progress image for Instagram and the like. Turn this off for choreography that’s secret until a show or competition.</span></span>
+        <label class="row toggle-row"><span class="row-main"><span class="row-title">Members can share progress cards</span><span class="row-meta">Anyone on the project can turn its takes into a progress image for Instagram and the like. Turn this off for choreography that’s secret until a show or competition.</span></span>
           <span class="switch"><input type="checkbox" data-share-cards ${p.project.allow_share_cards !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
       </section>` : ''}
       <section class="panel danger-zone">
@@ -298,7 +298,7 @@ export async function renderProjectSettings(projectId) {
     const on = event.target.checked;
     const { error } = await sb.from('projects').update({ allow_share_cards: on }).eq('id', projectId);
     if (error) { event.target.checked = !on; return toast(friendlyError(error), 'error'); }
-    toast(on ? 'Teammates can share progress cards.' : 'Progress cards are off for this project.');
+    toast(on ? 'Members can share progress cards.' : 'Progress cards are off for this project.');
   });
   $('[data-new-link]').addEventListener('click', async () => {
     const { error } = await sb.from('project_invites').insert({ project_id: projectId });
@@ -319,7 +319,7 @@ export async function renderProjectSettings(projectId) {
   $('[data-danger]').addEventListener('click', async () => {
     if (p.isOwner && trashable) {
       const title = p.project.title;
-      const sure = await dialog({ title: 'Delete this project?', body: `<b>${esc(title)}</b> and everything in it disappear for everyone on the team. It stays in your Trash for 30 days, so you can restore it exactly as it was.`, confirm: 'Delete project', danger: true });
+      const sure = await dialog({ title: 'Delete this project?', body: `<b>${esc(title)}</b> and everything in it disappear for everyone in this project. It stays in your Trash for 30 days, so you can restore it exactly as it was.`, confirm: 'Delete project', danger: true });
       if (!sure) return;
       const { error } = await sb.rpc('trash_item', { p_kind: 'project', p_id: projectId });
       if (error) return toast(friendlyError(error), 'error');
@@ -394,7 +394,7 @@ export async function createVideo(projectId, { request = null } = {}) {
     const next = (match.takes[0]?.count ?? 0) + 1;
     const choice = await dialog({
       title: `Is this a new take of “${match.title}”?`,
-      body: `It would become <b>Take ${next}</b>, and notes that aren’t fixed yet will carry over so your team can check what changed.`,
+      body: `It would become <b>Take ${next}</b>, and notes that aren’t fixed yet will carry over so you can check what changed.`,
       confirm: `Yes, add as Take ${next}`,
       extra: 'No, it’s a new video'
     });
@@ -465,7 +465,7 @@ export async function copyInvite(projectId, from) {
   let invite;
   try { invite = await inviteLink(projectId); } catch (error) { toast(friendlyError(error), 'error'); return null; }
   track('invite_link_shared', { via: 'copy', from });
-  try { await navigator.clipboard.writeText(invite.link); toast('Invite link copied. Send it to your team.'); }
+  try { await navigator.clipboard.writeText(invite.link); toast('Invite link copied. Send it to anyone you want feedback from.'); }
   catch { await showInvite(projectId, ctx.state.projects.find((p) => p.id === projectId)?.title || ''); }
   return invite.link;
 }
@@ -479,14 +479,14 @@ async function inviteAfterFirstVideo(projectId) {
   if (members.length !== 1) return;
   markSeen(`invite_prompt:${projectId}`);
   showInvite(projectId, project.title, {
-    heading: 'Your video is up. Now bring in your team.',
+    heading: 'Your video is up. Invite people to leave feedback.',
     body: 'They’ll see your video as soon as they join and can leave feedback on any moment. Anyone with this link joins with just their name and email.',
     from: 'first_video',
     later: 'Later'
   });
 }
 
-export async function showInvite(projectId, title, { heading = 'Invite your team', body = null, from = 'invite_dialog', later = 'Done' } = {}) {
+export async function showInvite(projectId, title, { heading = 'Invite people', body = null, from = 'invite_dialog', later = 'Done' } = {}) {
   let invite;
   try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
   const { link } = invite;
@@ -501,7 +501,7 @@ export async function showInvite(projectId, title, { heading = 'Invite your team
   el.querySelector('input').select();
   el.querySelector('[data-copy]').addEventListener('click', async () => {
     track('invite_link_shared', { via: 'copy', from });
-    try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to your team.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
+    try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to anyone you want feedback from.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
   });
   el.querySelector('[data-share]')?.addEventListener('click', () => {
     track('invite_link_shared', { via: 'share', from });

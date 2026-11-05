@@ -33,7 +33,7 @@ export async function namesFor(ids) {
 // inside another, so it's a span that acts as a link (main.js routes clicks and Enter on [data-person]).
 // Someone no longer around (no name) stays plain text.
 export function personLink(name, id, { photo = true } = {}) {
-  if (!id || !name) return esc(name || 'a teammate');
+  if (!id || !name) return esc(name || 'someone');
   return `<span class="person-link" role="link" tabindex="0" data-person="${id}">${photo ? avatar(name, id, 'xs') : ''}<span>${esc(name)}</span></span>`;
 }
 // "by Maya" / "Maya님", with Maya linked.

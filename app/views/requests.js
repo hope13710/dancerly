@@ -79,7 +79,7 @@ export async function renderProjectRequests(projectId) {
         <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">›</span></span>
       </a>`;
     }).join('')}</div>`
-      : empty('⇪', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Give your team a video to send by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
+      : empty('⇪', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Ask people to send a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
   </section>`;
   $$('[data-new-request]').forEach((b) => b.addEventListener('click', () => newRequest(projectId)));
 }
@@ -154,7 +154,7 @@ export async function newRequest(projectId) {
     p_reference: values.reference, p_repeat_weekly: values.weekly
   });
   if (error) return toast(friendlyError(error), 'error');
-  toast('Assignment sent to your team.');
+  toast('Assignment sent.');
   ctx.navigate(`/app/p/${projectId}/requests/${rid}`);
 }
 

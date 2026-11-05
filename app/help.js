@@ -18,7 +18,7 @@ export function openHelp({ kind = 'bug' } = {}) {
     <div data-help-form>
       <p class="muted">Tell us anything. We read every message.</p>
       <div class="chips help-kinds" role="radiogroup" aria-label="What is it about?">${KINDS.map(([k, label]) => `<button type="button" class="chip" role="radio" data-kind="${k}" aria-checked="${k === kind}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
-      <label class="field"><span class="sr-only">Message</span><textarea name="body" rows="5" maxlength="4000" required placeholder="What happened, or what would make dancerly better for your team?"></textarea></label>
+      <label class="field"><span class="sr-only">Message</span><textarea name="body" rows="5" maxlength="4000" required placeholder="What happened, or what would make dancerly better for you?"></textarea></label>
       <p class="fine left">We’ll attach the page you’re on and your browser, to help us fix things faster.</p>
       <div class="dialog-actions"><button type="button" class="btn ghost" data-help-close>Cancel</button><button type="submit" class="btn primary" data-help-send>Send</button></div>
     </div>

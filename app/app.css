@@ -7429,3 +7429,7 @@ body.player-full {
   position: absolute;
   inset: 0;
 }
+.welcome-card .solo-hint {
+  margin: -4px 0 14px;
+  font-size: 13px;
+}
