@@ -121,11 +121,11 @@ export async function renderHome() {
     if (!graduated) watchNav('queue', 'feedback', 'people', 'insights');
     const NEXT = {
       'Create a project': ['Create your project', 'One project per goal: a show, a competition, a class, or your own practice.', 'Create project', 'project'],
-      'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Pause on any moment and leave feedback right on it.', 'Upload a video', 'video'],
+      'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Pause on any moment and leave feedback right on it.', 'Upload video', 'video'],
       'Pin your first note': ['Pin your first note', 'Open your video, pause on a moment, and write what should change.', 'Open my video', 'note'],
       'Invite people': ['Invite people', 'A coach, your team, anyone you want feedback from. They’ll see your video and can leave feedback on any moment.', 'Invite people', 'invite']
     };
-    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload a video', 'Pin your first note': 'First note', 'Invite people': 'Invite people' };
+    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload video', 'Pin your first note': 'First note', 'Invite people': 'Invite people' };
     const next = steps.find(([, ok, action]) => !ok && action);
     const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a practice video'];
     const action = next?.[2] || 'video';

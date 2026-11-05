@@ -1211,6 +1211,14 @@ export const KO = {
   'Couldn’t save the poster. Try a screenshot instead.': '포스터를 저장하지 못했어요. 화면을 캡처해 주세요.',
   'Who do you practice with?': '누구와 연습하나요?',
   'More': '더보기',
+  'Upload video': '영상 업로드',
+  '↑ Upload video': '↑ 영상 업로드',
+  'New videos': '새 영상',
+  'Go to videos to review': '확인할 영상으로 이동',
+  'Workspace': '작업 공간',
+  'Sync': '연동',
+  'Subscribe in Google, Apple, or Outlook': 'Google·Apple·Outlook 캘린더에 구독',
+  'Download as .ics file': '.ics 파일로 내려받기',
 };
 
 // Phrases with numbers or names in them. First match wins.

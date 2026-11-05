@@ -1,4 +1,4 @@
-// Review queue: new takes you haven't watched yet, oldest first, plus requests that are past due.
+// To review (an Inbox tab): new takes you haven't watched yet, oldest first, plus requests that are past due.
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
 import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
 import { ctx } from '../ctx.js';
@@ -31,7 +31,7 @@ export async function unseenVideos() {
 
 export async function renderQueue() {
   const { state, view, setCrumbs, navigate } = ctx;
-  setCrumbs([['Review queue']]);
+  setCrumbs([['Inbox', '/app/inbox'], ['To review']]);
   await state.projectsReady;
   const params = new URLSearchParams(location.search);
   const show = ['needs', 'resubmitted', 'overdue'].includes(params.get('show')) ? params.get('show') : 'needs';
@@ -53,8 +53,10 @@ export async function renderQueue() {
   const alone = !list.length && show !== 'overdue' && !(await hasTeammates());
 
   view.innerHTML = `<section class="page narrow-wide">
-    ${pageHead('Review queue', { sub: 'New takes you haven’t watched yet, oldest first.', actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
-    ${tabs([['needs', 'Needs review', url({ show: 'needs' }), needs.length], ['resubmitted', 'Re-submitted', url({ show: 'resubmitted' }), resubmitted.length], ['overdue', 'Late', url({ show: 'overdue' }), overdue.length]], show)}
+    ${pageHead('Inbox', { actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
+    ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread'], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue', needs.length]], 'review')}
+    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['needs', 'New videos', needs.length], ['resubmitted', 'Re-submitted', resubmitted.length], ['overdue', 'Late', overdue.length]].map(([k, label, n]) => `<a href="${url({ show: k })}" data-link aria-selected="${k === show}">${label} <span>${n}</span></a>`).join('')}</div></div>
+    <p class="muted queue-sub">New takes you haven’t watched yet, oldest first.</p>
     ${realProjects().length > 1 ? `<div class="filters"><label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label></div>` : ''}
     ${show === 'overdue'
       ? (overdue.length ? `<div class="list">${overdue.map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link>

@@ -160,7 +160,7 @@ function paintNav() {
   const under = (prefix) => path === prefix || path.startsWith(`${prefix}/`);
   const current = {
     home: path === '/app',
-    inbox: under('/app/inbox'),
+    inbox: under('/app/inbox') || under('/app/queue'), // the review queue is an Inbox tab
     feedback: under('/app/feedback'),
     people: under('/app/people'),
     insights: under('/app/insights'),
@@ -273,7 +273,7 @@ async function paintNavDots() {
     pending.forEach((k, i) => { if (found[i]) here(k) ? clear(k) : dotsOn.add(k); });
   }
   $$('.side-nav [data-nav]').forEach((a) => {
-    const on = dotsOn.has(a.dataset.nav);
+    const on = dotsOn.has(a.dataset.nav) || (a.dataset.nav === 'inbox' && dotsOn.has('queue'));
     a.classList.toggle('has-new', on);
     if (on && !a.querySelector('.nav-dot')) a.insertAdjacentHTML('beforeend', '<span class="nav-dot"><span class="sr-only">New</span></span>');
     if (!on) a.querySelector('.nav-dot')?.remove();
@@ -286,7 +286,7 @@ async function openNew() {
   // Outside a project, the pickers offer real projects only.
   const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
-    { value: 'video', label: 'Upload a video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
+    { value: 'video', label: 'Upload video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
     { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'Ask people to send a video by a date' },
     { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
@@ -619,7 +619,6 @@ function renderMe() {
     </div>
     <div class="list-group">
       ${row('/app/inbox', 'Inbox', '<span class="badge" data-unread hidden></span>')}
-      ${row('/app/queue', 'Review queue')}
       ${row('/app/calendar', 'Calendar')}
       ${row('/app/me/recaps', '✦ My recaps')}
       ${row(`/app/people/${user.id}`, 'My activity')}
@@ -714,13 +713,13 @@ function saveTimezone(userId) {
 
 // What the ⌘K palette can do besides searching.
 ctx.commands = [
-  { label: 'Upload a video', hint: 'New video or take', run: () => newVideo(state.projects.find((p) => p.id === currentProjectId()) || null) },
+  { label: 'Upload video', hint: 'New video or take', run: () => newVideo(state.projects.find((p) => p.id === currentProjectId()) || null) },
   { label: 'New assignment', hint: 'Ask people to send a video by a date', run: () => (currentProjectId() ? newRequest(currentProjectId()) : openNew()) },
   { label: 'New recap', hint: 'Summary by AI', run: () => newRecap({ projectId: currentProjectId() }) },
   { label: 'Add to calendar', hint: 'Rehearsal or show', run: () => editEvent({ projectId: currentProjectId() }) },
   { label: 'New project', run: () => createProject() },
   { label: 'Go to Inbox', run: () => navigate('/app/inbox') },
-  { label: 'Go to Review queue', run: () => navigate('/app/queue') },
+  { label: 'Go to videos to review', run: () => navigate('/app/queue') },
   { label: 'Go to Feedback', run: () => navigate('/app/feedback') },
   { label: 'Go to Calendar', run: () => navigate('/app/calendar') },
   { label: 'Go to Insights', run: () => navigate('/app/insights') },

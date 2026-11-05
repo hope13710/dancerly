@@ -7848,3 +7848,44 @@ body.is-onboarding .tabbar {
     bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
+/* Small "⋯"-style menus (calendar Sync) share the More menu's look */
+.menu-more {
+  position: relative;
+}
+.menu-more summary {
+  list-style: none;
+  cursor: pointer;
+}
+.menu-more summary::-webkit-details-marker {
+  display: none;
+}
+.menu-more .tabs-more-menu {
+  left: auto;
+  right: 0;
+  min-width: 260px;
+}
+.menu-more .tabs-more-menu button {
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu-more .tabs-more-menu button:hover {
+  background: var(--bg);
+}
+.queue-sub {
+  margin: -6px 0 14px;
+  font-size: 13px;
+}
+/* Sidebar: Home · Inbox · Feedback, then a quiet divider before People · Insights · Calendar */
+.side-nav-more {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}

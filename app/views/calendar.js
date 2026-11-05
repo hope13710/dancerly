@@ -52,7 +52,7 @@ export async function renderCalendar(projectId = null) {
   const toolbar = `<div class="cal-toolbar">
     ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
-      <button class="btn small ghost" data-subscribe title="Keep Google, Apple, or Outlook Calendar in sync">Subscribe</button><button class="btn small ghost" data-ics title="Download upcoming events as a calendar file">Export .ics</button></div>
+      <details class="menu-more cal-sync"><summary class="btn small ghost">Sync <span aria-hidden="true">▾</span></summary><div class="tabs-more-menu" role="menu"><button type="button" role="menuitem" data-subscribe>Subscribe in Google, Apple, or Outlook</button><button type="button" role="menuitem" data-ics>Download as .ics file</button></div></details></div>
   </div>
   <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span>${[...new Set(items.filter((it) => it.type === 'event' && !['rehearsal', 'show', 'other'].includes(it.kind)).map((it) => it.kind))].map((k) => `<span class="${kindClass(k)}">${esc(k)}</span>`).join('')}<span class="k-due">Assignment due</span></div>`;
 
@@ -89,6 +89,8 @@ export async function renderCalendar(projectId = null) {
   $$('[data-day-more]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); navigate(link({ view: 'agenda' })); }));
   // Click an empty part of a day to add an event on that day.
   $$('[data-day]').forEach((cell) => cell.addEventListener('click', () => editEvent({ projectId, date: cell.dataset.day })));
+  // Picking from the Sync menu closes it.
+  $$('.cal-sync [role=menuitem]').forEach((b) => b.addEventListener('click', () => { b.closest('details').open = false; }));
   $('[data-subscribe]').addEventListener('click', subscribeCalendar);
   $('[data-ics]').addEventListener('click', () => exportIcs(items, projectId ? p.project.title : 'dancerly'));
 

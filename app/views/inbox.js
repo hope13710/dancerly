@@ -63,7 +63,7 @@ export async function renderInbox() {
 
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Inbox', { actions: unread ? '<button class="btn" data-read-all>Mark all as read</button>' : '' })}
-    ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions']], filter)}
+    ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue']], filter)}
     ${live.length ? `<div class="list">${live.map((item) => `<a class="row inbox-row ${item.read_at ? '' : 'unread'}" href="${hrefFor(item)}" data-link data-item="${item.id}">
         ${avatar(names[item.actor_id] || '?', item.actor_id, 'sm')}
         <span class="row-main">

@@ -114,7 +114,7 @@ function projectTabs(base, current) {
     <a class="tabs-gear" href="${base}/settings" data-link aria-label="Settings" title="Settings" ${current === 'settings' ? 'aria-current="page"' : ''}>⚙<span class="wide-only"> Settings</span></a></nav>`;
 }
 if (typeof document !== 'undefined') {
-  document.addEventListener('click', (e) => { document.querySelectorAll('details.tabs-more[open]').forEach((d) => { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
+  document.addEventListener('click', (e) => { document.querySelectorAll('details.tabs-more[open], details.menu-more[open]').forEach((d) => { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
 }
 
 export function projectHead({ project, members, goal }, tab, actions = '') {
@@ -142,7 +142,7 @@ export async function renderProject(projectId) {
   // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
   const sampleMine = p.project.is_sample && p.project.created_by === p.me;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'videos', '<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>+ New video</button>')}
+    ${projectHead(p, 'videos', '<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>↑ Upload video</button>')}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
@@ -154,8 +154,8 @@ export async function renderProject(projectId) {
       </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">⋯</button>` : ''}</div>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>+ New video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
-      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', '<button class="btn primary" data-new-video>+ Upload my video</button>')}
+      ? empty('▶', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>↑ Upload video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', '<button class="btn primary" data-new-video>↑ Upload video</button>')}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
@@ -409,9 +409,9 @@ export async function createVideo(projectId, { request = null } = {}) {
     if (mine) return resubmit(projectId, mine);
   }
   // The name is a typed value (not translated with the page), so it's written in the reader's language here.
-  const autoName = `${isKo ? '연습' : 'Rehearsal'} · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  const autoName = `${isKo ? '연습' : 'Practice'} ·${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   const values = await dialog({
-    title: request ? `Submit: ${request.title}` : 'New video',
+    title: request ? `Submit: ${request.title}` : 'Upload video',
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
     // The video first (what people reach for), then a name that's already filled in and easy to change.
     fields: [

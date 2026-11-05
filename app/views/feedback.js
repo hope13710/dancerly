@@ -1,4 +1,4 @@
-// Feedback: every note, from three angles — for me, by me, and the whole team.
+// Feedback: every note, from three angles — for me, by me, and everyone's.
 import { sb, $, esc } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
@@ -7,7 +7,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, previewEmpty, hasRealVideo, pageHead
 const VIEWS = [
   ['for-me', 'For me'],
   ['by-me', 'By me'],
-  ['team', 'Team']
+  ['team', 'Everyone']
 ];
 const STATUSES = [
   ['todo', 'To do'],
@@ -61,7 +61,7 @@ export async function renderFeedback() {
     </div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
       : notes.length && status !== 'all' ? empty('✓', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
-      : previewEmpty('notes', emptyCopy[0], emptyCopy[1], `${noVideo ? '<button class="btn primary" data-start-action="video">Upload a video</button>' : ''}${samplePeek('feedback')}`, noVideo ? 'feedback' : '')}
+      : previewEmpty('notes', emptyCopy[0], emptyCopy[1], `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('feedback')}`, noVideo ? 'feedback' : '')}
   </section>`;
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
 }
