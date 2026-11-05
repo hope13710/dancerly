@@ -1,5 +1,5 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
-import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL } from '../client.js';
+import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine } from '../client.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 import { countAt } from '../counts.js';
@@ -26,17 +26,18 @@ function sheet(html) {
 // ---------- Guest link for one video ----------
 export async function shareVideo(videoId, videoTitle) {
   const me = ctx.state.session.user.id;
-  const { data: links } = await sb.from('video_shares').select('token, include_notes, expires_at, created_by, views').eq('video_id', videoId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
+  const { data: links } = await sb.from('video_shares').select('*').eq('video_id', videoId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
   const el = sheet(`<h2>Share outside the project</h2>
-    <p>Anyone with the link can watch the latest take of <b>${esc(videoTitle)}</b> — no account needed. They can’t comment or download, and the link stops working when it expires.</p>
+    <p>Anyone with the link can watch the latest take of <b>${esc(videoTitle)}</b> — no account needed. They can’t download it, and the link stops working when it expires.</p>
     <form class="share-form" data-new-share>
       <label class="check-row"><input type="checkbox" name="notes" checked /> <span><b>Include notes</b><small>Guests see the notes on this take, read-only.</small></span></label>
+      ${schema.joinRequests ? `<label class="check-row"><input type="checkbox" name="requests" checked /> <span><b>Let people ask to join</b><small>They can write a note and send it with a request to join. Nothing is posted until the owner approves.</small></span></label>` : ''}
       <label class="field"><span>Expires</span><select name="days"><option value="7">In 7 days</option><option value="14" selected>In 14 days</option><option value="30">In 30 days</option></select></label>
       <button class="btn primary" type="submit">Create link</button>
     </form>
     <div data-links>${(links || []).map((l) => `<div class="share-link">
       ${copyRow(`${location.origin}/app/s/${l.token}`)}
-      <p class="fine left">${l.include_notes ? 'With notes' : 'Video only'} · expires ${new Date(l.expires_at).toLocaleDateString()} · ${l.views} ${l.views === 1 ? 'view' : 'views'}
+      <p class="fine left">${l.include_notes ? 'With notes' : 'Video only'}${l.allow_requests === false ? '' : ' · takes requests'} · expires ${new Date(l.expires_at).toLocaleDateString()} · ${l.views} ${l.views === 1 ? 'view' : 'views'}
         ${l.created_by === me ? `· <button class="link-btn inline danger" type="button" data-off="${l.token}">Turn off</button>` : ''}</p>
     </div>`).join('')}</div>`);
   wireCopy(el);
@@ -44,7 +45,7 @@ export async function shareVideo(videoId, videoTitle) {
     e.preventDefault();
     const f = e.currentTarget.elements;
     const expires = new Date(Date.now() + Number(f.namedItem('days').value) * 864e5).toISOString();
-    const { data, error } = await sb.from('video_shares').insert({ video_id: videoId, include_notes: f.namedItem('notes').checked, expires_at: expires }).select('token').single();
+    const { data, error } = await sb.from('video_shares').insert({ video_id: videoId, include_notes: f.namedItem('notes').checked, expires_at: expires, ...(f.namedItem('requests') && !f.namedItem('requests').checked ? { allow_requests: false } : {}) }).select('token').single();
     if (error) return toast(friendlyError(error), 'error');
     const url = `${location.origin}/app/s/${data.token}`;
     try { await navigator.clipboard.writeText(url); toast('Link created and copied.'); } catch { toast('Link created.'); }
@@ -82,8 +83,11 @@ export async function renderShared(token) {
     <div class="guest-bar"><a class="guest-brand" href="/?ref=share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small ${signedIn ? 'primary' : 'ghost guest-what'}" href="${topHref}" data-guest-cta="top">${topLabel}</a></div>
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
+      <div class="guest-main">
       <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>
         ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>↻ Watch again</button></div></div>`}</div>
+      ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
+      </div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
         <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · ✎ sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
@@ -134,7 +138,84 @@ export async function renderShared(token) {
     window.addEventListener('resize', place);
     frame = requestAnimationFrame(loop);
   }
+  if (data.allow_requests) await wireAsk(token, data, video);
   return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', place); document.body.classList.remove('is-guest'); };
+}
+
+// ---------- Ask to join, with a note ----------
+// Write first, sign in when you send. The note waits on this device through sign-in (and email
+// confirmation), then goes to the owner with the request; approving posts it at its moment.
+const DRAFT_KEY = 'dancerly:guestDraft';
+const readDraft = (token) => {
+  try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); return d && d.token === token && Date.now() - d.at < 7 * 864e5 ? d : null; } catch { return null; }
+};
+const saveDraft = (d) => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...d, at: Date.now() })); } catch {} };
+const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
+
+async function wireAsk(token, data, video) {
+  const host = $('[data-guest-ask]');
+  if (!host) return;
+  const signedIn = Boolean(ctx.state.session);
+  const owner = data.owner || 'the owner';
+  let access = { status: 'signed_out' };
+  if (signedIn) {
+    const { data: a } = await sb.rpc('share_access', { p_token: token });
+    access = a || { status: 'none' };
+  }
+  const sentCard = (fresh) => `<div class="guest-ask-done" role="status"><b>${fresh ? `Sent to ${esc(owner)}.` : 'Request sent.'}</b><span>${fresh ? 'Your note will post as soon as you’re approved.' : `Waiting for ${esc(owner)} to approve. Your note will post then.`}</span></div>`;
+  if (access.status === 'pending') { host.innerHTML = sentCard(false); clearDraft(); return; }
+  if (access.status === 'closed' || access.status === 'unavailable') return;
+  const member = access.status === 'member';
+  const hint = member ? 'You’re in this project. Your note posts right away.'
+    : signedIn ? `Your note goes to ${esc(owner)} with a request to join.`
+    : 'Sign in to send. Your note is saved.';
+  host.innerHTML = `<form class="guest-ask" data-ask-form>
+    <div class="guest-ask-field"><span class="guest-ask-at" data-ask-at>▸ 00:00.0</span><textarea data-ask-input rows="2" maxlength="2000" placeholder="Leave a note at this moment…" aria-label="Your note"></textarea></div>
+    <div class="guest-ask-foot"><span class="guest-ask-hint">${hint}</span><button class="btn primary small" type="submit" data-ask-send>Send</button></div>
+  </form>`;
+  const form = $('[data-ask-form]', host);
+  const input = $('[data-ask-input]', host);
+  const atEl = $('[data-ask-at]', host);
+  let at = null; // the moment the note is about: fixed once they start writing
+  const paintAt = () => { atEl.textContent = `▸ ${fmtFine(at ?? video.currentTime)}`; };
+  video.addEventListener('timeupdate', () => { if (at === null) paintAt(); });
+  input.addEventListener('focus', () => { if (at === null) { video.pause(); at = video.currentTime; paintAt(); } });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); form.requestSubmit(); }
+  });
+  const send = async (body, t) => {
+    const btn = $('[data-ask-send]', host);
+    btn.disabled = true;
+    const { data: res, error } = await sb.rpc('request_join', { p_token: token, p_body: body, p_t: t });
+    btn.disabled = false;
+    if (error) return toast(friendlyError(error), 'error');
+    clearDraft();
+    if (res?.status === 'member') {
+      toast('Note posted.');
+      return ctx.navigate(`/app/p/${res.project_id}/v/${res.video_id}${res.note_id ? `?note=${res.note_id}` : ''}`);
+    }
+    host.innerHTML = sentCard(true);
+  };
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = input.value.trim();
+    if (!body) return input.focus();
+    const t = Math.round((at ?? video.currentTime) * 100) / 100;
+    if (!signedIn) {
+      saveDraft({ token, body, t });
+      return ctx.navigate(`/app/login?mode=signup&next=${encodeURIComponent(`/app/s/${token}`)}`);
+    }
+    send(body, t);
+  });
+  // Back from signing in with a note waiting: put it back, and send it (they already pressed Send).
+  const draft = readDraft(token);
+  if (draft) {
+    input.value = draft.body;
+    at = draft.t;
+    video.addEventListener('loadedmetadata', () => { video.currentTime = draft.t; }, { once: true });
+    paintAt();
+    if (signedIn) send(draft.body, draft.t);
+  } else paintAt();
 }
 
 // ---------- Calendar subscription ----------

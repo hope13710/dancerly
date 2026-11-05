@@ -24,16 +24,18 @@ const GROUP: Record<string, string> = {
   request_new: "request", request_reminder: "request", request_due: "request",
   note_on_your_video: "note_on_your_video", new_take: "new_take", note_resolved: "note_resolved",
   joined: "joined", recap_shared: "recap_shared",
+  join_request: "join_request", join_approved: "join_request",
 };
 const DEFAULTS: Record<string, string> = {
   mention: "instant", private_note: "instant", reply: "instant", request: "instant",
   note_on_your_video: "digest", new_take: "digest", note_resolved: "digest", joined: "digest", recap_shared: "digest",
+  join_request: "instant",
 };
 const GROUP_LABEL: Record<string, string> = {
   mention: "@mention emails", private_note: "private note emails", reply: "reply emails", request: "assignment emails",
   note_on_your_video: "emails about notes on your videos", new_take: "new take emails", note_resolved: "emails about fixed notes",
   joined: "emails about people joining", recap_shared: "recap emails", digest: "morning summary emails", weekly: "weekly progress emails",
-  onboarding: "getting started emails",
+  onboarding: "getting started emails", join_request: "join request emails",
 };
 const NUDGE_HOUR = 10;
 const isPersona = (id: string) => id.startsWith("5a3b0000-");
@@ -92,7 +94,7 @@ const itemRow = (line: string, href: string, extra = "") => `<div style="padding
 
 type Ctx = {
   names: Map<string, string>; notes: Map<string, any>; takes: Map<string, any>; videos: Map<string, any>;
-  projects: Map<string, any>; requests: Map<string, any>; recaps: Map<string, any>;
+  projects: Map<string, any>; requests: Map<string, any>; recaps: Map<string, any>; joins: Map<string, any>;
 };
 
 // One notification -> { subject line, html line, link, quoted text }.
@@ -117,6 +119,8 @@ function describe(n: any, c: Ctx) {
     case "new_take": return { subject: `${who} uploaded Take ${take?.number ?? ""} of “${vtitle}”`, line: `<b>${esc(who)}</b> uploaded Take ${take?.number ?? ""} of <b>${esc(vtitle)}</b>`, href: video ? `${SITE}/app/p/${n.project_id}/v/${video.id}?take=${take?.number ?? ""}&${ref}` : `${SITE}/app?${ref}`, cta: "Watch it", text: null };
     case "note_resolved": return { subject: `${who} fixed your note on “${vtitle}”`, line: `✓ <b>${esc(who)}</b> marked your note on <b>${esc(vtitle)}</b> at ${at} as fixed`, href: noteHref, cta: "See it", text: showText ? note.body : null };
     case "joined": return { subject: `${who} joined ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> joined <b>${esc(project?.title ?? "your project")}</b>`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Say hi", text: null };
+    case "join_request": { const j = c.joins.get(n.join_request_id); return { subject: `${who} asked to join ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> watched <b>${esc(vtitle)}</b> from your share link and asked to join <b>${esc(project?.title ?? "your project")}</b>${j?.t_start != null ? `. Their note at ${fmt(Number(j.t_start))}:` : "."}`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Review the request", text: j?.body ?? null }; }
+    case "join_approved": return { subject: `You’re in: ${project?.title ?? "the project"}`, line: `<b>${esc(who)}</b> let you into <b>${esc(project?.title ?? "the project")}</b>${note ? `. Your note at ${at} is posted.` : "."}`, href: note ? noteHref : `${SITE}/app/p/${n.project_id}?${ref}`, cta: note ? "See your note" : "Open the project", text: null };
     case "recap_shared": { const r = c.recaps.get(n.recap_id); return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
     case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
     case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
@@ -139,10 +143,12 @@ async function loadContext(rows: any[]): Promise<Ctx> {
     ids("recap_id").length ? admin.from("recaps").select("id, content").in("id", ids("recap_id")) : { data: [] },
     ids("actor_id").length ? admin.from("profiles").select("id, display_name").in("id", ids("actor_id")) : { data: [] },
   ]);
+  const { data: joins } = ids("join_request_id").length ? await admin.from("join_requests").select("id, body, t_start").in("id", ids("join_request_id")) : { data: [] };
   return {
     names: new Map((people ?? []).map((p: any) => [p.id, p.display_name])),
     notes: map(notes), takes: map(takes), videos: map(videos), projects: map(projects), requests: map(requests),
     recaps: new Map((recaps ?? []).map((r: any) => [r.id, { headline: r.content?.headline }])),
+    joins: map(joins),
   };
 }
 
@@ -173,7 +179,7 @@ const footerFor = (why: string, unsub: string, label: string) =>
 async function followUp(key: string) {
   const now = Date.now();
   const { data: rows } = await admin.from("notifications")
-    .select("id, user_id, kind, actor_id, project_id, take_id, note_id, recap_id, request_id, created_at, read_at")
+    .select("id, user_id, kind, actor_id, project_id, take_id, note_id, recap_id, request_id, join_request_id, created_at, read_at")
     .is("emailed_at", null).gte("created_at", new Date(now - 3 * 864e5).toISOString()).order("created_at").limit(1000);
   if (!rows?.length) return { instant: 0, digest: 0 };
 

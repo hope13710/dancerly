@@ -106,7 +106,7 @@ async function route() {
   if (!match.r.open && !state.session) {
     return navigate(`/app/login?next=${encodeURIComponent(path + location.search)}`, { replace: true });
   }
-  if (!match.r.open && !state.profile) return renderName();
+  if ((!match.r.open || (match.r.render === renderShared && state.session)) && !state.profile) return renderName();
   renderChrome();
   // Views that list projects wait on this; the sidebar repaints when it lands.
   state.projectsReady = refreshNav();
@@ -368,6 +368,7 @@ function renderLogin() {
   const params = new URLSearchParams(location.search);
   const next = safeNext(params.get('next'));
   const joining = next.startsWith('/app/join/'); // arrived from an invite link
+  const sending = next.startsWith('/app/s/'); // wrote a note on a shared video and pressed Send
   if (state.session && state.recovering) return navigate('/app/reset', { replace: true });
   if (state.session && state.profile) return navigate(next, { replace: true });
   if (state.session) return renderName();
@@ -384,8 +385,8 @@ function renderLogin() {
       <div class="auth-card">
         <a class="auth-brand" href="/" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>
         <div class="seg" role="tablist"><button role="tab" type="button" data-mode="signup" aria-selected="${signup}">Sign up</button><button role="tab" type="button" data-mode="login" aria-selected="${!signup}">Log in</button></div>
-        <h1>${joining ? (signup ? 'Join the project on dancerly' : 'Log in to join the project') : signup ? 'Create your free account' : 'Welcome back'}</h1>
-        <p class="muted">${joining ? (signup ? 'Create your account and you’re in. We’ll confirm your email once.' : 'You’ll go straight into the project.') : signup ? 'Free to start, on your own or with your team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
+        <h1>${sending ? (signup ? 'Sign up to send your note' : 'Log in to send your note') : joining ? (signup ? 'Join the project on dancerly' : 'Log in to join the project') : signup ? 'Create your free account' : 'Welcome back'}</h1>
+        <p class="muted">${sending ? 'Your note is saved. It goes to the project as soon as you’re signed in.' : joining ? (signup ? 'Create your account and you’re in. We’ll confirm your email once.' : 'You’ll go straight into the project.') : signup ? 'Free to start, on your own or with your team. No credit card. We’ll confirm your email once.' : 'Log in with your email and password.'}</p>
         ${farewell ? '<p class="form-note" role="status">Your account has been deleted. Thanks for rehearsing with us.</p>' : ''}
         ${notice ? `<p class="form-error" role="alert">${esc(notice)}</p>` : ''}
         ${GOOGLE_ENABLED ? `<button type="button" class="btn google" data-google>${GOOGLE_G} Continue with Google</button><div class="or"><span>or with email</span></div>` : ''}

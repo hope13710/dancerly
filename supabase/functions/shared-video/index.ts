@@ -16,12 +16,13 @@ Deno.serve(async (req) => {
   try { token = (await req.json()).token ?? ""; } catch { /* empty body */ }
   if (!/^[0-9a-f]{36}$/.test(token)) return json({ error: "This link isn’t valid." }, 404);
 
-  const { data: share } = await admin.from("video_shares").select("video_id, include_notes, expires_at, revoked, views").eq("token", token).maybeSingle();
+  // "*" so the link keeps working whether or not allow_requests (migration 040) is in the database yet.
+  const { data: share } = await admin.from("video_shares").select("*").eq("token", token).maybeSingle();
   if (!share || share.revoked) return json({ error: "This link was turned off." }, 404);
   if (new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
 
   // A video, take, or project in the Trash (migrations 032, 033) isn't shown to guests.
-  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title, deleted_at)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
+  const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title, deleted_at, is_sample)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
   if (!video || (video as { projects?: { deleted_at?: string | null } }).projects?.deleted_at) return json({ error: "This video was deleted." }, 404);
   const { data: take } = await admin.from("takes").select("id, number, storage_path, created_at, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle();
   if (!take) return json({ error: "This video has no takes yet." }, 404);
@@ -45,6 +46,12 @@ Deno.serve(async (req) => {
       id: n.id, body: n.body, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), status: n.status, author: name[n.author_id] ?? "A teammate", sketch: n.sketch ?? null,
     }));
   }
+  // Who a request to join goes to (shown as "Sent to Maya"): the project's owner, by first name.
+  let owner: string | null = null;
+  if (share.allow_requests === true) {
+    const { data: o } = await admin.from("project_members").select("user_id").eq("project_id", share.project_id).eq("role", "owner").limit(1).maybeSingle();
+    if (o) owner = ((await admin.from("profiles").select("display_name").eq("id", o.user_id).maybeSingle()).data?.display_name ?? "").split(" ")[0] || null;
+  }
   admin.from("video_shares").update({ views: share.views + 1 }).eq("token", token).then(() => {});
   return json({
     title: video.title,
@@ -56,5 +63,7 @@ Deno.serve(async (req) => {
     bpm: (video as { bpm?: number | null }).bpm ?? null,
     count_start: take.count_start ?? null,
     notes,
+    allow_requests: share.allow_requests === true && !(video as { projects?: { is_sample?: boolean } }).projects?.is_sample,
+    owner,
   });
 });

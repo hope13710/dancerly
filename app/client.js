@@ -18,14 +18,15 @@ export const GOOGLE_ENABLED = true;
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d, e, f, g] = await Promise.all([
+  const [a, b, c, d, e, f, g, h] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
     sb.from('projects').select('target_event_id').limit(1),
     sb.from('videos').select('deleted_at').limit(1),
     sb.from('projects').select('deleted_at').limit(1),
-    sb.from('projects').select('allow_share_cards').limit(1)
+    sb.from('projects').select('allow_share_cards').limit(1),
+    sb.from('join_requests').select('id').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
@@ -34,6 +35,7 @@ export async function detectSchema() {
   schema.trash = !missing(e.error); // migration 032
   schema.projectTrash = !missing(f.error); // migration 033
   schema.shareCards = !missing(g.error); // migration 034
+  schema.joinRequests = !h.error; // migration 040 (a missing table is an error; an empty one isn't)
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id']), ...(schema.shareCards ? [] : ['allow_share_cards'])];

@@ -1,7 +1,7 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
-import { cols, schema } from '../client.js';
+import { cols, schema, fmtFine } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
@@ -208,8 +208,18 @@ export async function renderProjectPeople(projectId) {
   const { view, setCrumbs } = ctx;
   const [p, groups] = await Promise.all([loadProject(projectId), loadGroups(projectId)]);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['People']]);
+  // Requests to join from a shared video (migration 040): owners decide here.
+  const { data: asks } = p.isOwner && schema.joinRequests
+    ? await sb.from('join_requests').select('id, user_id, requester_name, body, t_start, created_at, video_id, videos(title)').eq('project_id', projectId).eq('status', 'pending').order('created_at')
+    : { data: [] };
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'people', '<button class="btn primary" data-invite>Invite people</button>')}
+    ${(asks || []).length ? `<div class="panel join-asks"><div class="panel-head"><div><h2>Requests to join</h2><p class="muted">They watched a video you shared. Approving adds them as a member and posts their note.</p></div></div>
+      <div class="list">${asks.map((a) => `<div class="row join-ask" data-ask="${a.id}">
+        ${avatar(a.requester_name || '?', a.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(a.requester_name || 'Someone')}</span><span class="row-meta">${esc(a.videos?.title || 'A shared video')} · ${timeAgo(a.created_at)}</span>
+          ${a.body ? `<span class="join-ask-note"><b>${fmtFine(Number(a.t_start || 0))}</b> ${esc(a.body)}</span>` : ''}</span>
+        <span class="row-side"><button class="btn small ghost" data-ask-no="${a.id}">Decline</button><button class="btn small primary" data-ask-yes="${a.id}">Approve</button></span>
+      </div>`).join('')}</div></div>` : ''}
     <div class="list">${p.members.map((m) => `<div class="row member-row">
       <a class="person" href="/app/people/${m.user_id}" data-link>${avatar(m.name, m.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(m.name)}${m.user_id === p.me ? ' <span class="tag">You</span>' : ''}</span><span class="row-meta">Joined ${timeAgo(m.joined_at)}</span></span></a>
       <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span>
@@ -219,6 +229,19 @@ export async function renderProjectPeople(projectId) {
     ${groupsSection(p, groups)}
   </section>`;
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
+  $$('[data-ask-yes], [data-ask-no]').forEach((b) => b.addEventListener('click', async () => {
+    const yes = Boolean(b.dataset.askYes);
+    const ask = asks.find((a) => a.id === (b.dataset.askYes || b.dataset.askNo));
+    if (yes) {
+      const ok = await dialog({ title: 'Approve this request?', body: `<b>${esc(ask.requester_name || 'They')}</b> will join <b>${esc(p.project.title)}</b> as a member and can see all of its videos and notes.${ask.body ? ' Their note will be posted.' : ''}`, confirm: 'Approve' });
+      if (!ok) return;
+    }
+    b.disabled = true;
+    const { error } = await sb.rpc('decide_join_request', { p_request: ask.id, p_approve: yes });
+    if (error) { b.disabled = false; return toast(friendlyError(error), 'error'); }
+    toast(yes ? 'Approved. They’re in the project now.' : 'Request declined.');
+    renderProjectPeople(projectId);
+  }));
   wireGroups(projectId, p, groups, () => renderProjectPeople(projectId));
   $$('[data-member]').forEach((b) => b.addEventListener('click', async () => {
     const m = p.members.find((x) => x.user_id === b.dataset.member);
