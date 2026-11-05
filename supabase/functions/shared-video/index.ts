@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const { data: people } = ids.length ? await admin.from("profiles").select("id, display_name").in("id", ids) : { data: [] };
     const name = Object.fromEntries((people ?? []).map((p: { id: string; display_name: string }) => [p.id, p.display_name]));
     notes = visible.map((n: { id: string; body: string; t_start: number; t_end: number | null; status: string; author_id: string; sketch: unknown }) => ({
-      id: n.id, body: n.body, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), status: n.status, author: name[n.author_id] ?? "A teammate", sketch: n.sketch ?? null,
+      id: n.id, body: n.body, t_start: Number(n.t_start), t_end: n.t_end === null ? null : Number(n.t_end), status: n.status, author: name[n.author_id] ?? "Someone", sketch: n.sketch ?? null,
     }));
   }
   // Who a request to join goes to (shown as "Sent to Maya"): the project's owner, by first name.
