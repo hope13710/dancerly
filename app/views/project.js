@@ -102,6 +102,21 @@ export async function loadProject(projectId) {
   return { project, members, isOwner, me, goal };
 }
 
+// Four tabs people use every week; the rest one tap away under More, and Settings as a gear (Hick's law:
+// nine equal tabs made every visit a choice, and on phones most of them were off screen).
+const MAIN_TABS = [['videos', 'Videos', ''], ['notes', 'Notes', '/notes'], ['requests', 'Assignments', '/requests'], ['people', 'People', '/people']];
+const MORE_TABS = [['overview', 'Overview', '/overview'], ['calendar', 'Calendar', '/calendar'], ['recaps', 'Recaps', '/recaps'], ['pages', 'Pages', '/pages']];
+function projectTabs(base, current) {
+  const link = ([key, label, path]) => `<a href="${base}${path}" data-link ${key === current ? 'aria-current="page"' : ''}>${esc(label)}</a>`;
+  const inMore = MORE_TABS.find(([key]) => key === current);
+  return `<nav class="tabs project-tabs" aria-label="Views">${MAIN_TABS.map(link).join('')}${inMore ? link(inMore) : ''}
+    <details class="tabs-more"><summary>More <span aria-hidden="true">▾</span></summary><div class="tabs-more-menu" role="menu">${MORE_TABS.filter(([key]) => key !== current).map(([key, label, path]) => `<a role="menuitem" href="${base}${path}" data-link>${esc(label)}</a>`).join('')}</div></details>
+    <a class="tabs-gear" href="${base}/settings" data-link aria-label="Settings" title="Settings" ${current === 'settings' ? 'aria-current="page"' : ''}>⚙<span class="wide-only"> Settings</span></a></nav>`;
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => { document.querySelectorAll('details.tabs-more[open]').forEach((d) => { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
+}
+
 export function projectHead({ project, members, goal }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
   // What the team is working toward, on every tab: "🎯 Spring Showcase · 12 days".
@@ -113,7 +128,7 @@ export function projectHead({ project, members, goal }, tab, actions = '') {
       </div></div>
       <div class="head-actions">${project.is_sample ? `${actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
     </header>
-    ${tabs([['overview', 'Overview', `${base}/overview`], ['videos', 'Videos', base], ['requests', 'Assignments', `${base}/requests`], ['notes', 'Notes', `${base}/notes`], ['pages', 'Pages', `${base}/pages`], ['recaps', 'Recaps', `${base}/recaps`], ['calendar', 'Calendar', `${base}/calendar`], ['people', 'People', `${base}/people`], ['settings', 'Settings', `${base}/settings`]], tab)}`;
+    ${projectTabs(base, tab)}`;
 }
 
 export async function renderProject(projectId) {

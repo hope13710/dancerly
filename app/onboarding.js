@@ -206,9 +206,9 @@ export async function renderWelcome() {
     if (step === 1) {
       const pick = TEAMS.find((x) => x[0] === team) || TEAMS[0];
       const suggest = (isKo ? pick[3] : pick[2]).replace('{year}', year);
-      view.innerHTML = frame(`<h1>What are you practicing for?</h1>
+      view.innerHTML = frame(`<h1>Who do you practice with?</h1>
         <p class="muted">One project per goal. Its videos, feedback, and schedule live inside it.</p>
-        <div class="chips" role="group" aria-label="Who you practice with">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === team}">${label}</button>`).join('')}</div>
+        <div class="chips" role="group" aria-label="Who you practice with">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === (team || TEAMS[0][0])}">${label}</button>`).join('')}</div>
         ${team === 'solo' ? '<p class="muted small solo-hint">Track your progress, and invite a coach whenever you want feedback.</p>' : ''}
         <form data-step-form>
           <label class="field"><span>Project name</span><input name="title" maxlength="120" required value="${esc(typed ?? suggest)}" /></label>
@@ -246,7 +246,10 @@ export async function renderWelcome() {
     });
     $$('[data-open-sample]').forEach((b) => b.addEventListener('click', () => finish('sample'), { capture: true }));
   };
+  // Setting up is one focused task: no tab bar or sidebar to wander off to (Skip is always there).
+  document.body.classList.add('is-onboarding');
   paint();
+  return () => document.body.classList.remove('is-onboarding');
 }
 
 // ---------- Invited: a short welcome the first time they open a project ----------

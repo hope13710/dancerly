@@ -1209,12 +1209,15 @@ export const KO = {
   'Poster saved.': '포스터를 저장했어요.',
   'Couldn’t make the QR code. Copy the link instead.': 'QR 코드를 만들지 못했어요. 링크를 복사해 주세요.',
   'Couldn’t save the poster. Try a screenshot instead.': '포스터를 저장하지 못했어요. 화면을 캡처해 주세요.',
+  'Who do you practice with?': '누구와 연습하나요?',
+  'More': '더보기',
 };
 
 // Phrases with numbers or names in them. First match wins.
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^Joined (.+)$/, (m, a) => `${tr(a)} 참여`],
   [/^Works until (.+)$/, '$1까지 사용할 수 있어요'],
   [/^Your note goes to (.+) with a request to join\.$/, '피드백이 참여 요청과 함께 $1님에게 전달돼요.'],
   [/^Sent to (.+)\.$/, '$1님에게 보냈어요.'],
@@ -1263,7 +1266,7 @@ export const KO_RULES = [
   [/^Each square is an eight \(or 5 seconds when a video has no counts\)\. Darker means more notes still open\. Tap one to loop it\.$/, '한 칸은 에잇 1개 구간이에요(카운트가 없는 영상은 5초). 색이 진할수록 미해결 피드백이 많아요. 칸을 누르면 해당 구간이 반복 재생돼요.'],
   [/^Each square is 5 seconds of the video\. Darker means more notes still open\. Tap one to loop it\.$/, '한 칸은 영상의 5초 구간을 나타내요. 색이 진할수록 미해결 피드백이 많아요. 칸을 누르면 해당 구간이 반복 재생돼요.'],
   [/^(.+): (\d+) open, (\d+) fixed$/, '$1: 미해결 $2개 · 해결 $3개'],
-  [/^Step (\d) of 3$/, '3단계 중 $1단계'],
+  [/^Step (\d) of (\d)$/, '$2단계 중 $1단계'],
   [/^You’re in (.+)$/, '$1 프로젝트에 참여했어요'],
   [/^(.+) and everyone here review practice videos together\. Three things you’ll do most:$/, '$1님과 멤버들이 이곳에서 연습 영상을 함께 확인해요. 자주 사용하는 기능 세 가지를 소개할게요.'],
   [/^(\d+) waiting for you — tap one to jump to that moment\.$/, '확인할 피드백 $1개가 있어요. 누르면 해당 장면으로 바로 이동해요.'],

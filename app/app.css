@@ -7745,3 +7745,106 @@ body.player-full {
   gap: 8px;
   margin-top: 16px;
 }
+
+/* Onboarding is one focused task: no sidebar or tab bar while setting up */
+body.is-onboarding .tabbar {
+  display: none !important;
+}
+@media (min-width: 901px) {
+  body.signed-in.is-onboarding {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.signed-in.is-onboarding .sidebar {
+    display: none;
+  }
+  body.signed-in.is-onboarding .topbar .brand {
+    display: inline-flex;
+  }
+}
+
+/* Project tabs: four main ones, More, and a Settings gear */
+.tabs.project-tabs {
+  overflow: visible;
+  align-items: stretch;
+}
+.tabs-more {
+  position: relative;
+}
+.tabs-more summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.tabs-more summary::-webkit-details-marker {
+  display: none;
+}
+.tabs-more summary span {
+  font-size: 10px;
+}
+.tabs-more[open] summary,
+.tabs-more summary:hover {
+  color: var(--ink);
+}
+.tabs-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 170px;
+  display: grid;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px -16px rgba(20, 23, 29, 0.35);
+}
+.tabs.project-tabs .tabs-more-menu a {
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 550;
+}
+.tabs.project-tabs .tabs-more-menu a:hover {
+  background: var(--bg);
+}
+.tabs.project-tabs .tabs-gear {
+  margin-left: auto;
+}
+@media (max-width: 600px) {
+  .tabs.project-tabs {
+    gap: 0;
+  }
+  .tabs.project-tabs a,
+  .tabs-more summary {
+    padding: 10px 7px;
+  }
+  .tabs-gear .wide-only {
+    display: none;
+  }
+  .tabs-more-menu {
+    left: auto;
+    right: 0;
+  }
+}
+@media (max-width: 600px) {
+  /* Narrow phones: the row can scroll, and More opens as a sheet above the tab bar */
+  .tabs.project-tabs {
+    overflow-x: auto; /* a mask here would also hide the More sheet, so the row just scrolls */
+  }
+  .tabs-more-menu {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
