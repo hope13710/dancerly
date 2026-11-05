@@ -49,7 +49,7 @@ export function samplePeek(where, text = 'Preview this in the sample project') {
   if (!sampleOffer()) return '';
   // Inside the sample itself there's nothing to preview.
   if (ctx.state.projects.some((p) => p.is_sample && location.pathname.includes(p.id))) return '';
-  return `<p class="sample-peek"><button type="button" class="link-btn" data-open-sample="${where}"><span aria-hidden="true">✦</span> ${esc(text)}</button></p>`;
+  return `<p class="sample-peek"><button type="button" class="link-btn" data-open-sample="${where}"><span aria-hidden="true">▶</span> ${esc(text)}</button></p>`;
 }
 
 // Where each "preview it" link lands inside the sample.

@@ -144,7 +144,7 @@ export async function renderHome() {
           <p class="muted lead">${text}</p>
           <div class="activate-ctas">
             ${action.startsWith('/') ? `<a class="btn primary big" href="${action}" data-link>${cta}</a>` : `<button class="btn primary big" data-step="${action}">${cta}</button>`}
-            ${sampleOffer() ? (sample ? `<a class="btn big ghost-border" href="/app/p/${sample.id}" data-link>✦ Open the sample first</a>` : '<button type="button" class="btn big ghost-border" data-open-sample="home">✦ See a sample first</button>') : ''}
+            ${sampleOffer() ? (sample ? `<a class="btn big ghost-border" href="/app/p/${sample.id}" data-link>▶ Open the sample first</a>` : '<button type="button" class="btn big ghost-border" data-open-sample="home">▶ See a sample first</button>') : ''}
           </div>
           ${handoff ? `<div class="handoff">
             <span class="handoff-qr" data-qr aria-hidden="true"></span>

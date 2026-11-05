@@ -126,7 +126,7 @@ export async function renderPerson(userId) {
           <div class="growth-copy"><b>${esc(v.latest.videos?.title || 'Video')}</b>
             <small>${esc(v.latest.projects?.title || '')} · Take ${v.first.number} → ${v.last.number} · ${v.days} ${v.days === 1 ? 'day' : 'days'}</small>
             ${v.total ? `<span class="growth-bar" role="img" aria-label="${v.fixed} of ${v.total} notes fixed"><i style="width:${Math.round((v.fixed / v.total) * 100)}%"></i></span><small>${v.fixed} of ${v.total} notes fixed</small>` : '<small>No notes yet</small>'}
-            ${v.canCard ? `<button class="btn small" type="button" data-make-card="${v.video_id}" data-project="${v.last.project_id}">✦ Make a card</button>` : ''}</div>
+            ${v.canCard ? `<button class="btn small" type="button" data-make-card="${v.video_id}" data-project="${v.last.project_id}">Make a card</button>` : ''}</div>
         </div>`).join('')}</div>`
         : `<p class="panel-empty">${videos.length ? 'Progress shows up once a video has a second take.' : 'No videos from them yet.'}</p>`)
       : tab === 'videos'

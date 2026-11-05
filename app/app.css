@@ -7889,3 +7889,24 @@ body.is-onboarding .tabbar {
   padding-top: 6px;
   border-top: 1px solid var(--line);
 }
+
+/* ---------- P2: one page grid, brand colour on the actions that matter ---------- */
+/* Every page shares the same left edge; "narrow" pages just keep their content to a readable width,
+   so switching between Home, Inbox and Feedback no longer shifts the title sideways. */
+.page.narrow-wide {
+  max-width: 1080px;
+}
+.page.narrow-wide > * {
+  max-width: 860px;
+}
+/* The few actions that move someone forward (upload, invite, join, submit) wear the brand colour,
+   like the landing page's Start free; everything else stays neutral, so these stand out. */
+.btn.primary:is([data-new-video], [data-start-action], [data-upload], [data-invite], [data-invite-any], [data-accept], [data-submit], [data-step], [data-ce-own]) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:is([data-new-video], [data-start-action], [data-upload], [data-invite], [data-invite-any], [data-accept], [data-submit], [data-step], [data-ce-own]):hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}

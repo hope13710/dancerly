@@ -206,7 +206,7 @@ export async function renderSettings(section = 'account') {
           <div><span>People in your largest project</span><b data-no-i18n>${ofText(largest, FREE.members, '명')}</b>${meter(largest, FREE.members)}</div>
           ${recaps ? `<div><span>Your AI recaps this month</span><b data-no-i18n>${ofText(recaps.used, recaps.limit, '회')}</b>${meter(recaps.used, recaps.limit)}</div>` : ''}
         </div>
-        <p class="fine left founding-note">✦ Early access thank-you: teams that upload their first video before paid plans launch get 3 months of Team free.</p>
+        <p class="fine left founding-note">🎁 Early access thank-you: teams that upload their first video before paid plans launch get 3 months of Team free.</p>
         ${over ? '<p class="fine left">You’re past the Free limits. Nothing is blocked during early access — we’ll let you know well before that changes.</p>' : ''}
       </section>
       <section class="panel">
