@@ -7526,3 +7526,140 @@ body.player-full {
     justify-content: flex-end;
   }
 }
+
+/* Guest page practice tools: speed, A–B loop, mirror, full screen (no account needed) */
+.guest-main {
+  gap: 10px;
+}
+.guest-main:fullscreen {
+  background: #000;
+  padding: 12px;
+  align-content: center;
+}
+.guest-main:fullscreen .guest-video {
+  max-height: calc(100vh - 140px);
+}
+.guest-video {
+  cursor: pointer;
+}
+.guest-player.mirrored .guest-video,
+.guest-player.mirrored .sketch-layer {
+  transform: scaleX(-1);
+}
+.guest-mirror-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(91, 92, 226, 0.92);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+.guest-player.mirrored .guest-mirror-badge {
+  display: block;
+}
+.guest-big-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 23, 29, 0.6);
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.guest-player.playing .guest-big-play {
+  opacity: 0;
+  pointer-events: none;
+}
+.guest-end {
+  inset: 0;
+}
+.guest-controls {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--dark);
+  color: #aab1bd;
+  font-size: 13px;
+}
+.guest-timeline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.guest-timeline input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+.guest-time {
+  font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #c9ced9;
+}
+.guest-pp {
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 14px;
+  width: 28px;
+  cursor: pointer;
+}
+.guest-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guest-tools .toggle-btn {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 6px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.guest-tools .toggle-btn[aria-pressed="true"] {
+  background: rgba(91, 92, 226, 0.3);
+  color: #e0e1ff;
+}
+.guest-speed {
+  background: #232935;
+  border-radius: 8px;
+  padding: 2px;
+  display: inline-flex;
+}
+.guest-speed button {
+  border: 0;
+  background: none;
+  color: #aab1bd;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.guest-speed button[aria-pressed="true"] {
+  background: #fff;
+  color: #15171b;
+}
+.guest-tools .spacer {
+  flex: 1;
+}
+.guest-tools .loop-chip button {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}

@@ -1200,6 +1200,7 @@ export const KO = {
   'let you into': '님이 참여를 승인했어요:',
   '· approved': '· 승인됨',
   '· declined': '· 거절됨',
+  'Loop any part: tap at the start, then at the end': '구간 반복: 시작 지점과 끝 지점을 차례로 눌러 주세요',
 };
 
 // Phrases with numbers or names in them. First match wins.

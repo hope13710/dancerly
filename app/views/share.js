@@ -84,8 +84,12 @@ export async function renderShared(token) {
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
       <div class="guest-main">
-      <div class="guest-player"><video class="guest-video" src="${esc(data.url)}" controls playsinline controlslist="nodownload" data-video></video><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>
+      <div class="guest-player" data-gplayer><video class="guest-video" src="${esc(data.url)}" playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture data-video></video><span class="guest-mirror-badge" aria-hidden="true">⇋ Mirrored</span><button type="button" class="guest-big-play" data-gplay aria-label="Play or pause (Space)">▶</button><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>
         ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>↻ Watch again</button></div></div>`}</div>
+      <div class="guest-controls">
+        <div class="guest-timeline"><button type="button" class="guest-pp" data-gplay aria-label="Play or pause (Space)">▶</button><span class="guest-time" data-gcur>00:00</span><input type="range" min="0" max="1000" value="0" step="1" data-gseek aria-label="Playback position" /><span class="guest-time" data-gdur>--:--</span></div>
+        <div class="guest-tools"><div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">↻ A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">⇋ Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">⛶</button></div>
+      </div>
       ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
       </div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
@@ -105,10 +109,15 @@ export async function renderShared(token) {
   video.addEventListener('play', () => { if (end) end.hidden = true; });
   $('[data-replay]')?.addEventListener('click', () => { end.hidden = true; video.currentTime = 0; video.play(); });
   $$('[data-guest-cta]').forEach((a) => a.addEventListener('click', () => { try { window.dataLayer?.push({ event: 'guest_cta', cta: a.dataset.guestCta }); } catch {} }));
+  const tools = wirePlayerTools(video);
   $$('[data-seek]').forEach((b) => b.addEventListener('click', () => {
-    const n = data.notes.find((x) => String(x.t_start) === b.dataset.seek && x.sketch);
-    // A note with a sketch stops on its frame so the drawing can be read.
-    if (n) { video.pause(); video.currentTime = Number(b.dataset.seek); } else { video.currentTime = Math.max(0, Number(b.dataset.seek) - 1); video.play(); }
+    const n = data.notes.find((x) => String(x.t_start) === b.dataset.seek);
+    // A note with a sketch stops on its frame so the drawing can be read; others loop their moment.
+    if (n?.sketch) { tools.setLoop(null); video.pause(); video.currentTime = Number(b.dataset.seek); return; }
+    const start = Number(b.dataset.seek);
+    tools.setLoop(n?.t_end != null ? [start, Number(n.t_end)] : [Math.max(0, start - 1), start + 2]);
+    video.currentTime = tools.loop[0];
+    video.play();
   }));
   // Counts, when the team set them.
   const badge = $('[data-count-badge]');
@@ -139,7 +148,95 @@ export async function renderShared(token) {
     frame = requestAnimationFrame(loop);
   }
   if (data.allow_requests) await wireAsk(token, data, video);
-  return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', place); document.body.classList.remove('is-guest'); };
+  return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', place); tools.stop(); document.body.classList.remove('is-guest'); };
+}
+
+// ---------- Practice tools for anyone with the link: speed, A–B loop, mirror, full screen ----------
+// Nothing here is saved, so it works the same signed in or not.
+function wirePlayerTools(video) {
+  const player = $('[data-gplayer]');
+  const seek = $('[data-gseek]');
+  const cur = $('[data-gcur]');
+  const dur = $('[data-gdur]');
+  const loopChip = $('[data-gloop]');
+  const abBtn = $('[data-gab]');
+  const api = { loop: null, abStart: null };
+  const paintPlay = () => {
+    const icon = video.paused ? '▶' : '❚❚';
+    $$('[data-gplay]').forEach((b) => { b.textContent = icon; });
+    player.classList.toggle('playing', !video.paused);
+  };
+  const toggle = () => (video.paused ? video.play() : video.pause());
+  $$('[data-gplay]').forEach((b) => b.addEventListener('click', toggle));
+  video.addEventListener('click', toggle);
+  video.addEventListener('play', paintPlay);
+  video.addEventListener('pause', paintPlay);
+  video.addEventListener('loadedmetadata', () => { dur.textContent = fmt(video.duration || 0); });
+  const paintTime = () => {
+    cur.textContent = fmt(video.currentTime);
+    if (video.duration && document.activeElement !== seek) seek.value = String(Math.round((video.currentTime / video.duration) * 1000));
+  };
+  video.addEventListener('timeupdate', paintTime);
+  seek.addEventListener('input', () => { if (video.duration) video.currentTime = (Number(seek.value) / 1000) * video.duration; });
+  // Speed
+  $$('[data-grate]').forEach((b) => b.addEventListener('click', () => {
+    video.playbackRate = Number(b.dataset.grate);
+    $$('[data-grate]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  // A–B loop: tap at the start, then at the end. A note's time sets one too.
+  api.setLoop = (range) => {
+    api.loop = range && range[1] > range[0] ? range : null;
+    api.abStart = null;
+    abBtn.setAttribute('aria-pressed', String(Boolean(api.loop)));
+    abBtn.textContent = '↻ A–B';
+    loopChip.innerHTML = api.loop ? `<span>↻ Looping ${fmt(api.loop[0])}–${fmt(api.loop[1])}</span><button type="button" aria-label="Stop looping" data-gloop-off>✕</button>` : '';
+    $('[data-gloop-off]', loopChip)?.addEventListener('click', () => api.setLoop(null));
+  };
+  abBtn.addEventListener('click', () => {
+    if (api.loop) return api.setLoop(null);
+    if (api.abStart === null) {
+      api.abStart = video.currentTime;
+      abBtn.setAttribute('aria-pressed', 'true');
+      abBtn.textContent = `↻ A–B ${fmt(api.abStart)}…`;
+      return;
+    }
+    const a = Math.min(api.abStart, video.currentTime), b = Math.max(api.abStart, video.currentTime);
+    if (b - a < 0.3) return api.setLoop(null);
+    api.setLoop([a, b]);
+    video.currentTime = a;
+    video.play();
+  });
+  let frame = 0;
+  const tick = () => {
+    if (api.loop && (video.currentTime >= api.loop[1] || video.currentTime < api.loop[0] - 0.5)) video.currentTime = api.loop[0];
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  // Mirror, like the studio mirror (sketches flip with the picture)
+  const mirrorBtn = $('[data-gmirror]');
+  const setMirror = (on) => { player.classList.toggle('mirrored', on); mirrorBtn.setAttribute('aria-pressed', String(on)); };
+  mirrorBtn.addEventListener('click', () => setMirror(!player.classList.contains('mirrored')));
+  // Full screen: the player with its tools; iPhones fall back to their own video player.
+  const fullBtn = $('[data-gfull]');
+  const box = player.closest('.guest-main');
+  fullBtn.addEventListener('click', async () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    const req = box.requestFullscreen || box.webkitRequestFullscreen;
+    if (req) { try { await req.call(box); return; } catch { /* fall through */ } }
+    video.webkitEnterFullscreen?.();
+  });
+  const onKey = (e) => {
+    if (e.target.closest('input, textarea, select, dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ' || e.key === 'k') { e.preventDefault(); toggle(); }
+    else if (e.key === 'm') setMirror(!player.classList.contains('mirrored'));
+    else if (e.key === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
+    else if (e.key === 'ArrowRight') video.currentTime += 5;
+    else if (e.key === 'Escape' && api.loop) api.setLoop(null);
+  };
+  document.addEventListener('keydown', onKey);
+  api.stop = () => { cancelAnimationFrame(frame); document.removeEventListener('keydown', onKey); };
+  paintPlay();
+  return api;
 }
 
 // ---------- Ask to join, with a note ----------
