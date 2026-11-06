@@ -7910,3 +7910,61 @@ body.is-onboarding .tabbar {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
 }
+
+/* Review: first note starters, the ⋯ menu on notes, and one-row controls on phones */
+.notes-empty p {
+  margin: 0 0 10px;
+}
+.notes-empty b {
+  color: #e3e6ed;
+}
+.starter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.starter-chips .mini {
+  cursor: pointer;
+}
+.note-more summary.mini {
+  min-width: 28px;
+  justify-content: center;
+}
+.note-more .tabs-more-menu {
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
+  min-width: 170px;
+  background: #262c36;
+  border-color: #343b48;
+}
+.note-more .tabs-more-menu button {
+  color: #e3e6ed;
+  font-size: 13px;
+}
+.note-more .tabs-more-menu button:hover {
+  background: #313845;
+}
+.note-more .tabs-more-menu button.danger {
+  color: #ff8a80;
+}
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  /* Player controls: one row on a phone (labels shrink, the full-screen button stays on the line) */
+  .player-col .controls {
+    flex-wrap: nowrap;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .player-col .controls button {
+    padding: 6px 7px;
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+}

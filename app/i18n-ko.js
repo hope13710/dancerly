@@ -1219,6 +1219,17 @@ export const KO = {
   'Sync': '연동',
   'Subscribe in Google, Apple, or Outlook': 'Google·Apple·Outlook 캘린더에 구독',
   'Download as .ics file': '.ics 파일로 내려받기',
+  'Something went wrong on our end. Try again in a moment — we’ve been notified.': '일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요. 저희에게도 자동으로 알려졌어요.',
+  'Agree': '공감',
+  '↻ Looping': '↻ 반복 재생 중',
+  'No notes on this take yet.': '이 테이크에는 아직 피드백이 없어요.',
+  'Pause anywhere and say what you see. One short note is enough.': '원하는 곳에서 멈추고 보이는 것을 적어 보세요. 짧은 한 줄이면 충분해요.',
+  'Start a note': '피드백 시작하기',
+  'Timing': '타이밍',
+  'Spacing': '간격',
+  'Arms': '팔 동작',
+  'Facials': '표정',
+  'Energy': '에너지',
 };
 
 // Phrases with numbers or names in them. First match wins.

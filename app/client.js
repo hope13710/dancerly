@@ -172,6 +172,8 @@ export function friendlyError(error) {
   if (/JWT|not authenticated|session/i.test(msg)) return 'Your session ended. Log in again.';
   if (/row-level security|permission denied/i.test(msg)) return 'You don’t have permission to do that.';
   if (/Payload too large|exceeded the maximum allowed size/i.test(msg)) return 'That video is over 50 MB. Trim it or export a smaller file.';
+  // A bug in the app itself (not a message written for people): never show the raw text.
+  if (error instanceof TypeError || error instanceof ReferenceError || error instanceof RangeError || /cannot read prop|is not a function|is not defined|undefined is not|null is not an object/i.test(msg)) return 'Something went wrong on our end. Try again in a moment — we’ve been notified.';
   return msg;
 }
 

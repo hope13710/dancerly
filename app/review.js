@@ -20,6 +20,9 @@ const SPEED_KEY = 'looproom:speed';
 const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(s) ? s : 1; } catch { return 1; } };
 
 // The review screen: one video, its takes, and the team's notes on them.
+// First-note starters: a topic to begin with, in English and Korean.
+const STARTERS = [['Timing', '타이밍'], ['Spacing', '간격'], ['Arms', '팔 동작'], ['Facials', '표정'], ['Energy', '에너지']];
+
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
     sb.from('projects').select(cols('id, title, is_sample, created_by')).eq('id', projectId).single(),
@@ -201,9 +204,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       // Watching a new take is when fixes get noticed: ask right on the note.
       const ask = carried && n.status !== 'resolved' && canResolve(n) && !r.notYet.has(n.id)
         ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="mini ok" data-status="resolved" data-id="${n.id}">✓ Yes</button><button class="mini" data-notyet="${n.id}">Not yet</button></div>` : '';
-      const statusBtn = n.status === 'resolved'
-        ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '')
-        : `${n.status === 'open' ? `<button class="mini" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}${canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">Resolve ✓</button>` : ''}`;
       const other = n.private_to ? (n.author_id === me.id ? n.private_to : n.author_id) : null;
       const replies = n.note_replies || [];
       const open = r.openThreads.has(n.id);
@@ -214,18 +214,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         ${ask}
         <div class="note-foot"><span class="who">${by(n.author_id)} <i class="role r-${roleOf(n.author_id).toLowerCase()}">${roleOf(n.author_id)}</i> · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
-          <button class="mini ${looping ? 'on' : ''}" data-loop="${n.id}" aria-pressed="${looping}">↻ ${looping ? 'Looping' : n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>
-          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}">👍 ${agrees || ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
-          ${statusBtn}
           <button class="mini ${open ? 'on' : ''}" data-thread="${n.id}" aria-expanded="${open}">💬 ${replies.length ? replies.length : 'Reply'}</button>
-          ${canResolve(n) ? `<button class="mini ghost" data-delete="${n.id}" aria-label="Delete note">🗑</button>` : ''}
+          ${n.status === 'resolved' ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '') : canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">Resolve ✓</button>` : ''}
+          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">👍${agrees ? ` ${agrees}` : ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
+          ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">↻ Looping</button>` : ''}
+          <details class="menu-more note-more"><summary class="mini ghost" aria-label="More actions">•••</summary><div class="tabs-more-menu" role="menu">
+            ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">↻ ${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
+            ${n.status === 'open' ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
+            ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
+          </div></details>
         </div>
         ${open ? `<div class="thread">
           ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
           <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;
-    }).join('') : '<p class="notes-empty">No notes on this take yet. Pause on a moment and write what should change.</p>';
+    }).join('') : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
+      <div class="starter-chips" role="group" aria-label="Start a note">${STARTERS.map(([en]) => `<button type="button" class="mini" data-starter="${en}">${en}</button>`).join('')}</div></div>`;
     paintMarkers(notes);
     paintSummary();
   }
@@ -254,6 +259,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const earlierResolved = r.notes.filter((n) => takeNo[n.take_id] < take.number && n.status === 'resolved').length;
     const open = visibleNotes().filter((n) => n.status !== 'resolved').length;
     // With a single take there is nothing to compare yet, so keep it to the open count.
+    // No notes at all: the empty state below says it better than "0 open notes".
+    $('[data-summary]').hidden = !visibleNotes().length && takes.length === 1;
     $('[data-summary]').innerHTML = takes.length === 1
       ? `<span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
       : `<b>Take ${take.number}</b> · <span class="ok">✓ ${earlierResolved} resolved from earlier takes</span> · <span class="open">${open} still open</span>`;
@@ -719,6 +726,20 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       try { localStorage.setItem(`looproom:notYet:${take.id}`, JSON.stringify([...r.notYet])); } catch {}
       return paintNotes();
     }
+    const starter = e.target.closest('[data-starter]');
+    if (starter) {
+      // Start the note with the topic; the moment is wherever the video is paused now.
+      play(false);
+      const word = (STARTERS.find(([en]) => en === starter.dataset.starter) || [])[document.documentElement.lang === 'ko' ? 1 : 0] || starter.dataset.starter;
+      $('[data-composer-open]')?.click();
+      input.value = `${word}: `;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
+    // Picking from a note's ⋯ menu closes it.
+    const menuItem = e.target.closest('.note-more [role=menuitem]');
+    if (menuItem) menuItem.closest('details').open = false;
     const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-thread],[data-delete-reply],[data-note]');
     if (!el || !view.contains(el)) return;
     const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.thread || el.dataset.note;

@@ -7,7 +7,7 @@ import { startTranslating, isKo } from './i18n.js';
 import { renderWelcome, markSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
-import { startMonitoring, setMonitoredUser } from './monitor.js';
+import { startMonitoring, setMonitoredUser, reportFailure } from './monitor.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderTrash } from './views/trash.js';
 import { renderHome } from './views/home.js';
@@ -117,7 +117,10 @@ async function route() {
     // Phones: keep the current tab in view when a tab row scrolls sideways.
     document.querySelector('.tabs a[aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   } catch (error) {
-    view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><a class="btn" href="/app" data-link>Back to Home</a></div>`;
+    // Pages that fail to load are reported, so we hear about it before anyone has to tell us.
+    reportFailure('page', error, { step: path.replace(/[0-9a-f-]{36}/g, ':id') });
+    view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><div class="empty-actions"><button class="btn primary" type="button" data-retry>Try again</button><a class="btn" href="/app" data-link>Back to Home</a></div></div>`;
+    view.querySelector('[data-retry]')?.addEventListener('click', () => route());
   }
 }
 

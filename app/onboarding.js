@@ -322,7 +322,9 @@ export function reviewTips({ isOwner }) {
     tip.style.width = `${w}px`;
     const h = tip.offsetHeight;
     const roomAbove = box.top > h + 20;
-    const below = tips[i][3] === 'above' && roomAbove ? false : innerHeight - box.bottom > h + 20 || !roomAbove;
+    // On a phone the video sits above most targets: keep the tip below them so the picture stays in view.
+    const phone = innerWidth <= 600;
+    const below = phone ? innerHeight - box.bottom > h + 20 || !roomAbove : tips[i][3] === 'above' && roomAbove ? false : innerHeight - box.bottom > h + 20 || !roomAbove;
     tip.style.left = `${Math.max(16, Math.min(innerWidth - w - 16, box.left + box.width / 2 - w / 2))}px`;
     tip.style.top = `${below ? Math.min(innerHeight - h - 12, box.bottom + 10) : Math.max(12, box.top - h - 10)}px`;
     tip.dataset.side = below ? 'below' : 'above';
