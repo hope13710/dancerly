@@ -677,7 +677,7 @@ async function renderJoin(code) {
   view.innerHTML = `<section class="auth"><div class="auth-card center">
     <div class="card-mark big">${esc(initials(invite.project_title))}</div>
     <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
-    <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on rehearsals.</p>
+    <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on practice videos.</p>
     ${signedIn
       ? '<button class="btn primary wide" data-accept>Join project</button>'
       : `${GOOGLE_ENABLED ? `<button type="button" class="btn google wide" data-join-google>${GOOGLE_G} Continue with Google</button>` : ''}

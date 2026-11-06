@@ -13,7 +13,7 @@ const SECTIONS = [
   ['landed', 'What landed'],
   ['recurring', 'Keeps coming up']
 ];
-const PERIODS = { last: 'Last rehearsal', week: 'This week', month: 'This month', custom: 'Custom' };
+const PERIODS = { last: 'Last practice', week: 'This week', month: 'This month', custom: 'Custom' };
 // The four-point star that marks AI output. Always shown next to words that say so.
 export function sparkle(cls = '') {
   return `<svg class="ai-spark ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>`;
@@ -249,7 +249,7 @@ export async function renderProjectRecaps(projectId) {
     ${groups.length ? `
       ${pinned.length ? `<h2 class="group-title">📌 Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`
-      : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next rehearsal: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+      : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next practice: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
     <p class="fine left">Recaps are AI summaries of the notes in your projects. Only you see a recap until you share it.</p>
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap({ projectId })));
@@ -275,7 +275,7 @@ export async function renderMyRecaps() {
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn primary" data-new-recap>✦ New recap</button></header>
     ${groups.length ? `<div class="list">${groups.map((g) => recapRow(g, names, { showProject: true })).join('')}</div>`
-      : empty('✦', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next rehearsal.', `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+      : empty('✦', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next practice.', `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap()));
 }
@@ -451,7 +451,7 @@ export async function homeRecapCard() {
     const { count } = await noSample(sb.from('notes').select('id', { count: 'exact', head: true }));
     if ((count || 0) < RECAP_MIN_NOTES) return { html: '', wire: () => {} };
     return {
-      html: `<section class="panel recap-teaser"><div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI</p><h2>Get ready for your next rehearsal</h2><p class="muted">Turn this week’s notes into a short list of what to work on.</p></div><button class="btn primary" data-home-recap>Create recap</button></div></section>`,
+      html: `<section class="panel recap-teaser"><div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI</p><h2>Get ready for your next practice</h2><p class="muted">Turn this week’s notes into a short list of what to work on.</p></div><button class="btn primary" data-home-recap>Create recap</button></div></section>`,
       wire: () => $('[data-home-recap]')?.addEventListener('click', () => newRecap())
     };
   }

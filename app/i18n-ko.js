@@ -269,8 +269,8 @@ export const KO = {
   'Upload Take 1': '첫 테이크 올리기',
   'Next video →': '다음 영상 →',
   'Back to queue': '목록으로 돌아가기',
-  '↑ Upload a new take': '↑ 새 테이크 올리기',
-  'Upload a new take': '새 테이크 올리기',
+  '↑ Upload new take': '↑ 새 테이크 올리기',
+  'Upload new take': '새 테이크 올리기',
   'Merge into…': '다른 영상에 합치기…',
   '⇋ Mirrored': '⇋ 거울 모드',
   '⇋ Mirror': '⇋ 거울 모드',
@@ -297,7 +297,7 @@ export const KO = {
   'Practicing': '연습 중',
   'Resolved': '해결됨',
   'Looping': '반복 재생 중',
-  'Loop ±2s': '앞뒤 2초 반복 재생',
+  'Loop ±2s': '2초 반복',
   'Loop this part': '이 구간 반복 재생',
   'Reply': '답글 남기기',
   'Reply…': '답글 달기…',
@@ -560,8 +560,8 @@ export const KO = {
   'Progress card': '성장 카드',
   'On the card': '카드에 넣을 것',
   'Card title': '카드 제목',
-  'Rehearsal card': '연습 카드',
-  'Make a rehearsal card': '연습 카드 만들기',
+  'Practice card': '연습 카드',
+  'Make a practice card': '연습 카드 만들기',
   'A moment from your take, as an image for Instagram Stories': '내 테이크 속 한 장면을 인스타그램 스토리용 이미지로 만들어요.',
   'Your take': '내 테이크',
   'Counting down to': '목표 일정',
@@ -772,7 +772,7 @@ export const KO = {
   'Notes by you, on your takes, or mentioning you': '내가 남긴 피드백, 내 테이크에 달린 피드백, 나를 멘션한 피드백',
   'Every note in the project': '프로젝트의 모든 피드백',
   'Period': '기간',
-  'Last rehearsal': '지난 연습',
+  'Last practice': '지난 연습',
   'Past 7 days': '최근 7일',
   'Past 30 days': '최근 30일',
   'Custom': '기간 직접 설정',
@@ -794,7 +794,7 @@ export const KO = {
   'Make private': '비공개로 전환',
   'Useful?': '도움이 됐나요?',
   '▶ Play this moment': '▶ 해당 장면 보기',
-  'Get ready for your next rehearsal': '다음 연습을 준비해 보세요',
+  'Get ready for your next practice': '다음 연습을 준비해 보세요',
   'Turn this week’s notes into a short list of what to work on.': '이번 주 피드백을 바탕으로 다음에 연습할 내용을 간단히 정리해 드려요.',
   'Create recap': 'AI 요약 만들기',
   'Pinned': '고정됨',
@@ -1002,7 +1002,7 @@ export const KO = {
   'Notes everyone leaves across your projects show up here.': '모든 프로젝트에서 멤버들이 남긴 피드백을 여기서 확인할 수 있어요.',
   'Open a video, pause on a moment, and pin what you see.': '영상을 열고 원하는 장면에서 멈춘 뒤 피드백을 남겨 보세요.',
   'No recaps yet': '아직 AI 요약이 없어요',
-  'A recap turns a week of notes into a short to-do list for your next rehearsal.': 'AI 요약은 한 주 동안 받은 피드백을 다음 연습에서 할 일로 간단히 정리해 줘요.',
+  'A recap turns a week of notes into a short to-do list for your next practice.': 'AI 요약은 한 주 동안 받은 피드백을 다음 연습에서 할 일로 간단히 정리해 줘요.',
   'It’s just you so far': '아직 나만 참여하고 있어요',
   'Invite people to a project. Everyone you share a project with shows up here, with the notes they give and the takes they send.': '프로젝트에 멤버를 초대해 보세요. 같은 프로젝트에 참여한 멤버와 각자가 남긴 피드백, 올린 테이크를 여기서 확인할 수 있어요.',
   'New videos land here': '새 영상이 여기에 모여요',
@@ -1135,7 +1135,7 @@ export const KO = {
   'My projects': '내 프로젝트',
   'See it with sample data': '샘플 데이터로 보기',
   'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.': '연습 영상을 올리고 피드백을 몇 개 남겨 보세요. 어디서 자주 막히는지, 다음에 무엇을 연습하면 좋을지 보여 드려요.',
-  'Before your next rehearsal': '다음 연습 전에',
+  'Before your next practice': '다음 연습 전에',
   'The few things worth your attention': '지금 집중하면 좋을 내용',
   'Nothing needs you right now. Keep leaving notes and this fills in.': '지금은 따로 확인할 내용이 없어요. 피드백이 쌓이면 여기에 표시돼요.',
   'Watch it': '장면 확인하기',
@@ -1230,12 +1230,14 @@ export const KO = {
   'Arms': '팔 동작',
   'Facials': '표정',
   'Energy': '에너지',
+  'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.': '연습 일정, 동선, 의상, 음악 큐까지 계획을 한곳에 모아 두세요. 프로젝트 멤버 모두 보고 고칠 수 있어요.',
 };
 
 // Phrases with numbers or names in them. First match wins.
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^(\d+) (?:person is|people are) already here, giving each other feedback on practice videos\.$/, '이미 $1명이 참여해 서로의 연습 영상에 피드백을 주고 있어요.'],
   [/^Joined (.+)$/, (m, a) => `${tr(a)} 참여`],
   [/^Works until (.+)$/, '$1까지 사용할 수 있어요'],
   [/^Your note goes to (.+) with a request to join\.$/, '피드백이 참여 요청과 함께 $1님에게 전달돼요.'],
@@ -1412,6 +1414,7 @@ function tr(text) {
 
 // Example text shown in empty fields (placeholders only, so a title someone actually typed is never changed).
 export const KO_ATTR = {
+  'Practice plan': '연습 계획',
   'Chorus run-through, full out': '코러스 런스루, 전력으로',
   'Film from the front, full out, with the track. Watch the 5-6 arms.': '정면에서 음악을 틀고 전력으로 촬영해 주세요. 5~6번 팔 동작을 확인할게요.',
   'Full rehearsal': '전체 런스루',

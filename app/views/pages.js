@@ -46,13 +46,13 @@ export async function renderProjectPages(projectId) {
         <span class="page-icon">${pg.pinned ? '📌' : '📄'}</span>
         <span class="row-main"><span class="row-title">${esc(pg.title)}</span><span class="row-meta">${esc(pg.body.replace(/[#*>`\-[\]]/g, '').trim().slice(0, 110)) || 'Empty page'}</span></span>
         <span class="row-side"><small>${esc(names[pg.updated_by] || '')} · ${timeAgo(pg.updated_at)}</small><span class="chev">›</span></span></a>`).join('')}</div>`
-      : empty('📄', 'No pages yet', 'Keep the plan in one place: rehearsal schedule, spacing, costumes, music cues. Everyone on the project can read and edit.', '<button class="btn primary" data-new-page>+ New page</button>')}
+      : empty('📄', 'No pages yet', 'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.', '<button class="btn primary" data-new-page>+ New page</button>')}
   </section>`;
   $$('[data-new-page]').forEach((b) => b.addEventListener('click', () => newPage(projectId)));
 }
 
 async function newPage(projectId) {
-  const values = await dialog({ title: 'New page', fields: [{ name: 'title', label: 'Title', placeholder: 'Rehearsal plan', required: true }], confirm: 'Create' });
+  const values = await dialog({ title: 'New page', fields: [{ name: 'title', label: 'Title', placeholder: 'Practice plan', required: true }], confirm: 'Create' });
   if (!values?.title) return;
   const { data, error } = await sb.from('project_pages').insert({ project_id: projectId, title: values.title, body: '' }).select('id').single();
   if (error) return toast(friendlyError(error), 'error');

@@ -412,7 +412,7 @@ export async function createVideo(projectId, { request = null } = {}) {
   const autoName = `${isKo ? '연습' : 'Practice'} ·${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   const values = await dialog({
     title: request ? `Submit: ${request.title}` : 'Upload video',
-    body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload a new take</b> — its open notes come along.',
+    body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload new take</b> — its open notes come along.',
     // The video first (what people reach for), then a name that's already filled in and easy to change.
     fields: [
       { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT },

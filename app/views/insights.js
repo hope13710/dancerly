@@ -208,7 +208,7 @@ export async function renderInsights() {
     </div>
     ${!hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
     <section class="panel insight-lines">
-      <div class="panel-head"><div><h2>Before your next rehearsal</h2><p class="muted">The few things worth your attention</p></div></div>
+      <div class="panel-head"><div><h2>Before your next practice</h2><p class="muted">The few things worth your attention</p></div></div>
       ${lines.length ? `<ul class="lines">${lines.slice(0, 3).map((l) => `<li><span class="li-icon" aria-hidden="true">${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" ${l.href.startsWith('#') ? '' : 'data-link'}>${l.cta}</a>` : ''}</li>`).join('')}</ul>`
         : '<p class="panel-empty">Nothing needs you right now. Keep leaving notes and this fills in.</p>'}
     </section>

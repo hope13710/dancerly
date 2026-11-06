@@ -366,7 +366,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   const el = document.createElement('dialog');
   el.className = 'dialog card-editor';
   el.innerHTML = `<div class="ce">
-    <header class="ce-head"><button type="button" class="link-btn" data-ce-close>Cancel</button><b>${c.single ? 'Rehearsal card' : 'Progress card'}</b><span></span></header>
+    <header class="ce-head"><button type="button" class="link-btn" data-ce-close>Cancel</button><b>${c.single ? 'Practice card' : 'Progress card'}</b><span></span></header>
     <div class="ce-body">
       <div class="ce-preview"><canvas data-ce-canvas width="${W}" height="${H}" aria-label="Preview of your progress card"></canvas><p class="ce-loading" data-ce-loading>Getting the frames…</p></div>
       <div class="ce-panel">
@@ -496,7 +496,7 @@ export async function shareChoice({ projectId, videoId, videoTitle, sample, take
   // One take: a rehearsal card (the take itself); two or more: Take 1 next to the latest.
   const card = takes >= 2
     ? { value: 'card', label: 'Make a progress card', hint: `Take 1 next to Take ${latest}, as an image for Instagram Stories` }
-    : { value: 'card', label: 'Make a rehearsal card', hint: 'A moment from your take, as an image for Instagram Stories' };
+    : { value: 'card', label: 'Make a practice card', hint: 'A moment from your take, as an image for Instagram Stories' };
   const choice = await actionSheet({ title: 'Share', actions: [card, { value: 'link', label: 'Send a link', hint: 'A read-only link for a coach or family, no account needed' }] });
   if (choice === 'card') return openCardEditor({ projectId, videoId, from: 'share' });
   if (choice !== 'link') return;

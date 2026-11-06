@@ -323,7 +323,7 @@ function teammateEmail(who: string, project: any, video: any, unsub: string) {
   const href = video ? `${SITE}/app/p/${project.id}/v/${video.id}?ref=email_first_teammate` : `${SITE}/app/p/${project.id}?ref=email_first_teammate`;
   const next = video
     ? `Next: open <b>${esc(video.title)}</b>, pause on a moment you want ${esc(who)} to see, and @mention them in a note.`
-    : `Next: upload a rehearsal video so ${esc(who)} has something to watch. A phone clip from your last practice is plenty.`;
+    : `Next: upload a practice video so ${esc(who)} has something to watch. A phone clip from your last practice is plenty.`;
   const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>. Your team isn’t rehearsing alone anymore.</p>
 <p style="margin:12px 0 0;font-size:15px;line-height:1.55">${next}</p>`;
   return {
