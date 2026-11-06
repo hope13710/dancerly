@@ -324,12 +324,12 @@ function teammateEmail(who: string, project: any, video: any, unsub: string) {
   const next = video
     ? `Next: open <b>${esc(video.title)}</b>, pause on a moment you want ${esc(who)} to see, and @mention them in a note.`
     : `Next: upload a practice video so ${esc(who)} has something to watch. A phone clip from your last practice is plenty.`;
-  const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>. Your team isn’t rehearsing alone anymore.</p>
+  const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>. Your team isn’t practicing alone anymore.</p>
 <p style="margin:12px 0 0;font-size:15px;line-height:1.55">${next}</p>`;
   return {
     subject: `${who} joined ${project.title}`,
     html: layout({ heading: `${esc(who)} joined your team`, body, cta: video ? "Leave the first note" : "Upload a video", ctaHref: href, footer: footerFor("A one-time email for your first teammate", unsub, GROUP_LABEL.onboarding) }),
-    text: `${who} just joined ${project.title}. Your team isn't rehearsing alone anymore.\n\n${next.replace(/<[^>]+>/g, "")}\n${href}\n\nTurn off: ${unsub}`,
+    text: `${who} just joined ${project.title}. Your team isn't practicing alone anymore.\n\n${next.replace(/<[^>]+>/g, "")}\n${href}\n\nTurn off: ${unsub}`,
   };
 }
 
