@@ -201,7 +201,7 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .rv-timeline { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #8f98a8; font-variant-numeric: tabular-nums; }
 .rv-track { position: relative; flex: 1; height: 6px; border-radius: 5px; background: #333945; }
 .rv-fill { position: absolute; inset: 0 auto 0 0; width: 17%; border-radius: 5px; background: var(--accent); }
-.rv-loop { position: absolute; top: -4px; bottom: -4px; left: 13.7%; width: 13.7%; border-radius: 4px; background: rgba(255, 214, 10, 0.25); box-shadow: inset 0 0 0 1px rgba(255, 214, 10, 0.6); opacity: 0; transition: opacity 0.4s ease; }
+.rv-loop { position: absolute; top: -4px; bottom: -4px; left: 13.7%; width: 13.7%; border-radius: 4px; background: rgba(254, 175, 117, 0.18); box-shadow: inset 0 0 0 1.5px rgba(254, 175, 117, 0.85); opacity: 0; transition: opacity 0.4s ease; }
 .rv-pin { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: #ffb547; transform: translate(-50%, -50%); }
 .rv-range { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: #ffb547; opacity: 0.85; }
 .rv-head { position: absolute; top: 50%; left: 17%; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.35); }
@@ -288,7 +288,7 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .hero-app[data-step="0"] .sk-2 { transition-delay: 1.6s; }
 .hero-app[data-step="3"] .sk { transition: none; }
 .hero-app:is([data-step="2"], [data-step="3"]) .rv-loop { opacity: 1; }
-.hero-app[data-step="2"] .loop-chip { opacity: 1; background: rgba(255, 214, 10, 0.16); border-color: rgba(255, 214, 10, 0.5); color: #ffe27a; }
+.hero-app[data-step="2"] .loop-chip { opacity: 1; background: rgba(254, 175, 117, 0.16); border-color: rgba(254, 175, 117, 0.5); color: #feaf75; }
 .hero-app[data-step="2"] .mirror-tag { display: inline; }
 .hero-app[data-step="2"] .mirror-chip { background: rgba(91, 92, 226, 0.22); border-color: rgba(91, 92, 226, 0.55); color: #d9daff; }
 .hero-app[data-step="2"] .stage-media { transform: scaleX(-1); }
@@ -388,15 +388,15 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 
 /* Practice */
 .pr-track { position: relative; height: 8px; border-radius: 5px; background: #333945; margin: 18px 4px 10px; }
-.pr-loop { position: absolute; top: -5px; bottom: -5px; left: 32%; width: 30%; border-radius: 5px; background: rgba(255, 214, 10, 0.22); box-shadow: inset 0 0 0 1px rgba(255, 214, 10, 0.6); }
+.pr-loop { position: absolute; top: -5px; bottom: -5px; left: 32%; width: 30%; border-radius: 5px; background: rgba(254, 175, 117, 0.18); box-shadow: inset 0 0 0 1.5px rgba(254, 175, 117, 0.85); }
 .pr-head { position: absolute; top: 50%; left: 32%; width: 14px; height: 14px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); }
 .play .pr-head { animation: prLoop 1.8s linear infinite; }
 @keyframes prLoop { from { left: 32%; } to { left: 62%; } }
-.pr-a, .pr-b { position: absolute; top: -26px; font-size: 11px; color: #ffe27a; transform: translateX(-50%); }
+.pr-a, .pr-b { position: absolute; top: -26px; font-size: 11px; color: #feaf75; transform: translateX(-50%); }
 .pr-a { left: 32%; }
 .pr-b { left: 62%; }
 .pr-controls { display: flex; gap: 6px; flex-wrap: wrap; }
-.pr-controls .chip.on:first-child { background: rgba(255, 214, 10, 0.16); border-color: rgba(255, 214, 10, 0.5); color: #ffe27a; }
+.pr-controls .chip.on:first-child { background: rgba(254, 175, 117, 0.16); border-color: rgba(254, 175, 117, 0.5); color: #feaf75; }
 
 /* Takes */
 .takes-tabs { display: flex; gap: 4px; font-size: 12px; }

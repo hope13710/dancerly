@@ -7968,3 +7968,69 @@ body.is-onboarding .tabbar {
     font-size: 12.5px;
   }
 }
+
+/* Player controls as chips, the same as on the landing page: what's on is easy to see at a glance. */
+.controls > button:not([data-play]),
+.controls .speed-wrap > button,
+.guest-tools .toggle-btn {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #c9ced9;
+  line-height: 1.25;
+}
+.controls > button.toggle-btn[aria-pressed="true"],
+.guest-tools .toggle-btn[aria-pressed="true"] {
+  background: rgba(91, 92, 226, 0.22);
+  border-color: rgba(91, 92, 226, 0.6);
+  color: #e0e1ff;
+}
+.controls .speed-wrap > button.on {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+.controls > .full-btn {
+  width: auto;
+  padding: 5px 8px;
+}
+.loop-chip {
+  border: 1px solid rgba(254, 175, 117, 0.5);
+}
+@media (max-width: 600px) {
+  .player-col .controls { gap: 4px; }
+  .player-col .controls > button:not([data-play]),
+  .player-col .controls .speed-wrap > button { padding: 5px 8px; font-size: 12px; }
+}
+@media (max-width: 600px) {
+  /* The one-row controls scroll sideways, which would clip a menu that pops up above them: on a phone, speed opens as a bottom sheet. */
+  .player-col .speed-menu {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    top: auto;
+    z-index: 200;
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .player-col .controls .speed-menu button {
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 0;
+  }
+}
+@media (max-width: 600px) {
+  /* While something loops, its chip gets its own line under the buttons instead of squeezing into the row. */
+  .player-col .controls:has(.loop-chip:not(:empty)) {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .player-col .controls .loop-chip {
+    order: 99;
+    flex: none;
+    white-space: nowrap;
+  }
+}

@@ -294,6 +294,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-player]').classList.toggle('mirrored', r.mirror);
     $('[data-mirror]').setAttribute('aria-pressed', String(r.mirror));
     $('[data-speed]').textContent = `${r.speed}×`;
+    $('[data-speed]').classList.toggle('on', r.speed !== 1);
     $('[data-time-overlay]').textContent = fmtFine(t);
     $('[data-at]').textContent = fmtFine(t);
     $('[data-at2]').textContent = fmtFine(t);
