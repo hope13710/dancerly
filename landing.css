@@ -726,7 +726,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .mi-stats div { background: #1d222a; border: 1px solid #2c323d; border-radius: 10px; padding: 10px 12px; }
 .mi-stats small { display: block; font-size: 11px; color: #8f98a8; }
 .mi-stats b { display: block; font-size: 24px; letter-spacing: -0.03em; color: #fff; }
-.mi-stats i { font-style: normal; font-size: 11px; font-weight: 700; color: #46d39a; }
+.mi-stats i { font-style: normal; font-size: 11px; font-weight: 600; color: #8f98a8; }
 .mi-heat { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .mi-heat span { height: 26px; border-radius: 6px; background: rgba(91, 92, 226, var(--o)); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
 .mi-cap { font-size: 11px; color: #8f98a8; }
