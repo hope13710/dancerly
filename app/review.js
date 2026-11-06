@@ -389,7 +389,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     paintPlayer();
     r.frame = requestAnimationFrame(tick);
   }
-  videoEl.addEventListener('loadedmetadata', () => { $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
+  // The video can finish loading after someone has already left this page (Sentry DANCERLY-3): nothing to paint then.
+  videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.isConnected) return; $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
   videoEl.addEventListener('error', () => toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'));
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
   // Playback speed: a small menu (like YouTube's), < and > to step, and it's remembered on this device.
