@@ -60,7 +60,7 @@ export const LANDING_KO = {
   '↻ Loop this part': '↻ 이 구간 반복 재생',
   '↻ Looping': '↻ 반복 재생 중',
   'I’m on it': '연습할게요',
-  "Resolve ✓": "해결하기 ✓",
+  "Resolve ✓": "해결 ✓",
   'Reopen': '다시 열기',
   '💬 Reply': '💬 답글 남기기',
   'Reply…': '답글 남기기…',
@@ -347,5 +347,13 @@ export const LANDING_KO = {
   'Try dancerly free →': 'dancerly 무료로 시작하기 →',
   '↻ A–B 00:16–00:20': '↻ 구간 반복 00:16–00:20',
   "dancerly review screen: a coach pins a note and sketches on the frame at once, a dancer loops her part, and the next take resolves it.": "강사가 영상의 특정 장면에 피드백을 남기고 스케치로 설명해요. 댄서는 해당 구간을 반복 연습하고, 다음 테이크에서 개선된 모습을 확인할 수 있어요.",
-  'Billing period': '결제 주기'
+  'Billing period': '결제 주기',
+  '⟷ Range': '⟷ 구간 설정',
+  'Start': '시작',
+  'End': '끝',
+  '👥 Everyone': '👥 멤버 모두',
+  '✎ Draw': '✎ 스케치하기',
+  'Pin note ↵': '피드백 남기기 ↵',
+  'What should change at this moment? Type @ to mention someone': '이 장면에서 어떤 점을 고치면 좋을까요? @를 입력해 멤버를 멘션할 수 있어요.',
+  'More actions': '더보기',
 };
