@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- Link preview image (Open Graph, 1200×630). Render with: node tools/og/render.cjs
-     The same pieces as the landing page: a frame with a sketch and the sketch toolbar, a note with an @mention,
-     a video assignment with a deadline, the calendar, and Insights. The frame is the hero clip at 00:01.4. -->
+     The same pieces as the app and the landing page: a frame with a sketch and the sketch toolbar, a note with an
+     @mention and its focus area, a video assignment with a deadline, the calendar, and Insights' focus areas.
+     The frame is the hero clip at 00:01.4. -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -10,12 +11,28 @@
   * { box-sizing: border-box; margin: 0; }
   body { width: 1200px; height: 630px; overflow: hidden; font-family: Inter, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
     background: radial-gradient(55% 75% at 82% 18%, #e4e4ff 0%, rgba(228,228,255,0) 62%), #f7f8fa; position: relative; }
-  .copy { position: absolute; left: 64px; top: 64px; width: 410px; }
-  .logo { height: 38px; display: block; margin-bottom: 40px; }
-  h1 { font-size: 46px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
+  .copy { position: absolute; left: 64px; top: 64px; width: 380px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 6px 12px; border-radius: 999px; margin-bottom: 18px; letter-spacing: -0.005em; }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .logo { height: 38px; display: block; margin-bottom: 30px; }
+  h1 { font-size: 52px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 800; }
   h1 em { font-style: normal; color: var(--accent); }
-  .sub { margin-top: 20px; font-size: 20px; line-height: 1.42; color: #4b5260; letter-spacing: -0.01em; }
-  .url { position: absolute; left: 64px; bottom: 52px; font-size: 19px; font-weight: 650; color: var(--accent); letter-spacing: -0.01em; }
+  .sub { margin-top: 18px; font-size: 18.5px; line-height: 1.42; color: #4b5260; letter-spacing: -0.01em; }
+  .url { position: absolute; left: 64px; bottom: 52px; font-size: 19px; font-weight: 650; color: var(--accent); letter-spacing: -0.01em; display: flex; align-items: center; gap: 14px; }
+  .free { font-size: 14px; font-weight: 700; color: var(--ok); background: #e4f7ee; padding: 6px 12px; border-radius: 999px; letter-spacing: 0; }
+  .cat { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 3px 7px 3px 6px; border-radius: 6px; background: color-mix(in srgb, var(--c) 15%, #fff); color: color-mix(in srgb, var(--c) 60%, #15171b); white-space: nowrap; }
+  .cat::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+  .chip.icon { padding: 3px 6px; background: #ededff; color: #4b4cc4; }
+  .chip.count { background: #efefff; color: #4b4cc4; }
+  .focus { display: grid; gap: 8px; margin-top: 10px; }
+  .frow { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; }
+  .frow .cat { justify-self: start; }
+  .fbar { display: flex; height: 8px; border-radius: 999px; background: #eef0f4; overflow: hidden; }
+  .fbar b { background: var(--c); }
+  .fbar s { background: #16845b; opacity: .55; }
+  .ins-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .rate { font-size: 13px; color: var(--muted); }
+  .rate b { font-size: 20px; color: var(--ink); letter-spacing: -0.03em; margin-right: 4px; }
 
   .card { position: absolute; background: #fff; border-radius: 16px; box-shadow: 0 18px 40px rgba(20,23,29,.14); border: 1px solid rgba(20,23,29,.04); }
   .k { font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
@@ -37,11 +54,11 @@
   .skbar em { font-style: normal; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 6px; background: #fff; color: var(--dark); margin-left: 2px; }
   .track { position: relative; height: 5px; background: #333945; border-radius: 4px; margin: 13px 4px 3px; }
   .track .fill { position: absolute; inset: 0 auto 0 0; width: 19%; background: var(--accent); border-radius: 4px; }
-  .track .range { position: absolute; top: -4px; bottom: -4px; left: 13.7%; width: 13.7%; border-radius: 3px; background: rgba(255,214,10,.28); box-shadow: inset 0 0 0 1px rgba(255,214,10,.7); }
+  .track .range { position: absolute; top: -4px; bottom: -4px; left: 13.7%; width: 13.7%; border-radius: 3px; background: rgba(254,175,117,.22); box-shadow: inset 0 0 0 1.5px rgba(254,175,117,.85); }
   .track i { position: absolute; top: -3px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: #f5a524; border: 2px solid var(--dark); }
 
   /* A note with an @mention and its sketch */
-  .note { left: 468px; top: 318px; width: 316px; padding: 13px 15px; }
+  .note { left: 462px; top: 318px; width: 336px; padding: 13px 15px; }
   .note-top { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; }
   .chip.sketch { background: #ededff; color: #4b4cc4; }
   .chip.status { margin-left: auto; background: #fff1e3; color: var(--warn); }
@@ -67,7 +84,7 @@
   .ev span { padding: 5px 7px; border-radius: 7px; border-left: 3px solid var(--c); background: var(--b); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Insights */
-  .ins { left: 800px; top: 418px; width: 372px; padding: 14px 15px; }
+  .ins { left: 814px; top: 418px; width: 358px; padding: 14px 15px; }
   .ins-top { display: flex; gap: 18px; margin-top: 6px; }
   .stat b { display: block; font-size: 24px; letter-spacing: -0.03em; }
   .stat small { font-size: 11.5px; color: var(--muted); }
@@ -80,10 +97,11 @@
 <body>
   <div class="copy">
     <img class="logo" src="../../logo-wordmark.png" alt="dancerly" />
-    <h1>Rehearsal feedback<br />that lands<br /><em>on the count.</em></h1>
-    <p class="sub">Notes and sketches on the exact moment, assignments with deadlines, and proof of what’s improving.</p>
+    <p class="eyebrow">Practice video feedback for dance teams</p>
+    <h1>Feedback<br />that lands<br /><em>on the count.</em></h1>
+    <p class="sub">Notes and sketches on the exact count, loops and mirror mode, and focus areas that show what’s improving.</p>
   </div>
-  <p class="url">dancerly.app</p>
+  <p class="url">dancerly.app <span class="free">Free for your whole team</span></p>
 
   <div class="review">
     <div class="frame">
@@ -93,22 +111,22 @@
         <path class="sk" stroke="#ff453a" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" />
       </svg>
       <span class="time">00:01.4</span>
-      <div class="skbar"><b>✎</b><b>↗</b><b class="on">◯</b><u></u><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i><u></u><b>↶</b><em>Done</em></div>
+      <div class="skbar"><b>✎</b><b>↗</b><b class="on">◯</b><u></u><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i><u></u><b>↶</b><b>✕</b><em>Done</em></div>
     </div>
     <div class="track"><span class="fill"></span><span class="range"></span><i style="left:13.7%"></i><i style="left:68.5%"></i><i style="left:89%"></i></div>
   </div>
 
   <div class="card note">
-    <div class="note-top"><span class="chip">⟷ 00:01–00:02</span><span class="chip sketch">✎ Sketch</span><span class="chip status">Open</span></div>
+    <div class="note-top"><span class="chip">⟷ 00:01–00:02</span><span class="chip icon">✎</span><span class="chip count">1·3</span><span class="cat" style="--c:#8b7cff">Technique</span><span class="chip status">Open</span></div>
     <p><span class="mention">@Maya</span> reach all the way out on the arm hit. Match the center’s line.</p>
-    <div class="who"><span class="av">HK</span>Hope · Coach · 👍 3</div>
+    <div class="who"><span class="av">HK</span>Hope Kim · 2m ago · 👍 3</div>
   </div>
 
   <div class="card assign">
     <p class="k">Assignment</p>
     <h4>Solo section — your 16 counts</h4>
     <span class="due">Due Fri 6:00 PM</span>
-    <div class="sub-row"><span>Submitted</span><b>7 / 10</b></div>
+    <div class="sub-row"><span>Submissions</span><b>7 of 10</b></div>
     <div class="bar"><span></span></div>
     <div class="nudge">Remind 3 people</div>
   </div>
@@ -121,13 +139,12 @@
   </div>
 
   <div class="card ins">
-    <p class="k">Insights · last 30 days</p>
-    <div class="ins-top">
-      <div class="stat"><b>82%</b><small>notes fixed</small><em>↑ 9%p</em></div>
-      <div class="stat"><b>2.4 days</b><small>to fix</small><em>↓ 1.1</em></div>
+    <div class="ins-head"><p class="k">Insights · focus areas</p><p class="rate"><b>82%</b>fixed</p></div>
+    <div class="focus">
+      <div class="frow"><span class="cat" style="--c:#3b9eff">Timing</span><span class="fbar" style="--c:#3b9eff"><b style="width:46%"></b><s style="width:32%"></s></span></div>
+      <div class="frow"><span class="cat" style="--c:#f0609e">Sync</span><span class="fbar" style="--c:#f0609e"><b style="width:28%"></b><s style="width:54%"></s></span></div>
+      <div class="frow"><span class="cat" style="--c:#22b37a">Formation</span><span class="fbar" style="--c:#22b37a"><b style="width:10%"></b><s style="width:72%"></s></span></div>
     </div>
-    <div class="heat"><span style="--o:.95">4</span><span style="--o:.35">1</span><span style="--o:.6">2</span><span style="--o:.14"></span><span style="--o:.5">2</span><span style="--o:.12"></span><span style="--o:.3">1</span><span style="--o:.12"></span></div>
-    <p class="heat-cap">Where feedback piles up</p>
   </div>
 </body>
 </html>
