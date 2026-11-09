@@ -92,14 +92,18 @@ const unsubUrl = async (key: string, user: string, group: string) =>
   `${SITE}/email/unsubscribe?u=${user}&g=${group}&t=${await sign(key, `${user}:${group}`)}`;
 
 // ---------- the email itself ----------
-function layout({ heading, body, cta, ctaHref, footer }: { heading: string; body: string; cta?: string; ctaHref?: string; footer: string }) {
+// The heading adds to the subject instead of repeating it (letters that open with "Hi ..." have none). The inbox
+// preview line comes from the body, hidden at the top, padded so the footer doesn't leak into it.
+function layout({ heading, body, cta, ctaHref, footer }: { heading?: string; body: string; cta?: string; ctaHref?: string; footer: string }) {
+  const preview = (body || heading || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
   return `<!doctype html><html><body style="margin:0;background:#f4f5f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#15161a">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${preview}${"&#8199;&#65279;&#847; ".repeat(40)}</div>
 <div style="max-width:520px;margin:0 auto;padding:28px 16px">
 <p style="margin:0 0 18px;font-weight:800;font-size:18px;letter-spacing:-0.02em;color:#5b5ce2">dancerly</p>
 <div style="background:#fff;border-radius:14px;padding:24px 22px;border:1px solid #e7e8ee">
-<h1 style="margin:0 0 14px;font-size:19px;line-height:1.35;letter-spacing:-0.01em">${heading}</h1>
+${heading ? `<h1 style="margin:0 0 14px;font-size:19px;line-height:1.35;letter-spacing:-0.01em">${heading}</h1>` : ""}
 ${body}
-${cta ? `<p style="margin:22px 0 2px"><a href="${ctaHref}" style="display:inline-block;background:#15161a;color:#fff;text-decoration:none;font-weight:650;font-size:14px;padding:11px 18px;border-radius:10px">${esc(cta)}</a></p>` : ""}
+${cta ? `<p style="margin:22px 0 2px"><a href="${ctaHref}" style="display:inline-block;background:#5b5ce2;color:#fff;text-decoration:none;font-weight:650;font-size:14px;padding:11px 18px;border-radius:10px">${esc(cta)}</a></p>` : ""}
 </div>
 <p style="margin:16px 4px 0;font-size:12px;line-height:1.6;color:#80869a">${footer}</p>
 </div></body></html>`;
@@ -251,9 +255,9 @@ async function followUp(key: string) {
       const subject = items.length === 1 ? lead.subject : `${lead.subject} · ${items.length - 1} more`;
       const unsub = await unsubUrl(key, user, GROUP[ready[0].kind]);
       const body = items.length === 1
-        ? `<p style="margin:0;font-size:15px;line-height:1.55">${lead.line}</p>${lead.text ? quote(lead.text) : ""}`
+        ? (lead.text ? quote(lead.text) : "")
         : items.map(({ d }) => itemRow(d.line, d.href, d.text ? quote(d.text) : "")).join("");
-      const html = layout({ heading: items.length === 1 ? esc(lead.subject) : "Waiting for you on dancerly", body, cta: items.length === 1 ? lead.cta : "Open dancerly", ctaHref: items.length === 1 ? lead.href : `${SITE}/app/inbox?ref=email_instant`, footer: footerFor("You got this because it was for you on dancerly", unsub, GROUP_LABEL[GROUP[ready[0].kind]]) });
+      const html = layout({ heading: items.length === 1 ? lead.line.replace(/<\/?b>/g, "") : `${items.length} things waiting for you`, body, cta: items.length === 1 ? lead.cta : "Open dancerly", ctaHref: items.length === 1 ? lead.href : `${SITE}/app/inbox?ref=email_instant`, footer: footerFor("You got this because it was for you on dancerly", unsub, GROUP_LABEL[GROUP[ready[0].kind]]) });
       const text = `${items.map(({ d }) => `${d.line.replace(/<[^>]+>/g, "")}${d.text ? `\n“${clip(d.text)}”` : ""}\n${d.href}`).join("\n\n")}\n\nTurn off: ${unsub}`;
       const fromName = actors.size === 1 ? `${first(ctx.names.get(ready[0].actor_id))} via dancerly` : "dancerly";
       if (await send(to, subject, html, text, fromName, unsub)) {
@@ -340,11 +344,11 @@ function teammateEmail(who: string, project: any, video: any, unsub: string) {
   const next = video
     ? `Next: open <b>${esc(video.title)}</b>, pause on a moment you want ${esc(who)} to see, and @mention them in a note.`
     : `Next: upload a practice video so ${esc(who)} has something to watch. A phone clip from your last practice is plenty.`;
-  const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>. Your team isn’t practicing alone anymore.</p>
+  const body = `<p style="margin:0;font-size:15px;line-height:1.55"><b>${esc(who)}</b> just joined <b>${esc(project.title)}</b>.</p>
 <p style="margin:12px 0 0;font-size:15px;line-height:1.55">${next}</p>`;
   return {
     subject: `${who} joined ${project.title}`,
-    html: layout({ heading: `${esc(who)} joined your team`, body, cta: video ? "Leave the first note" : "Upload a video", ctaHref: href, footer: footerFor("A one-time email for your first teammate", unsub, GROUP_LABEL.onboarding) }),
+    html: layout({ heading: "Your team isn’t practicing alone anymore", body, cta: video ? "Leave the first note" : "Upload a video", ctaHref: href, footer: footerFor("A one-time email for your first teammate", unsub, GROUP_LABEL.onboarding) }),
     text: `${who} just joined ${project.title}. Your team isn't practicing alone anymore.\n\n${next.replace(/<[^>]+>/g, "")}\n${href}\n\nTurn off: ${unsub}`,
   };
 }
@@ -372,7 +376,7 @@ ${p(help)}`;
   const plain = (t: string) => t.replace(/<[^>]+>/g, "");
   return {
     subject: c.subject,
-    html: layout({ heading: c.subject, body, cta: c.cta, ctaHref: c.href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
+    html: layout({ body, cta: c.cta, ctaHref: c.href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
     text: `Hi ${name},\n\n${why}\n\n${plain(c.step)}\n\n${c.href}\n\n${sample ? `${plain(sample)}\n\n` : ""}${help}\n\nTurn off: ${unsub}`,
   };
 }
@@ -462,7 +466,7 @@ function inviteEmail(name: string, project: { id: string; title: string }, video
   const plain = (t: string) => t.replace(/<[^>]+>/g, "");
   return {
     subject,
-    html: layout({ heading: esc(subject), body, cta: "Invite your team", ctaHref: href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
+    html: layout({ body, cta: "Invite your team", ctaHref: href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
     text: `Hi ${name},\n\n${lines.map(plain).join("\n\n")}\n\nInvite your team: ${href}\n\nTurn off: ${unsub}`,
   };
 }
@@ -632,10 +636,9 @@ function weeklyContent(w: {
       w.myTakes ? stat(w.myTakes, w.myTakes === 1 ? "take you uploaded" : "takes you uploaded") : "",
     ].filter(Boolean).join("");
     const teamLines = w.team.filter((x) => x.fixes || x.takes).map((x) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.5"><b>${esc(x.title)}</b>: ${[x.fixes ? `${plural(x.fixes, "note")} fixed` : "", x.takes ? plural(x.takes, "new take") : ""].filter(Boolean).join(", ")}</p>`).join("");
-    const body = `<p style="margin:0 0 6px;font-size:15px;line-height:1.55">Here’s what got better last week.</p>
-<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${cells}</tr></table>
+    const body = `<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${cells}</tr></table>
 ${teamLines}`;
-    const heading = `Your week: ${esc(lead)}`;
+    const heading = "Here’s what got better last week";
     return {
       subject: `Your week: ${lead}`,
       html: layout({ heading, body, cta: "See your progress", ctaHref: `${SITE}/app/insights?ref=email_weekly`, footer: footerFor("Your weekly progress on dancerly", w.unsub, GROUP_LABEL.weekly) }),
@@ -647,13 +650,13 @@ ${teamLines}`;
   const subject = w.solo ? `Your ${takes === 1 ? "video is" : "videos are"} ready for feedback` : `${plural(takes, "new take")} waiting for notes`;
   const where = w.next ? ` in <b>${esc(w.next.project)}</b>` : "";
   const body = w.solo
-    ? `${p(`You uploaded ${plural(takes, "take")}${where} last week. Nice start.`)}${p("Feedback starts when someone else watches. Invite your teammates or your coach with one link. They can join from their phone in seconds, no app to install.")}`
-    : `${p(`${plural(takes, "new take")}${where} went up last week, and nobody has left a note yet.`)}${p("Pause on one moment and say what you see. One short note is enough to get the team going.")}`;
+    ? `${p(`You uploaded ${plural(takes, "take")}${where} last week. Nice start.`)}${p("Invite your teammates or your coach with one link. They can join from their phone in seconds, no app to install.")}`
+    : `${p(`${plural(takes, "new take")}${where} went up last week, and nobody has left a note yet.`)}${p("Pause on one moment and say what you see. Short is fine.")}`;
   const cta = w.solo ? "Invite your team" : "Leave the first note";
   const href = w.next ? w.next.href : `${SITE}/app?ref=email_weekly`;
   return {
     subject,
-    html: layout({ heading: esc(subject), body, cta, ctaHref: href, footer: footerFor("Your weekly progress on dancerly", w.unsub, GROUP_LABEL.weekly) }),
+    html: layout({ heading: w.solo ? "Feedback starts when someone else watches" : "One note gets the team going", body, cta, ctaHref: href, footer: footerFor("Your weekly progress on dancerly", w.unsub, GROUP_LABEL.weekly) }),
     text: `${subject}\n\n${w.solo ? `You uploaded ${plural(takes, "take")} last week. Feedback starts when someone else watches: invite your teammates or your coach with one link.` : `${plural(takes, "new take")} went up last week, and nobody has left a note yet. Pause on one moment and say what you see.`}\n\n${href}\n\nTurn off: ${w.unsub}`,
   };
 }

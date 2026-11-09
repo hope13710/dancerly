@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 <div style="background:#fff;border-radius:14px;padding:24px 22px;border:1px solid #e7e8ee">
 <h1 style="margin:0 0 12px;font-size:19px;line-height:1.35">Upload from your phone</h1>
 <p style="margin:0;font-size:15px;line-height:1.55">Open this on your phone and pick a rehearsal video. It goes straight into <b>${esc(project.title)}</b>.</p>
-<p style="margin:22px 0 2px"><a href="${link}" style="display:inline-block;background:#15161a;color:#fff;text-decoration:none;font-weight:650;font-size:14px;padding:11px 18px;border-radius:10px">Upload a video</a></p>
+<p style="margin:22px 0 2px"><a href="${link}" style="display:inline-block;background:#5b5ce2;color:#fff;text-decoration:none;font-weight:650;font-size:14px;padding:11px 18px;border-radius:10px">Upload a video</a></p>
 </div>
 <p style="margin:16px 4px 0;font-size:12px;line-height:1.6;color:#80869a">You asked for this link on dancerly. If that wasn’t you, you can ignore this email.<br>dancerly · Every dancer deserves to see their progress.</p>
 </div></body></html>`;

@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
-import { startTranslating, isKo } from './i18n.js';
+import { startTranslating, isKo, lang } from './i18n.js';
 import { renderWelcome, markSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
@@ -707,13 +707,17 @@ async function loadProfile() {
   if (data) saveTimezone(user.id);
 }
 
-// Email follow-ups keep quiet hours in each person's own time zone. Saved once per browser and account.
+// Email follow-ups keep quiet hours in each person's own time zone, and will follow their app language
+// (migration 048). Each is saved once per browser and account, and again when it changes.
 function saveTimezone(userId) {
+  const save = (key, value, row) => {
+    try { if (!value || localStorage.getItem(key) === value) return; } catch { return; }
+    sb.from('notification_settings').upsert({ user_id: userId, ...row }, { onConflict: 'user_id' })
+      .then(({ error }) => { if (!error) try { localStorage.setItem(key, value); } catch {} });
+  };
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const key = `looproom:tz:${userId}`;
-  try { if (!tz || localStorage.getItem(key) === tz) return; } catch { return; }
-  sb.from('notification_settings').upsert({ user_id: userId, timezone: tz }, { onConflict: 'user_id' })
-    .then(({ error }) => { if (!error) try { localStorage.setItem(key, tz); } catch {} });
+  save(`looproom:tz:${userId}`, tz, { timezone: tz });
+  save(`looproom:lang-saved:${userId}`, lang, { lang });
 }
 
 // What the ⌘K palette can do besides searching.
