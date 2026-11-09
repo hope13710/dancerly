@@ -1235,6 +1235,20 @@ export const KO = {
   'Focus area': '피드백 항목',
   'What the notes are about: open now and fixed in this range': '지금 남은 피드백과 이 기간에 해결한 피드백을 항목별로 보여 줘요',
   'Change focus area': '항목 바꾸기',
+  'Next up': '다음에 할 것',
+  'The few things worth doing before the next practice': '다음 연습 전에 하면 좋은 것들',
+  'See notes': '피드백 보기',
+  'Nothing needs you before the next practice.': '다음 연습 전에 챙길 일이 없어요.',
+  'Get more from Insights': '리포트 더 잘 활용하기',
+  'Each step adds something to this page': '한 단계씩 할 때마다 이 화면에 보이는 내용이 늘어나요',
+  'Upload a second take of a video': '같은 영상의 두 번째 테이크 올리기',
+  'Leave 5 notes': '피드백 5개 남기기',
+  'Mark a note fixed': '피드백 하나를 해결로 표시하기',
+  'Open now and fixed in this range. Tap one to see its notes.': '지금 남은 피드백과 이 기간에 해결한 피드백이에요. 누르면 해당 피드백을 볼 수 있어요.',
+  'Who to check in with': '챙겨야 할 멤버',
+  'Everyone’s on track. 👏': '모두 잘 따라오고 있어요. 👏',
+  'Activity by person': '멤버별 활동',
+  'Close': '닫기',
 };
 
 // Phrases with numbers or names in them. First match wins.
@@ -1309,6 +1323,7 @@ export const KO_RULES = [
   [/^from (\d+) notes?$/, '피드백 $1개 기준'],
   [/^from Take (\d+)$/, '테이크 $1에서 이어짐'],
   [/^from (.+)$/, '$1님이 만든 과제'],
+  [/^Due in (\d+)h · (.+)$/, '$1시간 후 마감 · $2'],
   [/^Due in (\d+)h$/, '$1시간 후 마감'],
   [/^Was due (.+)$/, '$1에 마감됐어요'],
   [/^You: (.+)$/, (m, x) => `나: ${tr(x)}`],
