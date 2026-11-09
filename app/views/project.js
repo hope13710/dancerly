@@ -244,6 +244,14 @@ export async function renderProjectPeople(projectId) {
     ${groupsSection(p, groups)}
   </section>`;
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
+  // Opened from the "invite your team" email: straight to the invite link.
+  const params = new URLSearchParams(location.search);
+  if (params.get('invite') === '1') {
+    params.delete('invite');
+    history.replaceState(history.state, '', `${location.pathname}${params.toString() ? `?${params}` : ''}`);
+    track('invite_link_opened', { from: params.get('ref') || 'link' });
+    showInvite(projectId, p.project.title);
+  }
   $$('[data-ask-yes], [data-ask-no]').forEach((b) => b.addEventListener('click', async () => {
     const yes = Boolean(b.dataset.askYes);
     const ask = asks.find((a) => a.id === (b.dataset.askYes || b.dataset.askNo));

@@ -4,7 +4,8 @@
 //   weekly   Monday 8 AM Eastern: fixes and takes from the past week, only after an active week; a week with
 //            uploads but no fixes yet gets one next step (invite, or leave the first note) instead of zeros
 //   start    getting started, at most once each: a nudge when a new leader has no video after 2 days
-//            (10 AM their time), and a note when the first teammate joins (replaces that "joined" email)
+//            (10 AM their time), a note when the first teammate joins (replaces that "joined" email), and an
+//            "invite your team" email the day after a leader uploads while still alone in the project
 // Also serves the one-click unsubscribe links (GET from the email footer, POST from mail apps).
 // Private note text never goes into an email. No open-tracking pixels; links carry ?ref=email_<kind>.
 // Secrets: RESEND_API_KEY. Without it, nothing is sent and nothing is marked.
@@ -379,6 +380,7 @@ async function preview(key: string, user: string) {
     nudgeEmail(first(profile?.display_name), real && project, sample?.project_id, unsub),
     nudgeEmail(first(profile?.display_name), null, sample?.project_id, unsub),
     teammateEmail("Mina", project, videos?.[0], unsub),
+    inviteEmail(first(profile?.display_name), project, videos?.[0]?.title ?? "your video", unsub),
   ];
   const sent = [];
   for (const e of emails) sent.push(await send(to, `[Test] ${e.subject}`, e.html, e.text, "dancerly", unsub));
@@ -425,6 +427,80 @@ async function startNudge(key: string) {
     const { subject, html, text } = nudgeEmail(first(p.display_name), real && { id: real.project_id, title: real.projects.title }, sample?.project_id, unsub);
     if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
     else await admin.from("email_log").delete().match({ user_id: p.id, kind: "start_nudge", period: "once" });
+  }
+  return sent;
+}
+
+// The day after a leader uploads while still alone in the project: one email asking them to send the invite link.
+// Feedback only starts when someone else watches, so this is the step between "uploaded" and "my team uses it".
+function inviteEmail(name: string, project: { id: string; title: string }, video: string, unsub: string) {
+  const href = `${SITE}/app/p/${project.id}/people?invite=1&ref=email_invite`;
+  const subject = `Invite your team to \u201c${video}\u201d`;
+  const p = (t: string) => `<p style="margin:12px 0 0;font-size:15px;line-height:1.55">${t}</p>`;
+  const lines = [
+    `You uploaded <b>${esc(video)}</b> to <b>${esc(project.title)}</b>. Right now you\u2019re the only one who can see it.`,
+    "dancerly works once your team is in: they pause on the exact count and leave a note, you upload the next take, and you all see what got fixed.",
+    "Inviting takes one link. Teammates join from their phone, with nothing to install.",
+  ];
+  const body = `<p style="margin:0;font-size:15px;line-height:1.55">Hi ${esc(name)},</p>\n${lines.map(p).join("\n")}`;
+  const plain = (t: string) => t.replace(/<[^>]+>/g, "");
+  return {
+    subject,
+    html: layout({ heading: esc(subject), body, cta: "Invite your team", ctaHref: href, footer: footerFor("A one-time email to help you get started", unsub, GROUP_LABEL.onboarding) }),
+    text: `Hi ${name},\n\n${lines.map(plain).join("\n\n")}\n\nInvite your team: ${href}\n\nTurn off: ${unsub}`,
+  };
+}
+
+// Leaders whose project has a take at least a day old, an upload in the last 10 days, and still only them in it.
+// Once per person, at 10 AM their time. Skipped while someone is asking to join (that has its own email).
+async function inviteNudge(key: string) {
+  const now = Date.now();
+  const { data: recent } = await admin.from("takes").select("project_id, created_at, projects(title, created_by, is_sample, deleted_at)")
+    .is("deleted_at", null).gte("created_at", new Date(now - 10 * 864e5).toISOString()).limit(5000);
+  const projects = new Map<string, any>();
+  for (const t of recent ?? []) {
+    const pr = (t as any).projects;
+    if (!pr || pr.is_sample || pr.deleted_at || isPersona(pr.created_by ?? "")) continue;
+    const x = projects.get(t.project_id) ?? { id: t.project_id, title: pr.title, owner: pr.created_by, oldest: t.created_at };
+    if (t.created_at < x.oldest) x.oldest = t.created_at;
+    projects.set(t.project_id, x);
+  }
+  const ready = [...projects.values()].filter((x) => Date.parse(x.oldest) <= now - 20 * 36e5);
+  if (!ready.length) return 0;
+  const owners = [...new Set(ready.map((x) => x.owner))];
+  const [{ data: roster }, { data: settings }, { data: logged }, { data: asks }] = await Promise.all([
+    admin.from("project_members").select("project_id").in("project_id", ready.map((x) => x.id)),
+    admin.from("notification_settings").select("user_id, email, timezone").in("user_id", owners),
+    admin.from("email_log").select("user_id").eq("kind", "invite_nudge").in("user_id", owners),
+    admin.from("join_requests").select("project_id").eq("status", "pending").in("project_id", ready.map((x) => x.id)),
+  ]);
+  const count = new Map<string, number>();
+  for (const m of roster ?? []) count.set(m.project_id, (count.get(m.project_id) ?? 0) + 1);
+  const asked = new Set((asks ?? []).map((a: any) => a.project_id));
+  const prefs = new Map((settings ?? []).map((s: any) => [s.user_id, s]));
+  const done = new Set((logged ?? []).map((l: any) => l.user_id));
+  let sent = 0;
+  for (const owner of owners) {
+    if (done.has(owner) || prefs.get(owner)?.email?.onboarding === false) continue;
+    if (hourIn(prefs.get(owner)?.timezone || DIGEST_ZONE) !== NUDGE_HOUR) continue;
+    // Their newest solo project; if any of their projects already has a teammate, the team is there.
+    const mine = ready.filter((x) => x.owner === owner);
+    if (mine.some((x) => (count.get(x.id) ?? 1) > 1)) continue;
+    const project = mine.filter((x) => !asked.has(x.id)).sort((a, b) => Date.parse(b.oldest) - Date.parse(a.oldest))[0];
+    if (!project) continue;
+    const [{ data: profile }, { data: videos }] = await Promise.all([
+      admin.from("profiles").select("display_name").eq("id", owner).maybeSingle(),
+      admin.from("videos").select("title").eq("project_id", project.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(1),
+    ]);
+    if (!videos?.length) continue;
+    const to = await emailOf(owner);
+    if (!to) continue;
+    const { error: dup } = await admin.from("email_log").insert({ user_id: owner, kind: "invite_nudge", period: "once" });
+    if (dup) continue;
+    const unsub = await unsubUrl(key, owner, "onboarding");
+    const { subject, html, text } = inviteEmail(first(profile?.display_name), project, videos[0].title, unsub);
+    if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
+    else await admin.from("email_log").delete().match({ user_id: owner, kind: "invite_nudge", period: "once" });
   }
   return sent;
 }
@@ -504,6 +580,9 @@ async function weekly(key: string) {
   if (!people.size) return 0;
   const { data: settings } = await admin.from("notification_settings").select("user_id, email").in("user_id", [...people]);
   const optedOut = new Set((settings ?? []).filter((s: any) => s.email?.weekly === false).map((s: any) => s.user_id));
+  // Got the "invite your team" email this past week: a weekly saying the same thing would be a repeat.
+  const { data: invited } = await admin.from("email_log").select("user_id").eq("kind", "invite_nudge").gte("sent_at", since).in("user_id", [...people]);
+  const justInvited = new Set((invited ?? []).map((l: any) => l.user_id));
   let sent = 0;
   for (const user of people) {
     if (optedOut.has(user)) continue;
@@ -520,6 +599,7 @@ async function weekly(key: string) {
       title: "",
       href: solo ? `${SITE}/app/p/${latest.project_id}/people?ref=email_weekly` : `${SITE}/app/p/${latest.project_id}/v/${latest.video_id}?take=${latest.number}&ref=email_weekly`,
     } : null;
+    if (solo && justInvited.has(user) && !myFixes && !landed && !team.some((x) => x.fixes)) continue;
     const { error: dup } = await admin.from("email_log").insert({ user_id: user, kind: "weekly", period: week });
     if (dup) continue;
     const to = await emailOf(user);
@@ -562,5 +642,6 @@ Deno.serve(async (req) => {
   const result = await followUp(key);
   const weeklySent = await weekly(key);
   const nudged = await startNudge(key);
-  return Response.json({ ...result, weekly: weeklySent, start_nudge: nudged });
+  const invited = await inviteNudge(key);
+  return Response.json({ ...result, weekly: weeklySent, start_nudge: nudged, invite_nudge: invited });
 });
