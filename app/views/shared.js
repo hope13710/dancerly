@@ -45,7 +45,7 @@ export function noteRow(n, names, { showAuthor = true, showProject = true } = {}
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
     ${showAuthor ? (names[n.author_id] ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${n.author_id}">${avatar(author, n.author_id, 'sm')}</span>` : avatar(author, n.author_id, 'sm')) : ''}
     <span class="row-main">
-      <span class="row-title">${n.private_to ? '<span class="lock" title="Private: only the two of you">🔒</span> ' : ''}${esc(n.body)}</span>
+      <span class="row-title">${n.private_to ? '<span class="lock" title="Private: only the two of you" data-i18n-attrs>🔒</span> ' : ''}${esc(n.body)}</span>
       <span class="row-meta">${showAuthor ? `<b>${names[n.author_id] ? personLink(author, n.author_id, { photo: false }) : esc(author)}</b> · ` : ''}<span class="time-tag">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
     </span>
     <span class="row-side">${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">💬 ${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">👍 ${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>

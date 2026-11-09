@@ -145,7 +145,8 @@ export async function showEvent(e, refresh, projectId) {
 export async function editEvent({ projectId = null, date = null, event = null, refresh = null }) {
   // The sample's events are edited inside the sample; the picker offers only real projects.
   const projects = projectId || event ? ctx.state.projects : realProjects();
-  if (!projects.length) { toast('Events belong to a project. Create one first.'); return; }
+  // No project yet: say why, then open "New project" right away (the same as Invite and New assignment do).
+  if (!projects.length) { toast('Events belong to a project. Create one first.'); return ctx.startAction('project'); }
   const local = (iso) => { const d = new Date(iso); return { date: dayKey(d), time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }; };
   const s = event ? local(event.starts_at) : { date: date || dayKey(new Date()), time: '18:00' };
   const e2 = event?.ends_at ? local(event.ends_at) : { time: event ? '' : '20:00' };

@@ -68,6 +68,8 @@ export async function renderPerson(userId) {
   const scope = (q) => (sampleOnly ? q : noSample(q));
   if (!person) throw new Error('You don’t share a project with this person.');
   setCrumbs([['People', '/app/people'], [person.name]]);
+  // Your own page speaks to you ("your takes"), everyone else's about them.
+  const self = userId === me;
   const show = new URLSearchParams(location.search).get('show');
   const tab = ['received', 'videos', 'progress'].includes(show) ? show : 'given';
   const [{ data: given }, { data: theirTakes }] = await Promise.all([
@@ -120,7 +122,7 @@ export async function renderPerson(userId) {
       <div class="stat"><small>Notes received</small><b>${received.length}</b></div>
       <div class="stat"><small>Received & fixed</small><b>${resolvedRate === null ? '—' : `${resolvedRate}%`}</b></div>
     </div>
-    ${tabs([['given', 'Notes given', base], ['received', 'Notes on their takes', `${base}?show=received`], ['videos', 'Videos', `${base}?show=videos`, videos.length], ['progress', 'Progress', `${base}?show=progress`]], tab)}
+    ${tabs([['given', 'Notes given', base], ['received', self ? 'Notes on your takes' : 'Notes on their takes', `${base}?show=received`], ['videos', 'Videos', `${base}?show=videos`, videos.length], ['progress', 'Progress', `${base}?show=progress`]], tab)}
     ${tab === 'progress'
       ? (growth.length ? `<div class="growth-list">${growth.map((v) => `<div class="growth-item">
           <a class="growth-thumbs" href="/app/p/${v.last.project_id}/v/${v.video_id}?take=${v.last.number}" data-link aria-label="${esc(v.latest.videos?.title || 'Video')}">
@@ -130,16 +132,16 @@ export async function renderPerson(userId) {
             ${v.total ? `<span class="growth-bar" role="img" aria-label="${v.fixed} of ${v.total} notes fixed"><i style="width:${Math.round((v.fixed / v.total) * 100)}%"></i></span><small>${v.fixed} of ${v.total} notes fixed</small>` : '<small>No notes yet</small>'}
             ${v.canCard ? `<button class="btn small" type="button" data-make-card="${v.video_id}" data-project="${v.last.project_id}">Make a card</button>` : ''}</div>
         </div>`).join('')}</div>`
-        : `<p class="panel-empty">${videos.length ? 'Progress shows up once a video has a second take.' : 'No videos from them yet.'}</p>`)
+        : `<p class="panel-empty">${videos.length ? 'Progress shows up once a video has a second take.' : self ? 'You haven’t uploaded a video yet.' : 'No videos from them yet.'}</p>`)
       : tab === 'videos'
       ? (videos.length ? `<div class="video-list">${videos.map(({ latest: t, count }) => `<div class="video-item"><a class="video-row" href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link>
           <span class="video-thumb" data-thumb="${t.id}"><i aria-hidden="true">▶</i>${count > 1 ? `<em>${count} takes</em>` : ''}</span>
           <span class="video-copy"><b>${esc(t.videos?.title || 'Video')}</b><small>${esc(t.projects?.title || '')} · Take ${t.number} · ${timeAgo(t.created_at)}</small></span>
           <span class="chev">→</span>
         </a></div>`).join('')}</div>`
-        : `<p class="panel-empty">No videos from them yet.</p>`)
+        : `<p class="panel-empty">${self ? 'You haven’t uploaded a video yet.' : 'No videos from them yet.'}</p>`)
       : list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`
-      : `<p class="panel-empty">${tab === 'given' ? 'No notes from them yet.' : 'No notes on their takes yet.'}</p>`}
+      : `<p class="panel-empty">${tab === 'given' ? (self ? 'You haven’t left a note yet.' : 'No notes from them yet.') : (self ? 'No notes on your takes yet.' : 'No notes on their takes yet.')}</p>`}
   </section>`;
   if (tab === 'videos') paintThumbs(videos.map((v) => v.latest));
   if (tab === 'progress') {

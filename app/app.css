@@ -8380,3 +8380,12 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
   .free-up-list .btn { width: 100%; justify-content: center; }
 }
 .meter i.warn { background: #e0a63a; }
+@media (max-width: 600px) {
+  /* A header whose only action is the ••• menu: keep it beside the title instead of on a line of its own. */
+  .page-head:has(> .head-actions > .icon:only-child) { position: relative; }
+  .page-head:has(> .head-actions > .icon:only-child) > div:first-child { padding-right: 44px; }
+  .page-head > .head-actions:has(> .icon:only-child) { position: absolute; top: 0; right: 0; }
+}
+/* People: a name and its "You" tag stay on one line, even in the narrow table on a phone. */
+.table a.person { white-space: nowrap; }
+.table a.person b { white-space: nowrap; }

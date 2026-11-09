@@ -77,7 +77,8 @@ function translateText(node) {
   if (next !== value) node.nodeValue = next;
 }
 function translateAttrs(el) {
-  if (el.closest(SKIP) && !el.matches('input, textarea')) return;
+  // data-i18n-attrs: an interface bit inside a user-content area (the 🔒 on a note title) still gets its tooltip translated.
+  if (el.closest(SKIP) && !el.matches('input, textarea, [data-i18n-attrs]')) return;
   for (const name of ATTRS) {
     const value = el.getAttribute(name);
     if (!value) continue;

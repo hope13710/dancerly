@@ -1267,12 +1267,23 @@ export const KO = {
   'Can’t reach dancerly. Check your connection and try again.': 'dancerly에 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
   'You don’t have permission to do that.': '이 작업을 할 권한이 없어요.',
   'That video is over 50 MB. Trim it or export a smaller file.': '영상이 50MB를 넘어요. 필요한 부분만 자르거나 더 작은 파일로 저장해 주세요.',
+  'new video': '새 영상',
+  'videos asked for': '요청한 영상',
+  'Notes on your takes': '내 테이크에 달린 피드백',
+  'You haven’t uploaded a video yet.': '아직 올린 영상이 없어요.',
+  'You haven’t left a note yet.': '아직 남긴 피드백이 없어요.',
+  'No notes on your takes yet.': '아직 내 테이크에 달린 피드백이 없어요.',
 };
 
 // Phrases with numbers or names in them. First match wins.
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^Next due (.+)$/, '다음 마감 $1'],
+  [/^Last week$/, '지난주'],
+  [/^Week of (.+)$/, '$1 주'],
+  [/^(\d+) new notes? since this recap$/, '이 요약 이후 새 피드백 $1개'],
+  [/^(\d+) new takes$/, '새 테이크 $1개'],
   [/^(\d+) (?:person is|people are) already here, giving each other feedback on practice videos\.$/, '이미 $1명이 참여해 서로의 연습 영상에 피드백을 주고 있어요.'],
   [/^Joined (.+)$/, (m, a) => `${tr(a)} 참여`],
   [/^Works until (.+)$/, '$1까지 사용할 수 있어요'],
