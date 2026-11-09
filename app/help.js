@@ -10,13 +10,14 @@ import { track } from './onboarding.js';
 const EMAIL = 'help@dancerly.app';
 const KINDS = [['bug', 'Something’s broken'], ['idea', 'Idea'], ['question', 'Question'], ['other', 'Other']];
 
-export function openHelp({ kind = 'bug' } = {}) {
+// A specific ask can open it ready to send: a prefilled message, its own line on top, and its own thank-you.
+export function openHelp({ kind = 'bug', body: prefill = '', intro = 'Tell us anything. We read every message.', done = 'We read every message. If you asked something, we’ll reply to your email.' } = {}) {
   const el = document.createElement('dialog');
   el.className = 'dialog help-dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card">
     <div class="help-head"><h2>Help &amp; support</h2><button type="button" class="icon-btn" data-help-close aria-label="Close">✕</button></div>
     <div data-help-form>
-      <p class="muted">Tell us anything. We read every message.</p>
+      <p class="muted" data-help-intro></p>
       <div class="chips help-kinds" role="radiogroup" aria-label="What is it about?">${KINDS.map(([k, label]) => `<button type="button" class="chip" role="radio" data-kind="${k}" aria-checked="${k === kind}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
       <label class="field"><span class="sr-only">Message</span><textarea name="body" rows="5" maxlength="4000" required placeholder="What happened, or what would make dancerly better for you?"></textarea></label>
       <p class="fine left">We’ll attach the page you’re on and your browser, to help us fix things faster.</p>
@@ -25,7 +26,7 @@ export function openHelp({ kind = 'bug' } = {}) {
     <div class="help-done" data-help-done hidden>
       <div class="help-done-icon" aria-hidden="true">✓</div>
       <h3>Thanks, we got it.</h3>
-      <p class="muted">We read every message. If you asked something, we’ll reply to your email.</p>
+      <p class="muted" data-help-donetext></p>
       <div class="dialog-actions"><button type="button" class="btn primary" data-help-close>Done</button></div>
     </div>
     <div class="help-links">
@@ -39,7 +40,11 @@ export function openHelp({ kind = 'bug' } = {}) {
   let picked = kind;
   const form = el.querySelector('form');
   const text = el.querySelector('textarea');
+  el.querySelector('[data-help-intro]').textContent = intro;
+  el.querySelector('[data-help-donetext]').textContent = done;
+  text.value = prefill;
   text.focus();
+  text.setSelectionRange(text.value.length, text.value.length);
   el.querySelectorAll('[data-kind]').forEach((b) => b.addEventListener('click', () => {
     picked = b.dataset.kind;
     el.querySelectorAll('[data-kind]').forEach((x) => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });

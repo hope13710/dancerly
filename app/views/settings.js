@@ -3,6 +3,7 @@ import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wi
 import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
+import { openHelp } from '../help.js';
 
 const SECTIONS = [
   ['account', 'Account'],
@@ -205,7 +206,7 @@ export async function renderSettings(section = 'account') {
             const share = Math.round((Number(r.bytes) / Math.max(used, 1)) * 100);
             return `<li>${projectMark(p, 'xs')}<span class="free-up-main"><span class="free-up-title">${esc(p?.title || ownedTitle(r.project_id))}</span><span class="free-up-meta">${size(Number(r.bytes))}${byProject.length > 1 ? ` · ${ko ? `전체의 ${share}%` : `${share}% of your storage`}` : ''}</span>${byProject.length > 1 ? `<span class="free-up-bar"><i style="width:${share}%"></i></span>` : ''}</span><a class="btn small${i === 0 ? ' primary' : ''}" href="/app/p/${r.project_id}" data-link>${ko ? '영상 정리하기' : 'Review videos'} <span aria-hidden="true">›</span></a></li>`;
           }).join('')}</ul>` : ''}
-          <p class="free-up-more">${ko ? '공간이 더 필요하신가요?' : 'Need more room?'} <a href="mailto:help@dancerly.app?subject=${encodeURIComponent('More storage for dancerly')}">${ko ? '저희에게 알려 주세요' : 'Tell us'}</a>${ko ? '. 늘려 드릴게요.' : ' and we’ll add more.'}</p>
+          <p class="free-up-more">${ko ? '공간이 더 필요하신가요?' : 'Need more room?'} <button type="button" class="link-btn" data-more-storage>${ko ? '저희에게 알려 주세요' : 'Tell us'}</button>${ko ? '. 늘려 드릴게요.' : ' and we’ll add more.'}</p>
         </div>` : '';
     const intro = ko
       ? `모든 기능을 쓸 수 있고 인원, 프로젝트, AI 요약에 제한이 없어요. 팀 오너마다 영상 저장 공간 ${size(allowance)}(연습 영상 약 ${aboutVideos(allowance)}개)가 주어져요.`
@@ -219,7 +220,14 @@ export async function renderSettings(section = 'account') {
         </div>
         ${freeUp}
         <p class="fine left">Uploads by everyone in your projects count toward your storage. If we ever add paid plans, we’ll tell you well in advance, and everything you’ve uploaded stays yours.</p>
-      </section>`
+      </section>`,
+      // "Tell us": the in-app help form, ready to send (works without a mail app, and we see who's asking).
+      wire: () => $('[data-more-storage]')?.addEventListener('click', () => openHelp({
+        kind: 'other',
+        body: ko ? '팀 영상 저장 공간이 더 필요해요.' : 'We need more video storage for our team.',
+        intro: ko ? '어떤 팀인지, 얼마나 자주 영상을 올리는지 한두 줄 적어 주시면 더 빨리 늘려 드릴게요.' : 'A line about your team and how often you upload helps us add room faster.',
+        done: ko ? '저장 공간을 늘린 뒤 이메일로 알려 드릴게요.' : 'We’ll add more storage and email you once it’s ready.'
+      }))
     };
   }
 }
