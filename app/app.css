@@ -4375,12 +4375,18 @@ td.ref .play {
   padding: 2px 4px;
   font-size: 11px;
 }
+/* A note with a sketch: just the pen, right next to its moment (the tooltip says what it means). */
 .sketch-tag {
-  font-size: 11px;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 1;
   color: #c9caff;
   background: rgba(91, 92, 226, 0.16);
   border-radius: 5px;
-  padding: 2px 6px;
+  cursor: default;
 }
 @media (max-width: 720px) {
   .sketch-bar {
