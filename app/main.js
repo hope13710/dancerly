@@ -208,7 +208,9 @@ function paintSampleBar(sample) {
 let inboxChannel = null;
 async function refreshUnread() {
   if (!state.session) return;
-  const { count } = await sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+  // The sample project's notifications never show in the Inbox, so they don't count either.
+  await state.projectsReady;
+  const { count } = await noSample(sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null));
   $$('[data-unread]').forEach((b) => { b.hidden = !count; b.textContent = count > 99 ? '99+' : String(count || ''); });
   if (!inboxChannel) {
     const uid = state.session.user.id;

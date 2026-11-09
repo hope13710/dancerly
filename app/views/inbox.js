@@ -54,7 +54,7 @@ export async function renderInbox() {
   if (filter === 'mentions') query = query.eq('kind', 'mention');
   const [{ data: items, error }, { count: unread }] = await Promise.all([
     query,
-    sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null)
+    noSample(sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null))
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open.
