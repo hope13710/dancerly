@@ -435,10 +435,10 @@ async function startNudge(key: string) {
 // Feedback only starts when someone else watches, so this is the step between "uploaded" and "my team uses it".
 function inviteEmail(name: string, project: { id: string; title: string }, video: string, unsub: string) {
   const href = `${SITE}/app/p/${project.id}/people?invite=1&ref=email_invite`;
-  const subject = `Invite your team to \u201c${video}\u201d`;
+  const subject = `Invite your team to “${video}”`;
   const p = (t: string) => `<p style="margin:12px 0 0;font-size:15px;line-height:1.55">${t}</p>`;
   const lines = [
-    `You uploaded <b>${esc(video)}</b> to <b>${esc(project.title)}</b>. Right now you\u2019re the only one who can see it.`,
+    `You uploaded <b>${esc(video)}</b> to <b>${esc(project.title)}</b>. Right now you’re the only one who can see it.`,
     "dancerly works once your team is in: they pause on the exact count and leave a note, you upload the next take, and you all see what got fixed.",
     "Inviting takes one link. Teammates join from their phone, with nothing to install.",
   ];
@@ -597,7 +597,7 @@ async function weekly(key: string) {
     const next = latest ? {
       project: titleOf.get(latest.project_id) ?? "",
       title: "",
-      href: solo ? `${SITE}/app/p/${latest.project_id}/people?ref=email_weekly` : `${SITE}/app/p/${latest.project_id}/v/${latest.video_id}?take=${latest.number}&ref=email_weekly`,
+      href: solo ? `${SITE}/app/p/${latest.project_id}/people?invite=1&ref=email_weekly` : `${SITE}/app/p/${latest.project_id}/v/${latest.video_id}?take=${latest.number}&ref=email_weekly`,
     } : null;
     if (solo && justInvited.has(user) && !myFixes && !landed && !team.some((x) => x.fixes)) continue;
     const { error: dup } = await admin.from("email_log").insert({ user_id: user, kind: "weekly", period: week });
