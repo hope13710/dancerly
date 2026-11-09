@@ -8034,3 +8034,91 @@ body.is-onboarding .tabbar {
     white-space: nowrap;
   }
 }
+
+/* Focus area of a note (timing, technique, sync, formation, performance, other): a colored dot and the label. */
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 2px 7px 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cat) 16%, transparent);
+  color: inherit;
+  white-space: nowrap;
+}
+.cat-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cat);
+  flex: none;
+}
+.cat-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cat-btn:hover .cat-chip,
+.cat-btn:focus-visible .cat-chip {
+  box-shadow: inset 0 0 0 1px var(--cat);
+}
+.starter-chips .mini .cat-chip {
+  background: none;
+  padding: 0;
+}
+
+/* Insights: focus areas, one bar per category (open in the category's color, fixed in green). */
+.focus-sum {
+  margin: 0 0 12px;
+  color: var(--ink-2, #4a5160);
+  font-size: 14px;
+}
+.focus-list {
+  display: grid;
+  gap: 10px;
+}
+.focus-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.focus-row .cat-chip {
+  justify-self: start;
+  font-size: 12px;
+}
+.focus-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--line, #eceef2);
+  overflow: hidden;
+}
+.focus-bar i {
+  display: block;
+  height: 100%;
+}
+.focus-bar .open { background: var(--cat); }
+.focus-bar .fixed { background: var(--ok); opacity: 0.55; }
+.focus-num {
+  font-size: 12.5px;
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.key.focus-open { background: #8e96a3; }
+.key.focus-fixed { background: var(--ok); opacity: 0.55; }
+@media (max-width: 600px) {
+  .focus-row { grid-template-columns: 1fr auto; row-gap: 6px; }
+  .focus-row .focus-bar { grid-column: 1 / -1; order: 3; }
+}
+@media (max-width: 600px) {
+  /* The row numbers already say open and fixed; on a phone the legend only crowds the heading. */
+  .focus-panel .legend { display: none; }
+}

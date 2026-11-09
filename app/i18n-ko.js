@@ -1231,6 +1231,10 @@ export const KO = {
   'Facials': '표정',
   'Energy': '에너지',
   'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.': '연습 일정, 동선, 의상, 음악 큐까지 계획을 한곳에 모아 두세요. 프로젝트 멤버 모두 보고 고칠 수 있어요.',
+  'Focus areas': '피드백 항목',
+  'Focus area': '피드백 항목',
+  'What the notes are about: open now and fixed in this range': '지금 남은 피드백과 이 기간에 해결한 피드백을 항목별로 보여 줘요',
+  'Change focus area': '항목 바꾸기',
 };
 
 // Phrases with numbers or names in them. First match wins.

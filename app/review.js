@@ -13,6 +13,7 @@ import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
 import { personLink } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
+import { CATEGORIES, catLabel, catChip, catHint, starterKeys } from './categories.js';
 
 // Slow is for learning a move; 1.25–1.5× is for skimming a long run-through. Picked from a menu, or < and >.
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
@@ -20,8 +21,6 @@ const SPEED_KEY = 'looproom:speed';
 const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(s) ? s : 1; } catch { return 1; } };
 
 // The review screen: one video, its takes, and the team's notes on them.
-// First-note starters: a topic to begin with, in English and Korean.
-const STARTERS = [['Timing', '타이밍'], ['Spacing', '간격'], ['Arms', '팔 동작'], ['Facials', '표정'], ['Energy', '에너지']];
 
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
@@ -70,7 +69,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const signed = { signedUrl: await takeUrl(take.storage_path) };
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
-  const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, nowIds: new Set(), nowKey: '', listTouched: 0, justPinned: null, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
+  const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, nowIds: new Set(), nowKey: '', listTouched: 0, justPinned: null, asked: new Set(), starter: null, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
   // Carried notes someone answered “Not yet” on for this take.
   try { r.notYet = new Set(JSON.parse(localStorage.getItem(`looproom:notYet:${take.id}`) || '[]')); } catch { r.notYet = new Set(); }
 
@@ -159,7 +158,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Notes ----------
   async function loadNotes() {
     const { data, error } = await sb.from('notes')
-      .select('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, note_reactions(user_id), note_replies(id, author_id, body, created_at)')
+      .select(cols('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, category, note_reactions(user_id), note_replies(id, author_id, body, created_at)'))
       .eq('video_id', videoId).order('t_start');
     if (error) return toast(friendlyError(error), 'error');
     r.notes = data.map((n) => {
@@ -168,6 +167,18 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const move = (t) => (t === null ? null : Math.max(0, Number(t) + (shift || 0)));
       return { ...n, t_start: move(n.t_start), t_end: move(n.t_end), shifted: Boolean(shift), unaligned: shift === null, note_replies: [...(n.note_replies || [])].sort((a, b) => a.created_at.localeCompare(b.created_at)) };
     });
+    paintNotes();
+    classifyPending();
+  }
+  // Notes without a focus area yet get one from the AI, in the background (each note is asked about once per visit).
+  async function classifyPending() {
+    if (!schema.noteCategories) return;
+    const ids = r.notes.filter((n) => !n.category && !r.asked.has(n.id)).map((n) => n.id).slice(0, 40);
+    if (!ids.length) return;
+    ids.forEach((id) => r.asked.add(id));
+    const { data, error } = await sb.functions.invoke('classify-notes', { body: { note_ids: ids } });
+    if (error || !data?.classified?.length) return;
+    for (const c of data.classified) { const n = r.notes.find((x) => x.id === c.id); if (n && !n.category) n.category = c.category; }
     paintNotes();
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
@@ -209,7 +220,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const open = r.openThreads.has(n.id);
       return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
+        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${noteCount(n)}${from}${n.sketch ? '<span class="sketch-tag" title="This note has a sketch on the frame">✎ Sketch</span>' : ''}${n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
         ${ask}
         <div class="note-foot"><span class="who">${by(n.author_id)} · ${timeAgo(n.created_at)}</span></div>
@@ -230,7 +241,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>` : ''}
       </article>`;
     }).join('') : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
-      <div class="starter-chips" role="group" aria-label="Start a note">${STARTERS.map(([en]) => `<button type="button" class="mini" data-starter="${en}">${en}</button>`).join('')}</div></div>`;
+      <div class="starter-chips" role="group" aria-label="Start a note">${starterKeys(members.length <= 1).map((k) => `<button type="button" class="mini" data-starter="${k}">${catChip(k)}</button>`).join('')}</div></div>`;
     paintMarkers(notes);
     paintSummary();
   }
@@ -731,11 +742,24 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (starter) {
       // Start the note with the topic; the moment is wherever the video is paused now.
       play(false);
-      const word = (STARTERS.find(([en]) => en === starter.dataset.starter) || [])[document.documentElement.lang === 'ko' ? 1 : 0] || starter.dataset.starter;
+      const word = catLabel(starter.dataset.starter);
+      r.starter = { key: starter.dataset.starter, prefix: `${word}:` };
       $('[data-composer-open]')?.click();
       input.value = `${word}: `;
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
+    const catBtn = e.target.closest('[data-category]');
+    if (catBtn) {
+      const n = r.notes.find((x) => x.id === catBtn.dataset.category);
+      const picked = await actionSheet({ title: 'Focus area', actions: CATEGORIES.map(([k]) => ({ value: k, label: `${k === n.category ? '✓ ' : ''}${catLabel(k)}`, hint: catHint(k) })) });
+      if (!picked || picked === n.category) return;
+      const before = n.category;
+      n.category = picked;
+      paintNotes();
+      const { error } = await sb.rpc('set_note_category', { p_note: n.id, p_category: picked });
+      if (error) { n.category = before; paintNotes(); toast(friendlyError(error), 'error'); }
       return;
     }
     // Picking from a note's ⋯ menu closes it.
@@ -946,12 +970,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     }
     pinning = true;
     const privateTo = $('[data-visibility]').value || null;
-    const { data: note, error } = await sb.from('notes').insert({ take_id: take.id, t_start: start.toFixed(2), t_end: end === null ? null : end.toFixed(2), body, private_to: privateTo, sketch: r.sketch ? { v: 1, strokes: r.sketch } : null }).select('id').single();
+    const fromStarter = schema.noteCategories && r.starter && body.startsWith(r.starter.prefix) ? { category: r.starter.key, category_source: 'starter' } : {};
+    const { data: note, error } = await sb.from('notes').insert({ take_id: take.id, t_start: start.toFixed(2), t_end: end === null ? null : end.toFixed(2), body, private_to: privateTo, sketch: r.sketch ? { v: 1, strokes: r.sketch } : null, ...fromStarter }).select('id').single();
     pinning = false;
     if (error) return toast(friendlyError(error), 'error');
     // In a private note only the recipient can be mentioned (they're notified anyway).
     const mentioned = members.filter((m) => m.user_id !== me.id && body.includes(`@${m.name}`) && (!privateTo || m.user_id === privateTo));
     if (mentioned.length) await sb.from('note_mentions').insert(mentioned.map((m) => ({ note_id: note.id, user_id: m.user_id })));
+    r.starter = null;
     input.value = '';
     input.blur();
     dropSketch();
@@ -962,7 +988,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     setTimeout(() => { if (r.justPinned === note.id) r.justPinned = null; }, 1600);
     await loadNotes();
     view.querySelector(`[data-note="${note.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    if (!seen('first_note')) { markSeen('first_note'); track('first_note', { sample: Boolean(project.is_sample), private: Boolean(privateTo) }); }
+    if (!seen('first_note')) { markSeen('first_note'); logEvent('first_note', { sample: Boolean(project.is_sample), private: Boolean(privateTo) }); }
     if (project.is_sample) sampleMoment('note');
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
     toast(recipient

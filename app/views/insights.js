@@ -1,11 +1,12 @@
 // Insights: what to work on next. Where feedback piles up in each video, what's been stuck, what the team agrees on,
 // who still owes a video — then the trend and the numbers. Cards with too little data behind them stay hidden.
-import { sb, $, $$, esc, timeAgo, avatar, cols, fmt } from '../client.js';
+import { sb, $, $$, esc, timeAgo, avatar, cols, fmt, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { pageHead, previewEmpty, hasRealVideo, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
 import { shiftBetween } from '../align.js';
 import { isKo, t } from '../i18n.js';
+import { CATEGORIES, catChip, catLabel, catColor } from '../categories.js';
 import { samplePeek, sampleMoment, teamNote } from '../onboarding.js';
 
 const RANGES = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
@@ -59,6 +60,7 @@ function hotSpots(video, notes, takesOfVideo) {
   return { video, latest, size, cells, top: top?.open ? top : null, unaligned, open: notes.filter((n) => n.status !== 'resolved').length };
 }
 
+const askedToSort = new Set();
 export async function renderInsights() {
   const { state, view, setCrumbs, navigate } = ctx;
   setCrumbs([['Insights']]);
@@ -77,7 +79,7 @@ export async function renderInsights() {
   const scope = (q) => (project ? q.eq('project_id', project) : sample ? q.neq('project_id', sample.id) : q);
 
   const [{ data: notes, error }, { data: takes, error: tErr }, { data: videos }, { data: requests }, { data: submitted }, { data: roster }] = await Promise.all([
-    scope(sb.from('notes').select('id, project_id, video_id, take_id, author_id, status, created_at, resolved_at, t_start, t_end, body, videos(title), takes(number, uploaded_by), note_reactions(user_id)')).order('created_at', { ascending: false }).limit(5000),
+    scope(sb.from('notes').select(cols('id, project_id, video_id, take_id, author_id, status, created_at, resolved_at, t_start, t_end, body, category, videos(title), takes(number, uploaded_by), note_reactions(user_id)'))).order('created_at', { ascending: false }).limit(5000),
     scope(sb.from('takes').select(cols('id, project_id, video_id, number, uploaded_by, created_at, count_start, align'))).limit(5000),
     scope(sb.from('videos').select('id, project_id, title, bpm')).limit(1000),
     scope(sb.from('requests').select('id, project_id, title, due_at, everyone, created_by, request_assignees(user_id)')).eq('status', 'active').limit(100),
@@ -94,6 +96,20 @@ export async function renderInsights() {
   const left = notes.filter((n) => inRange(n.created_at));
   const fixed = notes.filter((n) => n.status === 'resolved' && inRange(n.resolved_at));
   const openNow = notes.filter((n) => n.status !== 'resolved');
+  // Focus areas: per category, what's still open and what got fixed in this range (notes not sorted yet are left out).
+  const areas = schema.noteCategories ? CATEGORIES.map(([key]) => ({
+    key,
+    open: openNow.filter((n) => n.category === key).length,
+    fixed: fixed.filter((n) => n.category === key).length
+  })).filter((a) => a.open + a.fixed) : [];
+  // "Other" goes last; the rest by what's open, then by what got fixed.
+  areas.sort((a, b) => (a.key === 'other') - (b.key === 'other') || b.open - a.open || b.fixed - a.fixed);
+  const areaMax = Math.max(1, ...areas.map((a) => a.open + a.fixed));
+  const focus = areas.find((a) => a.key !== 'other' && a.open);
+  // 이에요 after a final consonant (타이밍이에요), 예요 after a vowel (싱크예요).
+  const ieyo = (word) => { const c = word.charCodeAt(word.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? '이에요' : '예요'; };
+  const improved = [...areas].filter((a) => a.key !== 'other' && a.fixed).sort((a, b) => b.fixed - a.fixed)[0];
+  const unsorted = schema.noteCategories ? notes.filter((n) => !n.category && (inRange(n.created_at) || n.status !== 'resolved')).map((n) => n.id) : [];
   const takesInRange = takes.filter((t) => inRange(t.created_at));
   const takeById = Object.fromEntries(takes.map((t) => [t.id, t]));
   const takesByVideo = {};
@@ -213,6 +229,21 @@ export async function renderInsights() {
         : '<p class="panel-empty">Nothing needs you right now. Keep leaving notes and this fills in.</p>'}
     </section>
 
+    ${areas.length ? `<section class="panel focus-panel">
+      <div class="panel-head"><div><h2>Focus areas</h2><p class="muted">What the notes are about: open now and fixed in this range</p></div>
+        <div class="legend"><span><i class="key focus-open"></i>Open</span><span><i class="key focus-fixed"></i>Fixed</span></div></div>
+      ${focus || improved ? `<p class="focus-sum" data-no-i18n>${[
+        focus ? (isKo ? `지금 가장 많이 남은 건 <b>${catLabel(focus.key)}</b>${ieyo(catLabel(focus.key))} (미해결 ${focus.open}개).` : `Most open right now: <b>${catLabel(focus.key)}</b> (${focus.open}).`) : '',
+        improved ? (isKo ? `가장 많이 고친 건 <b>${catLabel(improved.key)}</b>${ieyo(catLabel(improved.key))} (${improved.fixed}개 해결).` : `Most fixed: <b>${catLabel(improved.key)}</b> (${improved.fixed}).`) : ''
+      ].filter(Boolean).join(' ')}</p>` : ''}
+      <div class="focus-list">${areas.map((a) => `<div class="focus-row" style="--cat:${catColor(a.key)}">
+        ${catChip(a.key)}
+        <div class="focus-bar" role="img" aria-label="${catLabel(a.key)}: ${a.open} open, ${a.fixed} fixed"><i class="open" style="width:${(a.open / areaMax) * 100}%"></i><i class="fixed" style="width:${(a.fixed / areaMax) * 100}%"></i></div>
+        <span class="focus-num" data-no-i18n>${isKo ? `미해결 ${a.open} · 해결 ${a.fixed}` : `${a.open} open · ${a.fixed} fixed`}</span>
+      </div>`).join('')}</div>
+      ${unsorted.length ? `<p class="fine left" data-no-i18n>${isKo ? `피드백 ${unsorted.length}개는 아직 분류 중이에요.` : `${unsorted.length} ${unsorted.length === 1 ? 'note is' : 'notes are'} still being sorted.`}</p>` : ''}
+    </section>` : ''}
+
     ${spots.length ? `<section class="panel heat-panel">
       <div class="panel-head"><div><h2>Where feedback piles up</h2><p class="muted">Each square is a few seconds of the video. Darker means more notes still open. Tap one to jump there.</p></div>
         <div class="legend"><span><i class="key heat-open"></i>Open</span><span><i class="key heat-fixed"></i>Fixed</span></div></div>
@@ -276,6 +307,14 @@ export async function renderInsights() {
   </section>`;
 
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
+  // Notes that haven't been sorted into a focus area yet: ask once, then redraw with them.
+  const ask = unsorted.filter((id) => !askedToSort.has(id)).slice(0, 40);
+  if (ask.length) {
+    ask.forEach((id) => askedToSort.add(id));
+    sb.functions.invoke('classify-notes', { body: { note_ids: ask } }).then(({ data }) => {
+      if (data?.classified?.length && location.pathname === '/app/insights') renderInsights();
+    });
+  }
   view.querySelectorAll('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) navigate(tr.dataset.href); }));
   // The demo is the sample, so it gets the sample's bar (and, the first time, what to take from it).
   if (demo) { ctx.sampleBar(sample); sampleMoment('insights'); }
