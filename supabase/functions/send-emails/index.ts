@@ -99,7 +99,7 @@ function layout({ heading, body, cta, ctaHref, footer }: { heading?: string; bod
   return `<!doctype html><html><body style="margin:0;background:#f4f5f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#15161a">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${preview}${"&#8199;&#65279;&#847; ".repeat(40)}</div>
 <div style="max-width:520px;margin:0 auto;padding:28px 16px">
-<p style="margin:0 0 18px;font-weight:800;font-size:18px;letter-spacing:-0.02em;color:#5b5ce2">dancerly</p>
+<a href="${SITE}" style="display:inline-block;margin:0 0 18px"><img src="${SITE}/logo-wordmark.png" alt="dancerly" width="102" height="24" style="display:block;height:24px;width:auto;border:0" /></a>
 <div style="background:#fff;border-radius:14px;padding:24px 22px;border:1px solid #e7e8ee">
 ${heading ? `<h1 style="margin:0 0 14px;font-size:19px;line-height:1.35;letter-spacing:-0.01em">${heading}</h1>` : ""}
 ${body}
