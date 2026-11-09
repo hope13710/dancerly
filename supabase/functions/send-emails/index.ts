@@ -1,7 +1,8 @@
 // send-emails: follows up on Inbox notifications by email. Called every 5 minutes by pg_cron (migration 025).
 //   instant  mentions, private notes, replies, video requests: ~15 min after, bundled per person, skipped if read
 //   digest   everything else, once a morning at 8 AM US Eastern, only when there is something
-//   weekly   Monday 8 AM Eastern: fixes and takes from the past week, only after an active week
+//   weekly   Monday 8 AM Eastern: fixes and takes from the past week, only after an active week; a week with
+//            uploads but no fixes yet gets one next step (invite, or leave the first note) instead of zeros
 //   start    getting started, at most once each: a nudge when a new leader has no video after 2 days
 //            (10 AM their time), and a note when the first teammate joins (replaces that "joined" email)
 // Also serves the one-click unsubscribe links (GET from the email footer, POST from mail apps).
@@ -429,6 +430,57 @@ async function startNudge(key: string) {
 }
 
 // ---------- weekly ----------
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+// The weekly email's words. A week with fixes celebrates them, showing only the numbers that aren't zero.
+// A week with uploads but no fixes yet never says "0": it names the one next step instead —
+// invite someone when the uploader is alone, or leave the first note when the team is there.
+function weeklyContent(w: {
+  myFixes: number; myTakes: number; landed: number;
+  team: { title: string; fixes: number; takes: number }[];
+  solo: boolean; next: { project: string; title: string; href: string } | null;
+  unsub: string;
+}) {
+  const teamFixes = w.team.reduce((s, x) => s + x.fixes, 0);
+  const won = w.myFixes + w.landed + teamFixes > 0;
+  const stat = (n: number, label: string) => `<td style="padding:10px 8px;text-align:center"><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em">${n}</div><div style="font-size:12px;color:#80869a">${label}</div></td>`;
+  const p = (t: string) => `<p style="margin:10px 0 0;font-size:15px;line-height:1.55">${t}</p>`;
+  if (won) {
+    const lead = w.myFixes ? `${plural(w.myFixes, "note")} fixed in your takes`
+      : teamFixes ? `${plural(teamFixes, "note")} fixed across your team`
+      : `${w.landed} of your notes landed`;
+    const cells = [
+      w.myFixes ? stat(w.myFixes, "fixed in your takes") : "",
+      w.landed ? stat(w.landed, "of your notes landed") : "",
+      w.myTakes ? stat(w.myTakes, w.myTakes === 1 ? "take you uploaded" : "takes you uploaded") : "",
+    ].filter(Boolean).join("");
+    const teamLines = w.team.filter((x) => x.fixes || x.takes).map((x) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.5"><b>${esc(x.title)}</b>: ${[x.fixes ? `${plural(x.fixes, "note")} fixed` : "", x.takes ? plural(x.takes, "new take") : ""].filter(Boolean).join(", ")}</p>`).join("");
+    const body = `<p style="margin:0 0 6px;font-size:15px;line-height:1.55">Here’s what got better last week.</p>
+<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${cells}</tr></table>
+${teamLines}`;
+    const heading = `Your week: ${esc(lead)}`;
+    return {
+      subject: `Your week: ${lead}`,
+      html: layout({ heading, body, cta: "See your progress", ctaHref: `${SITE}/app/insights?ref=email_weekly`, footer: footerFor("Your weekly progress on dancerly", w.unsub, GROUP_LABEL.weekly) }),
+      text: `Your week: ${lead}\n${w.myFixes ? `Fixed in your takes: ${w.myFixes}\n` : ""}${w.landed ? `Your notes that landed: ${w.landed}\n` : ""}${w.myTakes ? `Takes you uploaded: ${w.myTakes}\n` : ""}${w.team.filter((x) => x.fixes || x.takes).map((x) => `${x.title}: ${x.fixes} fixed, ${x.takes} new takes`).join("\n")}\n\n${SITE}/app/insights\n\nTurn off: ${w.unsub}`,
+    };
+  }
+  // Uploads, nothing fixed yet: one next step, no zeros.
+  const takes = w.myTakes || w.team.reduce((s, x) => s + x.takes, 0);
+  const subject = w.solo ? `Your ${takes === 1 ? "video is" : "videos are"} ready for feedback` : `${plural(takes, "new take")} waiting for notes`;
+  const where = w.next ? ` in <b>${esc(w.next.project)}</b>` : "";
+  const body = w.solo
+    ? `${p(`You uploaded ${plural(takes, "take")}${where} last week. Nice start.`)}${p("Feedback starts when someone else watches. Invite your teammates or your coach with one link. They can join from their phone in seconds, no app to install.")}`
+    : `${p(`${plural(takes, "new take")}${where} went up last week, and nobody has left a note yet.`)}${p("Pause on one moment and say what you see. One short note is enough to get the team going.")}`;
+  const cta = w.solo ? "Invite your team" : "Leave the first note";
+  const href = w.next ? w.next.href : `${SITE}/app?ref=email_weekly`;
+  return {
+    subject,
+    html: layout({ heading: esc(subject), body, cta, ctaHref: href, footer: footerFor("Your weekly progress on dancerly", w.unsub, GROUP_LABEL.weekly) }),
+    text: `${subject}\n\n${w.solo ? `You uploaded ${plural(takes, "take")} last week. Feedback starts when someone else watches: invite your teammates or your coach with one link.` : `${plural(takes, "new take")} went up last week, and nobody has left a note yet. Pause on one moment and say what you see.`}\n\n${href}\n\nTurn off: ${w.unsub}`,
+  };
+}
+
 async function weekly(key: string) {
   if (weekdayIn(DIGEST_ZONE) !== "Mon" || hourIn(DIGEST_ZONE) !== DIGEST_HOUR) return 0;
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
@@ -437,12 +489,16 @@ async function weekly(key: string) {
   const realIds = new Set((real ?? []).map((p: any) => p.id));
   const owned = new Map<string, any[]>();
   for (const p of real ?? []) owned.set(p.created_by, [...(owned.get(p.created_by) ?? []), p]);
-  const [{ data: fixed }, { data: takes }] = await Promise.all([
+  const [{ data: fixed }, { data: takes }, { data: roster }] = await Promise.all([
     admin.from("notes").select("id, project_id, author_id, take_id, takes(uploaded_by)").eq("status", "resolved").gte("resolved_at", since).limit(5000),
-    admin.from("takes").select("id, project_id, uploaded_by").is("deleted_at", null).gte("created_at", since).limit(5000),
+    admin.from("takes").select("id, number, project_id, video_id, uploaded_by, created_at").is("deleted_at", null).gte("created_at", since).order("created_at", { ascending: false }).limit(5000),
+    admin.from("project_members").select("project_id, user_id").limit(20000),
   ]);
   const fx = (fixed ?? []).filter((n: any) => realIds.has(n.project_id));
   const tk = (takes ?? []).filter((t: any) => realIds.has(t.project_id));
+  const membersOf = new Map<string, number>();
+  for (const m of roster ?? []) membersOf.set(m.project_id, (membersOf.get(m.project_id) ?? 0) + 1);
+  const titleOf = new Map((real ?? []).map((p: any) => [p.id, p.title]));
   const people = new Set<string>([...fx.map((n: any) => n.takes?.uploaded_by), ...fx.map((n: any) => n.author_id), ...tk.map((t: any) => t.uploaded_by)].filter(Boolean));
   for (const [owner, ps] of owned) if (ps.some((p) => fx.some((n: any) => n.project_id === p.id) || tk.some((t: any) => t.project_id === p.id))) people.add(owner);
   if (!people.size) return 0;
@@ -453,22 +509,24 @@ async function weekly(key: string) {
     if (optedOut.has(user)) continue;
     const myFixes = fx.filter((n: any) => n.takes?.uploaded_by === user).length;
     const myTakes = tk.filter((t: any) => t.uploaded_by === user).length;
-    const notesThatLanded = fx.filter((n: any) => n.author_id === user).length;
-    const team = (owned.get(user) ?? []).map((p) => ({ p, fixes: fx.filter((n: any) => n.project_id === p.id).length, takes: tk.filter((t: any) => t.project_id === p.id).length })).filter((x) => x.fixes || x.takes);
-    if (!myFixes && !myTakes && !notesThatLanded && !team.length) continue;
+    const landed = fx.filter((n: any) => n.author_id === user).length;
+    const team = (owned.get(user) ?? []).map((p) => ({ title: p.title, id: p.id, fixes: fx.filter((n: any) => n.project_id === p.id).length, takes: tk.filter((t: any) => t.project_id === p.id).length })).filter((x) => x.fixes || x.takes);
+    if (!myFixes && !myTakes && !landed && !team.length) continue;
+    // The newest take this person uploaded (or, for an owner, one in their projects): where the next step points.
+    const latest = tk.find((t: any) => t.uploaded_by === user) ?? tk.find((t: any) => team.some((x) => x.id === t.project_id));
+    const solo = latest ? (membersOf.get(latest.project_id) ?? 1) <= 1 : false;
+    const next = latest ? {
+      project: titleOf.get(latest.project_id) ?? "",
+      title: "",
+      href: solo ? `${SITE}/app/p/${latest.project_id}/people?ref=email_weekly` : `${SITE}/app/p/${latest.project_id}/v/${latest.video_id}?take=${latest.number}&ref=email_weekly`,
+    } : null;
     const { error: dup } = await admin.from("email_log").insert({ user_id: user, kind: "weekly", period: week });
     if (dup) continue;
     const to = await emailOf(user);
     if (!to) continue;
-    const stat = (n: number, label: string) => `<td style="padding:10px 8px;text-align:center"><div style="font-size:26px;font-weight:800;letter-spacing:-0.02em">${n}</div><div style="font-size:12px;color:#80869a">${label}</div></td>`;
-    const lead = myFixes ? `${myFixes} note${myFixes > 1 ? "s" : ""} fixed in your takes` : team.length ? `${team.reduce((s, x) => s + x.fixes, 0)} notes fixed across your team` : `${myTakes} take${myTakes > 1 ? "s" : ""} uploaded`;
     const unsub = await unsubUrl(key, user, "weekly");
-    const body = `<p style="margin:0 0 6px;font-size:15px;line-height:1.55">Here’s what got better last week.</p>
-<table role="presentation" style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${stat(myFixes, "notes fixed in your takes")}${stat(myTakes, "takes you uploaded")}${stat(notesThatLanded, "of your notes landed")}</tr></table>
-${team.map((x) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.5"><b>${esc(x.p.title)}</b>: ${x.fixes} notes fixed, ${x.takes} new takes</p>`).join("")}`;
-    const html = layout({ heading: `Your week: ${esc(lead)}`, body, cta: "See your progress", ctaHref: `${SITE}/app/insights?ref=email_weekly`, footer: footerFor("Your weekly progress on dancerly", unsub, GROUP_LABEL.weekly) });
-    const text = `Your week: ${lead}\nNotes fixed in your takes: ${myFixes}\nTakes you uploaded: ${myTakes}\nYour notes that landed: ${notesThatLanded}\n${team.map((x) => `${x.p.title}: ${x.fixes} notes fixed, ${x.takes} new takes`).join("\n")}\n\n${SITE}/app/insights\n\nTurn off: ${unsub}`;
-    if (await send(to, `Your week: ${lead}`, html, text, "dancerly", unsub)) sent++;
+    const { subject, html, text } = weeklyContent({ myFixes, myTakes, landed, team, solo, next, unsub });
+    if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
     else await admin.from("email_log").delete().match({ user_id: user, kind: "weekly", period: week });
   }
   return sent;
