@@ -3,6 +3,8 @@
 //   digest   everything else, once a morning at 8 AM in each person's own time zone, only when there is something
 //   weekly   Monday 8 AM in each person's own time zone: fixes and takes from the past week, only after an active week; a week with
 //            uploads but no fixes yet gets one next step (invite, or leave the first note) instead of zeros
+//   welcome  once, ~10 min after signing up (not at night): how dancerly works and one first step; people who
+//            joined through an invite get the member version, about the team they joined
 //   start    getting started, at most once each: a nudge when a new leader has no video after 2 days
 //            (10 AM their time), a note when the first teammate joins (replaces that "joined" email), and an
 //            "invite your team" email the day after a leader uploads while still alone in the project
@@ -40,6 +42,9 @@ const GROUP_LABEL: Record<string, string> = {
   onboarding: "getting started emails", join_request: "join request emails",
 };
 const NUDGE_HOUR = 10;
+const WELCOME_DELAY_MIN = 10; // long enough to finish joining through an invite link
+// Only people who sign up after the welcome email shipped; everyone before already knows dancerly.
+const WELCOME_FROM = "2026-11-09T14:30:00Z";
 const isPersona = (id: string) => id.startsWith("5a3b0000-");
 
 const url = Deno.env.get("SUPABASE_URL")!;
@@ -390,6 +395,8 @@ async function preview(key: string, user: string) {
     nudgeEmail(first(profile?.display_name), null, sample?.project_id, unsub),
     teammateEmail("Mina", project, videos?.[0], unsub),
     inviteEmail(first(profile?.display_name), project, videos?.[0]?.title ?? "your video", unsub),
+    welcomeEmail(first(profile?.display_name), real ? { leader: { ...project, hasVideo: Boolean(videos?.length) } } : {}, unsub),
+    welcomeEmail(first(profile?.display_name), { member: { project, by: "Mina" } }, unsub),
   ];
   const sent = [];
   for (const e of emails) sent.push(await send(to, `[Test] ${e.subject}`, e.html, e.text, "dancerly", unsub));
@@ -510,6 +517,91 @@ async function inviteNudge(key: string) {
     const { subject, html, text } = inviteEmail(first(profile?.display_name), project, videos[0].title, unsub);
     if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
     else await admin.from("email_log").delete().match({ user_id: owner, kind: "invite_nudge", period: "once" });
+  }
+  return sent;
+}
+
+// Welcome: what dancerly is for and the one next step. Leaders get the loop; invited members get their team.
+function welcomeEmail(name: string, w: { member?: { project: { id: string; title: string }; by: string }; leader?: { id: string; title: string; hasVideo: boolean } }, unsub: string) {
+  const p = (t: string) => `<p style="margin:12px 0 0;font-size:15px;line-height:1.55">${t}</p>`;
+  const steps = (items: string[]) => `<ol style="margin:12px 0 0;padding-left:20px;font-size:15px;line-height:1.6">${items.map((t) => `<li style="margin:4px 0">${t}</li>`).join("")}</ol>`;
+  const help = "Questions or ideas? Just reply. A real person reads every email.";
+  let subject: string, heading: string, intro: string, list: string[], cta: string, href: string;
+  if (w.member) {
+    const { project, by } = w.member;
+    subject = `Welcome to ${project.title} on dancerly`;
+    heading = `You’re in ${esc(project.title)}`;
+    intro = `${esc(by)} invited you to <b>${esc(project.title)}</b>. Here’s how it works:`;
+    list = [
+      "Watch the team’s practice videos. Tap any note to jump to that exact moment.",
+      "Pause on a count you notice and leave a note. Short is fine.",
+      "When you practice, upload your take and see which notes you fixed.",
+    ];
+    cta = `Open ${project.title}`;
+    href = `${SITE}/app/p/${project.id}?ref=email_welcome`;
+  } else {
+    subject = "Welcome to dancerly";
+    heading = `Welcome to dancerly, ${esc(name)}`;
+    intro = "dancerly turns practice videos into feedback your team can act on. A week usually goes like this:";
+    list = [
+      "Upload a practice video. A phone clip is plenty.",
+      "Your team pauses on the exact count and leaves notes.",
+      "Upload the next take and see which notes got fixed.",
+    ];
+    const l = w.leader;
+    [cta, href] = !l ? ["Create your team", `${SITE}/app?ref=email_welcome`]
+      : l.hasVideo ? ["Invite your team", `${SITE}/app/p/${l.id}/people?invite=1&ref=email_welcome`]
+      : ["Upload your first video", `${SITE}/app/p/${l.id}?upload=1&ref=email_welcome`];
+  }
+  const tail = w.member ? help : `It’s free for your whole team. ${help}`;
+  const body = `<p style="margin:0;font-size:15px;line-height:1.55">${intro}</p>\n${steps(list)}\n${p(tail)}`;
+  const plain = (t: string) => t.replace(/<[^>]+>/g, "");
+  return {
+    subject,
+    html: layout({ heading, body, cta, ctaHref: href, footer: footerFor("A one-time welcome email", unsub, GROUP_LABEL.onboarding) }),
+    text: `${plain(heading)}\n\n${plain(intro)}\n${list.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n${tail}\n\n${cta}: ${href}\n\nTurn off: ${unsub}`,
+  };
+}
+
+async function welcome(key: string) {
+  const now = Date.now();
+  const from = Math.max(Date.parse(WELCOME_FROM), now - 2 * 864e5);
+  const { data: fresh } = await admin.from("profiles").select("id, display_name, created_at")
+    .gte("created_at", new Date(from).toISOString()).lte("created_at", new Date(now - WELCOME_DELAY_MIN * 60e3).toISOString()).limit(500);
+  const users = (fresh ?? []).filter((p: any) => !isPersona(p.id));
+  if (!users.length) return 0;
+  const ids = users.map((p: any) => p.id);
+  const [{ data: settings }, { data: logged }, { data: members }] = await Promise.all([
+    admin.from("notification_settings").select("user_id, email, timezone").in("user_id", ids),
+    admin.from("email_log").select("user_id").eq("kind", "welcome").in("user_id", ids),
+    admin.from("project_members").select("user_id, role, project_id, joined_at, projects(title, created_by, is_sample, deleted_at)").in("user_id", ids),
+  ]);
+  const prefs = new Map((settings ?? []).map((s: any) => [s.user_id, s]));
+  const done = new Set((logged ?? []).map((l: any) => l.user_id));
+  let sent = 0;
+  for (const p of users) {
+    if (done.has(p.id) || prefs.get(p.id)?.email?.onboarding === false) continue;
+    const h = hourIn(prefs.get(p.id)?.timezone || DIGEST_ZONE);
+    if (h >= QUIET_FROM || h < QUIET_TO) continue; // waits for the morning
+    const mine = (members ?? []).filter((m: any) => m.user_id === p.id && m.projects && !m.projects.is_sample && !m.projects.deleted_at);
+    const joined = mine.filter((m: any) => m.role === "member").sort((a: any, b: any) => Date.parse(a.joined_at) - Date.parse(b.joined_at))[0];
+    const owned = mine.filter((m: any) => m.role === "owner").sort((a: any, b: any) => Date.parse(b.joined_at) - Date.parse(a.joined_at))[0];
+    let w: Parameters<typeof welcomeEmail>[1] = {};
+    if (joined) {
+      const { data: owner } = await admin.from("profiles").select("display_name").eq("id", joined.projects.created_by).maybeSingle();
+      w = { member: { project: { id: joined.project_id, title: joined.projects.title }, by: first(owner?.display_name ?? "Your team") } };
+    } else if (owned) {
+      const { count } = await admin.from("takes").select("id", { count: "exact", head: true }).eq("project_id", owned.project_id).is("deleted_at", null);
+      w = { leader: { id: owned.project_id, title: owned.projects.title, hasVideo: Boolean(count) } };
+    }
+    const to = await emailOf(p.id);
+    if (!to) continue;
+    const { error: dup } = await admin.from("email_log").insert({ user_id: p.id, kind: "welcome", period: "once" });
+    if (dup) continue;
+    const unsub = await unsubUrl(key, p.id, "onboarding");
+    const { subject, html, text } = welcomeEmail(first(p.display_name), w, unsub);
+    if (await send(to, subject, html, text, "dancerly", unsub)) sent++;
+    else await admin.from("email_log").delete().match({ user_id: p.id, kind: "welcome", period: "once" });
   }
   return sent;
 }
@@ -654,9 +746,10 @@ Deno.serve(async (req) => {
   if (!Deno.env.get("RESEND_API_KEY")) return Response.json({ skipped: "RESEND_API_KEY is not set" });
   const previewFor = new URL(req.url).searchParams.get("preview");
   if (previewFor && /^[0-9a-f-]{36}$/.test(previewFor)) return Response.json(await preview(key, previewFor));
+  const welcomed = await welcome(key);
   const result = await followUp(key);
   const weeklySent = await weekly(key);
   const nudged = await startNudge(key);
   const invited = await inviteNudge(key);
-  return Response.json({ ...result, weekly: weeklySent, start_nudge: nudged, invite_nudge: invited });
+  return Response.json({ ...result, weekly: weeklySent, start_nudge: nudged, invite_nudge: invited, welcome: welcomed });
 });

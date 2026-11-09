@@ -134,7 +134,7 @@ export async function renderSettings(section = 'account') {
         }).join('')}
           <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning your time, after a week with fixes or new takes.</span></span>
             <span class="switch"><input type="checkbox" data-weekly ${email.weekly !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
-          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most three emails, early on: a tip for your first video, a reminder to invite your team, and a note when someone first joins.</span></span>
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">A welcome when you sign up, then a few one-time tips: your first video, inviting your team, and a note when someone first joins.</span></span>
             <span class="switch"><input type="checkbox" data-onboarding ${email.onboarding !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
         </div>
         <p class="fine left">Morning summaries arrive around 8 AM in your time zone.</p>

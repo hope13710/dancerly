@@ -951,7 +951,7 @@ export const KO = {
   'Weekly progress': '주간 활동 요약',
   'Monday morning your time, after a week with fixes or new takes.': '피드백이 해결됐거나 새 테이크가 올라온 주에는 다음 월요일 아침(내 시간대 기준)에 보내드려요.',
   'Getting started': '시작 안내',
-  'At most three emails, early on: a tip for your first video, a reminder to invite your team, and a note when someone first joins.': '처음에는 이메일을 최대 세 번만 보내드려요. 첫 영상 업로드 팁, 팀원 초대 안내, 누군가 처음으로 참여했을 때 알림이에요.',
+  'A welcome when you sign up, then a few one-time tips: your first video, inviting your team, and a note when someone first joins.': '가입하면 환영 이메일을 보내드리고, 그다음엔 한 번씩만 안내해 드려요. 첫 영상 업로드, 팀원 초대, 그리고 누군가 처음 참여했을 때 알림이에요.',
   'Morning summaries arrive around 8 AM in your time zone.': '아침 요약은 내 시간대 기준 오전 8시쯤 도착해요.',
   'Help & support': '도움말 및 문의',
   'Tell us anything. We read every message.': '어떤 의견이든 편하게 보내 주세요. 모든 메시지를 확인해요.',
