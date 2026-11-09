@@ -1249,6 +1249,13 @@ export const KO = {
   'Everyone’s on track. 👏': '모두 잘 따라오고 있어요. 👏',
   'Activity by person': '멤버별 활동',
   'Close': '닫기',
+  'Your plan': '내 플랜',
+  'dancerly is free': 'dancerly는 무료예요',
+  'Video storage': '영상 저장 공간',
+  'Uploads by everyone in your projects count toward your storage. If we ever add paid plans, we’ll tell you well in advance, and everything you’ve uploaded stays yours.': '내 프로젝트에 멤버들이 올린 영상도 내 저장 공간에 포함돼요. 나중에 유료 플랜이 생기더라도 충분히 미리 알려 드리고, 올린 영상과 피드백은 그대로 남아요.',
+  'Your video storage is full. Nothing was deleted. Delete old takes to make room, or email help@dancerly.app and we’ll add more.': '영상 저장 공간이 가득 찼어요. 지워진 건 없어요. 예전 테이크를 지우거나 help@dancerly.app으로 연락 주시면 늘려 드려요.',
+  'This project’s video storage is full. Ask the project owner to delete old takes, or to email help@dancerly.app for more.': '이 프로젝트의 영상 저장 공간이 가득 찼어요. 프로젝트 오너에게 예전 테이크를 지우거나 help@dancerly.app으로 증설을 요청해 달라고 해 주세요.',
+  'That’s a lot of recaps for one day. Try again tomorrow.': '오늘 AI 요약을 많이 만들었어요. 내일 다시 시도해 주세요.',
 };
 
 // Phrases with numbers or names in them. First match wins.

@@ -212,9 +212,24 @@ export async function uploadTake({ projectId, videoId, file, onStage = () => {} 
   }
 }
 
+// The project owner's video storage (migration 044). Null when it can't be checked (older database, offline).
+async function storageFull(projectId) {
+  const { data, error } = await sb.rpc('project_storage', { p_project: projectId });
+  const row = !error && data?.[0];
+  if (!row || Number(row.used) < Number(row.allowance)) return null;
+  const err = new Error(row.mine
+    ? 'Your video storage is full. Nothing was deleted. Delete old takes to make room, or email help@dancerly.app and we’ll add more.'
+    : 'This project’s video storage is full. Ask the project owner to delete old takes, or to email help@dancerly.app for more.');
+  err.fileProblem = true;
+  return err;
+}
+
 async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
   const problem = checkTakeFile(file);
   if (problem) throw new Error(problem);
+  // Full storage stops the upload on the server anyway; saying so before compressing saves the wait.
+  const full = await storageFull(projectId);
+  if (full) throw full;
   at('prepare');
   const key = `${projectId}/${videoId}/${file.name}/${file.size}/${file.lastModified}`;
   let record = readRecord(key);
@@ -232,7 +247,12 @@ async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
   at('upload');
   // Keep the path stable across retries so a resumed upload lands in the same place.
   if (!record.path.endsWith(`.${TAKE_TYPES[record.type]}`)) record.path = `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[record.type]}`;
-  await tusUpload(blob, { ...record, key }, onStage);
+  try {
+    await tusUpload(blob, { ...record, key }, onStage);
+  } catch (error) {
+    // Refused because the storage filled up meanwhile: say that, not "no permission".
+    throw (await storageFull(projectId).catch(() => null)) || error;
+  }
   at('save');
   onStage('Saving');
   const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select('id, number, project_id, video_id').single();

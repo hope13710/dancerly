@@ -553,11 +553,6 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .plan li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 9px; }
 .plan li.plus { font-weight: 650; }
 .plan li.plus::before { content: none; }
-/* Monthly / Yearly: the yearly price shows by default; both are in the page so the translation sees them */
-.billing { display: flex; width: max-content; margin: 0 auto 28px; padding: 4px; border-radius: 999px; background: #eceef2; }
-.billing button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 650; color: #4b5563; padding: 8px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-.billing button[aria-checked="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(20, 23, 29, 0.14); }
-.billing .save { font-size: 12px; font-weight: 700; color: #0f7a4a; background: #e3f6ec; padding: 2px 8px; border-radius: 999px; }
 .pricing.yearly .when-monthly, .pricing:not(.yearly) .when-yearly { display: none; }
 .price .cents { font-size: 0.55em; vertical-align: 0.6em; letter-spacing: 0; }
 .bill-note { margin-top: -8px; font-size: 13px; color: var(--muted); min-height: 1.4em; }
@@ -790,3 +785,13 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 @keyframes tkYes { 0%, 60% { background: transparent; } 70%, 100% { background: rgba(70, 211, 154, 0.22); border-color: rgba(70, 211, 154, 0.7); } }
 .mr-line a { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; margin-left: 4px; }
 .mr-line a + a { margin-left: 3px; }
+
+/* One plan: the price and the button on the left, everything included on the right. */
+.plan-solo { max-width: 860px; margin: 0 auto; display: grid; grid-template-columns: minmax(220px, 1fr) 1.6fr; gap: 28px 40px; align-items: center; padding: 32px 36px; }
+.plan-solo-head { display: grid; gap: 8px; align-content: start; }
+.plan-solo-head .btn { margin-top: 10px; }
+.plan-solo ul { margin: 0; grid-template-columns: 1fr 1fr; gap: 12px 24px; font-size: 15px; }
+@media (max-width: 760px) {
+  .plan-solo { grid-template-columns: 1fr; padding: 24px; }
+  .plan-solo ul { grid-template-columns: 1fr; }
+}

@@ -7,12 +7,12 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const MODEL = "claude-haiku-5-5";
 const MAX_NOTES = 400;
 const DAY = 86_400_000;
-// Free plan: 3 new recaps per person per calendar month (UTC) — enough for the first "wow" and two more
-// rehearsals; a weekly team runs into it in week four, which is the natural moment to upgrade.
-// Re-opening a cached recap and anything made in the sample project don't count.
-// During early access the limit is only shown, never enforced; set RECAP_LIMIT_ENFORCED=true to enforce it.
+// Recaps are free and unlimited for people. A quiet safety cap per person per day keeps a stuck button or a script
+// from running up the AI bill; nobody practicing normally comes close. Cached recaps and the sample don't count.
+// The monthly count is still kept (and returned as usage) for a future plan; set RECAP_LIMIT_ENFORCED=true to enforce it.
 const FREE_RECAPS_PER_MONTH = 3;
 const ENFORCE_LIMIT = Deno.env.get("RECAP_LIMIT_ENFORCED") === "true";
+const DAILY_SAFETY_CAP = 20;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -149,6 +149,11 @@ Deno.serve(async (req) => {
   const { data: existing } = await existingQ.maybeSingle();
   if (existing) return json({ recap: existing, cached: true, usage: usage(used) });
 
+  if (!project.is_sample) {
+    const { count: today } = await admin.from("product_events").select("id", { count: "exact", head: true })
+      .eq("user_id", me).eq("event", "recap_generated").gte("created_at", new Date(Date.now() - DAY).toISOString());
+    if ((today ?? 0) >= DAILY_SAFETY_CAP) return json({ error: "That’s a lot of recaps for one day. Try again tomorrow." }, 429);
+  }
   if (!project.is_sample && ENFORCE_LIMIT && used >= FREE_RECAPS_PER_MONTH) {
     return json({ error: `You’ve used this month’s ${FREE_RECAPS_PER_MONTH} free AI recaps. They reset on the 1st, or the Team plan makes them unlimited.`, usage: usage(used) }, 402);
   }

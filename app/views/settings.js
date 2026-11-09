@@ -3,7 +3,6 @@ import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wi
 import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
-import { recapUsage } from './recaps.js';
 
 const SECTIONS = [
   ['account', 'Account'],
@@ -35,9 +34,11 @@ const EMAIL_GROUPS = [
 ];
 const EMAIL_CHOICES = [['instant', 'Right away'], ['digest', 'Morning summary'], ['off', 'Off']];
 
-// Matches the pricing page. Not enforced yet; shown so teams know where they stand.
-// Free: one team of up to 10, 2 GB. Videos and takes aren't counted; storage is the only size limit.
-const FREE = { projects: 1, members: 10, storage: 2 * 1024 ** 3 };
+// dancerly is free. The one limit is video storage per team owner (migration 044), enforced on upload.
+const DEFAULT_STORAGE = 5 * 1024 ** 3;
+// A typical compressed practice video, for "about N videos".
+const VIDEO_SIZE = 35 * 1024 ** 2;
+const aboutVideos = (bytes) => Math.max(0, Math.floor(bytes / VIDEO_SIZE / 10) * 10);
 // "34 MB", "1.2 GB": GB with one decimal from 1 GB up.
 const size = (b) => (b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1).replace(/\.0$/, '')} GB` : `${Math.max(b > 0 ? 1 : 0, Math.round(b / 1024 ** 2))} MB`);
 
@@ -176,46 +177,29 @@ export async function renderSettings(section = 'account') {
   }
 
   async function plan() {
-    const { data: rows } = await sb.from('project_members').select(cols('project_id, projects(is_sample, project_members(count))')).eq('user_id', state.session.user.id).eq('role', 'owner');
-    const data = (rows || []).filter((m) => !m.projects?.is_sample);
-    const [recaps, { data: storage, error: storageErr }] = await Promise.all([
-      recapUsage(),
-      // Bytes per project you own (migration 028); counts toward the owner's plan.
-      sb.rpc('my_storage_usage')
-    ]);
-    const owned = data?.length || 0;
-    const largest = Math.max(0, ...(data || []).map((m) => m.projects?.project_members?.[0]?.count ?? 1));
-    const meter = (used, max) => `<span class="meter wide"><i style="width:${Math.min(100, (used / max) * 100)}%" class="${used > max ? 'over' : ''}"></i></span>`;
-    const used = (storage || []).reduce((t, r) => t + Number(r.bytes || 0), 0);
-    const ownedTitle = (id) => state.projects.find((x) => x.id === id)?.title || '';
-    const storageRow = storageErr ? '' : `<div class="storage-row"><span>Storage</span><b data-no-i18n>${size(used)} / ${size(FREE.storage)}</b>${meter(used, FREE.storage)}
-            <small data-no-i18n>${used >= FREE.storage
-              ? (getLang() === 'ko' ? '한도에 닿았어요. 지워지는 건 없고, 업로드는 얼리 액세스 동안 계속돼요.' : 'You’ve reached the limit. Nothing is deleted, and uploads keep working during early access.')
-              : (getLang() === 'ko' ? `${size(FREE.storage - used)} 남음` : `${size(FREE.storage - used)} left`)}${(storage || []).length > 1 ? ` · ${(storage || []).filter((r) => Number(r.bytes)).map((r) => `${esc(ownedTitle(r.project_id))} ${size(Number(r.bytes))}`).join(' · ')}` : ''}</small></div>`;
     const ko = getLang() === 'ko';
-    const ofText = (used, max, unit = '') => (ko ? `${max}${unit} 중 ${used}${unit}` : `${used} of ${max}`);
-    const over = used > FREE.storage || owned > FREE.projects || largest > FREE.members || recaps?.over;
-    const paid = (name, monthly, yearly, perMonth, what) => `<div class="plan-card"><div><h3 data-no-i18n>${name}</h3><p class="muted">${what}</p></div>
-      <p class="plan-price" data-no-i18n><b>$${monthly}</b>${ko ? '/월' : '/month'} <span class="muted">· ${ko ? `연 $${yearly} (월 $${perMonth}, 2개월 무료)` : `or $${yearly}/year ($${perMonth}/month, 2 months free)`}</span></p></div>`;
+    // Your allowance (migration 044), with the per-project breakdown (migration 028). Older databases: 5 GB, unenforced.
+    const [{ data: mine, error: mineErr }, { data: storage }] = await Promise.all([sb.rpc('my_storage'), sb.rpc('my_storage_usage')]);
+    const perProject = (storage || []).filter((r) => Number(r.bytes));
+    const used = mineErr ? perProject.reduce((t, r) => t + Number(r.bytes || 0), 0) : Number(mine?.[0]?.used || 0);
+    const allowance = mineErr ? DEFAULT_STORAGE : Number(mine?.[0]?.allowance || DEFAULT_STORAGE);
+    const full = used >= allowance;
+    const ownedTitle = (id) => state.projects.find((x) => x.id === id)?.title || '';
+    const meter = `<span class="meter wide"><i style="width:${Math.min(100, (used / allowance) * 100)}%" class="${full ? 'over' : ''}"></i></span>`;
+    const note = full
+      ? (ko ? '저장 공간이 가득 찼어요. 지워지는 건 없고 새 업로드만 멈춰요. 예전 테이크를 지우거나, help@dancerly.app으로 연락 주시면 늘려 드려요.' : 'Storage is full. Nothing is deleted; new uploads pause. Delete old takes to make room, or email help@dancerly.app and we’ll add more.')
+      : (ko ? `${size(allowance - used)} 남았어요 (영상 약 ${aboutVideos(allowance - used)}개)` : `${size(allowance - used)} left (about ${aboutVideos(allowance - used)} videos)`);
+    const intro = ko
+      ? `모든 기능을 쓸 수 있고 인원, 프로젝트, AI 요약에 제한이 없어요. 팀 오너마다 영상 저장 공간 ${size(allowance)}(연습 영상 약 ${aboutVideos(allowance)}개)가 주어져요.`
+      : `Every feature, with no limit on people, projects, or AI recaps. Each team owner gets ${size(allowance)} for videos, about ${aboutVideos(allowance)} practice videos.`;
     return {
       html: `<section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">Current plan</p><h2 data-no-i18n>Free</h2><p class="muted">A real free plan, not a trial: 1 team of up to 10 members, unlimited videos and takes, 2 GB of storage, every feedback tool, and 3 AI recaps a month per person.</p></div></div>
+        <div class="panel-head"><div><p class="eyebrow">Your plan</p><h2>dancerly is free</h2><p class="muted" data-no-i18n>${intro}</p></div></div>
         <div class="usage">
-          ${storageRow}
-          <div><span>Projects you own</span><b data-no-i18n>${ofText(owned, FREE.projects, '개')}</b>${meter(owned, FREE.projects)}</div>
-          <div><span>People in your largest project</span><b data-no-i18n>${ofText(largest, FREE.members, '명')}</b>${meter(largest, FREE.members)}</div>
-          ${recaps ? `<div><span>Your AI recaps this month</span><b data-no-i18n>${ofText(recaps.used, recaps.limit, '회')}</b>${meter(recaps.used, recaps.limit)}</div>` : ''}
+          <div class="storage-row"><span>Video storage</span><b data-no-i18n>${size(used)} / ${size(allowance)}</b>${meter}
+            <small data-no-i18n>${note}${perProject.length > 1 ? ` · ${perProject.map((r) => `${esc(ownedTitle(r.project_id))} ${size(Number(r.bytes))}`).join(' · ')}` : ''}</small></div>
         </div>
-        <p class="fine left founding-note">🎁 Early access thank-you: teams that upload their first video before paid plans launch get 3 months of Team free.</p>
-        ${over ? '<p class="fine left">You’re past the Free limits. Nothing is blocked during early access — we’ll let you know well before that changes.</p>' : ''}
-      </section>
-      <section class="panel">
-        <div class="panel-head"><div><h2>Paid plans</h2><p class="muted">More teams, people, and storage, unlimited AI recaps, and full-history Insights. Each plan has its own storage limit. If you reach it, nothing is deleted; new uploads pause until you free up space or upgrade.</p></div><span class="tag">Coming soon</span></div>
-        <div class="plan-cards">
-          ${paid('Team', 12, 120, 10, 'For crews, clubs, and teams. Up to 3 teams and 40 members, 20 GB of storage.')}
-          ${paid('Studio', 29, 290, '24.17', 'For studios running many classes. Unlimited teams and members, 100 GB of storage.')}
-        </div>
-        ${schema.firstRun ? `<p class="plan-try">See them working in the sample project: <button type="button" class="btn small" data-open-sample="plan:recaps">✦ An AI recap</button><button type="button" class="btn small" data-open-sample="plan:insights">↗ Insights</button></p>` : ''}
+        <p class="fine left">Uploads by everyone in your projects count toward your storage. If we ever add paid plans, we’ll tell you well in advance, and everything you’ve uploaded stays yours.</p>
       </section>`
     };
   }
