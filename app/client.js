@@ -253,12 +253,14 @@ export async function withUploadBar(label, task) {
   const bar = $('[data-upload-bar]');
   bar.querySelector('span').textContent = label;
   bar.classList.add('show');
+  bar.setAttribute('aria-hidden', 'false');
   uploading += 1;
   try {
     return await task((stage) => { bar.querySelector('span').textContent = `${stage} · ${label}`; });
   } finally {
     uploading -= 1;
-    bar.classList.remove('show');
+    // Still another upload going: keep the bar (and its message) up until the last one finishes.
+    if (!uploading) { bar.classList.remove('show'); bar.setAttribute('aria-hidden', 'true'); }
   }
 }
 

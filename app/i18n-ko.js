@@ -195,7 +195,7 @@ export const KO = {
   'Log in': '로그인',
   'Welcome back': '다시 만나서 반가워요',
   'Create your free account': '무료 계정 만들기',
-  'Free to start, on your own or with your team. No credit card. We’ll confirm your email once.': '혼자든 팀이든 무료로 시작하세요. 카드 등록은 필요 없고, 이메일 인증은 한 번만 해요.',
+  'Free for you and your whole team. No credit card. We’ll confirm your email once.': '혼자든 팀이든 모두 무료예요. 카드 등록은 필요 없고, 이메일 인증은 한 번만 해요.',
   'Log in with your email and password.': '이메일과 비밀번호를 입력해 로그인해 주세요.',
   'Continue with Google': 'Google로 계속하기',
   'or with email': '또는 이메일로 계속하기',
@@ -1256,6 +1256,17 @@ export const KO = {
   'Your video storage is full. Nothing was deleted. Delete old takes to make room, or email help@dancerly.app and we’ll add more.': '영상 저장 공간이 가득 찼어요. 지워진 건 없어요. 예전 테이크를 지우거나 help@dancerly.app으로 연락 주시면 늘려 드려요.',
   'This project’s video storage is full. Ask the project owner to delete old takes, or to email help@dancerly.app for more.': '이 프로젝트의 영상 저장 공간이 가득 찼어요. 프로젝트 오너에게 예전 테이크를 지우거나 help@dancerly.app으로 증설을 요청해 달라고 해 주세요.',
   'That’s a lot of recaps for one day. Try again tomorrow.': '오늘 AI 요약을 많이 만들었어요. 내일 다시 시도해 주세요.',
+  'We’ve hit the email limit for now. Try again a little later — or use the code from an email you already have.': '지금은 이메일 발송 한도에 닿았어요. 잠시 후 다시 시도하거나, 이미 받은 이메일의 코드를 사용해 주세요.',
+  'That link or code was already used or has expired. Each one works once — ask for a new one below.': '이미 사용했거나 만료된 링크(코드)예요. 링크와 코드는 한 번만 쓸 수 있어요. 아래에서 새로 요청해 주세요.',
+  'Email or password doesn’t match. Joined before passwords? Use “Forgot password?” to set one.': '이메일 또는 비밀번호가 맞지 않아요. 비밀번호 없이 가입하셨다면 ‘비밀번호를 잊으셨나요?’에서 새로 설정해 주세요.',
+  'That email already has an account. Log in instead.': '이미 가입된 이메일이에요. 로그인해 주세요.',
+  'Pick a longer password — at least 8 characters, ideally mixing letters and numbers.': '비밀번호를 더 길게 정해 주세요. 8자 이상, 문자와 숫자를 섞으면 더 안전해요.',
+  'That’s your current password. Choose a new one.': '지금 쓰는 비밀번호와 같아요. 새 비밀번호를 정해 주세요.',
+  'Google sign-in isn’t turned on yet. Use your email for now.': 'Google 로그인을 아직 쓸 수 없어요. 지금은 이메일로 계속해 주세요.',
+  'Too many tries. Wait a minute and try again.': '시도 횟수가 너무 많아요. 1분 뒤에 다시 시도해 주세요.',
+  'Can’t reach dancerly. Check your connection and try again.': 'dancerly에 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
+  'You don’t have permission to do that.': '이 작업을 할 권한이 없어요.',
+  'That video is over 50 MB. Trim it or export a smaller file.': '영상이 50MB를 넘어요. 필요한 부분만 자르거나 더 작은 파일로 저장해 주세요.',
 };
 
 // Phrases with numbers or names in them. First match wins.
