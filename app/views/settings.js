@@ -132,12 +132,12 @@ export async function renderSettings(section = 'account') {
           return `<label class="row toggle-row email-row"><span class="row-main"><span class="row-title">${title}</span>${blocked ? '<span class="row-meta">Turned off in your Inbox above</span>' : ''}</span>
             <select data-email="${g}" ${blocked ? 'disabled' : ''}>${EMAIL_CHOICES.map(([v, l]) => `<option value="${v}" ${(email[g] || def) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
         }).join('')}
-          <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning, after a week with fixes or new takes.</span></span>
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Weekly progress</span><span class="row-meta">Monday morning your time, after a week with fixes or new takes.</span></span>
             <span class="switch"><input type="checkbox" data-weekly ${email.weekly !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
-          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most two emails, early on: a tip for your first video, and a note when someone first joins your project.</span></span>
+          <label class="row toggle-row"><span class="row-main"><span class="row-title">Getting started</span><span class="row-meta">At most three emails, early on: a tip for your first video, a reminder to invite your team, and a note when someone first joins.</span></span>
             <span class="switch"><input type="checkbox" data-onboarding ${email.onboarding !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
         </div>
-        <p class="fine left">The morning summary arrives around 8 AM US Eastern Time.</p>
+        <p class="fine left">Morning summaries arrive around 8 AM in your time zone.</p>
       </section>`,
       wire() {
         $$('[data-kind]').forEach((box) => box.addEventListener('change', async () => {

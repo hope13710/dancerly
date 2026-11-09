@@ -1,7 +1,7 @@
 // send-emails: follows up on Inbox notifications by email. Called every 5 minutes by pg_cron (migration 025).
 //   instant  mentions, private notes, replies, video requests: ~15 min after, bundled per person, skipped if read
-//   digest   everything else, once a morning at 8 AM US Eastern, only when there is something
-//   weekly   Monday 8 AM Eastern: fixes and takes from the past week, only after an active week; a week with
+//   digest   everything else, once a morning at 8 AM in each person's own time zone, only when there is something
+//   weekly   Monday 8 AM in each person's own time zone: fixes and takes from the past week, only after an active week; a week with
 //            uploads but no fixes yet gets one next step (invite, or leave the first note) instead of zeros
 //   start    getting started, at most once each: a nudge when a new leader has no video after 2 days
 //            (10 AM their time), a note when the first teammate joins (replaces that "joined" email), and an
@@ -14,7 +14,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const SITE = "https://dancerly.app";
 const FROM_ADDRESS = "notifications@dancerly.app";
 const REPLY_TO = "help@dancerly.app";
-const DIGEST_ZONE = "America/New_York";
+const DIGEST_ZONE = "America/New_York"; // fallback for anyone whose time zone the app hasn't saved yet
 const DIGEST_HOUR = 8;
 const INSTANT_DELAY_MIN = 15;
 const QUIET_FROM = 22; // no instant emails 10 PM–7 AM in the person's own time zone
@@ -63,7 +63,15 @@ const isoWeek = (d: Date) => {
   const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
   return `${t.getUTCFullYear()}-W${String(Math.ceil(((t.getTime() - y.getTime()) / 864e5 + 1) / 7)).padStart(2, "0")}`;
 };
-const dueLabel = (iso?: string | null) => iso ? new Date(iso).toLocaleString("en-US", { timeZone: DIGEST_ZONE, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : "";
+// A due date in the reader's own time zone, e.g. "Tue, Nov 10, 7:00 PM GMT+9".
+const dueLabel = (iso: string | null | undefined, zone: string) => {
+  if (!iso) return "";
+  const opts = { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" } as const;
+  try { return new Date(iso).toLocaleString("en-US", { ...opts, timeZone: zone }); }
+  catch { return new Date(iso).toLocaleString("en-US", { ...opts, timeZone: DIGEST_ZONE }); }
+};
+// The ISO week of the reader's local date, so a Monday email in Auckland and one in Los Angeles share a period.
+const localWeek = (zone: string) => { try { return isoWeek(new Date(`${dayIn(zone)}T12:00:00Z`)); } catch { return isoWeek(new Date()); } };
 
 async function secret(): Promise<string> {
   const { data } = await admin.rpc("email_cron_secret");
@@ -100,7 +108,7 @@ type Ctx = {
 };
 
 // One notification -> { subject line, html line, link, quoted text }.
-function describe(n: any, c: Ctx) {
+function describe(n: any, c: Ctx, zone: string) {
   const who = first(c.names.get(n.actor_id));
   const note = n.note_id ? c.notes.get(n.note_id) : null;
   const take = c.takes.get(n.take_id ?? note?.take_id);
@@ -124,9 +132,9 @@ function describe(n: any, c: Ctx) {
     case "join_request": { const j = c.joins.get(n.join_request_id); return { subject: `${who} asked to join ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> watched <b>${esc(vtitle)}</b> from your share link and asked to join <b>${esc(project?.title ?? "your project")}</b>${j?.t_start != null ? `. Their note at ${fmt(Number(j.t_start))}:` : "."}`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Review the request", text: j?.body ?? null }; }
     case "join_approved": return { subject: `You’re in: ${project?.title ?? "the project"}`, line: `<b>${esc(who)}</b> let you into <b>${esc(project?.title ?? "the project")}</b>${note ? `. Your note at ${at} is posted.` : "."}`, href: note ? noteHref : `${SITE}/app/p/${n.project_id}?${ref}`, cta: note ? "See your note" : "Open the project", text: null };
     case "recap_shared": { const r = c.recaps.get(n.recap_id); return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
-    case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
-    case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
-    case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your assignment"}`, line: `Your assignment <b>${esc(req?.title ?? "")}</b> is due ${esc(dueLabel(req?.due_at))}. You haven’t submitted yet.`, href: reqHref, cta: "Submit your video", text: null };
+    case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at, zone)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
+    case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
+    case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your assignment"}`, line: `Your assignment <b>${esc(req?.title ?? "")}</b> is due ${esc(dueLabel(req?.due_at, zone))}. You haven’t submitted yet.`, href: reqHref, cta: "Submit your video", text: null };
     default: return { subject: "New activity on dancerly", line: "New activity on dancerly", href: `${SITE}/app/inbox?${ref}`, cta: "Open dancerly", text: null };
   }
 }
@@ -206,8 +214,6 @@ async function followUp(key: string) {
 
   const celebrated = await firstTeammate(key, open, prefs, off, now);
 
-  const digestNow = hourIn(DIGEST_ZONE) === DIGEST_HOUR;
-  const today = dayIn(DIGEST_ZONE);
   const ctx = await loadContext(open);
   let instant = 0, digest = 0;
 
@@ -224,6 +230,9 @@ async function followUp(key: string) {
     const tz = prefs.get(user)?.timezone || DIGEST_ZONE;
     const h = hourIn(tz);
     const quiet = h >= QUIET_FROM || h < QUIET_TO;
+    // The morning summary goes out at 8 AM where they are; the period is their local date, so it's once a day for them.
+    const digestNow = h === DIGEST_HOUR;
+    const today = (() => { try { return dayIn(tz); } catch { return dayIn(DIGEST_ZONE); } })();
     const ready = mine.filter((r) => pref(user, r.kind) === "instant" && Date.parse(r.created_at) <= now - INSTANT_DELAY_MIN * 60e3);
     const forDigest = mine.filter((r) => pref(user, r.kind) === "digest");
     const to = (ready.length && !quiet) || (forDigest.length && digestNow) ? await emailOf(user) : null;
@@ -231,7 +240,7 @@ async function followUp(key: string) {
 
     // Instant: one email per person per run, everything that's waiting.
     if (ready.length && !quiet) {
-      const items = ready.map((r) => ({ r, d: describe(r, ctx) }));
+      const items = ready.map((r) => ({ r, d: describe(r, ctx, tz) }));
       const lead = items[0].d;
       const actors = new Set(ready.map((r) => r.actor_id));
       const subject = items.length === 1 ? lead.subject : `${lead.subject} · ${items.length - 1} more`;
@@ -252,7 +261,7 @@ async function followUp(key: string) {
     if (forDigest.length && digestNow) {
       const { error: dup } = await admin.from("email_log").insert({ user_id: user, kind: "digest", period: today });
       if (dup) continue; // already sent today
-      const items = forDigest.map((r) => ({ r, d: describe(r, ctx) }));
+      const items = forDigest.map((r) => ({ r, d: describe(r, ctx, tz) }));
       // Fixes first: the best news leads.
       items.sort((a, b) => Number(b.r.kind === "note_resolved") - Number(a.r.kind === "note_resolved"));
       const count = (k: string[]) => forDigest.filter((r) => k.includes(r.kind)).length;
@@ -558,9 +567,13 @@ ${teamLines}`;
 }
 
 async function weekly(key: string) {
-  if (weekdayIn(DIGEST_ZONE) !== "Mon" || hourIn(DIGEST_ZONE) !== DIGEST_HOUR) return 0;
+  // Monday 8 AM where each person is. Most runs, that's nowhere: check the time zones in use before any heavy query.
+  const { data: zones } = await admin.from("notification_settings").select("user_id, timezone").limit(50000);
+  const zoneOf = new Map((zones ?? []).map((z: any) => [z.user_id, z.timezone || DIGEST_ZONE]));
+  const mondayMorning = (zone: string) => { try { return weekdayIn(zone) === "Mon" && hourIn(zone) === DIGEST_HOUR; } catch { return false; } };
+  const due = new Set([DIGEST_ZONE, ...zoneOf.values()].filter(mondayMorning));
+  if (!due.size) return 0;
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
-  const week = isoWeek(new Date());
   const { data: real } = await admin.from("projects").select("id, title, created_by").eq("is_sample", false).is("deleted_at", null);
   const realIds = new Set((real ?? []).map((p: any) => p.id));
   const owned = new Map<string, any[]>();
@@ -585,7 +598,9 @@ async function weekly(key: string) {
   const justInvited = new Set((invited ?? []).map((l: any) => l.user_id));
   let sent = 0;
   for (const user of people) {
-    if (optedOut.has(user)) continue;
+    const zone = zoneOf.get(user) ?? DIGEST_ZONE;
+    if (optedOut.has(user) || !due.has(zone)) continue;
+    const week = localWeek(zone);
     const myFixes = fx.filter((n: any) => n.takes?.uploaded_by === user).length;
     const myTakes = tk.filter((t: any) => t.uploaded_by === user).length;
     const landed = fx.filter((n: any) => n.author_id === user).length;
