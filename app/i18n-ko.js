@@ -1447,6 +1447,7 @@ export const KO_ATTR = {
 // The same English word reads differently on a button (a verb) than on a label.
 export const KO_ACTION = {
   'Open': '열기',
+  'Not yet': '아직이요',
   'New': '새로 만들기',
   'Show': '표시하기',
   'Clean': '완성으로 표시',

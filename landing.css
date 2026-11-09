@@ -401,15 +401,7 @@ h3 { font-size: 19px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 68
 .takes-tabs { display: flex; gap: 4px; font-size: 12px; }
 .takes-tabs span { padding: 4px 10px; border-radius: 7px; color: #aab1bf; }
 .takes-tabs .on { background: #fff; color: var(--dark); font-weight: 650; }
-.takes-list { display: grid; gap: 8px; font-size: 13px; }
-.takes-list li { display: flex; align-items: baseline; gap: 8px; }
-.takes-list small { margin-left: auto; color: #8f98a8; font-size: 11px; white-space: nowrap; }
-.tick { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; background: rgba(70, 211, 154, 0.16); color: #46d39a; flex: none; transform: scale(0.4); opacity: 0; transition: transform 0.4s var(--ease), opacity 0.3s ease; }
-.takes-list li:nth-child(2) .tick { transition-delay: 0.25s; }
-.takes-list li:nth-child(3) .tick { transition-delay: 0.5s; }
-.takes-list .open .tick { background: rgba(255, 181, 71, 0.16); color: #ffb547; }
-.play .tick { transform: none; opacity: 1; }
-
+.play 
 /* Private */
 .mod-private { background: var(--dark); }
 .note-card.private { border-color: rgba(165, 166, 255, 0.45); background: #232742; }
@@ -783,3 +775,18 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .mi-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .mi-legend span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: #8e96a3; }
 .mi-legend .k-fixed::before { background: #46d39a; opacity: 0.55; }
+
+/* Take by take, as on Take 2 in the app: the summary, then a carried note asking if it's fixed. */
+.tk-sum { font-size: 12px; color: #c3c9d6; margin: 2px 0 8px; }
+.tk-sum b { color: #fff; }
+.tk-sum .ok { color: #46d39a; }
+.tk-sum .warn { color: #ffb547; }
+.tk-note { background: var(--dark-3); border: 1px solid var(--dark-line); border-radius: 11px; padding: 10px 12px; display: grid; gap: 7px; font-size: 13px; color: #e3e6ed; }
+.tk-from { font-size: 11px; color: #8993a1; }
+.tk-ask { display: flex; align-items: center; gap: 6px; padding: 7px 8px 7px 10px; border-radius: 8px; background: rgba(91, 92, 226, 0.16); font-size: 12px; font-weight: 650; color: #d9daff; }
+.tk-ask span { margin-right: auto; }
+.tk-ask .mini { font-weight: 600; }
+.play .tk-ask .mini.ok { animation: tkYes 2.4s 0.8s ease both; }
+@keyframes tkYes { 0%, 60% { background: transparent; } 70%, 100% { background: rgba(70, 211, 154, 0.22); border-color: rgba(70, 211, 154, 0.7); } }
+.mr-line a { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; margin-left: 4px; }
+.mr-line a + a { margin-left: 3px; }
