@@ -589,7 +589,7 @@ async function welcome(key: string) {
     let w: Parameters<typeof welcomeEmail>[1] = {};
     if (joined) {
       const { data: owner } = await admin.from("profiles").select("display_name").eq("id", joined.projects.created_by).maybeSingle();
-      w = { member: { project: { id: joined.project_id, title: joined.projects.title }, by: first(owner?.display_name ?? "Your team") } };
+      w = { member: { project: { id: joined.project_id, title: joined.projects.title }, by: owner?.display_name ? first(owner.display_name) : "Your teammate" } };
     } else if (owned) {
       const { count } = await admin.from("takes").select("id", { count: "exact", head: true }).eq("project_id", owned.project_id).is("deleted_at", null);
       w = { leader: { id: owned.project_id, title: owned.projects.title, hasVideo: Boolean(count) } };
