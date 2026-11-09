@@ -185,10 +185,28 @@ export async function renderSettings(section = 'account') {
     const allowance = mineErr ? DEFAULT_STORAGE : Number(mine?.[0]?.allowance || DEFAULT_STORAGE);
     const full = used >= allowance;
     const ownedTitle = (id) => state.projects.find((x) => x.id === id)?.title || '';
-    const meter = `<span class="meter wide"><i style="width:${Math.min(100, (used / allowance) * 100)}%" class="${full ? 'over' : ''}"></i></span>`;
+    const meter = `<span class="meter wide"><i style="width:${Math.min(100, (used / allowance) * 100)}%" class="${full ? 'over' : used >= allowance * 0.9 ? 'warn' : ''}"></i></span>`;
     const note = full
-      ? (ko ? '저장 공간이 가득 찼어요. 지워지는 건 없고 새 업로드만 멈춰요. 예전 테이크를 지우거나, help@dancerly.app으로 연락 주시면 늘려 드려요.' : 'Storage is full. Nothing is deleted; new uploads pause. Delete old takes to make room, or email help@dancerly.app and we’ll add more.')
+      ? (ko ? '가득 찼어요. 지워진 건 없고, 새 업로드만 멈춘 상태예요.' : 'Full. Nothing was deleted; new uploads are paused.')
       : (ko ? `${size(allowance - used)} 남았어요 (영상 약 ${aboutVideos(allowance - used)}개)` : `${size(allowance - used)} left (about ${aboutVideos(allowance - used)} videos)`);
+    // Full or nearly (90%+): a way out, right here. Biggest project first, since that's where clearing helps most.
+    const tight = used >= allowance * 0.9;
+    const byProject = [...perProject].sort((a, b) => Number(b.bytes) - Number(a.bytes));
+    const projectOf = (id) => state.projects.find((x) => x.id === id);
+    const freeUp = tight ? `<div class="free-up${full ? ' is-full' : ''}" data-no-i18n>
+          <div class="free-up-head">
+            <h3>${full ? (ko ? '다음 영상을 올릴 공간을 만들어 보세요' : 'Make room for your next video') : (ko ? '저장 공간이 거의 찼어요' : 'Almost full')}</h3>
+            <p>${full
+              ? (ko ? '이미 고친 피드백만 남은 예전 테이크부터 지우면 가장 쉬워요. 지운 테이크는 그 즉시 공간에서 빠지고, 마음이 바뀌면 30일 동안 휴지통에서 되살릴 수 있어요.' : 'Old takes whose notes are already fixed are the easiest to let go. A deleted take frees its space right away, and Trash keeps it for 30 days in case you change your mind.')
+              : (ko ? `영상 약 ${aboutVideos(allowance - used)}개를 더 올릴 수 있어요. 이미 고친 예전 테이크를 정리해 두면 업로드가 멈추지 않아요.` : `About ${aboutVideos(allowance - used)} more videos fit. Clearing out takes you’ve already fixed keeps uploads going.`)}</p>
+          </div>
+          ${byProject.length ? `<ul class="free-up-list">${byProject.map((r, i) => {
+            const p = projectOf(r.project_id);
+            const share = Math.round((Number(r.bytes) / Math.max(used, 1)) * 100);
+            return `<li>${projectMark(p, 'xs')}<span class="free-up-main"><span class="free-up-title">${esc(p?.title || ownedTitle(r.project_id))}</span><span class="free-up-meta">${size(Number(r.bytes))}${byProject.length > 1 ? ` · ${ko ? `전체의 ${share}%` : `${share}% of your storage`}` : ''}</span>${byProject.length > 1 ? `<span class="free-up-bar"><i style="width:${share}%"></i></span>` : ''}</span><a class="btn small${i === 0 ? ' primary' : ''}" href="/app/p/${r.project_id}" data-link>${ko ? '영상 정리하기' : 'Review videos'} <span aria-hidden="true">›</span></a></li>`;
+          }).join('')}</ul>` : ''}
+          <p class="free-up-more">${ko ? '공간이 더 필요하신가요?' : 'Need more room?'} <a href="mailto:help@dancerly.app?subject=${encodeURIComponent('More storage for dancerly')}">${ko ? '저희에게 알려 주세요' : 'Tell us'}</a>${ko ? '. 늘려 드릴게요.' : ' and we’ll add more.'}</p>
+        </div>` : '';
     const intro = ko
       ? `모든 기능을 쓸 수 있고 인원, 프로젝트, AI 요약에 제한이 없어요. 팀 오너마다 영상 저장 공간 ${size(allowance)}(연습 영상 약 ${aboutVideos(allowance)}개)가 주어져요.`
       : `Every feature, with no limit on people, projects, or AI recaps. Each team owner gets ${size(allowance)} for videos, about ${aboutVideos(allowance)} practice videos.`;
@@ -197,8 +215,9 @@ export async function renderSettings(section = 'account') {
         <div class="panel-head"><div><p class="eyebrow">Your plan</p><h2>dancerly is free</h2><p class="muted" data-no-i18n>${intro}</p></div></div>
         <div class="usage">
           <div class="storage-row"><span>Video storage</span><b data-no-i18n>${size(used)} / ${size(allowance)}</b>${meter}
-            <small data-no-i18n>${note}${perProject.length > 1 ? ` · ${perProject.map((r) => `${esc(ownedTitle(r.project_id))} ${size(Number(r.bytes))}`).join(' · ')}` : ''}</small></div>
+            <small data-no-i18n>${note}${!tight && perProject.length > 1 ? ` · ${perProject.map((r) => `${esc(ownedTitle(r.project_id))} ${size(Number(r.bytes))}`).join(' · ')}` : ''}</small></div>
         </div>
+        ${freeUp}
         <p class="fine left">Uploads by everyone in your projects count toward your storage. If we ever add paid plans, we’ll tell you well in advance, and everything you’ve uploaded stays yours.</p>
       </section>`
     };

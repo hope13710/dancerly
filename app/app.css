@@ -8298,3 +8298,85 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
   .team-panel .team-activity .row-main { flex: 1 1 100%; }
   .team-panel .team-activity .row-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* Settings > Plan: when storage is full or nearly, a way out right under the meter. */
+.free-up {
+  margin: 14px 0 6px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #f3dcae;
+  background: #fffaf0;
+}
+.free-up.is-full {
+  border-color: #f5c9bd;
+  background: #fff6f3;
+}
+.free-up-head h3 {
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+.free-up-head p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2, #4a5160);
+}
+.free-up-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.free-up-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.free-up-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.free-up-title {
+  font-weight: 650;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.free-up-meta {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.free-up-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: #eef0f3;
+  overflow: hidden;
+}
+.free-up-bar i {
+  display: block;
+  height: 100%;
+  background: #e0a63a;
+}
+.free-up.is-full .free-up-bar i { background: #d9634a; }
+.free-up-list .btn { flex: none; }
+.free-up-more {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.free-up-more a { color: var(--accent); font-weight: 600; }
+@media (max-width: 600px) {
+  .free-up { padding: 14px; }
+  .free-up-list li { flex-wrap: wrap; }
+  .free-up-list .btn { width: 100%; justify-content: center; }
+}
+.meter i.warn { background: #e0a63a; }
