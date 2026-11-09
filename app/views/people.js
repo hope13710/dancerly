@@ -62,7 +62,9 @@ export async function renderPerson(userId) {
   const me = state.session.user.id;
   const sampleOnly = isSamplePerson(userId);
   const people = await roster({ withSample: sampleOnly });
-  const person = people.find((p) => p.id === userId);
+  // Your own page always opens, even before you have a project of your own (the roster leaves the sample out).
+  const person = people.find((p) => p.id === userId)
+    || (userId === me ? { id: me, name: state.profile?.display_name || 'You', projects: [] } : null);
   const scope = (q) => (sampleOnly ? q : noSample(q));
   if (!person) throw new Error('You don’t share a project with this person.');
   setCrumbs([['People', '/app/people'], [person.name]]);
