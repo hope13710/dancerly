@@ -13,7 +13,7 @@ import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
 import { personLink } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
-import { CATEGORIES, catLabel, catChip, catHint, starterKeys } from './categories.js';
+import { CATEGORIES, catLabel, catChip, catHint, catColor, starterKeys } from './categories.js';
 
 // Slow is for learning a move; 1.25–1.5× is for skimming a long run-through. Picked from a menu, or < and >.
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
@@ -753,7 +753,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const catBtn = e.target.closest('[data-category]');
     if (catBtn) {
       const n = r.notes.find((x) => x.id === catBtn.dataset.category);
-      const picked = await actionSheet({ title: 'Focus area', actions: CATEGORIES.map(([k]) => ({ value: k, label: `${k === n.category ? '✓ ' : ''}${catLabel(k)}`, hint: catHint(k) })) });
+      const picked = await actionSheet({ title: 'Focus area', actions: CATEGORIES.map(([k]) => ({ value: k, label: catLabel(k), hint: catHint(k), color: catColor(k), checked: k === n.category })) });
       if (!picked || picked === n.category) return;
       const before = n.category;
       n.category = picked;

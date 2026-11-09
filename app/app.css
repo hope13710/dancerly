@@ -8122,3 +8122,39 @@ body.is-onboarding .tabbar {
   /* The row numbers already say open and fixed; on a phone the legend only crowds the heading. */
   .focus-panel .legend { display: none; }
 }
+
+/* Choice sheets with colored options (focus areas): soft Notion-style chips, a quiet hover, a check on the current one. */
+.sheet-chip {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cat) 15%, #fff);
+  color: color-mix(in srgb, var(--cat) 58%, #15171b);
+}
+.sheet-action:has(.sheet-chip) {
+  position: relative;
+  gap: 5px;
+  padding-right: 40px;
+}
+.sheet-action:has(.sheet-chip) small {
+  padding-left: 2px;
+}
+.sheet-action:has(.sheet-chip):hover {
+  border-color: #d5d9e0;
+  background: #f7f8fa;
+}
+.sheet-action.checked {
+  border-color: #c9ced8;
+  background: #f7f8fa;
+}
+.sheet-action.checked::after {
+  content: "✓";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  color: var(--ink, #15171b);
+}
