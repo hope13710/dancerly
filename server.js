@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildSitemap } from './sitemap.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -13,13 +14,13 @@ const resolveRequestPath = (requestPath) => {
   // The real app is a single page: every /app route without a file extension loads app/index.html.
   if (/^\/app(\/[^.]*)?$/.test(requestPath)) return 'app/index.html';
   if (requestPath === '/terms' || requestPath === '/privacy') return `${requestPath.slice(1)}.html`;
-  if (requestPath === '/manus-routes.json') return 'public/manus-routes.json';
   // The build copies public/ to the site root; locally, serve it from there.
-  if (requestPath.startsWith('/samples/') || /^\/(robots\.txt|sitemap\.xml|site\.webmanifest|\.well-known\/security\.txt)$/.test(requestPath)) return `public${requestPath}`;
+  if (requestPath.startsWith('/samples/') || /^\/(robots\.txt|site\.webmanifest|\.well-known\/security\.txt)$/.test(requestPath)) return `public${requestPath}`;
   return requestPath.replace(/^\/+/, '');
 };
 const server = http.createServer(async (request, response) => {
   const requestPath = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`).pathname;
+  if (requestPath === '/sitemap.xml') { response.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' }); return response.end(await buildSitemap()); }
   const relativePath = resolveRequestPath(requestPath);
   const safePath = normalize(relativePath).replace(/^\.\.(?:[\\/]|$)/, '');
   const filePath = join(root, safePath);
