@@ -1358,7 +1358,7 @@ export const KO_RULES = [
   [/^Uploaded (.+)$/, (m, when) => `${tr(when)} 올림`],
   [/^(\d+) open$/, '미해결 $1개'],
   [/^(\d+) open notes?$/, '미해결 피드백 $1개'],
-  [/^(\d+) still open$/, '아직 해결되지 않은 항목 $1개'],
+  [/^(\d+) still open$/, '미해결 $1개'],
   [/^✓ (\d+) resolved from earlier takes$/, '✓ 이전 테이크에서 $1개 해결'],
   [/^(\d+) members?$/, '멤버 $1명'],
   [/^(\d+) videos? · (\d+) members?$/, '영상 $1개 · 멤버 $2명'],
