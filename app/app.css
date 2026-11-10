@@ -787,7 +787,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 0.25s ease;
 }
 .player.mirrored video {
   transform: scaleX(-1);
@@ -823,7 +823,7 @@ a {
   background: rgba(20, 23, 29, 0.5);
   color: #fff;
   font-size: 20px;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 .player.playing .big-play {
   opacity: 0;
@@ -1266,7 +1266,7 @@ a {
   font-size: 13px;
   font-weight: 600;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
   width: min(420px, calc(100% - 32px));
 }
 .upload-bar.show {
@@ -1307,7 +1307,7 @@ a {
   opacity: 0;
   transform: translateY(12px);
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .toast.show {
   opacity: 1;
@@ -3005,7 +3005,6 @@ ul.todo.compact li {
 .spark {
   font-size: 24px;
   color: var(--accent);
-  animation: spark-pulse 1.2s ease-in-out infinite;
 }
 @keyframes spark-pulse {
   50% {
@@ -3224,7 +3223,7 @@ ul.todo.compact li {
 }
 /* Just generated: one short fade, nothing more. */
 .recap-card.is-fresh .recap-body {
-  animation: ai-fade 0.4s ease-out;
+  animation: ai-fade 0.25s ease-out;
 }
 @keyframes ai-fade {
   from {
@@ -4305,7 +4304,7 @@ td.ref .play {
   z-index: 2;
   pointer-events: none;
   overflow: visible;
-  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 0.25s ease;
 }
 .player.mirrored .sketch-layer {
   transform: scaleX(-1);
@@ -4622,7 +4621,7 @@ td.ref .play {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 0.25s ease;
 }
 .compare-pane.mirrored video {
   transform: scaleX(-1);
@@ -5282,7 +5281,7 @@ body.is-guest .topbar {
   text-decoration: none;
   display: grid;
   place-items: center;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .heat-cell:hover,
 .heat-cell:focus-visible {
@@ -5613,7 +5612,6 @@ body.is-guest .topbar {
 }
 .sample-bar.nudge {
   background: #e0e1ff;
-  animation: sample-nudge 0.6s ease-out;
 }
 @keyframes sample-nudge {
   from { background: #cfd0ff; }
@@ -5788,7 +5786,7 @@ body.is-guest .topbar {
   background: rgba(14, 16, 22, 0.78);
   color: #fff;
   border-radius: inherit;
-  animation: guest-end-in 0.35s ease-out;
+  animation: guest-end-in 0.25s ease-out;
 }
 .guest-end[hidden] {
   display: none;
@@ -6476,7 +6474,7 @@ button.row {
 }
 /* One small movement, once: the note's marker drops onto the timeline */
 .pv-tl i.pop {
-  animation: pv-pop 0.6s 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: pv-pop 0.25s 0.3s ease-out both;
 }
 @keyframes pv-pop {
   from { transform: scale(0); }
@@ -7221,7 +7219,7 @@ button.row {
   color: #0b0d11;
 }
 .note.just-pinned {
-  animation: note-pinned 1.4s ease-out;
+  animation: note-pinned 1s ease-out;
 }
 @keyframes note-pinned {
   from { background: rgba(124, 196, 255, 0.22); }
@@ -7634,7 +7632,7 @@ body.player-full {
   color: #fff;
   font-size: 24px;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 .guest-player.playing .guest-big-play {
   opacity: 0;
