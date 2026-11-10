@@ -344,6 +344,12 @@ export async function renderInsights() {
     el.addEventListener('close', () => el.remove());
     el.showModal();
   };
+  // Phones hide the row's button and make the whole "Next up" row tappable instead.
+  view.querySelectorAll('.next-list li').forEach((li) => li.addEventListener('click', (e) => {
+    const action = li.querySelector('a, button');
+    if (!action || e.target.closest('a, button') || getComputedStyle(action).display !== 'none') return;
+    action.click();
+  }));
   view.firstElementChild.addEventListener('click', async (e) => {
     const open = e.target.closest('[data-sheet]');
     if (open) {

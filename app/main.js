@@ -132,6 +132,7 @@ function setCrumbs(items) {
   const parent = [...items].reverse().find(([, href]) => href);
   const back = $('[data-back]');
   back.hidden = !parent;
+  document.body.classList.toggle('has-back', Boolean(parent));
   if (parent) { back.href = parent[1]; back.innerHTML = `${ic('back')}${esc(parent[0])}`; }
 }
 // Signed in: a sidebar on wide screens, a tab bar on phones. Both reach the same places and actions.

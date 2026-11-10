@@ -1396,7 +1396,18 @@ a {
     display: none;
   }
   .back-link:not([hidden]) {
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    font-size: 16px;
+    margin-left: -8px;
+  }
+  .back-link .ic {
+    width: 22px;
+    height: 22px;
+    margin-inline-end: 2px;
+  }
+  body.has-back .topbar .brand {
+    display: none;
   }
 }
 .code-form {
@@ -1791,7 +1802,7 @@ a {
     bottom: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: repeat(5, 1fr);
     align-items: center;
     padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.94);
@@ -1820,23 +1831,20 @@ a {
   }
   .tab-new {
     display: grid;
-    place-items: center;
-    width: 52px;
-    height: 52px;
-    margin: 0 18px;
+    justify-items: center;
+    gap: 2px;
+    padding: 6px 0;
     border: 0;
-    border-radius: 50%;
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(20, 23, 29, 0.25);
+    background: none;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
   }
   .tab-new svg {
     width: 24px;
     height: 24px;
     stroke-width: 2.2;
-  }
-  .tab-new:active {
-    transform: scale(0.96);
   }
   body.signed-in:not(.is-review) .page {
     padding-bottom: calc(110px + env(safe-area-inset-bottom));
@@ -5330,17 +5338,32 @@ body.is-guest .topbar {
   .heat-cell span {
     font-size: 9px;
   }
-  .insight-lines li {
-    flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .next-list li {
+    cursor: pointer;
   }
-  .insight-lines li .btn {
-    margin-left: 42px;
+  .next-list li .btn:not([data-remind]) {
+    display: none;
+  }
+  .next-list li:has([data-remind]) {
+    cursor: default;
+  }
+  .next-list li:has([data-remind])::after {
+    content: none;
+  }
+  .next-list li::after {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg);
+    margin-right: 4px;
   }
 }
 @media (max-width: 600px) {
-  .insight-lines .li-text {
-    flex-basis: calc(100% - 42px);
-  }
   .heat-panel .panel-head {
     flex-wrap: wrap;
     gap: 8px;
