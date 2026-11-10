@@ -53,11 +53,9 @@ a {
 }
 .eyebrow {
   margin: 0 0 6px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
 
 /* ---------- Top bar ---------- */
@@ -230,12 +228,13 @@ a {
   cursor: default;
 }
 .btn.primary {
-  background: var(--dark);
-  border-color: var(--dark);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 .btn.primary:hover {
-  background: #232935;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
 }
 .btn.danger {
   background: var(--danger);
@@ -1047,8 +1046,7 @@ a {
   border-radius: 6px;
 }
 .s-open {
-  color: #f3ae7a;
-  background: rgba(243, 174, 122, 0.12);
+  display: none;
 }
 .s-practicing {
   color: #aaabff;
@@ -1828,7 +1826,7 @@ a {
     margin: 0 18px;
     border: 0;
     border-radius: 50%;
-    background: var(--dark);
+    background: var(--accent);
     color: #fff;
     box-shadow: 0 8px 20px rgba(20, 23, 29, 0.25);
   }
@@ -7936,17 +7934,6 @@ body.is-onboarding .tabbar {
 .page.narrow-wide > * {
   max-width: 860px;
 }
-/* The few actions that move someone forward (upload, invite, join, submit) wear the brand colour,
-   like the landing page's Start free; everything else stays neutral, so these stand out. */
-.btn.primary:is([data-new-video], [data-start-action], [data-upload], [data-invite], [data-invite-any], [data-accept], [data-submit], [data-step], [data-ce-own]) {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.btn.primary:is([data-new-video], [data-start-action], [data-upload], [data-invite], [data-invite-any], [data-accept], [data-submit], [data-step], [data-ce-own]):hover {
-  background: var(--accent-dark);
-  border-color: var(--accent-dark);
-}
 
 /* Review: first note starters, the ⋯ menu on notes, and one-row controls on phones */
 .notes-empty p {
@@ -8252,8 +8239,14 @@ body.is-onboarding .tabbar {
   font-weight: 700;
   flex: none;
 }
-.steps-list li.done { color: var(--muted); text-decoration: line-through; }
-.steps-list li.done .tick { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps-list li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
 button.focus-row {
   width: 100%;
   border: 0;

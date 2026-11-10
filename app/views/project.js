@@ -124,7 +124,7 @@ export function projectHead({ project, members, goal }, tab, actions = '') {
   // What the team is working toward, on every tab: "🎯 Spring Showcase · 12 days".
   const goalChip = goal ? `<a class="goal-chip" href="${base}/overview" data-link title="${goal.picked ? 'Project goal' : 'Next show'}">${ic('flag')}<span class="goal-name">${esc(goal.title)}</span><b>${daysLabel(daysUntil(goal.starts_at))}</b></a>` : '';
   return `<header class="page-head project-head">
-      <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">${project.is_sample ? 'Sample project' : 'Project'}</p><h1>${esc(project.title)}</h1>
+      <div class="project-title">${projectMark(project, 'head')}<div>${project.is_sample ? '<p class="eyebrow">Sample project</p>' : ''}<h1>${esc(project.title)}</h1>
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
         ${goalChip}
       </div></div>

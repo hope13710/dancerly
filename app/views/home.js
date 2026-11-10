@@ -111,7 +111,6 @@ export async function renderHome() {
   const cleanup = sampleCleanupCard();
 
   const first = esc(state.profile.display_name.split(' ')[0]);
-  const dateLine = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
   // A leader gets one getting-started card with the one thing to do next, until all four steps are done (or
   // they hide it). Before the first real video it's the whole Home instead of a dashboard of empty boxes;
@@ -181,7 +180,7 @@ export async function renderHome() {
   }
   if (activation && !graduated) {
     view.innerHTML = `<section class="page">
-      <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+      <header class="page-head"><div><h1>${greeting()}, ${first}</h1></div></header>
       ${activation.html}
     </section>`;
     activation.wire();
@@ -190,7 +189,7 @@ export async function renderHome() {
   }
 
   view.innerHTML = `<section class="page">
-    <header class="page-head"><div><p class="eyebrow">${dateLine}</p><h1>${greeting()}, ${first}</h1></div></header>
+    <header class="page-head"><div><h1>${greeting()}, ${first}</h1></div></header>
     ${activation?.html || ''}
     ${sampleCard}${cleanup?.html || ''}
     ${recapCard.html}

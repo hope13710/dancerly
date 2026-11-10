@@ -64,8 +64,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 .btn-sm { padding: 8px 14px; font-size: 14px; }
 .btn-lg { padding: 14px 22px; font-size: 16px; }
 .btn-block { width: 100%; }
-.btn-dark { background: var(--dark); color: #fff; }
-.btn-dark:hover { background: #222731; }
+.btn-dark { background: var(--accent); color: #fff; }
+.btn-dark:hover { background: var(--accent-dark); }
 .btn-accent { background: var(--accent); color: #fff; }
 .btn-accent:hover { background: var(--accent-dark); }
 .btn-ghost { color: var(--ink); background: transparent; }

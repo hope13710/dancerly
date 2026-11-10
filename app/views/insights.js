@@ -283,8 +283,8 @@ export async function renderInsights() {
     </section>
 
     ${showSteps ? `<section class="panel steps-panel">
-      <div class="panel-head"><div><h2>Get more from Insights</h2><p class="muted">Each step adds something to this page</p></div><span class="steps-count" data-no-i18n>${steps.filter(([, d]) => d).length}/${steps.length}</span></div>
-      <ul class="steps-list">${steps.map(([text, done]) => `<li class="${done ? 'done' : ''}"><span class="tick" aria-hidden="true">${done ? ic('check', 'solo') : ''}</span>${text}</li>`).join('')}</ul>
+      <div class="panel-head"><div><h2>Get more from Insights</h2><p class="muted">Each step adds something to this page</p></div></div>
+      <ul class="steps-list">${steps.filter(([, done]) => !done).map(([text]) => `<li>${text}</li>`).join('')}</ul>
     </section>` : ''}
 
     ${areas.length ? `<section class="panel focus-panel">
