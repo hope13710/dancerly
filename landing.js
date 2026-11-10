@@ -24,7 +24,7 @@ if (signedIn()) {
   $$('[data-auth-login]').forEach((a) => { a.textContent = 'Log out'; a.href = '/app/logout'; a.dataset.cta = 'logout'; });
   $$('[data-auth-primary]').forEach((a) => { a.textContent = 'Open dancerly'; a.href = '/app'; a.dataset.cta = 'open_app'; });
   const footerApp = $('[data-footer-app]');
-  if (footerApp) { footerApp.textContent = 'Open dancerly →'; footerApp.href = '/app'; }
+  if (footerApp) { footerApp.textContent = 'Open dancerly'; footerApp.href = '/app'; }
 }
 
 // ---------- English / Korean (English by default; the choice is shared with the app) ----------
@@ -227,10 +227,4 @@ else {
 }
 $$('[data-hero-step]').forEach((li) => li.addEventListener('click', () => { const n = Number(li.dataset.heroStep); show(n === 1 ? 0 : n); }));
 
-// ---------- Sign-up form: hand the email to the app's sign-up screen ----------
-$('[data-signup-form]').addEventListener('submit', (event) => {
-  event.preventDefault();
-  const email = $('#email').value.trim();
-  track('signup_submit');
-  location.href = signedIn() ? '/app' : `/app/login?mode=signup&email=${encodeURIComponent(email)}`;
-});
+
