@@ -754,7 +754,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const catBtn = e.target.closest('[data-category]');
     if (catBtn) {
       const n = r.notes.find((x) => x.id === catBtn.dataset.category);
-      const picked = await actionSheet({ title: 'Focus area', actions: CATEGORIES.map(([k]) => ({ value: k, label: catLabel(k), hint: catHint(k), color: catColor(k), checked: k === n.category })) });
+      const picked = await actionSheet({ title: 'Focus area', anchor: catBtn, actions: CATEGORIES.map(([k]) => ({ value: k, label: catLabel(k), hint: catHint(k), color: catColor(k), checked: k === n.category })) });
       if (!picked || picked === n.category) return;
       const before = n.category;
       n.category = picked;
@@ -1088,9 +1088,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
   // ⋯ on a video: the destructive actions live here, in red, each behind a confirmation that says what goes.
   // Phones keep only Takes and New take on top; Compare and Share move in here.
-  async function moreActions() {
+  async function moreActions(event) {
     const narrow = matchMedia('(max-width: 600px)').matches;
-    const choice = await actionSheet({ title: video.title, actions: [
+    const choice = await actionSheet({ title: video.title, anchor: event?.currentTarget, actions: [
       ...(narrow ? [{ value: 'compare', label: r.compare.on ? 'Stop comparing' : 'Compare', hint: 'Play another take or video side by side' }] : []),
       ...(narrow ? [{ value: 'share', label: 'Share', hint: 'A progress card for Instagram, or a read-only link' }] : []),
       ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),

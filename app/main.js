@@ -287,19 +287,20 @@ async function paintNavDots() {
   });
 }
 
-async function openNew() {
+async function openNew(event) {
+  const anchor = event?.currentTarget instanceof Element ? event.currentTarget : null;
   const projectId = currentProjectId();
   const project = state.projects.find((p) => p.id === projectId);
   // Outside a project, the pickers offer real projects only.
   const real = state.projects.filter((p) => !p.is_sample);
   const actions = [
-    { value: 'video', label: 'Upload video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
-    { value: 'request', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'Ask people to send a video by a date' },
-    { value: 'event', label: 'Add to calendar', hint: 'A rehearsal or a show' },
-    ...(project && !project.is_sample ? [{ value: 'invite', label: 'Invite people', hint: `To ${project.title}` }] : []),
-    { value: 'project', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
+    { value: 'video', icon: 'upload', label: 'Upload video', hint: project ? `To ${project.title}` : 'A practice video or run-through' },
+    { value: 'request', icon: 'assignment', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'Ask people to send a video by a date' },
+    { value: 'event', icon: 'calendar', label: 'Add to calendar', hint: 'A rehearsal or a show' },
+    ...(project && !project.is_sample ? [{ value: 'invite', icon: 'people', label: 'Invite people', hint: `To ${project.title}` }] : []),
+    { value: 'project', icon: 'folder', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
   ];
-  const choice = await actionSheet({ title: 'Create', actions });
+  const choice = await actionSheet({ title: 'Create', actions, anchor });
   if (choice === 'project') return createProject();
   if (choice === 'invite') return showInvite(project.id, project.title);
   if (choice === 'event') return editEvent({ projectId: project?.id || null });

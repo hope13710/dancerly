@@ -162,7 +162,7 @@ export async function renderProject(projectId) {
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
     const v = videos.find((x) => x.id === b.dataset.rowMore);
-    const choice = await actionSheet({ title: v.title, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
+    const choice = await actionSheet({ title: v.title, anchor: b, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
     if (choice !== 'delete') return;
     if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes, afterUndo: () => renderProject(projectId) })) renderProject(projectId);
   }));

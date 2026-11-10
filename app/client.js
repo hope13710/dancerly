@@ -1,4 +1,5 @@
 import { createClient } from './vendor/supabase-js-2.45.4.js';
+import { ic } from './icons.js';
 
 // Public values: the publishable key only works together with row level security in the database.
 export const SUPABASE_URL = 'https://egkwjdwfzuslyrhuzkmq.supabase.co';
@@ -229,19 +230,71 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
 }
 
 // A short list of choices: a bottom sheet on phones, a small centered card elsewhere.
-export function actionSheet({ title, actions }) {
+// A list of choices. On a computer, opened from a button (anchor), it drops down under that button like any
+// app menu; on a phone, or with no anchor, it slides up from the bottom as a sheet.
+export function actionSheet({ title, actions, anchor = null }) {
+  const label = (a) => `${a.icon ? ic(a.icon, 'sheet-icon') : ''}<span class="sheet-text"><b>${a.color ? `<span class="sheet-chip" style="--cat:${esc(a.color)}">${esc(a.label)}</span>` : esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</span>`;
+  if (anchor && matchMedia('(min-width: 901px)').matches) return dropMenu({ title, actions, anchor, label });
   return new Promise((resolve) => {
     const el = document.createElement('dialog');
     el.className = 'dialog sheet';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>
-      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action${a.danger ? ' danger' : ''}${a.checked ? ' checked' : ''}"${a.checked ? ' aria-current="true"' : ''}><b>${a.color ? `<span class="sheet-chip" style="--cat:${esc(a.color)}">${esc(a.label)}</span>` : esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</button>`).join('')}</div>
+      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action${a.icon ? ' has-icon' : ''}${a.danger ? ' danger' : ''}${a.checked ? ' checked' : ''}"${a.checked ? ' aria-current="true"' : ''}>${label(a)}</button>`).join('')}</div>
       <button value="" class="btn ghost wide">Cancel</button>
     </form>`;
     document.body.append(el);
     el.addEventListener('click', (event) => { if (event.target === el) el.close(''); });
     el.addEventListener('close', () => { el.remove(); resolve(el.returnValue || null); });
     el.showModal();
+  });
+}
+
+function dropMenu({ title, actions, anchor, label }) {
+  return new Promise((resolve) => {
+    const menu = document.createElement('div');
+    menu.className = 'drop-menu';
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('aria-label', title);
+    menu.innerHTML = actions.map((a) => `<button type="button" role="menuitem" data-value="${esc(a.value)}" class="sheet-action${a.icon ? ' has-icon' : ''}${a.danger ? ' danger' : ''}">${label(a)}</button>`).join('');
+    document.body.append(menu);
+    const r = anchor.getBoundingClientRect();
+    const w = Math.max(r.width, 300);
+    menu.style.width = `${w}px`;
+    menu.style.left = `${Math.min(r.left, innerWidth - w - 12)}px`;
+    const below = r.bottom + 6;
+    menu.style.top = `${below + menu.offsetHeight > innerHeight - 12 ? Math.max(12, r.top - 6 - menu.offsetHeight) : below}px`;
+    anchor.setAttribute('aria-expanded', 'true');
+    const items = [...menu.querySelectorAll('[role="menuitem"]')];
+    const done = (value) => {
+      menu.remove();
+      anchor.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', keys, true);
+      removeEventListener('resize', cancel);
+      removeEventListener('scroll', cancel, true);
+      if (!value) anchor.focus();
+      resolve(value);
+    };
+    const cancel = () => done(null);
+    const outside = (e) => { if (!menu.contains(e.target) && !anchor.contains(e.target)) cancel(); else if (anchor.contains(e.target)) { e.preventDefault(); cancel(); } };
+    const keys = (e) => {
+      const i = items.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
+      else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (e.key === 'Tab') cancel();
+    };
+    menu.addEventListener('click', (e) => { const b = e.target.closest('[role="menuitem"]'); if (b) done(b.dataset.value); });
+    setTimeout(() => {
+      document.addEventListener('pointerdown', outside, true);
+      document.addEventListener('keydown', keys, true);
+      addEventListener('resize', cancel);
+      addEventListener('scroll', cancel, true);
+    });
+    items[0]?.focus();
   });
 }
 
