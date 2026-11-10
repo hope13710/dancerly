@@ -773,6 +773,7 @@ a {
   background: #0f1217;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .player {
   position: relative;
@@ -966,6 +967,7 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 .take-summary {
   font-size: 12px;
@@ -1017,8 +1019,9 @@ a {
 }
 .note-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
 }
 .time-chip {
   display: inline-flex;
@@ -5195,6 +5198,7 @@ body.is-guest .topbar {
 /* Review: "Fixed in this take?" on notes carried from an earlier take */
 .fixed-ask {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin: 8px 0 2px;
@@ -7224,6 +7228,12 @@ button.row {
 @keyframes note-pinned {
   from { background: rgba(124, 196, 255, 0.22); }
 }
+@media (min-width: 901px) and (max-width: 1180px) {
+  /* Laptops with the sidebar open: give the video a little more room. */
+  .review-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.75fr);
+  }
+}
 @media (min-width: 901px) {
   /* The notes column takes the player's height; only the list between the summary and the composer scrolls. */
   .notes-col {
@@ -7236,7 +7246,8 @@ button.row {
   }
   .player {
     max-height: calc(100dvh - 300px);
-    min-height: 260px;
+    /* Never wider than its column: a fixed minimum height on a 16:10 box would push it into the notes. */
+    min-height: min(260px, calc((100vw - 248px - 420px) * 0.625));
   }
 }
 @media (max-width: 900px) {
