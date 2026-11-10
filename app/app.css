@@ -1016,11 +1016,119 @@ a {
 .note.looping {
   box-shadow: inset 2px 0 #feaf75;
 }
-.note-top {
+/* Note card: who · when · ✓ on top, the note starting at its moment, one quiet line of context. */
+.note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.note-head .who {
+  min-width: 0;
+  font-weight: 600;
+  color: #e3e6ed;
+}
+.note-head .when {
+  font-size: 12px;
+  color: #8993a1;
+  white-space: nowrap;
+}
+.note-check {
+  margin-left: auto;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #4a5263;
+  background: transparent;
+  color: #8993a1;
+  cursor: pointer;
+}
+.note-check .ic {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.4;
+}
+.note-check:hover {
+  border-color: #4fd59c;
+  color: #4fd59c;
+}
+.note-check.on {
+  border-color: #2fa877;
+  background: #2fa877;
+  color: #fff;
+}
+.note-check:disabled {
+  cursor: default;
+}
+.note-body .time-chip {
+  margin-right: 4px;
+  vertical-align: 1px;
+}
+.chip-count {
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(196, 197, 255, 0.3);
+  font-weight: 600;
+}
+.chip-sketch .ic {
+  width: 13px;
+  height: 13px;
+  margin-left: 6px;
+}
+.note-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 4px 6px;
+  margin: -2px 0 6px;
+  font-size: 12px;
+  color: #8993a1;
+}
+.note-meta i {
+  font-style: normal;
+  color: #4a5263;
+}
+.note-meta .cat-chip {
+  background: none;
+  padding: 0;
+  color: #aab1bf;
+}
+.note-meta .status {
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+/* Resolved: dimmed and shortened; it opens up again when picked. */
+.note.is-resolved:not(.selected) .note-body {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #8993a1;
+}
+.note.is-resolved:not(.selected) .note-meta,
+.note.is-resolved:not(.selected) .note-actions {
+  display: none;
+}
+.note.is-resolved:not(.selected) .note-head {
+  opacity: 0.7;
+}
+/* Actions nobody has used yet (Reply, 👍, ⋯) wait until you point at the note, on computers. */
+@media (hover: hover) and (min-width: 901px) {
+  .note .note-actions .quiet {
+    order: 1;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .note:hover .note-actions .quiet,
+  .note:focus-within .note-actions .quiet,
+  .note.selected .note-actions .quiet {
+    opacity: 1;
+  }
 }
 .time-chip {
   display: inline-flex;
@@ -1059,7 +1167,7 @@ a {
   background: rgba(79, 213, 156, 0.12);
 }
 .note p {
-  margin: 9px 0;
+  margin: 8px 0;
   font-size: 14px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -1101,7 +1209,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 9px;
+  margin-top: 6px;
 }
 .mini {
   border: 1px solid #3e4757;
@@ -5242,21 +5350,34 @@ body.is-guest .topbar {
 }
 
 /* Review: "Fixed in this take?" on notes carried from an earlier take */
+/* Asked on a carried note when the next take is open: one line, two text buttons. */
 .fixed-ask {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 8px 0 2px;
-  padding: 7px 8px 7px 10px;
-  border-radius: 8px;
-  background: rgba(91, 92, 226, 0.16);
-  font-size: 12px;
+  gap: 4px 8px;
+  margin: 4px 0 2px;
+  font-size: 13px;
   font-weight: 600;
   color: #dcdcfa;
 }
-.fixed-ask span {
-  margin-right: auto;
+.fixed-ask i {
+  font-style: normal;
+  color: #4a5263;
+}
+.ask-btn {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  font: inherit;
+  color: #c4c9d6;
+  cursor: pointer;
+}
+.ask-btn.ok {
+  color: #4fd59c;
+}
+.ask-btn:hover {
+  text-decoration: underline;
 }
 
 /* ---------- Insights: next-rehearsal lines, where feedback piles up ---------- */
@@ -8497,3 +8618,58 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
 /* People: a name and its "You" tag stay on one line, even in the narrow table on a phone. */
 .table a.person { white-space: nowrap; }
 .table a.person b { white-space: nowrap; }
+
+/* ---------- Video screen on laptops: the sidebar becomes an icon rail ----------
+   Like YouTube's watch page or Figma's editor: the video gets the room, the way around stays one hover away.
+   Pointing at the rail opens it over the page; leaving closes it. Wider screens keep the full sidebar. */
+@media (min-width: 901px) and (max-width: 1279px) {
+  body.signed-in.is-review:not(.side-hidden) {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  body.is-review:not(.side-hidden) .sidebar {
+    width: 64px;
+    padding-inline: 10px;
+    z-index: 40;
+    transition: width 0.15s ease, box-shadow 0.15s ease;
+  }
+  body.is-review:not(.side-hidden) .sidebar:not(:hover):not(:focus-within) :is(.side-nav a > span, .side-projects a > span:last-child, .side-search span, .side-search kbd, .side-new span, .side-label, .side-empty, .side-tag, .account-btn-copy, .brand, [data-side-toggle]) {
+    display: none;
+  }
+  body.is-review:not(.side-hidden) .sidebar:not(:hover):not(:focus-within) :is(.side-nav a, .side-projects a, .side-search, .side-new) {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  body.is-review:not(.side-hidden) .sidebar:hover,
+  body.is-review:not(.side-hidden) .sidebar:focus-within {
+    width: 248px;
+    padding-inline: 12px;
+    box-shadow: 8px 0 24px rgba(20, 23, 29, 0.12);
+  }
+}
+
+/* Theater mode (computers): video full width, notes underneath. */
+.theater-btn {
+  display: none;
+}
+@media (min-width: 901px) {
+  .theater-btn {
+    display: inline-flex;
+  }
+  body.is-review.theater .review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.is-review.theater .notes-col {
+    contain: none;
+    border-top: 1px solid #2b3039;
+  }
+  body.is-review.theater .note-list {
+    max-height: none;
+  }
+  body.is-review.theater .player {
+    max-height: calc(100dvh - 220px);
+  }
+  body.is-review.theater .theater-btn {
+    border-color: var(--accent);
+    color: #fff;
+  }
+}

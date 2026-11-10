@@ -109,7 +109,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">${ic('loop')}A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">${ic('music')}Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">${ic('loop')}A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">${ic('music')}Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button class="toggle-btn theater-btn" data-theater aria-pressed="false" title="Theater mode (W)" aria-label="Theater mode">${ic('theater', 'solo')}</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button></div>
         <div class="counts-panel" data-counts-panel hidden>
           <div class="counts-row">
             <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
@@ -187,10 +187,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const noteTime = (n) => (n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`);
   // "3·5" next to the time when the video has counts (each take keeps its own count 1).
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
-  const noteCount = (n) => {
-    const c = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
-    return c ? `<span class="count-tag" title="Eight ${c.eight}, count ${c.count}">${countLabel(c)}</span>` : '';
-  };
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
   // A note's or reply's author, opening their profile (someone who left the project stays plain text).
   const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
@@ -215,22 +211,32 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const from = carried ? `<span class="from" ${n.unaligned ? 'title="Time may be off: this take isn’t lined up with the earlier one yet"' : ''}>from Take ${takeNo[n.take_id]}${n.unaligned ? ' ≈' : ''}</span>` : '';
       // Watching a new take is when fixes get noticed: ask right on the note.
       const ask = carried && n.status !== 'resolved' && canResolve(n) && !r.notYet.has(n.id)
-        ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="mini ok" data-status="resolved" data-id="${n.id}">${ic('check')}Yes</button><button class="mini" data-notyet="${n.id}">Not yet</button></div>` : '';
+        ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="ask-btn ok" data-status="resolved" data-id="${n.id}">Yes</button><i aria-hidden="true">·</i><button class="ask-btn" data-notyet="${n.id}">Not yet</button></div>` : '';
       const other = n.private_to ? (n.author_id === me.id ? n.private_to : n.author_id) : null;
       const replies = n.note_replies || [];
       const open = r.openThreads.has(n.id);
-      return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
+      // Like a comment in Frame.io or Google Docs: who and when on top with ✓ to resolve, then the note itself
+      // starting at its moment, one quiet line of context, and the rest of the actions when you point at it.
+      const count = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
+      const meta = [
+        n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : '',
+        from,
+        n.status === 'practicing' ? '<span class="status s-practicing">Practicing</span>' : '',
+      ].filter(Boolean);
+      const check = n.status === 'resolved'
+        ? `<button class="note-check on" ${canResolve(n) ? `data-status="open" data-id="${n.id}" title="Fixed · Reopen"` : 'disabled title="Fixed"'} aria-label="Fixed. Reopen">${ic('check', 'solo')}</button>`
+        : canResolve(n) ? `<button class="note-check" data-status="resolved" data-id="${n.id}" title="Mark as fixed" aria-label="Mark as fixed">${ic('check', 'solo')}</button>` : '';
+      return `<article class="note ${n.status === 'resolved' ? 'is-resolved' : ''} ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}</button>${n.sketch ? `<span class="sketch-tag" role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}${noteCount(n)}${from}${n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
-        <p>${withMentions(n.body)}</p>
+        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}</span>${check}</div>
+        <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" data-i18n-attrs title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" data-i18n-attrs role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> ${withMentions(n.body)}</p>
+        ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
-        <div class="note-foot"><span class="who">${by(n.author_id)} · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
-          <button class="mini ${open ? 'on' : ''}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? replies.length : 'Reply'}</button>
-          ${n.status === 'resolved' ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '') : canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">${ic('check')}Resolve</button>` : ''}
-          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
+          <button class="mini ${open ? 'on' : ''} ${replies.length ? '' : 'quiet'}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? replies.length : 'Reply'}</button>
+          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''} ${agrees ? '' : 'quiet'}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
           ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
-          <details class="menu-more note-more"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
+          <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
             ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
             ${n.status === 'open' ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
             ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
@@ -1015,13 +1021,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
       d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
-      f: toggleFull, escape: () => (playerCol.classList.contains('is-full') && !fsElement() ? toggleFull() : setLoop(null)), arrowup: () => step(-1), arrowdown: () => step(1),
+      f: toggleFull, w: toggleTheater, escape: () => (playerCol.classList.contains('is-full') && !fsElement() ? toggleFull() : setLoop(null)), arrowup: () => step(-1), arrowdown: () => step(1),
       '<': () => stepSpeed(-1), '>': () => stepSpeed(1), ',': () => e.shiftKey && stepSpeed(-1), '.': () => e.shiftKey && stepSpeed(1)
     };
     const action = actions[e.key.toLowerCase()];
     if (action) { e.preventDefault(); action(); }
   }
   document.addEventListener('keydown', onKey);
+  // Theater mode (W): the video takes the full width and the notes move below it. Remembered on this device.
+  const THEATER_KEY = 'looproom:theater';
+  function setTheater(on) {
+    document.body.classList.toggle('theater', on);
+    $('[data-theater]')?.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem(THEATER_KEY, on ? '1' : ''); } catch { /* private mode */ }
+  }
+  function toggleTheater() { setTheater(!document.body.classList.contains('theater')); }
+  $('[data-theater]')?.addEventListener('click', toggleTheater);
+  try { setTheater(localStorage.getItem(THEATER_KEY) === '1'); } catch { setTheater(false); }
   setSpeed(savedSpeed()); // the last speed used on this device (after the player is fully set up)
 
   // ---------- Live updates: teammates' notes appear without refreshing ----------

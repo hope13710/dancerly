@@ -50,6 +50,7 @@ const P = {
   more: '<circle class="f" cx="5" cy="12" r="1.6"/><circle class="f" cx="12" cy="12" r="1.6"/><circle class="f" cx="19" cy="12" r="1.6"/>',
   compare: '<rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/>',
   at: '<path class="f" d="M9 7v10l8-5z"/>',
+  theater: '<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 15h19"/>',
   sample: '<circle cx="12" cy="12" r="9"/><path class="f" d="M10 8.5v7l6-3.5z"/>',
 };
 

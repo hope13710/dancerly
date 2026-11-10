@@ -1273,6 +1273,11 @@ export const KO = {
   'You haven’t left a note yet.': '아직 남긴 피드백이 없어요.',
   'No notes on your takes yet.': '아직 내 테이크에 달린 피드백이 없어요.',
   // Same phrases without the old text symbols: icons are SVG now (app/icons.js).
+  'Theater mode (W)': '극장 모드 (W)',
+  'Theater mode': '극장 모드',
+  'Mark as fixed': '해결로 표시',
+  'Fixed · Reopen': '해결됨 · 다시 열기',
+  'Fixed. Reopen': '해결됨. 다시 열기',
   'A practice video or run-through': '연습 영상이나 전체 런스루',
   'Delete this reply?': '이 답글을 삭제할까요?',
   'It disappears for everyone who can see this note.': '이 피드백을 볼 수 있는 모든 사람에게서 사라져요.',
