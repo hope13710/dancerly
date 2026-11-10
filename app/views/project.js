@@ -12,6 +12,7 @@ import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboardi
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
 
+const plural = (n, one) => `${n} ${n === 1 ? one : `${one}s`}`;
 export async function renderProjects() {
   const { view, setCrumbs } = ctx;
   setCrumbs([['Projects']]);
@@ -23,7 +24,7 @@ export async function renderProjects() {
   const card = (p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
         ${projectMark(p)}
         <h3>${esc(p.title)}${p.is_sample ? ' <span class="tag sample-tag">Sample</span>' : ''}</h3>
-        <p class="muted">${p.videos[0]?.count ?? 0} videos · ${p.project_members[0]?.count ?? 1} members</p>
+        <p class="muted">${plural(p.videos[0]?.count ?? 0, 'video')} · ${plural(p.project_members[0]?.count ?? 1, 'member')}</p>
       </a>`;
   const real = projects.filter((p) => !p.is_sample);
   const sample = projects.find((p) => p.is_sample);
