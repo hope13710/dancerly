@@ -1,5 +1,5 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
-import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine } from '../client.js';
+import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 import { countAt } from '../counts.js';
@@ -336,6 +336,8 @@ export async function subscribeCalendar() {
     <p class="fine left">Calendar apps refresh every few hours. <button class="link-btn inline danger" type="button" data-off>Turn this link off</button></p>`);
   wireCopy(el);
   $('[data-off]', el).addEventListener('click', async () => {
+    const sure = await dialog({ title: 'Turn off this calendar link?', body: 'Calendars subscribed to it stop updating. A new link would need to be added to them again.', confirm: 'Turn off', danger: true });
+    if (!sure) return;
     const { error } = await sb.from('calendar_feeds').delete().eq('token', feed.token);
     if (error) return toast(friendlyError(error), 'error');
     toast('Calendar link turned off. Make a new one any time.');

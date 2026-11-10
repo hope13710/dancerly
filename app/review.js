@@ -778,6 +778,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       return;
     }
     if (el.dataset.deleteReply) {
+      const sure = await dialog({ title: 'Delete this reply?', body: 'It disappears for everyone who can see this note.', confirm: 'Delete', danger: true });
+      if (!sure) return;
       const { error } = await sb.from('note_replies').delete().eq('id', el.dataset.deleteReply);
       if (error) return toast(friendlyError(error), 'error');
       return loadNotes();
