@@ -2,6 +2,7 @@
 import { sb, esc, initials, fmt, isSamplePerson, isEnter } from '../client.js';
 import { ctx } from '../ctx.js';
 import { noSample } from './shared.js';
+import { ic } from '../icons.js';
 
 let open = false;
 
@@ -31,7 +32,7 @@ export function openSearch() {
   el.addEventListener('close', () => { el.remove(); open = false; });
   el.addEventListener('click', (e) => { if (e.target === el) close(); });
 
-  const commands = () => (ctx.commands || []).map((c) => ({ group: 'Commands', icon: '›', label: c.label, hint: c.hint || '', run: c.run }));
+  const commands = () => (ctx.commands || []).map((c) => ({ group: 'Commands', icon: ic('right', 'solo'), label: c.label, hint: c.hint || '', run: c.run }));
 
   function paint() {
     if (!results.length) {
@@ -78,9 +79,9 @@ export function openSearch() {
     results = [
       ...projects,
       ...(people.data || []).filter((p) => !isSamplePerson(p.id)).map((p) => ({ group: 'People', icon: esc(initials(p.display_name)), label: p.display_name, href: `/app/people/${p.id}` })),
-      ...(videos.data || []).map((v) => ({ group: 'Videos', icon: '▶', label: v.title, hint: v.projects?.title, href: `/app/p/${v.project_id}/v/${v.id}` })),
-      ...(requests.data || []).map((r) => ({ group: 'Assignments', icon: '⇪', label: r.title, hint: r.projects?.title, href: `/app/p/${r.project_id}/requests/${r.id}` })),
-      ...(notes.data || []).map((n) => ({ group: 'Notes', icon: '◫', label: n.body.length > 90 ? `${n.body.slice(0, 90)}…` : n.body, hint: `${n.videos?.title || ''} · ${fmt(Number(n.t_start))}`, href: `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}` })),
+      ...(videos.data || []).map((v) => ({ group: 'Videos', icon: ic('video', 'solo'), label: v.title, hint: v.projects?.title, href: `/app/p/${v.project_id}/v/${v.id}` })),
+      ...(requests.data || []).map((r) => ({ group: 'Assignments', icon: ic('assignment', 'solo'), label: r.title, hint: r.projects?.title, href: `/app/p/${r.project_id}/requests/${r.id}` })),
+      ...(notes.data || []).map((n) => ({ group: 'Notes', icon: ic('note', 'solo'), label: n.body.length > 90 ? `${n.body.slice(0, 90)}…` : n.body, hint: `${n.videos?.title || ''} · ${fmt(Number(n.t_start))}`, href: `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}` })),
       ...cmds.slice(0, 4)
     ];
     active = 0;

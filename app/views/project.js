@@ -8,6 +8,7 @@ import { isKo } from '../i18n.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
+import { ic } from '../icons.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -33,7 +34,7 @@ export async function renderProjects() {
     ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
       ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
         : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
-    : empty('✦', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
+    : empty('folder', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -111,8 +112,8 @@ function projectTabs(base, current) {
   const link = ([key, label, path]) => `<a href="${base}${path}" data-link ${key === current ? 'aria-current="page"' : ''}>${esc(label)}</a>`;
   const inMore = MORE_TABS.find(([key]) => key === current);
   return `<nav class="tabs project-tabs" aria-label="Views">${MAIN_TABS.map(link).join('')}${inMore ? link(inMore) : ''}
-    <details class="tabs-more"><summary>More <span aria-hidden="true">▾</span></summary><div class="tabs-more-menu" role="menu">${MORE_TABS.filter(([key]) => key !== current).map(([key, label, path]) => `<a role="menuitem" href="${base}${path}" data-link>${esc(label)}</a>`).join('')}</div></details>
-    <a class="tabs-gear" href="${base}/settings" data-link aria-label="Settings" title="Settings" ${current === 'settings' ? 'aria-current="page"' : ''}>⚙<span class="wide-only"> Settings</span></a></nav>`;
+    <details class="tabs-more"><summary>More${ic('down', 'after')}</summary><div class="tabs-more-menu" role="menu">${MORE_TABS.filter(([key]) => key !== current).map(([key, label, path]) => `<a role="menuitem" href="${base}${path}" data-link>${esc(label)}</a>`).join('')}</div></details>
+    <a class="tabs-gear" href="${base}/settings" data-link aria-label="Settings" title="Settings" ${current === 'settings' ? 'aria-current="page"' : ''}>${ic('settings', 'solo')}<span class="wide-only"> Settings</span></a></nav>`;
 }
 if (typeof document !== 'undefined') {
   document.addEventListener('click', (e) => { document.querySelectorAll('details.tabs-more[open], details.menu-more[open]').forEach((d) => { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
@@ -121,7 +122,7 @@ if (typeof document !== 'undefined') {
 export function projectHead({ project, members, goal }, tab, actions = '') {
   const base = `/app/p/${project.id}`;
   // What the team is working toward, on every tab: "🎯 Spring Showcase · 12 days".
-  const goalChip = goal ? `<a class="goal-chip" href="${base}/overview" data-link title="${goal.picked ? 'Project goal' : 'Next show'}"><span aria-hidden="true">🎯</span><span class="goal-name">${esc(goal.title)}</span><b>${daysLabel(daysUntil(goal.starts_at))}</b></a>` : '';
+  const goalChip = goal ? `<a class="goal-chip" href="${base}/overview" data-link title="${goal.picked ? 'Project goal' : 'Next show'}">${ic('flag')}<span class="goal-name">${esc(goal.title)}</span><b>${daysLabel(daysUntil(goal.starts_at))}</b></a>` : '';
   return `<header class="page-head project-head">
       <div class="project-title">${projectMark(project, 'head')}<div><p class="eyebrow">${project.is_sample ? 'Sample project' : 'Project'}</p><h1>${esc(project.title)}</h1>
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
@@ -143,20 +144,20 @@ export async function renderProject(projectId) {
   // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
   const sampleMine = p.project.is_sample && p.project.created_by === p.me;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'videos', '<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>↑ Upload video</button>')}
+    ${projectHead(p, 'videos', `<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
       const canDelete = p.isOwner || v.created_by === p.me || sampleMine;
       return `<div class="video-item${canDelete ? ' has-more' : ''}"><a class="video-row" href="/app/p/${projectId}/v/${v.id}" data-link>
-        <span class="video-thumb" ${takes[0] ? `data-thumb="${takes[0].id}"` : ''}><i aria-hidden="true">▶</i>${takes.length > 1 ? `<em>${takes.length} takes</em>` : ''}</span>
+        <span class="video-thumb" ${takes[0] ? `data-thumb="${takes[0].id}"` : ''}><i aria-hidden="true">${ic('play', 'solo')}</i>${takes.length > 1 ? `<em>${takes.length} takes</em>` : ''}</span>
         <span class="video-copy"><b>${esc(v.title)}</b><small>${takes.length > 1 ? `${takes.length} takes · latest ${timeAgo(takes[0].created_at)}` : takes.length ? `Uploaded ${timeAgo(takes[0].created_at)}` : 'No video yet'}</small></span>
-        <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">→</span>
-      </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">⋯</button>` : ''}</div>`;
+        <span class="pill ${open ? 'warn' : 'ok'}">${open ? `${open} open` : 'All clear'}</span><span class="chev">${ic('right', 'solo')}</span>
+      </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">${ic('more', 'solo')}</button>` : ''}</div>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('▶', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>↑ Upload video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
-      : empty('▶', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', '<button class="btn primary" data-new-video>↑ Upload video</button>')}
+      ? empty('video', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>${ic('upload')}Upload video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      : empty('video', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', `<button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
@@ -216,7 +217,7 @@ export async function renderProjectNotes(projectId) {
     ${projectHead(p, 'notes')}
     <div class="filters"><div class="seg small" role="group" aria-label="Status">${[['todo', 'To do'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, l]) => `<a href="${base}?status=${k}" data-link aria-selected="${k === status}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showProject: false })).join('')}</div>`
-      : notes.length ? empty('✓', 'All caught up', 'Nothing in this view.') : empty('◫', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.', samplePeek('notes'))}
+      : notes.length ? empty('check_circle', 'All caught up', 'Nothing in this view.') : empty('note', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.', samplePeek('notes'))}
   </section>`;
 }
 
@@ -239,7 +240,7 @@ export async function renderProjectPeople(projectId) {
     <div class="list">${p.members.map((m) => `<div class="row member-row">
       <a class="person" href="/app/people/${m.user_id}" data-link>${avatar(m.name, m.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(m.name)}${m.user_id === p.me ? ' <span class="tag">You</span>' : ''}</span><span class="row-meta">Joined ${timeAgo(m.joined_at)}</span></span></a>
       <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span>
-        ${p.isOwner && m.user_id !== p.me ? `<button class="btn ghost small icon" data-member="${m.user_id}" aria-label="Manage ${esc(m.name)}">•••</button>` : ''}</span>
+        ${p.isOwner && m.user_id !== p.me ? `<button class="btn ghost small icon" data-member="${m.user_id}" aria-label="Manage ${esc(m.name)}">${ic('more', 'solo')}</button>` : ''}</span>
     </div>`).join('')}</div>
     <p class="fine left">Owners can rename or delete the project and remove people. Everyone can upload, leave notes, and invite.</p>
     ${groupsSection(p, groups)}
@@ -541,7 +542,7 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
   el.className = 'dialog';
   el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2><p>${body || `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p><p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
     <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" /><button class="btn primary" data-copy>Copy</button></div>
-    <div class="invite-more">${navigator.share ? '<button class="btn" data-share>Share…</button>' : ''}<button class="btn" data-qr-open>▦ Show QR code</button></div>
+    <div class="invite-more">${navigator.share ? '<button class="btn" data-share>Share…</button>' : ''}<button class="btn" data-qr-open>${ic('qr')}Show QR code</button></div>
     <p class="fine left">In the studio? Show the QR code and everyone can scan it with their phone camera to join.</p>
     <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
@@ -588,7 +589,7 @@ export async function showInviteQr(link, title, expiresAt) {
     <div class="qr-full-code">${qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true })}</div>
     <p class="qr-full-help">Point your phone’s camera at the code. No app to install.</p>
     <p class="qr-full-until">Works until ${esc(until)}</p>
-    <div class="qr-full-actions"><button class="btn" data-qr-poster>↓ Save as poster</button><button class="btn primary" data-qr-close>Done</button></div>
+    <div class="qr-full-actions"><button class="btn" data-qr-poster>${ic('download')}Save as poster</button><button class="btn primary" data-qr-close>Done</button></div>
   </div>`;
   document.body.append(el);
   el.showModal();

@@ -6,6 +6,7 @@ import { getLang, isKo } from './i18n.js';
 import { createVideo } from './views/project.js';
 import { myOpenRequests } from './views/requests.js';
 import { notesForMe } from './views/shared.js';
+import { ic } from './icons.js';
 
 // Product events go to the product_events table (migration 023): an event name and a few small labels, never content.
 // If the table isn't there yet, or a write fails, we stop trying for this visit.
@@ -49,7 +50,7 @@ export function samplePeek(where, text = 'Preview this in the sample project') {
   if (!sampleOffer()) return '';
   // Inside the sample itself there's nothing to preview.
   if (ctx.state.projects.some((p) => p.is_sample && location.pathname.includes(p.id))) return '';
-  return `<p class="sample-peek"><button type="button" class="link-btn" data-open-sample="${where}"><span aria-hidden="true">▶</span> ${esc(text)}</button></p>`;
+  return `<p class="sample-peek"><button type="button" class="link-btn" data-open-sample="${where}">${ic('sample')}${esc(text)}</button></p>`;
 }
 
 // Where each "preview it" link lands inside the sample.
@@ -121,7 +122,7 @@ export function sampleCleanupCard() {
   if (!last || Date.now() - last < STALE_DAYS * 864e5) return null;
   return {
     html: `<section class="panel home-sample sample-cleanup">
-      <span class="sample-dot" aria-hidden="true">✦</span>
+      <span class="sample-dot" aria-hidden="true">${ic('sample', 'solo')}</span>
       <div class="grow"><h2>Clear away the sample?</h2><p class="muted">You haven’t opened it in a few weeks — your real work has taken over. You can always open a fresh one from Projects.</p></div>
       <button class="btn" data-cleanup="delete">Delete sample</button>
       <button class="btn ghost small" data-cleanup="keep">Keep it</button>
@@ -147,7 +148,7 @@ window.addEventListener('take-uploaded', (event) => {
   markSeen('sample_graduated');
   track('sample_graduated');
   setTimeout(async () => {
-    const clear = await dialog({ title: 'Your first real video is in 🎉', body: 'That’s the real thing now — your notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
+    const clear = await dialog({ title: 'Your first real video is in', body: 'That’s the real thing now — your notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
     if (clear) removeSample(sample.id);
   }, 800);
 });
@@ -272,9 +273,9 @@ export async function memberWelcome(projectId, project, members) {
     <h2>You’re in ${esc(project.title)}</h2>
     <p>${owner && owner.user_id !== me ? `${esc(owner.name)} and everyone here review practice videos together.` : 'This is where practice videos get reviewed.'} Three things you’ll do most:</p>
     <ol class="welcome-list">
-      <li><span class="wl-icon" aria-hidden="true">◎</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} waiting for you — tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
-      <li><span class="wl-icon" aria-hidden="true">↻</span><span><b>Practice with loop and mirror</b><small>Loop the part you’re working on, slow it down, flip it to match the mirror.</small></span></li>
-      <li><span class="wl-icon" aria-hidden="true">↑</span><span><b>Submit your video</b><small>${requests[0] ? `Assignment: ${esc(requests[0].title)}.` : 'Film from the front, whole body in frame, with the music.'}</small></span></li>
+      <li><span class="wl-icon" aria-hidden="true">${ic('reply', 'solo')}</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} waiting for you — tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
+      <li><span class="wl-icon" aria-hidden="true">${ic('loop', 'solo')}</span><span><b>Practice with loop and mirror</b><small>Loop the part you’re working on, slow it down, flip it to match the mirror.</small></span></li>
+      <li><span class="wl-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span><b>Submit your video</b><small>${requests[0] ? `Assignment: ${esc(requests[0].title)}.` : 'Film from the front, whole body in frame, with the music.'}</small></span></li>
     </ol>
     ${latest ? '' : `<p class="fine left">${owner && owner.user_id !== me ? `No videos here yet. When ${esc(owner.name)} uploads one, you’ll get a notification.` : 'No videos here yet. You’ll get a notification when one is uploaded.'}</p>`}
     <div class="dialog-actions"><button class="btn ghost" data-close>${primary ? 'Later' : 'Got it'}</button>${primary ? `<a class="btn primary" href="${primary.href}" data-link data-go>${primary.label}</a>` : ''}</div>

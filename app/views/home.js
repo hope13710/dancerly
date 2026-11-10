@@ -8,6 +8,7 @@ import { showEvent } from './calendar.js';
 import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
 import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard, track } from '../onboarding.js';
+import { ic } from '../icons.js';
 
 // What each getting-started step leads to, drawn with the app's own pieces and marked as an example:
 // seeing the result is what makes the step worth doing. Example text follows the app's language.
@@ -18,18 +19,18 @@ function stepPreview(kind, project, goal, days) {
   // The same circle-and-arrow sketch as the landing page, on the same frame.
   const sketch = '<svg class="pv-sketch" viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><ellipse class="pv-sk" cx="142" cy="102" rx="24" ry="20" /><path class="pv-sk pv-sk-2" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>';
   // The real sketch toolbar: pen, arrow, circle · four colors · undo, clear · Done.
-  const sketchBar = `<div class="pv-skbar" aria-hidden="true"><span class="pv-skg"><b>✎</b><b>↗</b><b class="on">◯</b></span><span class="pv-skg"><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i></span><span class="pv-skg"><b>↶</b><b>✕</b></span><em>${isKo ? '완료' : 'Done'}</em></div>`;
-  const player = (withNote) => `<div class="pv-player"><div class="pv-frame"><img src="/samples/hero-preview.jpg" alt="" />${sketch}</div><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span><span class="pv-sktag">✎</span></div>` : ''}</div>`;
+  const sketchBar = `<div class="pv-skbar" aria-hidden="true"><span class="pv-skg"><b>${ic('pen', 'solo')}</b><b>${ic('arrow', 'solo')}</b><b class="on">${ic('circle', 'solo')}</b></span><span class="pv-skg"><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i></span><span class="pv-skg"><b>${ic('undo', 'solo')}</b><b>${ic('x', 'solo')}</b></span><em>${isKo ? '완료' : 'Done'}</em></div>`;
+  const player = (withNote) => `<div class="pv-player"><div class="pv-frame"><img src="/samples/hero-preview.jpg" alt="" />${sketch}</div><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span><span class="pv-sktag">${ic('pen', 'solo')}</span></div>` : ''}</div>`;
   const title = esc(project?.title || (isKo ? '봄 쇼케이스' : 'Spring Showcase'));
   const html = {
     project: `<div class="pv-proj"><div class="pv-k">${isKo ? '프로젝트' : 'Project'}</div><h4><span class="pv-mk">${esc(initials(project?.title || 'Spring Showcase'))}</span>${title}</h4>
-      <span class="pv-goal">🎯 ${goal ? `${esc(goal.title)} · ${days <= 0 ? 'D-DAY' : `D-${days}`}` : `${isKo ? '봄 쇼케이스' : 'Spring Showcase'} · D-12`}</span>
+      <span class="pv-goal">${ic('flag')}${goal ? `${esc(goal.title)} · ${days <= 0 ? 'D-DAY' : `D-${days}`}` : `${isKo ? '봄 쇼케이스' : 'Spring Showcase'} · D-12`}</span>
       <div class="pv-tabs"><span>${isKo ? '개요' : 'Overview'}</span><span class="on">${isKo ? '영상' : 'Videos'}</span><span>${isKo ? '과제' : 'Assignments'}</span></div>
-      <div class="pv-vrow"><span class="pv-ph">＋</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
+      <div class="pv-vrow"><span class="pv-ph">${ic('plus', 'solo')}</span>${isKo ? '팀의 영상이 여기에 모여요' : 'Your team’s videos land here'}</div></div>${cap(isKo ? '공연 하나를 위한 팀 공간' : 'One place for one show')}`,
     video: `${player(true)}${cap(isKo ? '영상 위 그 순간에 피드백이 붙어요' : 'Feedback lands on the exact moment')}`,
-    note: `<div class="pv-compose"><div class="pv-frame pv-frame-draw"><img src="/samples/hero-preview.jpg" alt="" />${sketch}${sketchBar}</div><div class="pv-crow"><span class="pv-t">▸ 0:01.4</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Maya</b></div><div class="pv-pin"><em class="pv-skchip">✎ ${isKo ? '스케치' : 'Sketch'}</em><span>${isKo ? '피드백 남기기 ↵' : 'Pin note ↵'}</span></div></div>${cap(isKo ? '멈추고, 스케치하고, 쓰면 끝' : 'Pause, sketch, type. Done')}`,
+    note: `<div class="pv-compose"><div class="pv-frame pv-frame-draw"><img src="/samples/hero-preview.jpg" alt="" />${sketch}${sketchBar}</div><div class="pv-crow"><span class="pv-t">${ic('at')}0:01.4</span>${isKo ? '이 순간에 남기기' : 'At this moment'}</div><div class="pv-box">${note} <b>@Maya</b></div><div class="pv-pin"><em class="pv-skchip">${ic('pen')}${isKo ? '스케치' : 'Sketch'}</em><span>${isKo ? '피드백 남기기' : 'Pin note'}</span></div></div>${cap(isKo ? '멈추고, 스케치하고, 쓰면 끝' : 'Pause, sketch, type. Done')}`,
     invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
-      <div class="pv-joined">👋 ${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
+      <div class="pv-joined">${isKo ? 'Jordan님이 합류했어요' : 'Jordan joined'}</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>${isKo ? '복사' : 'Copy'}</b></div></div>${cap(isKo ? '링크 하나면 팀이 모여요' : 'One link brings the team in')}`
   }[kind] || '';
   return `<div class="pv-wrap" data-no-i18n>${ex}${html}</div>`;
 }
@@ -99,7 +100,7 @@ export async function renderHome() {
   let sampleHidden = false;
   try { sampleHidden = Number(localStorage.getItem('looproom:sample-card')) > Date.now(); } catch {}
   const sampleCard = sampleOffer() && !graduated && !sampleHidden ? `<section class="panel home-sample">
-      <span class="sample-dot" aria-hidden="true">✦</span>
+      <span class="sample-dot" aria-hidden="true">${ic('sample', 'solo')}</span>
       <div class="grow">${sample
         ? '<h2>Pick up the sample where you left off</h2><p class="muted">A finished team project to try things in. Only you can see it, and it never mixes into your own work.</p>'
         : '<h2>See a finished project first</h2><p class="muted">A sample project with practice videos, notes on the moment, and an AI recap. Only you can see it — try anything.</p>'}</div>
@@ -139,19 +140,19 @@ export async function renderHome() {
     const html = `
       <section class="panel activate">
         <div class="activate-main">
-          <p class="activate-meta"><span>Get started · ${done} of ${steps.length} done</span><span class="muted">· ${left <= 1 ? 'About 1 min left' : `About ${left} min left`}</span>${goal ? `<span class="goal-chip activate-goal"><span aria-hidden="true">🎯</span><span class="goal-name">${esc(goal.title)}</span><b>${days <= 0 ? 'Today' : `D-${days}`}</b></span>` : ''}</p>
+          <p class="activate-meta"><span>Get started · ${done} of ${steps.length} done</span><span class="muted">· ${left <= 1 ? 'About 1 min left' : `About ${left} min left`}</span>${goal ? `<span class="goal-chip activate-goal">${ic('flag')}<span class="goal-name">${esc(goal.title)}</span><b>${days <= 0 ? 'Today' : `D-${days}`}</b></span>` : ''}</p>
           <h2>${title}</h2>
           <p class="muted lead">${text}</p>
           <div class="activate-ctas">
             ${action.startsWith('/') ? `<a class="btn primary big" href="${action}" data-link>${cta}</a>` : `<button class="btn primary big" data-step="${action}">${cta}</button>`}
-            ${sampleOffer() ? (sample ? `<a class="btn big ghost-border" href="/app/p/${sample.id}" data-link>▶ Open the sample first</a>` : '<button type="button" class="btn big ghost-border" data-open-sample="home">▶ See a sample first</button>') : ''}
+            ${sampleOffer() ? (sample ? `<a class="btn big ghost-border" href="/app/p/${sample.id}" data-link>${ic('sample')}Open the sample first</a>` : `<button type="button" class="btn big ghost-border" data-open-sample="home">${ic('sample')}See a sample first</button>`) : ''}
           </div>
           ${handoff ? `<div class="handoff">
             <span class="handoff-qr" data-qr aria-hidden="true"></span>
             <div><b>Is the video on your phone?</b><small>Point your phone’s camera at the code. The upload for ${esc(project.title)} opens right there.</small>
-              <button type="button" class="link-btn inline" data-send-link>Or email the link to myself →</button></div>
+              <button type="button" class="link-btn inline" data-send-link>Or email the link to myself${ic('right', 'after')}</button></div>
           </div>` : ''}
-          <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? '✓' : i + 1}</span>${SHORT[label] || label}</li>`).join('')}${graduated ? '<li class="activate-hide"><button type="button" class="link-btn inline" data-hide-checklist>Hide</button></li>' : ''}</ol>
+          <ol class="activate-steps">${steps.map(([label, ok], i) => `<li class="${ok ? 'done' : label === next?.[0] ? 'now' : ''}"><span class="check">${ok ? ic('check', 'solo') : i + 1}</span>${SHORT[label] || label}</li>`).join('')}${graduated ? '<li class="activate-hide"><button type="button" class="link-btn inline" data-hide-checklist>Hide</button></li>' : ''}</ol>
         </div>
         <div class="activate-preview" aria-hidden="true">${stepPreview(kind, project, goal, days)}</div>
       </section>`;
@@ -196,25 +197,25 @@ export async function renderHome() {
     <div class="home-strip">
       <section class="panel">
         <div class="panel-head"><div><h2>Your assignments</h2><p class="muted">Videos to submit</p></div></div>
-        ${dueFromMe.length ? `<div class="list flush">${dueFromMe.slice(0, 3).map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link><span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due ${r.due_at && new Date(r.due_at) < new Date() ? 'overdue' : ''}">${esc(dueLabel(r.due_at))}</span></span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing due. 🎉</p>'}
+        ${dueFromMe.length ? `<div class="list flush">${dueFromMe.slice(0, 3).map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link><span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due ${r.due_at && new Date(r.due_at) < new Date() ? 'overdue' : ''}">${esc(dueLabel(r.due_at))}</span></span></span><span class="chev">${ic('right', 'solo')}</span></a>`).join('')}</div>` : '<p class="panel-empty">Nothing due.</p>'}
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>To review</h2><p class="muted">New takes you haven’t watched</p></div>${toReview.length ? `<a class="link" href="/app/queue" data-link>Queue (${toReview.length}) →</a>` : ''}</div>
-        ${toReview.length ? `<div class="list flush">${toReview.slice(0, 3).map((v) => `<a class="row" href="/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}" data-link data-review-link><span class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-meta">${v.latest.number === 1 ? 'New video' : `Take ${v.latest.number}`} · ${timeAgo(v.latest.created_at)}</span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">You’re all caught up.</p>'}
+        <div class="panel-head"><div><h2>To review</h2><p class="muted">New takes you haven’t watched</p></div>${toReview.length ? `<a class="link" href="/app/queue" data-link>Queue (${toReview.length})${ic('right', 'after')}</a>` : ''}</div>
+        ${toReview.length ? `<div class="list flush">${toReview.slice(0, 3).map((v) => `<a class="row" href="/app/p/${v.project_id}/v/${v.video_id}?take=${v.latest.number}" data-link data-review-link><span class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-meta">${v.latest.number === 1 ? 'New video' : `Take ${v.latest.number}`} · ${timeAgo(v.latest.created_at)}</span></span><span class="chev">${ic('right', 'solo')}</span></a>`).join('')}</div>` : '<p class="panel-empty">You’re all caught up.</p>'}
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>Coming up</h2><p class="muted">Rehearsals and shows</p></div><a class="link" href="/app/calendar" data-link>Calendar →</a></div>
-        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}${e.projects?.title ? ` · ${esc(e.projects.title)}` : ''}</span></span><span class="chev">›</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
+        <div class="panel-head"><div><h2>Coming up</h2><p class="muted">Rehearsals and shows</p></div><a class="link" href="/app/calendar" data-link>Calendar${ic('right', 'after')}</a></div>
+        ${upcoming?.length ? `<div class="list flush">${upcoming.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${esc(e.title)}</span><span class="row-meta">${new Date(e.starts_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${e.location ? ` · ${esc(e.location)}` : ''}${e.projects?.title ? ` · ${esc(e.projects.title)}` : ''}</span></span><span class="chev">${ic('right', 'solo')}</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled. Add rehearsals from the Calendar.</p>'}
       </section>
     </div>
     ${hideChecklist || activation ? '' : `<section class="panel checklist">
       <div class="panel-head"><div><h2>Get started</h2><p class="muted">${done} of ${steps.length} done</p></div><button class="btn ghost small" data-hide-checklist>Hide</button></div>
       <div class="progress" aria-hidden="true"><i style="width:${(done / steps.length) * 100}%"></i></div>
-      <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? '✓' : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
+      <ol>${steps.map(([label, ok, action]) => `<li class="${ok ? 'done' : ''}"><span class="check">${ok ? ic('check', 'solo') : ''}</span><span>${label}</span>${ok || !action ? '' : action.startsWith('/') ? `<a class="btn small" href="${action}" data-link>Open</a>` : `<button class="btn small" data-step="${action}">Start</button>`}</li>`).join('')}</ol>
     </section>`}
     <div class="home-grid">
       <section class="panel">
-        <div class="panel-head"><div><h2>For you</h2><p class="muted">Notes on your videos and @mentions that aren’t fixed yet</p></div>${todo.length ? `<a class="link" href="/app/feedback" data-link>See all ${todo.length} →</a>` : ''}</div>
+        <div class="panel-head"><div><h2>For you</h2><p class="muted">Notes on your videos and @mentions that aren’t fixed yet</p></div>${todo.length ? `<a class="link" href="/app/feedback" data-link>See all ${todo.length}${ic('right', 'after')}</a>` : ''}</div>
         ${todo.length ? `<div class="list flush">${todo.slice(0, 5).map((n) => noteRow(n, names)).join('')}</div>`
           : '<p class="panel-empty">Nothing waiting on you. When someone leaves notes on your videos or @mentions you, it shows up here.</p>'}
       </section>

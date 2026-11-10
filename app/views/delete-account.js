@@ -48,7 +48,7 @@ export async function renderDeleteAccount() {
           <li>Your profile, photo, and sign-in</li>
           <li data-no-i18n>${isKo ? `내가 올린 테이크 ${takeCount || 0}개와 그 영상 파일` : `Your ${takeCount || 0} uploaded ${takeCount === 1 ? 'take' : 'takes'} and their video files`}</li>
           <li data-no-i18n>${isKo ? `내가 남긴 피드백 ${noteCount || 0}개, 답글 ${replyCount || 0}개` : `Your ${noteCount || 0} ${noteCount === 1 ? 'note' : 'notes'} and ${replyCount || 0} ${replyCount === 1 ? 'reply' : 'replies'}`}</li>
-          <li>Your 👍 reactions, AI summaries, share links, and calendar links</li>
+          <li>Your reactions, AI summaries, share links, and calendar links</li>
           ${alone.length ? `<li data-no-i18n>${isKo ? `나만 있는 프로젝트: ${alone.map((p) => esc(p.title)).join(', ')}` : `Projects only you are in: ${alone.map((p) => esc(p.title)).join(', ')}`}</li>` : ''}
         </ul></div>
         <div><h3 class="da-stays">Stays with your projects</h3><ul>

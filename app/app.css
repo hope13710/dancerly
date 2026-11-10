@@ -1022,6 +1022,9 @@ a {
   gap: 8px;
 }
 .time-chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
   border: 0;
   background: rgba(170, 171, 255, 0.14);
   color: #c4c5ff;
@@ -1034,6 +1037,7 @@ a {
 .from {
   font-size: 11px;
   color: #8993a1;
+  white-space: nowrap;
 }
 .status {
   margin-left: auto;
@@ -1474,6 +1478,30 @@ a {
 .icon-btn:hover {
   background: #eef0f4;
   color: var(--ink);
+}
+/* Icons from app/icons.js: sized to the text they sit in, with a small gap before the label. */
+.ic {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -0.22em;
+  margin-inline-end: 0.35em;
+}
+.ic .f {
+  fill: currentColor;
+  stroke: none;
+}
+.ic.solo,
+.btn > .ic {
+  margin-inline-end: 0;
+}
+.ic.after {
+  margin-inline: 0.2em 0;
 }
 .sidebar svg,
 .tabbar svg,

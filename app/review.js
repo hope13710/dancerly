@@ -1,3 +1,4 @@
+import { ic } from './icons.js';
 import { cols, schema } from './client.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
@@ -53,7 +54,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
   if (!takes.length) {
-    view.innerHTML = `<section class="page"><div class="empty"><div class="empty-icon">▶</div><h2>No takes yet</h2><p>Upload the first take of “${esc(video.title)}”. If an upload stopped, pick the same file again — it continues where it left off.</p><button class="btn primary" data-upload>Upload Take 1</button></div></section><input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
+    view.innerHTML = `<section class="page"><div class="empty"><div class="empty-icon">${ic('video', 'solo')}</div><h2>No takes yet</h2><p>Upload the first take of “${esc(video.title)}”. If an upload stopped, pick the same file again — it continues where it left off.</p><button class="btn primary" data-upload>Upload Take 1</button></div></section><input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
     wireUpload();
     return null;
   }
@@ -80,10 +81,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'an assignment')}</a>` : ''} · ${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</p></div>
-      ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video →</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
-      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">↑ <span class="wide-only">Upload new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">⧉ Compare</button><button class="btn small ghost wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">⋯</button></div>
+      ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video${ic('right', 'after')}</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
+      <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">${ic('upload')}<span class="wide-only">Upload new take</span><span class="narrow-only">New take</span></button><button class="btn small ghost wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">${ic('compare')}Compare</button><button class="btn small ghost wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">${ic('more', 'solo')}</button></div>
     </header>
-    ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Want a second pair of eyes? Invite a coach or your team to watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">✕</button></div>` : ''}
+    ${alone ? `<div class="invite-strip" data-invite-strip><p><b>Only you can see this so far.</b> <span>Want a second pair of eyes? Invite a coach or your team to watch it and leave notes.</span></p><button class="btn small primary" data-invite-copy="review">Copy invite link</button><button class="icon-btn" data-invite-dismiss aria-label="Dismiss" title="Dismiss">${ic('x', 'solo')}</button></div>` : ''}
     <div class="review-layout">
       <div class="player-col">
         <div class="player-pair" data-pair>
@@ -95,11 +96,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <div class="sketch-bar" data-sketch-bar hidden>
             <div class="sketch-group" role="group" aria-label="Tool">${TOOLS.map(([k, icon, label]) => `<button type="button" data-tool="${k}" title="${label}" aria-label="${label}" aria-pressed="${k === 'pen'}">${icon}</button>`).join('')}</div>
             <div class="sketch-group" role="group" aria-label="Color">${COLORS.map((c, i) => `<button type="button" class="swatch" data-color="${c}" style="--c:${c}" aria-label="Color ${i + 1}" aria-pressed="${i === 0}"></button>`).join('')}</div>
-            <div class="sketch-group"><button type="button" data-sketch-undo title="Undo (Ctrl+Z)" aria-label="Undo">↶</button><button type="button" data-sketch-clear title="Clear" aria-label="Clear">✕</button></div>
+            <div class="sketch-group"><button type="button" data-sketch-undo title="Undo (Ctrl+Z)" aria-label="Undo">${ic('undo', 'solo')}</button><button type="button" data-sketch-clear title="Clear" aria-label="Clear">${ic('x', 'solo')}</button></div>
             <button type="button" class="sketch-done" data-sketch-done>Done</button>
           </div>
-          <span class="player-badge"><b class="mirror-badge">⇋ Mirrored</b><span data-time-overlay>00:00.0</span></span>
-          <button class="big-play" data-play aria-label="Play or pause (Space)">▶</button>
+          <span class="player-badge"><b class="mirror-badge">${ic('mirror')}Mirrored</b><span data-time-overlay>00:00.0</span></span>
+          <button class="big-play" data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button>
         </div>
         <div class="player compare-pane ${r.mirror ? 'mirrored' : ''}" data-compare hidden>
           <video playsinline muted preload="auto" data-video2></video>
@@ -108,7 +109,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">▶</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">↻ A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">♩ Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">⇋ Mirror</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">⛶</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">${ic('loop')}A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">${ic('music')}Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button></div>
         <div class="counts-panel" data-counts-panel hidden>
           <div class="counts-row">
             <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
@@ -120,23 +121,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         <div class="compare-bar" data-compare-bar hidden>
           <label class="compare-pick"><span>Compare with</span><select data-compare-pick></select></label>
-          <div class="compare-align"><span class="compare-offset" data-compare-offset></span><button type="button" class="mini" data-nudge="-0.1" title="Move the other video 0.1 s earlier">−0.1s</button><button type="button" class="mini" data-nudge="0.1" title="Move the other video 0.1 s later">+0.1s</button><button type="button" class="mini" data-sync-music title="Line both videos up by their music">♫ Sync by music</button></div>
-          <button type="button" class="mini ghost" data-compare-close aria-label="Close compare">✕</button>
+          <div class="compare-align"><span class="compare-offset" data-compare-offset></span><button type="button" class="mini" data-nudge="-0.1" title="Move the other video 0.1 s earlier">−0.1s</button><button type="button" class="mini" data-nudge="0.1" title="Move the other video 0.1 s later">+0.1s</button><button type="button" class="mini" data-sync-music title="Line both videos up by their music">${ic('music')}Sync by music</button></div>
+          <button type="button" class="mini ghost" data-compare-close aria-label="Close compare">${ic('x', 'solo')}</button>
         </div>
       </div>
       <aside class="notes-col">
         <div class="take-summary" data-summary></div>
         <div class="note-list" data-list></div>
         <form class="composer" data-composer>
-          <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">＋</span><span>Add a note</span><span class="co-at">▸ <span data-at2>00:00.0</span></span></button>
+          <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">${ic('plus', 'solo')}</span><span>Add a note</span><span class="co-at">${ic('at')}<span data-at2>00:00.0</span></span></button>
           <div class="composer-body">
-          <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">▸ At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">⟷ Range</button></div>
-          <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>→</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small><button type="button" class="mini" data-loop-range hidden>↻ Loop</button></div>
+          <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">${ic('at')}At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">${ic('range')}Range</button></div>
+          <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>${ic('right', 'solo')}</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small><button type="button" class="mini" data-loop-range hidden>${ic('loop')}Loop</button></div>
           <div class="composer-field"><textarea data-input rows="2" maxlength="2000" placeholder="What should change at this moment? Type @ to mention someone"></textarea><div class="mention-menu" data-mentions role="listbox" hidden></div></div>
           <div class="composer-foot"><label class="visibility"><span class="sr-only">Who can see this note</span><select data-visibility>
-            <option value="">👥 Everyone</option>
-            ${members.filter((m) => m.user_id !== me.id).sort((a, b) => (b.user_id === take.uploaded_by) - (a.user_id === take.uploaded_by)).map((m) => `<option value="${m.user_id}">🔒 Only ${esc(m.name)}${m.user_id === take.uploaded_by ? ' (in this take)' : ''}</option>`).join('')}
-          </select></label><button type="button" class="btn small ghost draw-btn" data-draw aria-pressed="false" title="Draw on the frame (D)">✎ Draw</button><span class="sketch-chip" data-sketch-chip hidden></span><button class="btn primary small" type="submit">Pin note ↵</button></div>
+            <option value="">Everyone</option>
+            ${members.filter((m) => m.user_id !== me.id).sort((a, b) => (b.user_id === take.uploaded_by) - (a.user_id === take.uploaded_by)).map((m) => `<option value="${m.user_id}">Private to ${esc(m.name)}${m.user_id === take.uploaded_by ? ' (in this take)' : ''}</option>`).join('')}
+          </select></label><button type="button" class="btn small ghost draw-btn" data-draw aria-pressed="false" title="Draw on the frame (D)">${ic('pen')}Draw</button><span class="sketch-chip" data-sketch-chip hidden></span><button class="btn primary small" type="submit">Pin note</button></div>
           </div>
         </form>
       </aside>
@@ -214,29 +215,29 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const from = carried ? `<span class="from" ${n.unaligned ? 'title="Time may be off: this take isn’t lined up with the earlier one yet"' : ''}>from Take ${takeNo[n.take_id]}${n.unaligned ? ' ≈' : ''}</span>` : '';
       // Watching a new take is when fixes get noticed: ask right on the note.
       const ask = carried && n.status !== 'resolved' && canResolve(n) && !r.notYet.has(n.id)
-        ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="mini ok" data-status="resolved" data-id="${n.id}">✓ Yes</button><button class="mini" data-notyet="${n.id}">Not yet</button></div>` : '';
+        ? `<div class="fixed-ask"><span>Fixed in Take ${take.number}?</span><button class="mini ok" data-status="resolved" data-id="${n.id}">${ic('check')}Yes</button><button class="mini" data-notyet="${n.id}">Not yet</button></div>` : '';
       const other = n.private_to ? (n.author_id === me.id ? n.private_to : n.author_id) : null;
       const replies = n.note_replies || [];
       const open = r.openThreads.has(n.id);
       return `<article class="note ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
-        ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">🔒 Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${n.t_end === null ? '▸' : '⟷'} ${noteTime(n)}</button>${n.sketch ? '<span class="sketch-tag" role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">✎</span>' : ''}${noteCount(n)}${from}${n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
+        ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
+        <div class="note-top"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}</button>${n.sketch ? `<span class="sketch-tag" role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}${noteCount(n)}${from}${n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : ''}<span class="status s-${n.status}">${n.status === 'practicing' ? 'Practicing' : n.status === 'resolved' ? 'Resolved' : 'Open'}</span></div>
         <p>${withMentions(n.body)}</p>
         ${ask}
         <div class="note-foot"><span class="who">${by(n.author_id)} · ${timeAgo(n.created_at)}</span></div>
         <div class="note-actions">
-          <button class="mini ${open ? 'on' : ''}" data-thread="${n.id}" aria-expanded="${open}">💬 ${replies.length ? replies.length : 'Reply'}</button>
-          ${n.status === 'resolved' ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '') : canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">Resolve ✓</button>` : ''}
-          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">👍${agrees ? ` ${agrees}` : ''}</button>` : agrees ? `<span class="agrees">👍 ${agrees}</span>` : ''}
-          ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">↻ Looping</button>` : ''}
-          <details class="menu-more note-more"><summary class="mini ghost" aria-label="More actions">•••</summary><div class="tabs-more-menu" role="menu">
-            ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">↻ ${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
+          <button class="mini ${open ? 'on' : ''}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? replies.length : 'Reply'}</button>
+          ${n.status === 'resolved' ? (canResolve(n) ? `<button class="mini" data-status="open" data-id="${n.id}">Reopen</button>` : '') : canResolve(n) ? `<button class="mini ok" data-status="resolved" data-id="${n.id}">${ic('check')}Resolve</button>` : ''}
+          ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
+          ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
+          <details class="menu-more note-more"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
+            ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
             ${n.status === 'open' ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
             ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>
         </div>
         ${open ? `<div class="thread">
-          ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">✕</button>` : ''}</div>`).join('')}
+          ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">${ic('x', 'solo')}</button>` : ''}</div>`).join('')}
           <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;
@@ -274,7 +275,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-summary]').hidden = !visibleNotes().length && takes.length === 1;
     $('[data-summary]').innerHTML = takes.length === 1
       ? `<span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
-      : `<b>Take ${take.number}</b> · <span class="ok">✓ ${earlierResolved} resolved from earlier takes</span> · <span class="open">${open} still open</span>`;
+      : `<b>Take ${take.number}</b> · <span class="ok">${ic('check')}${earlierResolved} resolved from earlier takes</span> · <span class="open">${open} still open</span>`;
   }
 
   function paintMarkers(notes) {
@@ -300,7 +301,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   function paintPlayer() {
     const t = scrub.active ? scrub.at : videoEl.currentTime || 0;
-    $$('[data-play]').forEach((b) => { b.textContent = videoEl.paused ? '▶' : 'Ⅱ'; });
+    $$('[data-play]').forEach((b) => { b.innerHTML = ic(videoEl.paused ? 'play' : 'pause', 'solo'); });
     $('[data-player]').classList.toggle('playing', !videoEl.paused);
     $('[data-player]').classList.toggle('mirrored', r.mirror);
     $('[data-mirror]').setAttribute('aria-pressed', String(r.mirror));
@@ -318,11 +319,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     else if (r.abStart !== null) { loopBar.style.left = pct(Math.min(r.abStart, t)); loopBar.style.width = pct(Math.abs(t - r.abStart)); }
     const ab = $('[data-ab]');
     const abOn = !!r.loop && !r.loop.id;
-    ab.textContent = r.abStart !== null ? `↻ Set B · from ${fmt(r.abStart)}` : abOn ? '↻ A–B on' : '↻ A–B';
+    ab.innerHTML = ic('loop') + (r.abStart !== null ? `Set B · from ${fmt(r.abStart)}` : abOn ? 'A–B on' : 'A–B');
     ab.setAttribute('aria-pressed', String(r.abStart !== null || abOn));
     $('[data-loop-range]').hidden = !(r.mode === 'range' && r.rangeStart !== null && r.rangeEnd !== null);
     // Repainted every frame, so only touch the chip when it changes — replacing it mid-click swallowed the ✕.
-    const chip = r.loop ? `↻ Looping ${fmt(r.loop.start)}–${fmt(r.loop.end)} <button type="button" data-clearloop aria-label="Stop looping">✕</button>` : '';
+    const chip = r.loop ? `${ic('loop')}Looping ${fmt(r.loop.start)}–${fmt(r.loop.end)} <button type="button" data-clearloop aria-label="Stop looping">${ic('x', 'solo')}</button>` : '';
     if (chip !== r.loopChip) { r.loopChip = chip; $('[data-loopchip]').innerHTML = chip; }
     const draft = $('[data-tdraft]');
     const showDraft = r.mode === 'range' && r.rangeStart !== null;
@@ -352,8 +353,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   function paintSketchChip() {
     const chip = $('[data-sketch-chip]');
     chip.hidden = !r.sketch;
-    chip.innerHTML = r.sketch ? `✎ Sketch${r.mode === 'point' ? ` at ${fmtFine(r.sketchAt)}` : ''} <button type="button" data-sketch-remove aria-label="Remove sketch">✕</button>` : '';
-    $('[data-draw]').textContent = r.sketch ? '✎ Edit sketch' : '✎ Draw';
+    chip.innerHTML = r.sketch ? `${ic('pen')}Sketch${r.mode === 'point' ? ` at ${fmtFine(r.sketchAt)}` : ''} <button type="button" data-sketch-remove aria-label="Remove sketch">${ic('x', 'solo')}</button>` : '';
+    $('[data-draw]').innerHTML = ic('pen') + (r.sketch ? 'Edit sketch' : 'Draw');
   }
   function startSketch() {
     if (r.drawing) return;
@@ -458,7 +459,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     fullBtn.setAttribute('aria-pressed', String(on));
     fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
     fullBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
-    fullBtn.textContent = on ? '✕' : '⛶';
+    fullBtn.innerHTML = ic(on ? 'shrink' : 'expand', 'solo');
     requestAnimationFrame(fitFull);
   };
   // In full screen each player is sized to its video's shape, so badges and sketches sit on the picture.
@@ -800,7 +801,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (el.dataset.status) {
       const { error } = await sb.rpc('set_note_status', { p_note: id, p_status: el.dataset.status });
       if (error) return toast(friendlyError(error), 'error');
-      toast(el.dataset.status === 'resolved' ? `Correction landed ✓ ${noteTime(note)}` : el.dataset.status === 'practicing' ? 'Marked as practicing.' : 'Note reopened.');
+      toast(el.dataset.status === 'resolved' ? `Correction landed · ${noteTime(note)}` : el.dataset.status === 'practicing' ? 'Marked as practicing.' : 'Note reopened.');
       await loadNotes();
       // The last open note on this video just got fixed: offer a progress card, once.
       if (el.dataset.status === 'resolved' && !r.notes.some((n) => !n.private_to && n.status !== 'resolved')) celebrate({ projectId, videoId });
@@ -1088,7 +1089,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   async function moreActions() {
     const narrow = matchMedia('(max-width: 600px)').matches;
     const choice = await actionSheet({ title: video.title, actions: [
-      ...(narrow ? [{ value: 'compare', label: r.compare.on ? '⧉ Stop comparing' : '⧉ Compare', hint: 'Play another take or video side by side' }] : []),
+      ...(narrow ? [{ value: 'compare', label: r.compare.on ? 'Stop comparing' : 'Compare', hint: 'Play another take or video side by side' }] : []),
       ...(narrow ? [{ value: 'share', label: 'Share', hint: 'A progress card for Instagram, or a read-only link' }] : []),
       ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: schema.trash ? 'Moves to Trash for 30 days' : 'Just this take and the notes left on it', danger: true }] : []),

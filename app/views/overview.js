@@ -5,6 +5,7 @@ import { ctx } from '../ctx.js';
 import { kindClass, daysUntil, daysLabel } from './shared.js';
 import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
+import { ic } from '../icons.js';
 
 const STATUS = [['learning', 'Learning'], ['practicing', 'Practicing'], ['clean', 'Clean']];
 
@@ -31,11 +32,11 @@ export async function renderProjectOverview(projectId) {
       <section class="panel">
         <div class="panel-head"><div><h2>Goal</h2></div>${p.isOwner ? '<button class="btn ghost small" data-edit-goal>Edit</button>' : ''}</div>
         ${extra?.goal ? `<p class="brief">${esc(extra.goal)}</p>` : `<p class="panel-empty">${p.isOwner ? 'What is this project for? “Clean, confident chorus for the spring showcase.”' : 'The owner hasn’t written a goal yet.'}</p>`}
-        ${extra?.music_title || extra?.music_url ? `<p class="music">♪ ${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)} ↗</a>` : esc(extra.music_title)}</p>` : ''}
+        ${extra?.music_title || extra?.music_url ? `<p class="music">${ic('music')}${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)}${ic('arrow', 'after')}</a>` : esc(extra.music_title)}</p>` : ''}
       </section>
       <section class="panel countdown">
-        ${goal ? `<p class="eyebrow">${goal.picked ? '🎯 Goal' : 'Next show'}</p><b class="big-num">${daysLabel(daysUntil(goal.starts_at))}</b><p class="muted"><button class="text-btn" data-event="${goal.id}">${esc(goal.title)}</button> · ${when(goal.starts_at)}${goal.location ? ` · ${esc(goal.location)}` : ''}</p>${!goal.picked && p.isOwner && schema.goal ? '<p class="fine left">Working toward something else? Open an event and set it as the goal.</p>' : ''}`
-          : `<p class="eyebrow">Next</p>${next ? `<b class="big-num small"><button class="text-btn" data-event="${next.id}">${esc(next.title)}</button></b><p class="muted">${when(next.starts_at)}</p>${p.isOwner && schema.goal ? '<p class="fine left">Working toward a show or competition? Open its event and set it as the goal for a countdown.</p>' : ''}` : `<p class="panel-empty">Nothing scheduled. <a class="link" href="/app/p/${projectId}/calendar" data-link>Add a rehearsal or show →</a></p>`}`}
+        ${goal ? `<p class="eyebrow">${goal.picked ? 'Goal' : 'Next show'}</p><b class="big-num">${daysLabel(daysUntil(goal.starts_at))}</b><p class="muted"><button class="text-btn" data-event="${goal.id}">${esc(goal.title)}</button> · ${when(goal.starts_at)}${goal.location ? ` · ${esc(goal.location)}` : ''}</p>${!goal.picked && p.isOwner && schema.goal ? '<p class="fine left">Working toward something else? Open an event and set it as the goal.</p>' : ''}`
+          : `<p class="eyebrow">Next</p>${next ? `<b class="big-num small"><button class="text-btn" data-event="${next.id}">${esc(next.title)}</button></b><p class="muted">${when(next.starts_at)}</p>${p.isOwner && schema.goal ? '<p class="fine left">Working toward a show or competition? Open its event and set it as the goal for a countdown.</p>' : ''}` : `<p class="panel-empty">Nothing scheduled. <a class="link" href="/app/p/${projectId}/calendar" data-link>Add a rehearsal or show${ic('right', 'after')}</a></p>`}`}
       </section>
     </div>
     <div class="stats">
@@ -46,12 +47,12 @@ export async function renderProjectOverview(projectId) {
     </div>
     <div class="home-grid">
       <section class="panel">
-        <div class="panel-head"><div><h2>Coming up</h2></div><a class="link" href="/app/p/${projectId}/calendar" data-link>Calendar →</a></div>
-        ${events?.length ? `<div class="list flush">${events.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${e.id === goal?.id && goal.picked ? '🎯 ' : ''}${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span><span class="chev">›</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
+        <div class="panel-head"><div><h2>Coming up</h2></div><a class="link" href="/app/p/${projectId}/calendar" data-link>Calendar${ic('right', 'after')}</a></div>
+        ${events?.length ? `<div class="list flush">${events.map((e) => `<button type="button" class="row" data-event="${e.id}"><span class="cal-dot ${kindClass(e.kind)}"></span><span class="row-main"><span class="row-title">${e.id === goal?.id && goal.picked ? ic('flag') : ''}${esc(e.title)}</span><span class="row-meta">${when(e.starts_at)}${e.location ? ` · ${esc(e.location)}` : ''}</span></span><span class="chev">${ic('right', 'solo')}</span></button>`).join('')}</div>` : '<p class="panel-empty">Nothing scheduled yet.</p>'}
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>Latest videos</h2></div><a class="link" href="/app/p/${projectId}" data-link>All videos →</a></div>
-        ${videos?.length ? `<div class="list flush">${videos.map((v) => `<a class="row" href="/app/p/${projectId}/v/${v.id}" data-link><span class="video-thumb sm">▶</span><span class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-meta">${timeAgo(v.created_at)}</span></span><span class="chev">›</span></a>`).join('')}</div>` : '<p class="panel-empty">No videos yet.</p>'}
+        <div class="panel-head"><div><h2>Latest videos</h2></div><a class="link" href="/app/p/${projectId}" data-link>All videos${ic('right', 'after')}</a></div>
+        ${videos?.length ? `<div class="list flush">${videos.map((v) => `<a class="row" href="/app/p/${projectId}/v/${v.id}" data-link><span class="video-thumb sm">${ic('play', 'solo')}</span><span class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-meta">${timeAgo(v.created_at)}</span></span><span class="chev">${ic('right', 'solo')}</span></a>`).join('')}</div>` : '<p class="panel-empty">No videos yet.</p>'}
       </section>
     </div>
   </section>`;
@@ -101,13 +102,13 @@ export async function renderCountSheet(projectId) {
     <div class="table-wrap"><table class="table sheet">
       <thead><tr><th class="grip"></th><th>Section</th><th>Counts</th><th>Focus</th><th>Reference</th><th>Status</th><th></th></tr></thead>
       <tbody>${rows.map((r, i) => `<tr data-row="${r.id}">
-        <td class="grip"><button class="icon-btn" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button><button class="icon-btn" data-move="1" ${i === rows.length - 1 ? 'disabled' : ''} aria-label="Move down">↓</button></td>
+        <td class="grip"><button class="icon-btn" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ic('up', 'solo')}</button><button class="icon-btn" data-move="1" ${i === rows.length - 1 ? 'disabled' : ''} aria-label="Move down">${ic('down', 'solo')}</button></td>
         <td><input class="cell" data-field="section" value="${esc(r.section)}" maxlength="80" aria-label="Section" /></td>
         <td><input class="cell narrow" data-field="counts" value="${esc(r.counts || '')}" maxlength="80" placeholder="1–8 ×2" aria-label="Counts" /></td>
         <td><input class="cell wide" data-field="focus" value="${esc(r.focus || '')}" maxlength="500" placeholder="What to watch for" aria-label="Focus" /></td>
-        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select><input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Time" />${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">▶</a>` : ''}</td>
+        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select><input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Time" />${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
         <td><select class="cell status s-${r.status}" data-field="status" aria-label="Status">${STATUS.map(([k, l]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-        <td><button class="icon-btn" data-delete-row aria-label="Delete section">✕</button></td>
+        <td><button class="icon-btn" data-delete-row aria-label="Delete section">${ic('x', 'solo')}</button></td>
       </tr>`).join('')}</tbody>
     </table></div>
     <p class="fine left">Everyone on the project can edit. Changes save as you type.</p>`

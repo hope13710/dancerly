@@ -6,6 +6,7 @@ import { sb, toast } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang } from './i18n.js';
 import { track } from './onboarding.js';
+import { ic } from './icons.js';
 
 const EMAIL = 'help@dancerly.app';
 const KINDS = [['bug', 'Something’s broken'], ['idea', 'Idea'], ['question', 'Question'], ['other', 'Other']];
@@ -15,7 +16,7 @@ export function openHelp({ kind = 'bug', body: prefill = '', intro = 'Tell us an
   const el = document.createElement('dialog');
   el.className = 'dialog help-dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card">
-    <div class="help-head"><h2>Help &amp; support</h2><button type="button" class="icon-btn" data-help-close aria-label="Close">✕</button></div>
+    <div class="help-head"><h2>Help &amp; support</h2><button type="button" class="icon-btn" data-help-close aria-label="Close">${ic('x', 'solo')}</button></div>
     <div data-help-form>
       <p class="muted" data-help-intro></p>
       <div class="chips help-kinds" role="radiogroup" aria-label="What is it about?">${KINDS.map(([k, label]) => `<button type="button" class="chip" role="radio" data-kind="${k}" aria-checked="${k === kind}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
@@ -24,13 +25,13 @@ export function openHelp({ kind = 'bug', body: prefill = '', intro = 'Tell us an
       <div class="dialog-actions"><button type="button" class="btn ghost" data-help-close>Cancel</button><button type="submit" class="btn primary" data-help-send>Send</button></div>
     </div>
     <div class="help-done" data-help-done hidden>
-      <div class="help-done-icon" aria-hidden="true">✓</div>
+      <div class="help-done-icon" aria-hidden="true">${ic('check', 'solo')}</div>
       <h3>Thanks, we got it.</h3>
       <p class="muted" data-help-donetext></p>
       <div class="dialog-actions"><button type="button" class="btn primary" data-help-close>Done</button></div>
     </div>
     <div class="help-links">
-      <a href="mailto:${EMAIL}?subject=${encodeURIComponent('dancerly help')}" data-help-email><span aria-hidden="true">✉</span> Email us<small>${EMAIL}</small></a>
+      <a href="mailto:${EMAIL}?subject=${encodeURIComponent('dancerly help')}" data-help-email>${ic('mail')}Email us<small>${EMAIL}</small></a>
       <a href="/#faq" target="_blank" rel="noopener"><span aria-hidden="true">?</span> FAQ<small>Common questions</small></a>
     </div>
   </form>`;

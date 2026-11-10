@@ -3,6 +3,7 @@ import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFin
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 import { countAt } from '../counts.js';
+import { ic } from '../icons.js';
 
 function copyRow(value) {
   return `<div class="copy-row"><input readonly value="${esc(value)}" /><button class="btn primary" type="button" data-copy="${esc(value)}">Copy</button></div>`;
@@ -69,7 +70,7 @@ export async function renderShared(token) {
   let message = null;
   if (error) { try { message = (await error.context.json()).error; } catch { message = 'This link isn’t available.'; } }
   if (message || !data?.url) {
-    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}${/new one/.test(message || '') ? '' : ' <span>Ask the person who shared it for a new link.</span>'}</p>
+    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">${ic('clock', 'solo')}</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}${/new one/.test(message || '') ? '' : ' <span>Ask the person who shared it for a new link.</span>'}</p>
       <p class="guest-expired-pitch">Give your team feedback like this.</p><a class="btn wide" href="/?ref=share" data-guest-cta="expired">See how it works</a></div></section>`;
     return () => document.body.classList.remove('is-guest');
   }
@@ -84,16 +85,16 @@ export async function renderShared(token) {
     <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
     <div class="guest-layout">
       <div class="guest-main">
-      <div class="guest-player" data-gplayer><video class="guest-video" src="${esc(data.url)}" playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture data-video></video><span class="guest-mirror-badge" aria-hidden="true">⇋ Mirrored</span><button type="button" class="guest-big-play" data-gplay aria-label="Play or pause (Space)">▶</button><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>
-        ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>↻ Watch again</button></div></div>`}</div>
+      <div class="guest-player" data-gplayer><video class="guest-video" src="${esc(data.url)}" playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture data-video></video><span class="guest-mirror-badge" aria-hidden="true">${ic('mirror')}Mirrored</span><button type="button" class="guest-big-play" data-gplay aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>
+        ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>${ic('loop')}Watch again</button></div></div>`}</div>
       <div class="guest-controls">
-        <div class="guest-timeline"><button type="button" class="guest-pp" data-gplay aria-label="Play or pause (Space)">▶</button><span class="guest-time" data-gcur>00:00</span><input type="range" min="0" max="1000" value="0" step="1" data-gseek aria-label="Playback position" /><span class="guest-time" data-gdur>--:--</span></div>
-        <div class="guest-tools"><div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">↻ A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">⇋ Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">⛶</button></div>
+        <div class="guest-timeline"><button type="button" class="guest-pp" data-gplay aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="guest-time" data-gcur>00:00</span><input type="range" min="0" max="1000" value="0" step="1" data-gseek aria-label="Playback position" /><span class="guest-time" data-gdur>--:--</span></div>
+        <div class="guest-tools"><div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">${ic('loop')}A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">${ic('expand', 'solo')}</button></div>
       </div>
       ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
       </div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
-        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${n.t_end === null ? '▸' : '⟷'} ${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · ✎ sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
+        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${ic(n.t_end === null ? 'at' : 'range')}${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
     ${signedIn ? '' : `<aside class="guest-cta">
       <div><p class="eyebrow">Made with dancerly</p><h2>Give your team feedback like this.</h2><p>Every dancer deserves to see their progress. Pin notes to the exact count, sketch on the frame, and watch each fix land in the next take.</p></div>
@@ -162,8 +163,8 @@ function wirePlayerTools(video) {
   const abBtn = $('[data-gab]');
   const api = { loop: null, abStart: null };
   const paintPlay = () => {
-    const icon = video.paused ? '▶' : '❚❚';
-    $$('[data-gplay]').forEach((b) => { b.textContent = icon; });
+    const icon = ic(video.paused ? 'play' : 'pause', 'solo');
+    $$('[data-gplay]').forEach((b) => { b.innerHTML = icon; });
     player.classList.toggle('playing', !video.paused);
   };
   const toggle = () => (video.paused ? video.play() : video.pause());
@@ -188,8 +189,8 @@ function wirePlayerTools(video) {
     api.loop = range && range[1] > range[0] ? range : null;
     api.abStart = null;
     abBtn.setAttribute('aria-pressed', String(Boolean(api.loop)));
-    abBtn.textContent = '↻ A–B';
-    loopChip.innerHTML = api.loop ? `<span>↻ Looping ${fmt(api.loop[0])}–${fmt(api.loop[1])}</span><button type="button" aria-label="Stop looping" data-gloop-off>✕</button>` : '';
+    abBtn.innerHTML = `${ic('loop')}A–B`;
+    loopChip.innerHTML = api.loop ? `<span>${ic('loop')}Looping ${fmt(api.loop[0])}–${fmt(api.loop[1])}</span><button type="button" aria-label="Stop looping" data-gloop-off>${ic('x', 'solo')}</button>` : '';
     $('[data-gloop-off]', loopChip)?.addEventListener('click', () => api.setLoop(null));
   };
   abBtn.addEventListener('click', () => {
@@ -197,7 +198,7 @@ function wirePlayerTools(video) {
     if (api.abStart === null) {
       api.abStart = video.currentTime;
       abBtn.setAttribute('aria-pressed', 'true');
-      abBtn.textContent = `↻ A–B ${fmt(api.abStart)}…`;
+      abBtn.innerHTML = `${ic('loop')}A–B ${fmt(api.abStart)}…`;
       return;
     }
     const a = Math.min(api.abStart, video.currentTime), b = Math.max(api.abStart, video.currentTime);
@@ -267,14 +268,14 @@ async function wireAsk(token, data, video) {
     : signedIn ? `Your note goes to ${esc(owner)} with a request to join.`
     : 'Sign in to send. Your note is saved.';
   host.innerHTML = `<form class="guest-ask" data-ask-form>
-    <div class="guest-ask-field"><span class="guest-ask-at" data-ask-at>▸ 00:00.0</span><textarea data-ask-input rows="2" maxlength="2000" placeholder="Leave a note at this moment…" aria-label="Your note"></textarea></div>
+    <div class="guest-ask-field"><span class="guest-ask-at" data-ask-at>${ic('at')}00:00.0</span><textarea data-ask-input rows="2" maxlength="2000" placeholder="Leave a note at this moment…" aria-label="Your note"></textarea></div>
     <div class="guest-ask-foot"><span class="guest-ask-hint">${hint}</span><button class="btn primary small" type="submit" data-ask-send>Send</button></div>
   </form>`;
   const form = $('[data-ask-form]', host);
   const input = $('[data-ask-input]', host);
   const atEl = $('[data-ask-at]', host);
   let at = null; // the moment the note is about: fixed once they start writing
-  const paintAt = () => { atEl.textContent = `▸ ${fmtFine(at ?? video.currentTime)}`; };
+  const paintAt = () => { atEl.innerHTML = `${ic('at')}${fmtFine(at ?? video.currentTime)}`; };
   video.addEventListener('timeupdate', () => { if (at === null) paintAt(); });
   input.addEventListener('focus', () => { if (at === null) { video.pause(); at = video.currentTime; paintAt(); } });
   input.addEventListener('keydown', (e) => {

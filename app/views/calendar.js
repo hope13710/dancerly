@@ -6,6 +6,7 @@ import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
 import { kindLabel, kindClass, realProjects, daysUntil, daysLabel } from './shared.js';
+import { ic } from '../icons.js';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const timeOf = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -52,7 +53,7 @@ export async function renderCalendar(projectId = null) {
   const toolbar = `<div class="cal-toolbar">
     ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
-      <details class="menu-more cal-sync"><summary class="btn small ghost">Sync <span aria-hidden="true">▾</span></summary><div class="tabs-more-menu" role="menu"><button type="button" role="menuitem" data-subscribe>Subscribe in Google, Apple, or Outlook</button><button type="button" role="menuitem" data-ics>Download as .ics file</button></div></details></div>
+      <details class="menu-more cal-sync"><summary class="btn small ghost">Sync${ic('down', 'after')}</summary><div class="tabs-more-menu" role="menu"><button type="button" role="menuitem" data-subscribe>Subscribe in Google, Apple, or Outlook</button><button type="button" role="menuitem" data-ics>Download as .ics file</button></div></details></div>
   </div>
   <div class="cal-legend"><span class="k-rehearsal">Rehearsal</span><span class="k-show">Show</span><span class="k-other">Other</span>${[...new Set(items.filter((it) => it.type === 'event' && !['rehearsal', 'show', 'other'].includes(it.kind)).map((it) => it.kind))].map((k) => `<span class="${kindClass(k)}">${esc(k)}</span>`).join('')}<span class="k-due">Assignment due</span></div>`;
 
@@ -78,7 +79,7 @@ export async function renderCalendar(projectId = null) {
           <span class="row-main"><span class="row-title">${it.type === 'due' ? 'Due: ' : ''}${esc(it.title)}</span><span class="row-meta">${it.type === 'due' ? timeOf(it.at) : `${timeOf(it.at)}${it.end ? `–${timeOf(it.end)}` : ''}`}${it.raw.location ? ` · ${esc(it.raw.location)}` : ''}${projectId ? '' : ` · ${esc(it.project)}`}</span></span>
           <span class="row-side"><span class="pill ${it.kind === 'due' ? (it.closed ? '' : 'warn') : it.kind === 'show' ? 'info' : ''}">${esc(kindLabel(it.kind))}</span></span>
         </button>`).join('')}</div></section>`;
-    }).join('')}</div>` : `<div class="empty"><div class="empty-icon">◷</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Assignment due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button>${samplePeek('calendar')}</div>`;
+    }).join('')}</div>` : `<div class="empty"><div class="empty-icon">${ic('calendar', 'solo')}</div><h2>Nothing in the next 60 days</h2><p>Add your rehearsals and shows. Assignment due dates show up here on their own.</p><button class="btn primary" data-new-event>+ Add event</button>${samplePeek('calendar')}</div>`;
   }
 
   // An empty month shows a way to see a filled one (the agenda's empty state has its own).
@@ -115,12 +116,12 @@ export async function showEvent(e, refresh, projectId) {
   const isGoal = proj?.target_event_id === e.id;
   const canGoal = schema.goal && mine?.role === 'owner' && (upcoming || isGoal);
   const goalLine = isGoal
-    ? `<p class="event-goal"><span class="pill info">🎯 Project goal</span> ${upcoming ? daysLabel(daysUntil(e.starts_at)) : ''}${canGoal ? ' <button value="ungoal" class="text-btn">Remove as goal</button>' : ''}</p>`
-    : canGoal ? '<p class="event-goal"><button value="goal" class="text-btn">🎯 Set as project goal</button> <small class="muted">Shows a countdown on every page of the project.</small></p>' : '';
+    ? `<p class="event-goal"><span class="pill info">${ic('flag')}Project goal</span> ${upcoming ? daysLabel(daysUntil(e.starts_at)) : ''}${canGoal ? ' <button value="ungoal" class="text-btn">Remove as goal</button>' : ''}</p>`
+    : canGoal ? `<p class="event-goal"><button value="goal" class="text-btn">${ic('flag')}Set as project goal</button> <small class="muted">Shows a countdown on every page of the project.</small></p>` : '';
   const choice = await dialog({
     title: e.title,
     body: `<span class="pill ${e.kind === 'show' ? 'info' : ''}">${esc(kindLabel(e.kind))}</span> ${esc(when)}${e.location ? `<br>${esc(e.location)}` : ''}${e.details ? `<br><br>${esc(e.details)}` : ''}
-      ${projectId ? '' : `<br><br><a class="link" href="/app/p/${e.project_id}/overview" data-link>${esc(project?.title || 'Open project')} →</a>`}${goalLine}`,
+      ${projectId ? '' : `<br><br><a class="link" href="/app/p/${e.project_id}/overview" data-link>${esc(project?.title || 'Open project')}${ic('right', 'after')}</a>`}${goalLine}`,
     confirm: e.created_by === me ? 'Edit' : 'Close',
     extra: e.created_by === me ? 'Delete' : null
   });
@@ -159,7 +160,7 @@ export async function editEvent({ projectId = null, date = null, event = null, r
     <h2>${event ? 'Edit event' : 'Add event'}</h2>
     ${!projectId && !event && projects.length > 1 ? `<label class="field"><span>Project</span><select name="project">${projects.map((p) => `<option value="${p.id}">${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     <label class="field"><span>Title</span><input name="title" maxlength="120" required value="${esc(event?.title || '')}" placeholder="Full rehearsal" /></label>
-    <label class="field"><span>Type</span><select name="kind" data-kind>${kinds.map((k) => `<option value="${esc(k)}" ${(event?.kind || 'rehearsal') === k ? 'selected' : ''}>${esc(kindLabel(k))}</option>`).join('')}<option value="__new">＋ New type…</option></select></label>
+    <label class="field"><span>Type</span><select name="kind" data-kind>${kinds.map((k) => `<option value="${esc(k)}" ${(event?.kind || 'rehearsal') === k ? 'selected' : ''}>${esc(kindLabel(k))}</option>`).join('')}<option value="__new">New type…</option></select></label>
     <label class="field" data-new-kind hidden><span>New type</span><input name="newKind" maxlength="30" placeholder="Class, Workshop, Filming…" /></label>
     <div class="date-row three">
       <label class="field"><span>Date</span><input type="date" name="date" required value="${s.date}" /></label>

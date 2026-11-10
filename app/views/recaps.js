@@ -6,6 +6,7 @@ import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
 import { loadProject, projectHead, inviteLink } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './shared.js';
+import { ic } from '../icons.js';
 
 const SECTIONS = [
   ['worked_on', 'Worked on'],
@@ -14,9 +15,9 @@ const SECTIONS = [
   ['recurring', 'Keeps coming up']
 ];
 const PERIODS = { last: 'Last practice', week: 'This week', month: 'This month', custom: 'Custom' };
-// The four-point star that marks AI output. Always shown next to words that say so.
+// Marks a recap. The words next to it ("Summary by AI") say it's AI; the icon stays plain, like the rest of the app.
 export function sparkle(cls = '') {
-  return `<svg class="ai-spark ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.6 4.9 2.6 8 9.5 10.5-6.9 2.5-8.9 5.6-9.5 10.5-.6-4.9-2.6-8-9.5-10.5C9.4 9.5 11.4 6.4 12 1.5Z" /></svg>`;
+  return ic('recap', `ai-spark${cls ? ` ${cls}` : ''}`);
 }
 const FRESH_KEY = 'looproom:fresh-recap';
 
@@ -68,7 +69,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
   const el = document.createElement('dialog');
   el.className = 'dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card recap-form">
-    <h2>✦ New recap</h2>
+    <h2>New recap</h2>
     <p>An AI summary of the notes in a period: what you worked on, what to do next, and what keeps coming up.</p>
     ${projects.length > 1 ? `<label class="field"><span>Project</span><select name="project">${projects.map((p) => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : `<input type="hidden" name="project" value="${pid}" />`}
     <div class="field"><span>Whose notes</span><div class="choices" role="radiogroup">
@@ -81,7 +82,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
       <label class="field"><span>To</span><input type="date" name="to" /></label>
     </div>
     <label class="field"><span>Video</span><select name="video"></select></label>
-    <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">✦ Generate</button></div>
+    <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Generate</button></div>
   </form>`;
   document.body.append(el);
   const form = el.querySelector('form');
@@ -140,7 +141,7 @@ function chatMessage(r, link, invite) {
   const ko = getLang() === 'ko';
   const next = (r.content?.next || []).slice(0, 3).map((it) => `• ${it.text}`).join('\n');
   return [
-    `✦ ${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
+    `${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
     next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
     `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${link}`,
     invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not in this project yet? Join here'}: ${invite}` : ''
@@ -183,9 +184,9 @@ function recapRow(group, names, { showProject = false } = {}) {
         <span class="row-title">${esc(r.content?.headline || 'Recap')}</span>
         <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · ${byPerson(names[r.created_by], r.created_by)}</span>
       </span>
-      <span class="row-side">${isPinned(r) ? '<span title="Pinned">📌</span>' : ''}${r.shared_at ? '<span class="pill info">Shared</span>' : '<span class="pill">Only you</span>'}<small>${timeAgo(r.created_at)}</small></span>
+      <span class="row-side">${isPinned(r) ? `<span title="Pinned">${ic('pin', 'solo')}</span>` : ''}${r.shared_at ? '<span class="pill info">Shared</span>' : '<span class="pill">Only you</span>'}<small>${timeAgo(r.created_at)}</small></span>
     </a>
-    ${group.older.length ? `<details class="versions"><summary>▸ ${group.older.length} earlier ${group.older.length === 1 ? 'version' : 'versions'}</summary>${group.older.map((o) => `<a href="/app/recaps/${o.id}" data-link>${timeAgo(o.created_at)} · ${o.note_count} notes · ${esc(o.content?.headline || '')}</a>`).join('')}</details>` : ''}
+    ${group.older.length ? `<details class="versions"><summary>${ic('right')}${group.older.length} earlier ${group.older.length === 1 ? 'version' : 'versions'}</summary>${group.older.map((o) => `<a href="/app/recaps/${o.id}" data-link>${timeAgo(o.created_at)} · ${o.note_count} notes · ${esc(o.content?.headline || '')}</a>`).join('')}</details>` : ''}
   </div>`;
 }
 
@@ -213,12 +214,12 @@ export async function renderProjectRecaps(projectId) {
   for (const g of rest) { const k = weekLabel(g.latest.created_at); if (!byWeek.has(k)) byWeek.set(k, []); byWeek.get(k).push(g); }
   const base = `/app/p/${projectId}/recaps`;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'recaps', '<button class="btn primary" data-new-recap>✦ New recap</button>')}
-    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['all', 'All'], ['shared', 'Shared'], ['mine', 'Mine'], ['pinned', '📌 Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
+    ${projectHead(p, 'recaps', '<button class="btn primary" data-new-recap>New recap</button>')}
+    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['all', 'All'], ['shared', 'Shared'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
     ${groups.length ? `
-      ${pinned.length ? `<h2 class="group-title">📌 Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
+      ${pinned.length ? `<h2 class="group-title">${ic('pin')}Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`
-      : empty('✦', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next practice: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+      : empty('recap', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next practice: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
     <p class="fine left">Recaps are AI summaries of the notes in your projects. Only you see a recap until you share it.</p>
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap({ projectId })));
@@ -242,9 +243,9 @@ export async function renderMyRecaps() {
   const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine]));
   const names = await namesFor(groups.map((g) => g.latest.created_by));
   view.innerHTML = `<section class="page narrow-wide">
-    <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn primary" data-new-recap>✦ New recap</button></header>
+    <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn primary" data-new-recap>New recap</button></header>
     ${groups.length ? `<div class="list">${groups.map((g) => recapRow(g, names, { showProject: true })).join('')}</div>`
-      : empty('✦', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next practice.', `<button class="btn primary" data-new-recap>✦ New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+      : empty('recap', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next practice.', `<button class="btn primary" data-new-recap>New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap()));
 }
@@ -278,10 +279,10 @@ export async function renderRecap(recapId) {
       ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${mine ? '<button class="btn small primary" data-regenerate>Regenerate</button>' : ''}</div>` : ''}
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
       <footer class="recap-actions">
-        <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">📌 ${pinned ? 'Pinned' : 'Pin'}</button>
+        <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">${ic('pin')}${pinned ? 'Pinned' : 'Pin'}</button>
         ${r.scope === 'project' && !r.has_private && (r.shared_at || mine) && !sampleProject ? '<button class="btn small primary" data-chat-share>Share to group chat</button>' : ''}
         ${mine && !r.shared_at && !r.has_private ? '<button class="btn small" data-share>Share to project</button>' : ''}
-        ${mine && r.has_private ? '<span class="pill" title="Private notes stay between the two people, so this recap stays yours">🔒 Uses private notes · can’t be shared</span>' : ''}
+        ${mine && r.has_private ? `<span class="pill" title="Private notes stay between the two people, so this recap stays yours">${ic('lock')}Uses private notes · can’t be shared</span>` : ''}
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${mine ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
@@ -290,8 +291,8 @@ export async function renderRecap(recapId) {
       <div class="recap-foot">
         <p class="ai-disclaimer">AI can make mistakes. Check the cited notes before acting on it. ${r.shared_at ? `Shared with the project ${timeAgo(r.shared_at)}.` : 'Only you can see this until you share it.'}</p>
         <div class="feedback" role="group" aria-label="Was this recap useful?"><span>Useful?</span>
-          <button class="icon-btn ${myFeedback?.helpful === true ? 'on' : ''}" data-feedback="up" aria-pressed="${myFeedback?.helpful === true}" aria-label="Useful" title="Useful">👍</button>
-          <button class="icon-btn ${myFeedback?.helpful === false ? 'on' : ''}" data-feedback="down" aria-pressed="${myFeedback?.helpful === false}" aria-label="Not useful" title="Not useful">👎</button>
+          <button class="icon-btn ${myFeedback?.helpful === true ? 'on' : ''}" data-feedback="up" aria-pressed="${myFeedback?.helpful === true}" aria-label="Useful" title="Useful">${ic('agree', 'solo')}</button>
+          <button class="icon-btn ${myFeedback?.helpful === false ? 'on' : ''}" data-feedback="down" aria-pressed="${myFeedback?.helpful === false}" aria-label="Not useful" title="Not useful">${ic('disagree', 'solo')}</button>
         </div>
       </div>
     </article>
@@ -396,7 +397,7 @@ export function wireCitations(r, root = document) {
     const time = s.t_end === null ? fmt(s.t_start) : `${fmt(s.t_start)}–${fmt(s.t_end)}`;
     pop.innerHTML = `<p class="row-meta"><b>${esc(s.author)}</b> · ${esc(s.video_title)}${s.take_number ? ` · Take ${s.take_number}` : ''} · <span class="time-tag">${time}</span></p>
       <p>${esc(s.body)}</p>
-      <a class="link" href="/app/p/${r.project_id}/v/${s.video_id}?take=${s.take_number ?? ''}&note=${s.note_id}" data-link>▶ Play this moment</a>`;
+      <a class="link" href="/app/p/${r.project_id}/v/${s.video_id}?take=${s.take_number ?? ''}&note=${s.note_id}" data-link>${ic('play')}Play this moment</a>`;
     pop.hidden = false;
     const box = chip.getBoundingClientRect();
     const left = Math.min(Math.max(12, box.left + window.scrollX - 20), window.scrollX + document.documentElement.clientWidth - 332);

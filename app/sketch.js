@@ -1,8 +1,9 @@
 // Sketches on the frame: vector strokes normalized to the video picture (0–1), drawn as SVG over the <video>.
 // Used by the review page (draw + show) and the guest share page (show only).
 
+import { ic } from './icons.js';
 export const COLORS = ['#ffd60a', '#ff453a', '#64d2ff', '#ffffff'];
-export const TOOLS = [['pen', '✎', 'Pen'], ['arrow', '↗', 'Arrow'], ['circle', '◯', 'Circle']];
+export const TOOLS = [['pen', ic('pen', 'solo'), 'Pen'], ['arrow', ic('arrow', 'solo'), 'Arrow'], ['circle', ic('circle', 'solo'), 'Circle']];
 const NS = 'http://www.w3.org/2000/svg';
 const round = (n) => Math.round(n * 10000) / 10000;
 

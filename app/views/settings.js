@@ -4,6 +4,7 @@ import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
 import { LANGS, getLang, setLang } from '../i18n.js';
 import { openHelp } from '../help.js';
+import { ic } from '../icons.js';
 
 const SECTIONS = [
   ['account', 'Account'],
@@ -171,7 +172,7 @@ export async function renderSettings(section = 'account') {
         ${data.length ? `<div class="list flush">${data.map((m) => `<a class="row" href="/app/p/${m.project_id}/settings" data-link>
           ${projectMark(m.projects, 'xs')}
           <span class="row-main"><span class="row-title">${esc(m.projects?.title || '')}</span><span class="row-meta">${m.projects?.project_members?.[0]?.count ?? 1} members</span></span>
-          <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span><span class="chev">›</span></span></a>`).join('')}</div>`
+          <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span><span class="chev">${ic('right', 'solo')}</span></span></a>`).join('')}</div>`
           : '<p class="panel-empty">You’re not in any projects yet.</p>'}
       </section>`
     };

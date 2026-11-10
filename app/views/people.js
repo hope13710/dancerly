@@ -5,6 +5,7 @@ import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample } from './shared.js';
 import { paintThumbs } from './project.js';
 import { openCardEditor } from '../progress-card.js';
+import { ic } from '../icons.js';
 
 // Your real teammates. The sample's made-up teammates appear only inside the sample (and on their own page).
 async function roster({ withSample = false } = {}) {
@@ -126,7 +127,7 @@ export async function renderPerson(userId) {
     ${tab === 'progress'
       ? (growth.length ? `<div class="growth-list">${growth.map((v) => `<div class="growth-item">
           <a class="growth-thumbs" href="/app/p/${v.last.project_id}/v/${v.video_id}?take=${v.last.number}" data-link aria-label="${esc(v.latest.videos?.title || 'Video')}">
-            <span class="video-thumb" data-thumb="${v.first.id}"><i aria-hidden="true">▶</i><em>Take ${v.first.number}</em></span><span class="video-thumb" data-thumb="${v.last.id}"><i aria-hidden="true">▶</i><em>Take ${v.last.number}</em></span></a>
+            <span class="video-thumb" data-thumb="${v.first.id}"><i aria-hidden="true">${ic('play', 'solo')}</i><em>Take ${v.first.number}</em></span><span class="video-thumb" data-thumb="${v.last.id}"><i aria-hidden="true">${ic('play', 'solo')}</i><em>Take ${v.last.number}</em></span></a>
           <div class="growth-copy"><b>${esc(v.latest.videos?.title || 'Video')}</b>
             <small>${esc(v.latest.projects?.title || '')} · Take ${v.first.number} → ${v.last.number} · ${v.days} ${v.days === 1 ? 'day' : 'days'}</small>
             ${v.total ? `<span class="growth-bar" role="img" aria-label="${v.fixed} of ${v.total} notes fixed"><i style="width:${Math.round((v.fixed / v.total) * 100)}%"></i></span><small>${v.fixed} of ${v.total} notes fixed</small>` : '<small>No notes yet</small>'}
@@ -135,9 +136,9 @@ export async function renderPerson(userId) {
         : `<p class="panel-empty">${videos.length ? 'Progress shows up once a video has a second take.' : self ? 'You haven’t uploaded a video yet.' : 'No videos from them yet.'}</p>`)
       : tab === 'videos'
       ? (videos.length ? `<div class="video-list">${videos.map(({ latest: t, count }) => `<div class="video-item"><a class="video-row" href="/app/p/${t.project_id}/v/${t.video_id}?take=${t.number}" data-link>
-          <span class="video-thumb" data-thumb="${t.id}"><i aria-hidden="true">▶</i>${count > 1 ? `<em>${count} takes</em>` : ''}</span>
+          <span class="video-thumb" data-thumb="${t.id}"><i aria-hidden="true">${ic('play', 'solo')}</i>${count > 1 ? `<em>${count} takes</em>` : ''}</span>
           <span class="video-copy"><b>${esc(t.videos?.title || 'Video')}</b><small>${esc(t.projects?.title || '')} · Take ${t.number} · ${timeAgo(t.created_at)}</small></span>
-          <span class="chev">→</span>
+          <span class="chev">${ic('right', 'solo')}</span>
         </a></div>`).join('')}</div>`
         : `<p class="panel-empty">${self ? 'You haven’t uploaded a video yet.' : 'No videos from them yet.'}</p>`)
       : list.length ? `<div class="list">${list.map((n) => noteRow(n, names, { showAuthor: tab === 'received' })).join('')}</div>`

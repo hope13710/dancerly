@@ -3,6 +3,7 @@ import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, isEnter } from '
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor } from './shared.js';
+import { ic } from '../icons.js';
 
 // A small, safe Markdown subset: everything is escaped first, then a few patterns become tags.
 export function markdown(src) {
@@ -19,7 +20,7 @@ export function markdown(src) {
     const line = raw.trimEnd();
     let m;
     if ((m = line.match(/^(#{1,3})\s+(.*)$/))) { close(); out.push(`<h${m[1].length + 1}>${inline(m[2])}</h${m[1].length + 1}>`); }
-    else if ((m = line.match(/^\s*[-*]\s+\[( |x)\]\s+(.*)$/i))) { if (list !== 'ul') { close(); out.push('<ul class="tasks">'); list = 'ul'; } out.push(`<li class="${m[1].trim() ? 'done' : ''}"><span class="box">${m[1].trim() ? '✓' : ''}</span>${inline(m[2])}</li>`); }
+    else if ((m = line.match(/^\s*[-*]\s+\[( |x)\]\s+(.*)$/i))) { if (list !== 'ul') { close(); out.push('<ul class="tasks">'); list = 'ul'; } out.push(`<li class="${m[1].trim() ? 'done' : ''}"><span class="box">${m[1].trim() ? ic('check', 'solo') : ''}</span>${inline(m[2])}</li>`); }
     else if ((m = line.match(/^\s*[-*]\s+(.*)$/))) { if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; } out.push(`<li>${inline(m[1])}</li>`); }
     else if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; } out.push(`<li>${inline(m[1])}</li>`); }
     else if (/^\s*---+\s*$/.test(line)) { close(); out.push('<hr />'); }
@@ -43,10 +44,10 @@ export async function renderProjectPages(projectId) {
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'pages', '<button class="btn primary" data-new-page>+ New page</button>')}
     ${pages.length ? `<div class="list">${pages.map((pg) => `<a class="row" href="/app/p/${projectId}/pages/${pg.id}" data-link>
-        <span class="page-icon">${pg.pinned ? '📌' : '📄'}</span>
+        <span class="page-icon">${ic(pg.pinned ? 'pin' : 'file', 'solo')}</span>
         <span class="row-main"><span class="row-title">${esc(pg.title)}</span><span class="row-meta">${esc(pg.body.replace(/[#*>`\-[\]]/g, '').trim().slice(0, 110)) || 'Empty page'}</span></span>
-        <span class="row-side"><small>${esc(names[pg.updated_by] || '')} · ${timeAgo(pg.updated_at)}</small><span class="chev">›</span></span></a>`).join('')}</div>`
-      : empty('📄', 'No pages yet', 'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.', '<button class="btn primary" data-new-page>+ New page</button>')}
+        <span class="row-side"><small>${esc(names[pg.updated_by] || '')} · ${timeAgo(pg.updated_at)}</small><span class="chev">${ic('right', 'solo')}</span></span></a>`).join('')}</div>`
+      : empty('file', 'No pages yet', 'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.', '<button class="btn primary" data-new-page>+ New page</button>')}
   </section>`;
   $$('[data-new-page]').forEach((b) => b.addEventListener('click', () => newPage(projectId)));
 }
@@ -75,7 +76,7 @@ export async function renderPage(projectId, pageId) {
     <header class="doc-head">
       <p class="muted doc-meta" data-meta>Edited by ${esc(names[page.updated_by] || 'someone')} · ${timeAgo(page.updated_at)}</p>
       <div class="head-actions">
-        <button class="btn small ghost ${page.pinned ? 'on' : ''}" data-pin>📌 ${page.pinned ? 'Pinned' : 'Pin'}</button>
+        <button class="btn small ghost ${page.pinned ? 'on' : ''}" data-pin>${ic('pin')}${page.pinned ? 'Pinned' : 'Pin'}</button>
         ${editing ? '<span class="save-state" data-save>Saved</span><a class="btn small primary" href="?" data-link data-done>Done</a>' : `<a class="btn small" href="?edit=1" data-link>Edit</a>`}
         ${canDelete ? '<button class="btn small ghost danger" data-delete>Delete</button>' : ''}
       </div>
@@ -85,7 +86,7 @@ export async function renderPage(projectId, pageId) {
         <textarea data-body placeholder="Write in plain text. # Heading, - list, - [ ] checklist, **bold**, [link](https://…)" aria-label="Page">${esc(page.body)}</textarea>
         <article class="doc" data-preview aria-label="Preview">${markdown(page.body) || '<p class="muted">Preview shows here.</p>'}</article>
       </div>`
-      : `<h1 class="doc-title">${esc(page.title)}</h1><article class="doc">${markdown(page.body) || `<p class="muted">This page is empty. <a class="link" href="?edit=1" data-link>Start writing →</a></p>`}</article>`}
+      : `<h1 class="doc-title">${esc(page.title)}</h1><article class="doc">${markdown(page.body) || `<p class="muted">This page is empty. <a class="link" href="?edit=1" data-link>Start writing${ic('right', 'after')}</a></p>`}</article>`}
   </section>`;
 
   $('[data-pin]').addEventListener('click', async () => {

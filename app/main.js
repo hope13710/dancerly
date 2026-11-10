@@ -27,6 +27,7 @@ import { renderProjectPages, renderPage } from './views/pages.js';
 import { renderProjectOverview, renderCountSheet } from './views/overview.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
+import { ic } from './icons.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
@@ -131,7 +132,7 @@ function setCrumbs(items) {
   const parent = [...items].reverse().find(([, href]) => href);
   const back = $('[data-back]');
   back.hidden = !parent;
-  if (parent) { back.href = parent[1]; back.textContent = `← ${parent[0]}`; }
+  if (parent) { back.href = parent[1]; back.innerHTML = `${ic('back')}${esc(parent[0])}`; }
 }
 // Signed in: a sidebar on wide screens, a tab bar on phones. Both reach the same places and actions.
 function renderChrome() {
@@ -199,7 +200,7 @@ function paintSampleBar(sample) {
   // The next real step: make a project, then put a video in it, then just get back to it.
   const graduated = Boolean(state.profile?.onboarding?.seen?.sample_graduated);
   const [cta, next] = !hasOwn ? ['Start my own project', 'project'] : graduated ? ['Go to my projects', 'projects'] : ['Upload a video of my own', 'upload'];
-  bar.innerHTML = `<span class="sample-dot" aria-hidden="true">✦</span>
+  bar.innerHTML = `<span class="sample-dot" aria-hidden="true">${ic('sample', 'solo')}</span>
     <p><b>You’re in the sample project.</b> <span>Only you can see it. Try anything — nothing here reaches anyone, and it stays out of Home, Feedback, and your calendar.</span></p>
     <span class="sample-actions"><button class="btn small primary" data-sample-own="${next}">${cta}</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
 }
@@ -490,7 +491,7 @@ function renderForgot(email = '') {
 function renderCheckInbox(email, next, purpose) {
   const recovery = purpose === 'recovery';
   view.innerHTML = `<section class="auth"><div class="auth-card center">
-    <div class="inbox-icon">✉</div>
+    <div class="inbox-icon">${ic('mail', 'solo')}</div>
     <h1>${recovery ? 'Check your inbox' : 'Confirm your email'}</h1>
     <p class="muted">We sent an email to <b>${esc(email)}</b>. Type the code here — or open the link on this device.${recovery ? '' : ' You only do this once; after that, log in with your password.'}</p>
     <form class="code-form" data-code-form>
@@ -625,7 +626,7 @@ function renderMe() {
     <div class="list-group">
       ${row('/app/inbox', 'Inbox', '<span class="badge" data-unread hidden></span>')}
       ${row('/app/calendar', 'Calendar')}
-      ${row('/app/me/recaps', '✦ My recaps')}
+      ${row('/app/me/recaps', 'My recaps')}
       ${row(`/app/people/${user.id}`, 'My activity')}
     </div>
     <div class="list-group">
@@ -657,7 +658,7 @@ async function renderJoin(code) {
   if (error) throw error;
   const invite = data?.[0];
   if (!invite || !invite.valid) {
-    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">⌛</div><h1>This invite has expired</h1><p class="muted">Ask the project owner for a new link.</p><a class="btn wide" href="/app" data-link>Go to dancerly</a></div></section>`;
+    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">${ic('clock', 'solo')}</div><h1>This invite has expired</h1><p class="muted">Ask the project owner for a new link.</p><a class="btn wide" href="/app" data-link>Go to dancerly</a></div></section>`;
     return;
   }
   const signedIn = Boolean(state.session);

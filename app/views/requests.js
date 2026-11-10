@@ -6,6 +6,7 @@ import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
 import { empty, noSample } from './shared.js';
 import { loadGroups } from './groups.js';
+import { ic } from '../icons.js';
 
 const STATUS = {
   missing: ['Not submitted', ''],
@@ -74,12 +75,12 @@ export async function renderProjectRequests(projectId) {
       return `<a class="row request-row" href="${base}/${r.id}" data-link>
         <span class="row-main">
           <span class="row-title">${esc(r.title)}</span>
-          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : r.audience ? esc(r.audience) : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${r.repeat_weekly ? ' · ↻ weekly' : ''}${mine ? ` · You: ${STATUS[mine.state][0].toLowerCase()}` : ''}</span>
+          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : r.audience ? esc(r.audience) : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${r.repeat_weekly ? ' · weekly' : ''}${mine ? ` · You: ${STATUS[mine.state][0].toLowerCase()}` : ''}</span>
         </span>
-        <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">›</span></span>
+        <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">${ic('right', 'solo')}</span></span>
       </a>`;
     }).join('')}</div>`
-      : empty('⇪', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Ask people to send a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
+      : empty('assignment', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Ask people to send a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
   </section>`;
   $$('[data-new-request]').forEach((b) => b.addEventListener('click', () => newRequest(projectId)));
 }
@@ -178,16 +179,16 @@ export async function renderRequest(projectId, requestId) {
     <header class="page-head"><div>
       <p class="eyebrow">Assignment${r.status === 'closed' ? ' · Closed' : ''}</p>
       <h1>${esc(r.title)}</h1>
-      <p class="muted sub"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · for ${r.everyone ? 'everyone' : esc(r.audience || `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`)}${r.repeat_weekly ? ' · <span class="tag">↻ Repeats weekly</span>' : ''} · from ${esc(author)} · ${timeAgo(r.created_at)}</p>
+      <p class="muted sub"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · for ${r.everyone ? 'everyone' : esc(r.audience || `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`)}${r.repeat_weekly ? ` · <span class="tag">${ic('loop')}Repeats weekly</span>` : ''} · from ${esc(author)} · ${timeAgo(r.created_at)}</p>
     </div>
     <div class="head-actions">
       ${mine && r.status === 'active' ? `<button class="btn primary" data-submit>${mine.video ? `Upload Take ${(mine.latest?.number || 0) + 1}` : 'Submit your video'}</button>` : ''}
-      ${canManage ? '<button class="btn ghost icon" data-manage aria-label="Assignment settings">•••</button>' : ''}
+      ${canManage ? `<button class="btn ghost icon" data-manage aria-label="Assignment settings">${ic('more', 'solo')}</button>` : ''}
     </div></header>
     ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
     ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
       ${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ''}
-      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="/app/p/${projectId}/v/${reference.id}" data-link>▶ ${esc(reference.title)}</a></p>` : ''}
+      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="/app/p/${projectId}/v/${reference.id}" data-link>${ic('play')}${esc(reference.title)}</a></p>` : ''}
     </section>` : ''}
     <section class="panel">
       <div class="panel-head"><div><h2>Submissions</h2><p class="muted">${submitted} of ${subs.length} submitted${missing && r.status === 'active' ? ` · ${missing} still to go` : ''}</p></div>
@@ -197,7 +198,7 @@ export async function renderRequest(projectId, requestId) {
         ${avatar(s.member.name, s.member.user_id, 'sm')}
         <span class="row-main"><span class="row-title">${esc(s.member.name)}${s.member.user_id === me ? ' <span class="tag">You</span>' : ''}</span>
           <span class="row-meta">${s.video ? `${esc(s.video.title)} · ${s.latest ? `Take ${s.latest.number} · ${timeAgo(s.latest.created_at)}` : 'no take yet'}` : 'Nothing yet'}</span></span>
-        <span class="row-side">${pill(s.state)}${s.video ? '<span class="chev">›</span>' : ''}</span>
+        <span class="row-side">${pill(s.state)}${s.video ? `<span class="chev">${ic('right', 'solo')}</span>` : ''}</span>
       </${s.video ? 'a' : 'div'}>`).join('') || '<p class="panel-empty">Nobody is assigned.</p>'}</div>
     </section>
   </section>`;

@@ -9,6 +9,7 @@ import { shiftBetween } from '../align.js';
 import { isKo, t } from '../i18n.js';
 import { CATEGORIES, catChip, catLabel, catColor } from '../categories.js';
 import { samplePeek, sampleMoment, teamNote } from '../onboarding.js';
+import { ic } from '../icons.js';
 
 const RANGES = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
 const DAY = 86400000;
@@ -189,24 +190,24 @@ export async function renderInsights() {
   // Full sentences in both languages: names and titles sit inside them, so they can't be swapped piece by piece.
   const next = [];
   const due = waiting[0];
-  if (due && isLeader) next.push({ icon: '↑', html: isKo
+  if (due && isLeader) next.push({ icon: ic('upload', 'solo'), html: isKo
     ? `<b>${esc(due.title)}</b> · 아직 안 보낸 사람 <b>${due.missing.length}명</b> · ${esc(t(dueLabel(due.due_at)))}`
     : `<b>${due.missing.length}</b> still to send <b>${esc(due.title)}</b> · ${esc(dueLabel(due.due_at))}`, cta: 'Remind', remind: due.id });
-  else if (due && due.missing.includes(me)) next.push({ icon: '↑', html: isKo
+  else if (due && due.missing.includes(me)) next.push({ icon: ic('upload', 'solo'), html: isKo
     ? `<b>${esc(due.title)}</b> 영상을 아직 안 보냈어요 · ${esc(t(dueLabel(due.due_at)))}`
     : `You still need to send <b>${esc(due.title)}</b> · ${esc(dueLabel(due.due_at))}`, cta: 'Open', href: `/app/p/${due.project_id}/requests/${due.id}` });
   const hottest = spots.filter((s) => s.top).sort((a, b) => b.top.open - a.top.open)[0];
-  if (hottest) next.push({ icon: '◎', html: isKo
+  if (hottest) next.push({ icon: ic('target', 'solo'), html: isKo
     ? `미해결 피드백이 몰린 곳: <b>${esc(hottest.video.title)}</b> · <b>${hottest.top.label}</b> (${hottest.top.open}개)`
     : `Open notes pile up in <b>${esc(hottest.video.title)}</b> at <b>${hottest.top.label}</b> (${hottest.top.open})`, cta: 'Watch it', href: spotLink(hottest, hottest.top) });
-  if (stuck.length) next.push({ icon: '⏳', html: isKo
+  if (stuck.length) next.push({ icon: ic('clock', 'solo'), html: isKo
     ? `피드백 <b>${stuck.length}개</b>가 ${STUCK_DAYS}일 넘게 그대로예요`
     : `<b>${stuck.length}</b> ${stuck.length === 1 ? 'note has' : 'notes have'} been open for ${STUCK_DAYS}+ days`, cta: 'See them', sheet: 'stuck' });
-  if (agreed[0]) next.push({ icon: '👍', html: isKo
-    ? `팀이 가장 공감한 피드백(👍 ${agreed[0].note_reactions.length}): “${esc(snippet(agreed[0].body, 60))}”`
-    : `Most agreed on (👍 ${agreed[0].note_reactions.length}): “${esc(snippet(agreed[0].body, 60))}”`, cta: 'Open', href: noteLink(agreed[0]) });
+  if (agreed[0]) next.push({ icon: ic('agree', 'solo'), html: isKo
+    ? `팀이 가장 공감한 피드백(공감 ${agreed[0].note_reactions.length}): “${esc(snippet(agreed[0].body, 60))}”`
+    : `Most agreed on (${agreed[0].note_reactions.length} agreed): “${esc(snippet(agreed[0].body, 60))}”`, cta: 'Open', href: noteLink(agreed[0]) });
   const topArea = areas.find((a) => a.key !== 'other' && a.open);
-  if (topArea) next.push({ icon: '●', color: catColor(topArea.key), html: isKo
+  if (topArea) next.push({ icon: '<i class="li-dot"></i>', color: catColor(topArea.key), html: isKo
     ? `<b>${catLabel(topArea.key)}</b> 피드백이 가장 많이 남아 있어요 (${topArea.open}개)`
     : `<b>${catLabel(topArea.key)}</b> has the most open notes (${topArea.open})`, cta: 'See notes', sheet: `area:${topArea.key}` });
 
@@ -222,10 +223,10 @@ export async function renderInsights() {
   const diff = fixed.length - prevFixed.length;
   const summary = isKo
     ? (fixed.length
-      ? `최근 ${days}일 동안 피드백 <b>${fixed.length}개</b>를 해결했어요${prevFixed.length || diff ? `. 이전 ${days}일보다 <b>${Math.abs(diff)}개 ${diff >= 0 ? '많아요' : '적어요'}</b>` : ''}.${diff > 0 ? ' 🎉' : ''}`
+      ? `최근 ${days}일 동안 피드백 <b>${fixed.length}개</b>를 해결했어요${prevFixed.length || diff ? `. 이전 ${days}일보다 <b>${Math.abs(diff)}개 ${diff >= 0 ? '많아요' : '적어요'}</b>` : ''}.`
       : `최근 ${days}일 동안 해결된 피드백이 아직 없어요. 다음 테이크를 올리면 무엇이 나아졌는지 확인할 수 있어요.`)
     : (fixed.length
-      ? `<b>${fixed.length}</b> ${fixed.length === 1 ? 'note' : 'notes'} fixed in the last ${days} days${prevFixed.length || diff ? `, <b>${Math.abs(diff)} ${diff >= 0 ? 'more' : 'fewer'}</b> than the ${days} days before` : ''}.${diff > 0 ? ' 🎉' : ''}`
+      ? `<b>${fixed.length}</b> ${fixed.length === 1 ? 'note' : 'notes'} fixed in the last ${days} days${prevFixed.length || diff ? `, <b>${Math.abs(diff)} ${diff >= 0 ? 'more' : 'fewer'}</b> than the ${days} days before` : ''}.`
       : `No notes fixed in the last ${days} days yet. Upload the next take to see what got better.`);
 
   // ---------- Key numbers: three, the ones with enough behind them ----------
@@ -278,12 +279,12 @@ export async function renderInsights() {
     <section class="panel insight-lines next-panel">
       <div class="panel-head"><div><h2>Next up</h2><p class="muted">The few things worth doing before the next practice</p></div></div>
       ${next.length ? `<ul class="lines next-list">${next.slice(0, 3).map((l, i) => `<li><span class="li-icon" aria-hidden="true" ${l.color ? `style="color:${l.color}"` : ''}>${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" data-link>${l.cta}</a>` : l.remind ? `<button class="btn small" type="button" data-remind="${l.remind}">${l.cta}</button>` : `<button class="btn small" type="button" data-sheet="${l.sheet}">${l.cta}</button>`}</li>`).join('')}</ul>`
-        : `<p class="next-done"><span aria-hidden="true">✓</span> Nothing needs you before the next practice.</p>`}
+        : `<p class="next-done">${ic('check_circle')}Nothing needs you before the next practice.</p>`}
     </section>
 
     ${showSteps ? `<section class="panel steps-panel">
       <div class="panel-head"><div><h2>Get more from Insights</h2><p class="muted">Each step adds something to this page</p></div><span class="steps-count" data-no-i18n>${steps.filter(([, d]) => d).length}/${steps.length}</span></div>
-      <ul class="steps-list">${steps.map(([text, done]) => `<li class="${done ? 'done' : ''}"><span class="tick" aria-hidden="true">${done ? '✓' : ''}</span>${text}</li>`).join('')}</ul>
+      <ul class="steps-list">${steps.map(([text, done]) => `<li class="${done ? 'done' : ''}"><span class="tick" aria-hidden="true">${done ? ic('check', 'solo') : ''}</span>${text}</li>`).join('')}</ul>
     </section>` : ''}
 
     ${areas.length ? `<section class="panel focus-panel">
@@ -325,7 +326,7 @@ export async function renderInsights() {
     ${isLeader ? `<section class="panel team-panel">
       <div class="panel-head"><div><h2>Team</h2><p class="muted">Who to check in with</p></div></div>
       ${attention.length ? `<div class="list flush">${attention.slice(0, 6).map((a) => `<div class="row attn-row"><a class="row-main" href="/app/people/${a.id}" data-link>${avatar(nameOf(a.id), a.id, 'sm')}<span><span class="row-title">${esc(nameOf(a.id))}</span><span class="row-meta" data-no-i18n>${a.why}</span></span></a>${a.remind ? `<button class="btn small" type="button" data-remind="${a.remind}">Remind</button>` : `<a class="btn small ghost" href="/app/people/${a.id}" data-link>View</a>`}</div>`).join('')}</div>`
-        : '<p class="panel-empty">Everyone’s on track. 👏</p>'}
+        : '<p class="panel-empty">Everyone’s on track.</p>'}
       ${activity.length ? `<details class="team-activity"><summary>Activity by person</summary><div class="list flush">${activity.map((p) => `<a class="row" href="/app/people/${p.id}" data-link><span class="row-main">${avatar(nameOf(p.id), p.id, 'xs')}<span class="row-title">${esc(nameOf(p.id))}</span></span><span class="row-meta" data-no-i18n>${isKo ? `테이크 ${p.takes} · 남긴 피드백 ${p.given} · 받은 피드백 ${p.received}` : `${p.takes} ${p.takes === 1 ? 'take' : 'takes'} · ${p.given} given · ${p.received} received`}</span></a>`).join('')}</div></details>` : ''}
     </section>` : ''}`}
   </section>`;

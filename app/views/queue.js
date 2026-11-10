@@ -5,6 +5,7 @@ import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { pageHead, tabs, empty, previewEmpty, hasTeammates, namesFor, noSample, realProjects } from './shared.js';
 import { myOpenRequests, dueLabel } from './requests.js';
+import { ic } from '../icons.js';
 
 export const QUEUE_KEY = 'looproom:queue';
 
@@ -61,16 +62,16 @@ export async function renderQueue() {
     ${show === 'overdue'
       ? (overdue.length ? `<div class="list">${overdue.map((r) => `<a class="row" href="/app/p/${r.project_id}/requests/${r.id}" data-link>
           <span class="row-main"><span class="row-title">${esc(r.title)}</span><span class="row-meta"><span class="due overdue">${esc(dueLabel(r.due_at))}</span> · ${esc(r.projects?.title || '')}</span></span>
-          <span class="row-side"><span class="pill danger">Not submitted</span><span class="chev">›</span></span></a>`).join('')}</div>`
-        : empty('✓', 'Nothing late', 'Assignments you haven’t submitted show up here once they’re past due.'))
+          <span class="row-side"><span class="pill danger">Not submitted</span><span class="chev">${ic('right', 'solo')}</span></span></a>`).join('')}</div>`
+        : empty('check_circle', 'Nothing late', 'Assignments you haven’t submitted show up here once they’re past due.'))
       : list.length ? `<div class="list" data-queue>${list.map((v) => `<a class="row" href="${hrefFor(v)}" data-link data-queue-item>
           ${avatar(names[v.latest.uploaded_by], v.latest.uploaded_by, 'sm')}
           <span class="row-main"><span class="row-title">${esc(v.title)}</span>
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
-          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">›</span></span>
+          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">${ic('right', 'solo')}</span></span>
         </a>`).join('')}</div>`
       : alone ? previewEmpty('rows', 'New videos land here', 'When someone uploads a video or a new take to your projects, it waits here until you’ve watched it. Invite people to get started.', `<button class="btn primary" data-start-action="invite">Invite people</button>${samplePeek('queue')}`, 'queue')
-      : empty('✓', 'You’re all caught up', 'When someone uploads a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
+      : empty('check_circle', 'You’re all caught up', 'When someone uploads a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}
   </section>`;
 
   $('[data-project]')?.addEventListener('change', (e) => navigate(url({ project: e.target.value })));

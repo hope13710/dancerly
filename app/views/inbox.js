@@ -3,6 +3,7 @@ import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
+import { ic } from '../icons.js';
 
 const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 // Requests to join (migration 040) carry the requester's name: owners can't read a non-member's profile.
@@ -29,7 +30,7 @@ function describe(item, names) {
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
   if (item.kind === 'request_reminder') return `${who} reminded you: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
-  if (item.kind === 'private_note') return `🔒 ${who} left you a private note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
+  if (item.kind === 'private_note') return `${ic('lock')}${who} left you a private note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   if (item.kind === 'reply') return `${who} replied to a note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   if (item.kind === 'mention') return `${who} mentioned you on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   return `${who} ${VERB[item.kind]} <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
@@ -69,12 +70,12 @@ export async function renderInbox() {
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
-          ${item.recaps ? `<span class="row-quote">✦ ${esc(item.recaps.content?.headline || 'Recap')}</span>` : ''}
+          ${item.recaps ? `<span class="row-quote">${ic('recap')}${esc(item.recaps.content?.headline || 'Recap')}</span>` : ''}
           <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}</span>
         </span>
         ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}
       </a>`).join('')}</div>`
-      : empty('✉', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
+      : empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
   </section>`;
 
   $$('[data-item]').forEach((a) => a.addEventListener('click', () => {

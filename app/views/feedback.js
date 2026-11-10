@@ -60,7 +60,7 @@ export async function renderFeedback() {
       ${realProjects().length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
-      : notes.length && status !== 'all' ? empty('✓', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
+      : notes.length && status !== 'all' ? empty('check_circle', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
       : previewEmpty('notes', emptyCopy[0], emptyCopy[1], `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('feedback')}`, noVideo ? 'feedback' : '')}
   </section>`;
   $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));

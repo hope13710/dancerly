@@ -9,6 +9,7 @@ import { track } from './onboarding.js';
 import { shiftBetween } from './align.js';
 import { thumbUrls } from './thumbs.js';
 import { daysUntil } from './views/shared.js';
+import { ic } from './icons.js';
 
 const W = 1080, H = 1920;
 const SAFE_TOP = 216, SAFE_BOTTOM = 256; // Instagram's own buttons cover these
@@ -383,7 +384,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
           : `<b>${esc(c.events[0].title)} · ${esc(day(c.events[0].starts_at))}</b>`}</label>` : ''}
         ${c.project.is_sample
           ? `<div class="ce-sample"><p><b>This is the sample.</b> Make one from your own team’s takes and share it to Instagram.</p><button type="button" class="btn primary wide" data-ce-own>Start my own project</button></div>`
-          : `<p class="ce-tip">🎵 Add the song with Instagram or TikTok’s music sticker. The card itself is silent.</p>
+          : `<p class="ce-tip">${ic('music')}Add the song with Instagram or TikTok’s music sticker. The card itself is silent.</p>
             <p class="fine ce-fine">Anyone you share the image with can see it. It’s made on your device; nothing is posted for you.</p>
             <div class="ce-actions"><button type="button" class="btn primary" data-ce-share>${navigator.canShare ? 'Share…' : 'Download image'}</button>${navigator.canShare ? '<button type="button" class="btn" data-ce-save>Save</button>' : ''}</div>`}
       </div>
@@ -517,7 +518,7 @@ export async function celebrate({ projectId, videoId }) {
     body: `<span data-no-i18n>${isKo
       ? `Take 1부터 피드백 ${c.stats.fixed}개를 고쳤어요. ${c.stats.days}일 동안의 변화를 남겨 볼까요?`
       : `${c.stats.fixed} ${c.stats.fixed === 1 ? 'note' : 'notes'} fixed since Take 1. Want to keep ${c.stats.days} ${c.stats.days === 1 ? 'day' : 'days'} of progress?`}</span>
-      <span class="ce-celebrate" aria-hidden="true">${thumb(c.first)}${thumb(c.latest)}<i>→</i></span>`,
+      <span class="ce-celebrate" aria-hidden="true">${thumb(c.first)}${thumb(c.latest)}<i>${ic('right', 'solo')}</i></span>`,
     confirm: 'Make a progress card',
     cancel: 'Not now'
   });

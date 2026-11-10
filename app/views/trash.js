@@ -6,6 +6,7 @@ import { ctx } from '../ctx.js';
 import { track } from '../onboarding.js';
 import { pageHead, empty, namesFor } from './shared.js';
 import { restoreFromTrash } from './project.js';
+import { ic } from '../icons.js';
 
 const KEEP_DAYS = 30;
 const daysLeft = (iso) => Math.max(0, Math.ceil((new Date(iso).getTime() + KEEP_DAYS * 864e5 - Date.now()) / 864e5));
@@ -15,7 +16,7 @@ export async function renderTrash() {
   setCrumbs([['Trash']]);
   const head = pageHead('Trash', { sub: `Deleted projects, videos, and takes stay here for ${KEEP_DAYS} days, then they’re gone for good.` });
   if (!schema.trash) {
-    view.innerHTML = `<section class="page narrow">${head}${empty('🗑', 'Trash isn’t set up yet', 'Deleted videos are removed right away for now.')}</section>`;
+    view.innerHTML = `<section class="page narrow">${head}${empty('trash', 'Trash isn’t set up yet', 'Deleted videos are removed right away for now.')}</section>`;
     return;
   }
   const { data: items, error } = await sb.rpc('trash_list');
@@ -26,7 +27,7 @@ export async function renderTrash() {
     ${items?.length ? `<section class="panel"><div class="list flush">${items.map((it, i) => {
       const left = daysLeft(it.deleted_at);
       return `<div class="row trash-row">
-        <span class="trash-icon" aria-hidden="true">${{ project: '▣', video: '▶', take: '◧' }[it.kind]}</span>
+        <span class="trash-icon" aria-hidden="true">${ic({ project: 'folder', video: 'video', take: 'layers' }[it.kind], 'solo')}</span>
         <span class="row-main"><span class="row-title">${it.kind === 'take' ? `Take ${it.take_number} · ` : ''}${esc(it.title)}</span>
           <span class="row-meta">${it.kind === 'project' ? `Project · ${it.takes === 1 ? '1 video' : `${it.takes} videos`}` : esc(it.project_title)}${it.kind === 'video' && it.takes > 1 ? ` · ${it.takes} takes` : ''} · deleted by ${esc(names[it.deleted_by] || 'someone')}</span>
           <span class="trash-left ${left <= 3 ? 'soon' : ''}">${left <= 1 ? 'Goes for good tomorrow' : `Goes for good in ${left} days`}</span></span>
@@ -34,7 +35,7 @@ export async function renderTrash() {
           ? `<span class="row-side trash-actions"><button class="btn small" data-restore="${i}">Restore</button><button class="btn small ghost danger" data-purge="${i}">Delete forever</button></span>`
           : '<span class="row-side muted small">The owner or who made it can restore it</span>'}
       </div>`;
-    }).join('')}</div></section>` : empty('🗑', 'Trash is empty', `When you delete a project, a video, or a take, it waits here for ${KEEP_DAYS} days in case you change your mind.`)}
+    }).join('')}</div></section>` : empty('trash', 'Trash is empty', `When you delete a project, a video, or a take, it waits here for ${KEEP_DAYS} days in case you change your mind.`)}
   </section>`;
   $$('[data-restore]').forEach((b) => b.addEventListener('click', async () => {
     const it = items[Number(b.dataset.restore)];
