@@ -2102,7 +2102,7 @@ a.row:hover {
   text-align: right;
 }
 .time-tag {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 600;
   color: var(--accent-dark);
@@ -2819,10 +2819,7 @@ a.side-label[aria-current] {
 /* ---------- AI recaps: light glass, same family as the landing card ---------- */
 .recap-card {
   position: relative;
-  background:
-    radial-gradient(120% 80% at 100% 0%, rgba(91, 92, 226, 0.09), transparent 60%),
-    radial-gradient(90% 70% at 0% 100%, rgba(22, 132, 91, 0.06), transparent 60%),
-    var(--surface);
+  background: var(--surface);
   border: 1px solid #e0e1ff;
   border-radius: 16px;
   padding: 26px 28px 18px;
@@ -3031,7 +3028,7 @@ ul.todo.compact li {
 }
 .recap-teaser {
   border-color: #e0e1ff;
-  background: radial-gradient(120% 90% at 100% 0%, rgba(91, 92, 226, 0.08), transparent 60%), var(--surface);
+  background: var(--surface);
 }
 .recap-teaser h2 {
   font-size: 16px;
@@ -4083,7 +4080,9 @@ td.ref .play {
   padding: 3px 7px;
   background: var(--accent-soft);
   color: var(--accent-dark);
-  font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 .guest-foot {
@@ -4918,14 +4917,6 @@ td.ref .play {
   color: #eef0f4;
   position: relative;
   overflow: hidden;
-}
-.guest-cta::before {
-  content: "";
-  position: absolute;
-  inset: -60% 40% auto -10%;
-  height: 200%;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(91, 92, 226, 0.35), transparent 70%);
-  pointer-events: none;
 }
 .guest-cta > * {
   position: relative;
@@ -6256,7 +6247,7 @@ button.row {
 }
 /* The example on the right: the app's own pieces, marked as an example */
 .activate-preview {
-  background: linear-gradient(160deg, #f4f4ff, #eef0f4);
+  background: #f4f4ff;
   border-left: 1px solid var(--line);
   padding: 26px 24px;
   display: flex;
@@ -7586,7 +7577,9 @@ body.player-full {
   border-radius: 6px;
   background: var(--accent);
   color: #fff;
-  font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .guest-ask textarea {
   flex: 1;
@@ -7632,7 +7625,9 @@ body.player-full {
 }
 .join-ask-note b {
   margin-right: 6px;
-  font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--accent-dark, #4546b8);
 }
 .join-ask .row-side {
@@ -7727,7 +7722,9 @@ body.player-full {
   accent-color: var(--accent);
 }
 .guest-time {
-  font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: #c9ced9;
 }
 .guest-pp {

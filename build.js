@@ -2,7 +2,7 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { buildSitemap } from './sitemap.js';
 
-const files = ['index.html', 'landing.css', 'landing.js', 'landing-ko.js', 'terms.html', 'privacy.html', 'legal.css', 'legal.js', 'logo-wordmark.png', 'favicon.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.png', 'workspace.html', 'workspace.js', 'workspace.css', 'logo.svg'];
+const files = ['index.html', 'landing.css', 'landing.js', 'landing-ko.js', 'terms.html', 'privacy.html', 'legal.css', 'legal.js', 'logo-wordmark.png', 'favicon.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.png', 'logo.svg'];
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 await Promise.all(files.map((file) => cp(file, `dist/${file}`)));
