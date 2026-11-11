@@ -282,7 +282,7 @@ export async function renderRecap(recapId) {
         <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">${ic('pin')}${pinned ? 'Pinned' : 'Pin'}</button>
         ${r.scope === 'project' && !r.has_private && (r.shared_at || mine) && !sampleProject ? '<button class="btn small primary" data-chat-share>Share to group chat</button>' : ''}
         ${mine && !r.shared_at && !r.has_private ? '<button class="btn small" data-share>Share to project</button>' : ''}
-        ${mine && r.has_private ? `<span class="pill" title="Private notes stay between the two people, so this recap stays yours">${ic('lock')}Uses private notes · can’t be shared</span>` : ''}
+        ${mine && r.has_private && !sampleProject ? `<button class="btn small" data-share-public title="Private notes stay between the two people, so this recap stays yours. This makes a new one without them.">${ic('lock')}Share without private feedback</button>` : ''}
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${mine ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
@@ -317,6 +317,27 @@ export async function renderRecap(recapId) {
       : await sb.from('recap_pins').insert({ recap_id: r.id });
     if (pinErr) return toast(friendlyError(pinErr), 'error');
     renderRecap(recapId);
+  });
+  // A recap that used private notes stays yours. To share, make it again from team-visible notes only, then share that one.
+  $('[data-share-public]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget; // read before any await: the event is done by then
+    const ok = await dialog({ title: 'Share without private feedback?', body: 'We’ll make a new recap for the same period without the private notes and share it with the project. This one stays just for you.', confirm: 'Make and share' });
+    if (!ok) return;
+    btn.disabled = true;
+    toast('Making a version without private feedback…');
+    try {
+      const data = await generateRecap({ project_id: r.project_id, scope: r.scope, period: r.period, video_id: r.video_id, range: { from: r.period_start, to: r.period_end }, exclude_private: true });
+      if (data?.empty) { btn.disabled = false; return toast(data.message || 'Nothing left to summarize without the private notes.'); }
+      const fresh = data?.recap;
+      if (!fresh?.id) throw new Error('Couldn’t make the recap. Try again.');
+      const { error: shareErr } = await sb.from('recaps').update({ shared_at: new Date().toISOString() }).eq('id', fresh.id);
+      if (shareErr) throw shareErr;
+      toast('Shared with the project, without the private feedback.');
+      navigate(`/app/recaps/${fresh.id}`);
+    } catch (err) {
+      btn.disabled = false;
+      toast(err?.message || friendlyError(err), 'error');
+    }
   });
   $('[data-share]')?.addEventListener('click', async () => {
     const ok = await dialog({ title: 'Share this recap?', body: 'Everyone on the project can read it, and they’ll get it in their Inbox.', confirm: 'Share to project' });

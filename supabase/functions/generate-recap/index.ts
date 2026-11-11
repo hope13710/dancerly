@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json({ error: "Your session ended. Log in again." }, 401);
   const me = userData.user.id;
 
-  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string; usage_only?: boolean };
+  let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string; usage_only?: boolean;
+    exclude_private?: boolean; range?: { from?: string; to?: string } };
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
 
   // ---------- This month's free recaps (counted from the product_events log, which people can't edit) ----------
@@ -93,6 +94,8 @@ Deno.serve(async (req) => {
   const scope = body.scope === "project" ? "project" : "me";
   const lang = body.lang === "ko" ? "ko" : "en";
   const period = ["last", "week", "month", "custom"].includes(body.period ?? "") ? body.period! : "week";
+  // "Share without private feedback": the same recap made again from team-visible notes only, so it can be shared.
+  const excludePrivate = body.exclude_private === true;
   if (!project_id) return json({ error: "Pick a project." }, 400);
 
   // Membership check through RLS: non-members simply don't see the project.
@@ -103,7 +106,12 @@ Deno.serve(async (req) => {
   const now = new Date();
   let start: Date;
   let end = now;
-  if (period === "custom") {
+  if (body.range?.from && body.range?.to) {
+    // Exactly the window of an earlier recap (used when remaking one without private notes).
+    start = new Date(body.range.from);
+    end = new Date(body.range.to);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return json({ error: "Pick a valid date range." }, 400);
+  } else if (period === "custom") {
     start = new Date(body.from ?? "");
     end = body.to ? new Date(new Date(body.to).getTime() + DAY - 1) : now;
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return json({ error: "Pick a valid date range." }, 400);
@@ -136,7 +144,10 @@ Deno.serve(async (req) => {
       n.author_id === me || n.private_to === me || n.takes?.uploaded_by === me || n.videos?.created_by === me ||
       (n.note_mentions ?? []).some((m: { user_id: string }) => m.user_id === me));
   }
-  if (!notes.length) return json({ empty: true, message: "No notes in this period yet." });
+  if (excludePrivate) notes = notes.filter((n) => !n.private_to);
+  if (!notes.length) {
+    return json({ empty: true, message: excludePrivate ? "Without the private notes, there’s nothing left to summarize for this period." : "No notes in this period yet." });
+  }
 
   const notesUpTo = notes.reduce((max, n) => (n.updated_at > max ? n.updated_at : max), notes[0].updated_at);
 
@@ -145,7 +156,8 @@ Deno.serve(async (req) => {
     .eq("note_count", notes.length).gte("notes_up_to", notesUpTo).eq("content->>lang", lang)
     .order("created_at", { ascending: false }).limit(1);
   existingQ = video_id ? existingQ.eq("video_id", video_id) : existingQ.is("video_id", null);
-  if (period === "custom") existingQ = existingQ.eq("period_start", start.toISOString());
+  if (period === "custom" || body.range) existingQ = existingQ.eq("period_start", start.toISOString());
+  if (excludePrivate) existingQ = existingQ.eq("has_private", false);
   const { data: existing } = await existingQ.maybeSingle();
   if (existing) return json({ recap: existing, cached: true, usage: usage(used) });
 
