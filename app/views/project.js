@@ -94,7 +94,7 @@ export async function restoreFromTrash(kind, id, after = () => {}) {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;

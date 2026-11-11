@@ -8676,3 +8676,16 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     color: #fff;
   }
 }
+
+/* Team recaps: the language line under the meta, and "Up to date" in the actions row. */
+.recap-lang {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.recap-actions .fine {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}

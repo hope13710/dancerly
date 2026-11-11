@@ -1,6 +1,6 @@
 // AI recaps: made per project × period, saved automatically, pinned per person, shared on purpose.
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, actionSheet } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
@@ -21,14 +21,28 @@ export function sparkle(cls = '') {
 }
 const FRESH_KEY = 'looproom:fresh-recap';
 
-const SELECT = 'id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, has_private, created_at, projects(title), videos(title), recap_pins(user_id)';
+const SELECT = () => cols('id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, has_private, team, cycle, auto, created_at, projects(title), videos(title), recap_pins(user_id)');
+
+// A team recap read in another language shows its saved translation (made once, when someone asks).
+let showOriginal = false;
+function localize(r) {
+  const t = r?.content?.translations?.[getLang()];
+  if (!r || !t || showOriginal || (r.content.lang || 'en') === getLang()) return r;
+  const content = { ...r.content, headline: t.headline || r.content.headline };
+  for (const [k] of SECTIONS) content[k] = (r.content[k] || []).map((it, i) => ({ ...it, text: t[k]?.[i] || it.text }));
+  return { ...r, content };
+}
 
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const periodLabel = (r) => (r.period === 'custom' ? `${day(r.period_start)} – ${day(r.period_end)}` : PERIODS[r.period]);
-const scopeLabel = (r) => (r.scope === 'me' ? 'Just me' : 'Whole project');
+const scopeLabel = (r) => (r.team ? 'Team recap' : r.scope === 'me' ? 'Just me' : 'Whole project');
+// Who made it: dancerly (on schedule) or the member who made or updated it.
+const byLine = (r, names) => (r.auto ? '<span>Made by dancerly</span>' : byPerson(names[r.created_by], r.created_by));
+const visibility = (r) => (r.team ? '<span class="pill info">Team</span>' : r.shared_at ? '<span class="pill info">Shared</span>' : '<span class="pill">Only you</span>');
 const isPinned = (r) => (r.recap_pins || []).some((p) => p.user_id === ctx.state.session.user.id);
 // Re-running the same scope + period + video replaces the card; earlier runs fold under it.
-const versionKey = (r) => [r.created_by, r.project_id, r.scope, r.period, r.video_id || '', r.period === 'custom' ? r.period_start.slice(0, 10) : ''].join('|');
+// A team recap's updates are versions of that practice's recap, whoever pressed Update.
+const versionKey = (r) => r.team ? ['team', r.project_id, r.cycle, r.video_id || ''].join('|') : [r.created_by, r.project_id, r.scope, r.period, r.video_id || '', r.period === 'custom' ? r.period_start.slice(0, 10) : ''].join('|');
 
 function groupVersions(recaps) {
   const groups = new Map();
@@ -69,12 +83,12 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
   const el = document.createElement('dialog');
   el.className = 'dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card recap-form">
-    <h2>New recap</h2>
-    <p>An AI summary of the notes in a period: what you worked on, what to do next, and what keeps coming up.</p>
+    <h2>Custom recap</h2>
+    <p>An AI summary of the notes in a period you pick: what you worked on, what to do next, and what keeps coming up.</p>
     ${projects.length > 1 ? `<label class="field"><span>Project</span><select name="project">${projects.map((p) => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : `<input type="hidden" name="project" value="${pid}" />`}
     <div class="field"><span>Whose notes</span><div class="choices" role="radiogroup">
-      <label><input type="radio" name="scope" value="me" ${scope === 'me' ? 'checked' : ''} /><b>Just me</b><small>Notes by you, on your takes, or mentioning you</small></label>
-      <label><input type="radio" name="scope" value="project" ${scope === 'project' ? 'checked' : ''} /><b>Whole project</b><small>Every note in the project</small></label>
+      <label><input type="radio" name="scope" value="me" ${scope === 'me' ? 'checked' : ''} /><b>Just me</b><small>Notes by you, on your takes, or mentioning you. Yours until you share it.</small></label>
+      <label><input type="radio" name="scope" value="project" ${scope === 'project' ? 'checked' : ''} /><b>Team</b><small>Everyone on the project sees it. Private notes are left out.</small></label>
     </div></div>
     <label class="field"><span>Period</span><select name="period">${Object.entries(PERIODS).map(([k, l]) => `<option value="${k}" ${k === 'week' ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     <div class="date-row" data-dates hidden>
@@ -124,7 +138,7 @@ async function runGeneration(params) {
   try {
     const result = await generateRecap(params);
     if (result.empty) { toast(result.message || 'No notes in this period yet.'); return null; }
-    if (result.cached) toast('No new notes since your last recap — here it is.');
+    if (result.cached) toast(result.recap?.team ? 'No new notes since the team’s latest recap — here it is.' : 'No new notes since your last recap — here it is.');
     else { try { sessionStorage.setItem(FRESH_KEY, result.recap.id); } catch {} }
     ctx.navigate(`/app/recaps/${result.recap.id}`);
     return result.recap;
@@ -158,7 +172,7 @@ function citeChips(cites, sources) {
 
 export function recapBody(r, { interactive = false } = {}) {
   const sources = r.sources || [];
-  const mine = r.created_by === ctx.state.session.user.id;
+  const mine = r.created_by === ctx.state.session.user.id && !r.team; // a team recap's ticks would be everyone's
   let order = 0; // reveal order for the first-open animation
   return SECTIONS.map(([key, label]) => {
     const items = r.content?.[key] || [];
@@ -172,7 +186,7 @@ export function recapBody(r, { interactive = false } = {}) {
 }
 
 function recapMeta(r, names) {
-  return `<span class="chip ai">${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>${byPerson(names[r.created_by], r.created_by)}</span>`;
+  return `<span class="chip ai">${scopeLabel(r)}</span><span>${periodLabel(r)}</span><span>${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span>${r.videos ? `<span>${esc(r.videos.title)}</span>` : ''}<span>${byLine(r, names)}</span>`;
 }
 
 function recapRow(group, names, { showProject = false } = {}) {
@@ -182,9 +196,9 @@ function recapRow(group, names, { showProject = false } = {}) {
       <span class="spark-mark">${sparkle()}</span>
       <span class="row-main">
         <span class="row-title">${esc(r.content?.headline || 'Recap')}</span>
-        <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · ${byPerson(names[r.created_by], r.created_by)}</span>
+        <span class="row-meta">${scopeLabel(r)} · ${periodLabel(r)}${showProject && r.projects ? ` · ${esc(r.projects.title)}` : ''} · ${byLine(r, names)}</span>
       </span>
-      <span class="row-side">${isPinned(r) ? `<span title="Pinned">${ic('pin', 'solo')}</span>` : ''}${r.shared_at ? '<span class="pill info">Shared</span>' : '<span class="pill">Only you</span>'}<small>${timeAgo(r.created_at)}</small></span>
+      <span class="row-side">${isPinned(r) ? `<span title="Pinned">${ic('pin', 'solo')}</span>` : ''}${visibility(r)}<small>${timeAgo(r.created_at)}</small></span>
     </a>
     ${group.older.length ? `<details class="versions"><summary>${ic('right')}${group.older.length} earlier ${group.older.length === 1 ? 'version' : 'versions'}</summary>${group.older.map((o) => `<a href="/app/recaps/${o.id}" data-link>${timeAgo(o.created_at)} · ${o.note_count} notes · ${esc(o.content?.headline || '')}</a>`).join('')}</details>` : ''}
   </div>`;
@@ -194,18 +208,41 @@ function pinnedFirst(groups) {
   return [...groups].sort((a, b) => Number(isPinned(b.latest)) - Number(isPinned(a.latest)));
 }
 
+// "My recap": your own to-do list, made when you ask for it (not on a schedule, so nobody pays for recaps nobody reads).
+// It covers the same stretch as the team's latest recap, or the past week before there is one.
+export async function myRecap(projectId) {
+  const { data } = schema.teamRecaps
+    ? await sb.from('recaps').select('period_start').eq('project_id', projectId).eq('team', true).order('created_at', { ascending: false }).limit(1)
+    : { data: [] };
+  const since = data?.[0]?.period_start;
+  return runGeneration(since
+    ? { project_id: projectId, scope: 'me', period: 'custom', range: { from: since, to: new Date().toISOString() } }
+    : { project_id: projectId, scope: 'me', period: 'week' });
+}
+
+// How the team recap arrives, and the owner's switch.
+function autoLine(p) {
+  if (!schema.teamRecaps || p.project.is_sample) return '<p class="fine left">Recaps are AI summaries of the notes in your projects.</p>';
+  const on = p.project.auto_recap !== false;
+  const words = on
+    ? 'dancerly writes the team recap 3 hours before each rehearsal on the calendar, or Monday morning if none is scheduled, once there are 3 or more new notes. Everyone on the project sees it.'
+    : 'Automatic team recaps are off for this project.';
+  return `<p class="fine left">${words} ${p.isOwner ? `<button class="text-btn link" data-auto-recap>${on ? 'Turn off' : 'Turn on'}</button>` : ''}</p>`;
+}
+
 // ---------- Project › Recaps (the home of recaps) ----------
 export async function renderProjectRecaps(projectId) {
   const { view, setCrumbs } = ctx;
   const me = ctx.state.session.user.id;
   const show = new URLSearchParams(location.search).get('show') || 'all';
-  const [p, { data: recaps, error }] = await Promise.all([
+  const [p, { data: rawRecaps, error }] = await Promise.all([
     loadProject(projectId),
-    sb.from('recaps').select(SELECT).eq('project_id', projectId).order('created_at', { ascending: false }).limit(200)
+    sb.from('recaps').select(SELECT()).eq('project_id', projectId).order('created_at', { ascending: false }).limit(200)
   ]);
   if (error) throw error;
+  const recaps = rawRecaps.map(localize);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Recaps']]);
-  const filtered = recaps.filter((r) => show === 'shared' ? r.shared_at : show === 'mine' ? r.created_by === me : show === 'pinned' ? isPinned(r) : true);
+  const filtered = recaps.filter((r) => show === 'team' ? r.team || r.shared_at : show === 'mine' ? r.created_by === me && !r.team : show === 'pinned' ? isPinned(r) : true);
   const groups = pinnedFirst(groupVersions(filtered));
   const names = await namesFor(recaps.map((r) => r.created_by));
   const pinned = groups.filter((g) => isPinned(g.latest));
@@ -214,15 +251,27 @@ export async function renderProjectRecaps(projectId) {
   for (const g of rest) { const k = weekLabel(g.latest.created_at); if (!byWeek.has(k)) byWeek.set(k, []); byWeek.get(k).push(g); }
   const base = `/app/p/${projectId}/recaps`;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'recaps', '<button class="btn primary" data-new-recap>New recap</button>')}
-    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['all', 'All'], ['shared', 'Shared'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
+    ${projectHead(p, 'recaps', `<button class="btn primary" data-my-recap>My recap</button><button class="icon-btn" data-recap-more aria-label="More" title="More">${ic('more', 'solo')}</button>`)}
+    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['all', 'All'], ['team', 'Team'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
     ${groups.length ? `
       ${pinned.length ? `<h2 class="group-title">${ic('pin')}Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`
-      : empty('recap', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : `<span data-no-i18n>${getLang() === 'ko' ? '다음 연습 전에 만들어 보세요. 내 할 일 목록이 필요하면 <b>내 피드백</b>, 팀과 나누려면 <b>프로젝트 전체</b>를 고르면 돼요.' : 'Make one before your next practice: pick <b>Just me</b> for your own to-do list, or <b>Whole project</b> to share with the team.'}</span>`, recaps.length ? '' : `<button class="btn primary" data-new-recap>New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
-    <p class="fine left">Recaps are AI summaries of the notes in your projects. Only you see a recap until you share it.</p>
+      : empty('recap', recaps.length ? 'Nothing in this view' : 'No recaps yet', recaps.length ? 'Try another filter.' : 'The team recap shows up here before your next rehearsal, once there are a few notes. For your own to-do list now, make My recap.', recaps.length ? '' : `<button class="btn primary" data-my-recap>My recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+    ${autoLine(p)}
   </section>`;
-  $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap({ projectId })));
+  $$('[data-my-recap]').forEach((b) => b.addEventListener('click', () => myRecap(projectId)));
+  $('[data-recap-more]')?.addEventListener('click', async (e) => {
+    const choice = await actionSheet({ title: 'Recaps', anchor: e.currentTarget, actions: [{ value: 'custom', label: 'Custom recap…', hint: 'Pick the period, the video, and whose notes', icon: 'calendar' }] });
+    if (choice === 'custom') newRecap({ projectId });
+  });
+  $('[data-auto-recap]')?.addEventListener('click', async () => {
+    const on = p.project.auto_recap === false;
+    if (!on && !(await dialog({ title: 'Turn off team recaps?', body: 'dancerly stops writing the team recap before practice. Anyone can still make one from More › Custom recap.', confirm: 'Turn off' }))) return;
+    const { error: e } = await sb.from('projects').update({ auto_recap: on }).eq('id', projectId);
+    if (e) return toast(friendlyError(e), 'error');
+    toast(on ? 'Team recaps are on.' : 'Team recaps are off for this project.');
+    renderProjectRecaps(projectId);
+  });
 }
 
 // ---------- Me › My recaps ----------
@@ -232,20 +281,20 @@ export async function renderMyRecaps() {
   setCrumbs([['Me', '/app/me'], ['My recaps']]);
   await ctx.state.projectsReady;
   const [{ data: mine, error }, { data: pins }] = await Promise.all([
-    noSample(sb.from('recaps').select(SELECT)).eq('created_by', me).order('created_at', { ascending: false }).limit(200),
+    noSample(sb.from('recaps').select(SELECT())).eq('created_by', me).order('created_at', { ascending: false }).limit(200),
     sb.from('recap_pins').select('recap_id').eq('user_id', me)
   ]);
   if (error) throw error;
   // Pinned recaps someone else shared still belong in your list.
   const extraIds = (pins || []).map((p) => p.recap_id).filter((id) => !mine.some((r) => r.id === id));
   let pinnedShared = [];
-  if (extraIds.length) ({ data: pinnedShared = [] } = await noSample(sb.from('recaps').select(SELECT)).in('id', extraIds));
-  const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine]));
+  if (extraIds.length) ({ data: pinnedShared = [] } = await noSample(sb.from('recaps').select(SELECT())).in('id', extraIds));
+  const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine].map(localize)));
   const names = await namesFor(groups.map((g) => g.latest.created_by));
   view.innerHTML = `<section class="page narrow-wide">
-    <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn primary" data-new-recap>New recap</button></header>
+    <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn" data-new-recap>Custom recap</button></header>
     ${groups.length ? `<div class="list">${groups.map((g) => recapRow(g, names, { showProject: true })).join('')}</div>`
-      : empty('recap', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next practice.', `<button class="btn primary" data-new-recap>New recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
+      : empty('recap', 'No recaps yet', 'A recap turns a week of notes into a short to-do list for your next practice.', `<button class="btn primary" data-new-recap>Custom recap</button>${samplePeek('recaps', 'See a finished recap in the sample')}`)}
   </section>`;
   $$('[data-new-recap]').forEach((b) => b.addEventListener('click', () => newRecap()));
 }
@@ -254,13 +303,26 @@ export async function renderMyRecaps() {
 export async function renderRecap(recapId) {
   const { view, setCrumbs, navigate } = ctx;
   const me = ctx.state.session.user.id;
-  const { data: r, error } = await sb.from('recaps').select(SELECT).eq('id', recapId).maybeSingle();
+  const { data: raw, error } = await sb.from('recaps').select(SELECT()).eq('id', recapId).maybeSingle();
   if (error) throw error;
+  const r = localize(raw);
   if (!r) throw new Error('This recap isn’t available. It may be private or deleted.');
   setCrumbs([['Projects', '/app/projects'], [r.projects?.title || 'Project', `/app/p/${r.project_id}`], ['Recaps', `/app/p/${r.project_id}/recaps`], [r.content?.headline ? 'Recap' : 'Recap']]);
   const names = await namesFor([r.created_by]);
-  const mine = r.created_by === me;
-  const { count: newer } = await sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', r.project_id).gt('created_at', r.notes_up_to);
+  const mine = r.created_by === me && !r.team;
+  // New feedback since: for a team recap, only what it could include (team-visible, the same video).
+  let newerQ = sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', r.project_id).gt('created_at', r.notes_up_to);
+  if (r.team) newerQ = newerQ.is('private_to', null);
+  if (r.team && r.video_id) newerQ = newerQ.eq('video_id', r.video_id);
+  const [{ count: newer }, { data: role }] = await Promise.all([
+    newerQ,
+    sb.from('project_members').select('role').eq('project_id', r.project_id).eq('user_id', me).maybeSingle()
+  ]);
+  const isOwner = role?.role === 'owner';
+  const canRedo = mine || r.team;
+  // Written in another language: the saved translation, or a button that makes one.
+  const otherLang = (raw.content?.lang || 'en') !== getLang();
+  const translated = otherLang && raw.content?.translations?.[getLang()];
   const pinned = isPinned(r);
   const { data: myFeedback } = await sb.from('recap_feedback').select('helpful').eq('recap_id', r.id).eq('user_id', me).maybeSingle();
   const cited = (r.sources || []).map((src, i) => ({ ...src, n: i + 1 }));
@@ -275,21 +337,23 @@ export async function renderRecap(recapId) {
         <p class="ai-label">${sparkle()}Summary by AI <span>· from ${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span></p>
         <h1 class="recap-headline">${esc(r.content?.headline || 'Recap')}</h1>
         <div class="recap-meta">${recapMeta(r, names)}</div>
+        ${otherLang ? `<p class="recap-lang">${translated ? `<span>${showOriginal ? 'Original' : 'Translated by AI'}</span> · <button class="text-btn link" data-original>${showOriginal ? 'Show translation' : 'Show original'}</button>` : `<button class="btn small ghost" data-translate>${getLang() === 'ko' ? 'Show in Korean' : 'Show in English'}</button>`}</p>` : ''}
       </header>
-      ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${mine ? '<button class="btn small primary" data-regenerate>Regenerate</button>' : ''}</div>` : ''}
+      ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${canRedo ? `<button class="btn small primary" data-regenerate>${r.team ? 'Update' : 'Regenerate'}</button>` : ''}</div>` : ''}
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
       <footer class="recap-actions">
         <button class="btn small ${pinned ? 'on' : ''}" data-pin aria-pressed="${pinned}">${ic('pin')}${pinned ? 'Pinned' : 'Pin'}</button>
-        ${r.scope === 'project' && !r.has_private && (r.shared_at || mine) && !sampleProject ? '<button class="btn small primary" data-chat-share>Share to group chat</button>' : ''}
+        ${r.scope === 'project' && !r.has_private && (r.shared_at || mine || r.team) && !sampleProject ? '<button class="btn small primary" data-chat-share>Share to group chat</button>' : ''}
         ${mine && !r.shared_at && !r.has_private ? '<button class="btn small" data-share>Share to project</button>' : ''}
         ${mine && r.has_private && !sampleProject ? `<button class="btn small" data-share-public title="Private notes stay between the two people, so this recap stays yours. This makes a new one without them.">${ic('lock')}Share without private feedback</button>` : ''}
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
-        ${mine ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
+        ${r.team && !newer ? `<span class="fine">${ic('check')}Up to date</span>` : ''}
+        ${mine || (r.team && isOwner) ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
       </footer>
       ${cited.length ? `<details class="recap-sources"><summary>Sources · ${cited.length} ${cited.length === 1 ? 'note' : 'notes'} cited</summary><ol>${cited.map((src) => `<li><span class="src-n">${src.n}</span><a href="/app/p/${r.project_id}/v/${src.video_id}?take=${src.take_number ?? ''}&note=${src.note_id}" data-link><span class="row-meta"><b>${esc(src.author)}</b> · ${esc(src.video_title)}${src.take_number ? ` · Take ${src.take_number}` : ''} · <span class="time-tag">${src.t_end === null ? fmt(src.t_start) : `${fmt(src.t_start)}–${fmt(src.t_end)}`}</span></span><span>${esc(src.body)}</span></a></li>`).join('')}</ol></details>` : ''}
       <div class="recap-foot">
-        <p class="ai-disclaimer">AI can make mistakes. Check the cited notes before acting on it. ${r.shared_at ? `Shared with the project ${timeAgo(r.shared_at)}.` : 'Only you can see this until you share it.'}</p>
+        <p class="ai-disclaimer">AI can make mistakes. Check the cited notes before acting on it. ${r.team ? (r.auto ? 'Written automatically before practice. Everyone on the project sees it.' : 'Everyone on the project sees this recap.') : r.shared_at ? `Shared with the project ${timeAgo(r.shared_at)}.` : 'Only you can see this until you share it.'}</p>
         <div class="feedback" role="group" aria-label="Was this recap useful?"><span>Useful?</span>
           <button class="icon-btn ${myFeedback?.helpful === true ? 'on' : ''}" data-feedback="up" aria-pressed="${myFeedback?.helpful === true}" aria-label="Useful" title="Useful">${ic('agree', 'solo')}</button>
           <button class="icon-btn ${myFeedback?.helpful === false ? 'on' : ''}" data-feedback="down" aria-pressed="${myFeedback?.helpful === false}" aria-label="Not useful" title="Not useful">${ic('disagree', 'solo')}</button>
@@ -299,8 +363,15 @@ export async function renderRecap(recapId) {
     <div class="cite-pop" data-pop hidden></div>
   </section>`;
 
-  const params = { project_id: r.project_id, scope: r.scope, period: r.period, video_id: r.video_id, ...(r.period === 'custom' ? { from: r.period_start.slice(0, 10), to: r.period_end.slice(0, 10) } : {}) };
+  const params = r.team ? { update_of: r.id } : { project_id: r.project_id, scope: r.scope, period: r.period, video_id: r.video_id, ...(r.period === 'custom' ? { from: r.period_start.slice(0, 10), to: r.period_end.slice(0, 10) } : {}) };
   $$('[data-regenerate]').forEach((b) => b.addEventListener('click', () => runGeneration(params)));
+  $('[data-original]')?.addEventListener('click', () => { showOriginal = !showOriginal; renderRecap(recapId); });
+  $('[data-translate]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try { await generateRecap({ translate: r.id }); showOriginal = false; renderRecap(recapId); }
+    catch (err) { btn.disabled = false; toast(err.message, 'error'); }
+  });
   $$('[data-feedback]').forEach((b) => b.addEventListener('click', async () => {
     const helpful = b.dataset.feedback === 'up';
     const undo = myFeedback?.helpful === helpful;
@@ -350,7 +421,7 @@ export async function renderRecap(recapId) {
   // The recap goes where the team already talks (KakaoTalk, Discord, WhatsApp…): a short message, a link to the
   // full recap, and the invite link for anyone who isn't on dancerly yet. Sharing it also makes it visible in the project.
   $('[data-chat-share]')?.addEventListener('click', async () => {
-    if (!r.shared_at) {
+    if (!r.shared_at && !r.team) {
       const ok = await dialog({ title: 'Share to your group chat?', body: 'This also shares the recap with the project, so members can open it from the link.', confirm: 'Continue' });
       if (!ok) return;
       const { error: shareErr } = await sb.from('recaps').update({ shared_at: new Date().toISOString() }).eq('id', r.id);
@@ -374,7 +445,7 @@ export async function renderRecap(recapId) {
     renderRecap(recapId);
   });
   $('[data-delete]')?.addEventListener('click', async () => {
-    const ok = await dialog({ title: 'Delete this recap?', body: 'Your notes stay. You can make a new recap any time.', confirm: 'Delete', danger: true });
+    const ok = await dialog({ title: 'Delete this recap?', body: r.team ? 'It’s deleted for everyone on the project. The notes stay.' : 'Your notes stay. You can make a new recap any time.', confirm: 'Delete', danger: true });
     if (!ok) return;
     const { error: e } = await sb.from('recaps').delete().eq('id', r.id);
     if (e) return toast(friendlyError(e), 'error');
@@ -434,8 +505,8 @@ document.addEventListener('click', (e) => {
 // ---------- Home card ----------
 const RECAP_MIN_NOTES = 3;
 export async function homeRecapCard() {
-  const { data } = await noSample(sb.from('recaps').select(SELECT)).order('created_at', { ascending: false }).limit(1);
-  const r = data?.[0];
+  const { data } = await noSample(sb.from('recaps').select(SELECT())).order('created_at', { ascending: false }).limit(1);
+  const r = localize(data?.[0]);
   if (!r) {
     // A recap summarizes notes, so the first one is offered once there are a few to work with,
     // not to someone whose team hasn't written any yet (it would come back empty).
@@ -450,10 +521,10 @@ export async function homeRecapCard() {
   const next = (r.content?.next || []).slice(0, 3);
   return {
     html: `<section class="panel recap-teaser">
-      <div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI<span>· ${esc(r.projects?.title || '')}</span></p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · ${byPerson(names[r.created_by], r.created_by)} · ${timeAgo(r.created_at)}</p></div>
-        <div class="head-actions"><button class="btn small ghost" data-home-recap>New</button><a class="btn small" href="/app/recaps/${r.id}" data-link>Open</a></div></div>
+      <div class="panel-head"><div><p class="ai-label">${sparkle()}Summary by AI<span>· ${esc(r.projects?.title || '')}</span></p><h2>${esc(r.content?.headline || 'Recap')}</h2><p class="muted">${scopeLabel(r)} · ${periodLabel(r)} · ${byLine(r, names)} · ${timeAgo(r.created_at)}</p></div>
+        <div class="head-actions"><button class="btn small ghost" data-home-recap>${r.team ? 'My recap' : 'New'}</button><a class="btn small" href="/app/recaps/${r.id}" data-link>Open</a></div></div>
       ${next.length ? `<ul class="todo compact">${next.map((it, i) => `<li class="${(r.checked || []).includes(i) ? 'done' : ''}"><span class="todo-dot ${(r.checked || []).includes(i) ? 'done' : ''}"></span><span>${esc(it.text)}</span></li>`).join('')}</ul>` : ''}
     </section>`,
-    wire: () => $('[data-home-recap]')?.addEventListener('click', () => newRecap({ projectId: r.project_id, scope: r.scope }))
+    wire: () => $('[data-home-recap]')?.addEventListener('click', () => (r.team ? myRecap(r.project_id) : newRecap({ projectId: r.project_id, scope: r.scope })))
   };
 }
