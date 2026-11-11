@@ -524,11 +524,6 @@ a {
   color: var(--accent);
   font-size: 20px;
 }
-.loading {
-  padding: 60px 16px;
-  text-align: center;
-  color: var(--muted);
-}
 .video-list {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -8688,4 +8683,218 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
   align-items: center;
   gap: 4px;
   margin: 0;
+}
+
+/* ---------- Loading placeholders (app/skeleton.js) ----------
+   Grey blocks in the shape of the page that's coming, with a soft shimmer. They fade in, so a page that
+   arrives just after the delay doesn't pop. */
+.skeleton {
+  animation: sk-in 0.25s ease-out;
+}
+@keyframes sk-in {
+  from {
+    opacity: 0;
+  }
+}
+.sk {
+  display: block;
+  height: 12px;
+  max-width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef0f4 25%, #e5e8ee 50%, #eef0f4 75%);
+  background-size: 200% 100%;
+  animation: ai-shimmer 1.4s linear infinite;
+}
+.sk.dark {
+  background: linear-gradient(90deg, #2b3039 25%, #343a45 50%, #2b3039 75%);
+  background-size: 200% 100%;
+}
+.sk + .sk {
+  margin-top: 10px;
+}
+.sk-title {
+  height: 24px;
+  border-radius: 8px;
+}
+.sk-headline {
+  height: 28px;
+  border-radius: 8px;
+}
+.sk.sk-meta {
+  height: 10px;
+}
+.sk-head > div > .sk + .sk {
+  margin-top: 12px;
+}
+.sk-project {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sk-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex: none;
+}
+.sk-avatars {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.sk-avatars .sk + .sk,
+.sk-row .sk + .sk-lines,
+.sk-note .sk + .sk-lines {
+  margin-top: 0;
+}
+.sk-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: none;
+}
+.sk-avatar.small {
+  width: 24px;
+  height: 24px;
+}
+.sk-avatar.large {
+  width: 64px;
+  height: 64px;
+}
+.sk-tabs {
+  display: flex;
+  gap: 20px;
+  padding: 0 4px 12px;
+  margin: -8px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.sk-tabs .sk {
+  height: 14px;
+  margin: 0;
+}
+.sk-row {
+  min-height: 64px;
+}
+.sk-row + .sk-row {
+  border-top: 1px solid var(--line);
+}
+.sk-lines {
+  flex: 1;
+  min-width: 0;
+}
+.sk-thumb {
+  width: 96px;
+  height: 54px;
+  border-radius: 8px;
+  flex: none;
+}
+.sk-chip {
+  width: 56px;
+  height: 22px;
+  border-radius: 999px;
+  flex: none;
+}
+.sk-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex: none;
+}
+.sk-card .sk-cover {
+  height: 120px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.sk-panel {
+  padding-bottom: 18px;
+}
+.sk-panel .list.flush {
+  margin: 8px -20px 0;
+}
+.sk-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.sk-num {
+  width: 64px;
+  height: 32px;
+  border-radius: 8px;
+}
+.sk-chart {
+  height: 200px;
+  border-radius: 8px;
+}
+.sk-article .sk-headline {
+  margin-top: 14px;
+}
+.sk-section {
+  margin-top: 28px;
+}
+.sk-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.sk-calendar .sk {
+  height: 84px;
+  margin: 0;
+  border-radius: 8px;
+}
+/* The review screen: same grid and dark surfaces as .review-layout. */
+.sk-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.75fr);
+  background: var(--dark);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-top: 16px;
+}
+.sk-video {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  background: #0d0f13;
+}
+.sk-play {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sk-notes {
+  background: var(--dark-2);
+  padding: 16px;
+}
+.sk-note {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+}
+.sk-note + .sk-note {
+  border-top: 1px solid var(--dark-3);
+}
+@media (max-width: 900px) {
+  .sk-review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .sk-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sk-calendar .sk {
+    height: 48px;
+  }
+  .sk-thumb {
+    width: 72px;
+    height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .sk {
+    animation: none;
+  }
 }

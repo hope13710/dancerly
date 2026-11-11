@@ -28,9 +28,13 @@ import { renderProjectOverview, renderCountSheet } from './views/overview.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 import { ic } from './icons.js';
+import { skeletonHtml } from './skeleton.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
+// Bumped on every navigation, so a slow page's placeholder never lands on the page that replaced it.
+let routeTicket = 0;
+const SKELETON_DELAY_MS = 250;
 
 // ---------- Routing ----------
 const routes = [
@@ -112,16 +116,32 @@ async function route() {
   // Views that list projects wait on this; the sidebar repaints when it lands.
   state.projectsReady = refreshNav();
   if (state.profile) refreshUnread();
-  view.innerHTML = '<div class="loading">Loading…</div>';
+  // Loading: nothing for the first moment (most pages are ready by then, so nothing flashes), then a placeholder
+  // shaped like the page that's coming. Screen readers hear "Loading…" once.
+  const ticket = ++routeTicket;
+  view.innerHTML = '';
+  view.setAttribute('aria-busy', 'true');
+  const placeholder = skeletonHtml(path);
+  const timer = setTimeout(() => {
+    if (ticket !== routeTicket || view.childElementCount) return; // the page drew itself already
+    view.innerHTML = `${placeholder}<p class="sr-only" role="status">Loading…</p>`;
+  }, SKELETON_DELAY_MS);
   try {
-    state.cleanup = (await match.r.render(...match.m.slice(1))) || null;
+    const cleanup = (await match.r.render(...match.m.slice(1))) || null;
+    // Someone moved on while this page was still loading: tidy it up now, the next page's route() never saw it.
+    if (ticket !== routeTicket) { cleanup?.(); return; }
+    state.cleanup = cleanup;
     // Phones: keep the current tab in view when a tab row scrolls sideways.
     document.querySelector('.tabs a[aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   } catch (error) {
+    if (ticket !== routeTicket) return; // an old page failing doesn't get to cover the new one
     // Pages that fail to load are reported, so we hear about it before anyone has to tell us.
     reportFailure('page', error, { step: path.replace(/[0-9a-f-]{36}/g, ':id') });
     view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><div class="empty-actions"><button class="btn primary" type="button" data-retry>Try again</button><a class="btn" href="/app" data-link>Back to Home</a></div></div>`;
     view.querySelector('[data-retry]')?.addEventListener('click', () => route());
+  } finally {
+    clearTimeout(timer);
+    if (ticket === routeTicket) view.removeAttribute('aria-busy');
   }
 }
 

@@ -410,6 +410,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const onResize = () => { placeSketchLayer(); if (r.drawing) paintSketches(layer, [{ strokes: r.drawing.strokes }]); else paintPlayer(); };
   window.addEventListener('resize', onResize);
   function tick() {
+    if (!videoEl.isConnected) return; // left this page before its cleanup was handed over: stop the loop
     if (r.loop && !videoEl.paused && videoEl.currentTime >= r.loop.end) videoEl.currentTime = r.loop.start;
     if (r.compare.on) follow(videoEl, video2, r.compare.offset, r.speed);
     paintPlayer();
