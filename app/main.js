@@ -716,6 +716,9 @@ async function renderJoin(code) {
     view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="card-mark big">${esc(initials(invite.project_title))}</div><h1>Joining ${esc(invite.project_title)}…</h1></div></section>`;
     return join();
   }
+  // From an email invite (send-invite): the address it went to, so sign-up starts with it filled in.
+  const sentTo = new URLSearchParams(location.search).get('email');
+  const invitedEmail = sentTo && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sentTo) ? `&email=${encodeURIComponent(sentTo)}` : '';
   view.innerHTML = `<section class="auth"><div class="auth-card center">
     <div class="card-mark big">${esc(initials(invite.project_title))}</div>
     <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
@@ -723,8 +726,8 @@ async function renderJoin(code) {
     ${signedIn
       ? '<button class="btn primary wide" data-accept>Join project</button>'
       : `${GOOGLE_ENABLED ? `<button type="button" class="btn google wide" data-join-google>${GOOGLE_G} Continue with Google</button>` : ''}
-        <a class="btn ${GOOGLE_ENABLED ? '' : 'primary '}wide" href="/app/login?mode=signup&next=${encodeURIComponent(back)}" data-link>Sign up with email</a>
-        <a class="btn ghost wide" href="/app/login?next=${encodeURIComponent(back)}" data-link>I already have an account</a>
+        <a class="btn ${GOOGLE_ENABLED ? '' : 'primary '}wide" href="/app/login?mode=signup&next=${encodeURIComponent(back)}${invitedEmail}" data-link>Sign up with email</a>
+        <a class="btn ghost wide" href="/app/login?next=${encodeURIComponent(back)}${invitedEmail}" data-link>I already have an account</a>
         <p class="fine auth-legal" data-no-i18n>${legalLine()}</p>`}
   </div></section>`;
   $('[data-accept]')?.addEventListener('click', join);

@@ -9062,13 +9062,81 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
   color: var(--muted);
   font-size: 13px;
 }
-.known-or {
-  margin: 16px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 13px;
+
+/* Invite box: one field for names and emails, the invites you sent, then the link. */
+.invite-dialog h2 b {
+  font-weight: inherit;
 }
-.known:not([hidden]) + p {
+.invite-add {
+  margin-top: 4px;
+}
+.invite-add .known-list {
+  margin-top: 0;
+}
+.invite-send {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.invite-send[hidden] {
   display: none;
+}
+.invite-send-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  flex: none;
+}
+.invite-send-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.invite-send-main b {
+  font-weight: 600;
+}
+.invite-bad {
+  color: var(--danger);
+  font-size: 12px;
+}
+.invite-label {
+  margin: 20px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.invite-sent .known-main b {
+  font-weight: 400;
+}
+.invite-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  flex: none;
+}
+.invite-link-block {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.invite-link-block .invite-more {
+  margin-top: 8px;
+}
+.invite-link-block .fine {
+  margin-top: 10px;
 }

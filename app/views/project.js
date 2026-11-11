@@ -528,40 +528,52 @@ async function inviteAfterFirstVideo(projectId) {
   markSeen(`invite_prompt:${projectId}`);
   showInvite(projectId, project.title, {
     heading: 'Your video is up. Invite people to leave feedback.',
-    body: 'They’ll see your video as soon as they join and can leave feedback on any moment. Anyone with this link joins with just their name and email.',
+    body: 'They’ll see your video as soon as they join and can leave feedback on any moment.',
     from: 'first_video',
     later: 'Later'
   });
 }
 
-export async function showInvite(projectId, title, { heading = 'Invite people', body = null, from = 'invite_dialog', later = 'Done' } = {}) {
+// The invite box, built like Google Docs' or Notion's Share box: one field takes a name (people you've worked
+// with, added straight in) or email addresses (dancerly emails them the link in your name). Below it, the invites
+// you sent and whether each person joined, then the link itself for group chats and the QR code for the studio.
+export async function showInvite(projectId, title, { heading = null, body = null, from = 'invite_dialog', later = 'Done' } = {}) {
   let invite;
   try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
   const { link } = invite;
+  const until = new Date(invite.expires_at).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
   const el = document.createElement('dialog');
-  el.className = 'dialog';
-  el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2>
-    <div class="known" data-known hidden>
-      <label class="known-field" data-known-field>${ic('search')}<input type="search" class="known-search" data-known-search placeholder="Search people you’ve worked with" aria-label="Search people you’ve worked with" autocomplete="off" enterkeyhint="search" /><button type="button" class="known-clear" data-known-clear hidden aria-label="Clear search" title="Clear">${ic('x', 'solo')}</button></label>
-      <div class="known-list" data-known-list></div>
-      <p class="known-or">Anyone else can join with this link, using just their name and email.</p>
+  el.className = 'dialog invite-dialog';
+  el.innerHTML = `<div class="dialog-card">
+    ${heading ? `<h2>${esc(heading)}</h2>` : `<h2 data-no-i18n>${isKo ? `<b>${esc(title)}</b>에 초대하기` : `Invite people to <b>${esc(title)}</b>`}</h2>`}
+    ${body ? `<p>${body}</p>` : ''}
+    <div class="invite-add">
+      <label class="known-field">${ic('search')}<input type="text" class="known-search" data-invite-input placeholder="Email address" aria-label="Email address" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" /><button type="button" class="known-clear" data-known-clear hidden aria-label="Clear" title="Clear">${ic('x', 'solo')}</button></label>
+      <div class="invite-send" data-send-row hidden>
+        <span class="invite-send-icon">${ic('mail', 'solo')}</span>
+        <span class="invite-send-main" data-send-text data-no-i18n></span>
+        <button type="button" class="btn primary small" data-send>Send invite</button>
+      </div>
+      <div class="known-list" data-known-list hidden></div>
     </div>
-    ${body ? `<p>${body}</p>` : `<p data-no-i18n>${isKo ? `이 링크가 있으면 누구나 이름과 이메일만으로 <b>${esc(title)}</b>에 참여할 수 있어요.` : `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p>`}<p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
-    <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" data-link-input /><button class="btn primary" data-copy>Copy</button></div>
-    <div class="invite-more">${navigator.share ? '<button class="btn" data-share>Share…</button>' : ''}<button class="btn" data-qr-open>${ic('qr')}Show QR code</button></div>
-    <p class="fine left">In the studio? Show the QR code and everyone can scan it with their phone camera to join.</p>
+    <div class="invite-sent" data-sent hidden><p class="invite-label">Invites you sent</p><div class="known-list" data-sent-list></div></div>
+    <div class="invite-link-block">
+      <p class="invite-label">Or share a link</p>
+      <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" data-link-input /><button class="btn" data-copy>Copy</button></div>
+      <div class="invite-more">${navigator.share ? `<button class="btn small" data-share>${ic('upload')}Share…</button>` : ''}<button class="btn small" data-qr-open>${ic('qr')}QR code</button></div>
+      <p class="fine left" data-no-i18n>${isKo ? `링크가 있으면 누구나 이름과 이메일만으로 참여할 수 있어요. ${esc(until)}까지 쓸 수 있어요.` : `Anyone with the link can join with just their name and email. Works until ${esc(until)}.`}</p>
+    </div>
     <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
   el.showModal();
-  el.querySelector('[data-link-input]').select();
-  const added = wireKnownPeople(el, projectId, title);
+  const added = wireInviteBox(el, projectId, title);
   el.querySelector('[data-copy]').addEventListener('click', async () => {
     track('invite_link_shared', { via: 'copy', from });
-    try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to anyone you want feedback from.'); } catch { el.querySelector('input').select(); toast('Press Ctrl+C to copy the link.'); }
+    try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to anyone you want feedback from.'); } catch { el.querySelector('[data-link-input]').select(); toast('Press Ctrl+C to copy the link.'); }
   });
   el.querySelector('[data-share]')?.addEventListener('click', () => {
     track('invite_link_shared', { via: 'share', from });
-    navigator.share({ title: 'dancerly', text: `Join ${title} on dancerly`, url: link }).catch(() => {});
+    navigator.share({ title: 'dancerly', text: isKo ? `dancerly에서 ${title}에 함께해요` : `Join ${title} on dancerly`, url: link }).catch(() => {});
   });
   el.querySelector('[data-qr-open]').addEventListener('click', () => {
     track('invite_link_shared', { via: 'qr', from });
@@ -575,33 +587,59 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
   });
 }
 
-// People you've worked with on other projects, ready to add without a link (migration 051). Recent first;
-// typing filters by name, Korean initials included. Hidden when there's nobody (or the database isn't ready).
-function wireKnownPeople(el, projectId, title) {
+// Email addresses in whatever was typed or pasted ("a@x.com, b@y.com", one per line, "Name <a@x.com>").
+const EMAIL_RE = /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]{2,}$/;
+function parseEmails(value) {
+  const tokens = value.replace(/[<>]/g, ' ').split(/[\s,;]+/).filter((t) => t.includes('@'));
+  const good = [...new Set(tokens.filter((t) => EMAIL_RE.test(t)).map((t) => t.toLowerCase()))];
+  return { good, bad: tokens.filter((t) => !EMAIL_RE.test(t)) };
+}
+
+function wireInviteBox(el, projectId, title) {
   const added = new Set();
-  const box = el.querySelector('[data-known]');
+  const input = el.querySelector('[data-invite-input]');
+  const clear = el.querySelector('[data-known-clear]');
   const list = el.querySelector('[data-known-list]');
-  const search = el.querySelector('[data-known-search]');
+  const sendRow = el.querySelector('[data-send-row]');
+  const sendText = el.querySelector('[data-send-text]');
+  const sendBtn = el.querySelector('[data-send]');
   let people = [];
+
+  // People you've worked with (migration 051): the five most recent, then whoever matches the name typed.
   const row = (p) => `<div class="known-row">${avatar(p.display_name, p.user_id, 'sm')}<span class="known-main"><b>${esc(p.display_name)}</b><small>${esc(p.shared_project)}</small></span>${added.has(p.user_id)
     ? `<span class="known-done">${ic('check')}Added</span>`
     : `<button type="button" class="btn small" data-add="${p.user_id}">Add</button>`}</div>`;
   const paint = () => {
-    const q = search.value;
-    const shown = people.filter((p) => nameMatches(p.display_name, q)).slice(0, q.trim() ? 8 : 5);
-    list.innerHTML = shown.length ? shown.map(row).join('') : `<p class="known-empty">No one by that name. Send them the link below.</p>`;
+    const q = input.value;
+    clear.hidden = !q;
+    const { good, bad } = parseEmails(q);
+    const emailMode = q.includes('@');
+    sendRow.hidden = !emailMode;
+    if (emailMode) {
+      sendBtn.disabled = !good.length;
+      const who = good.length === 1 ? `<b>${esc(good[0])}</b>` : (isKo ? `<b>${good.length}명</b>` : `<b>${good.length} people</b>`);
+      sendText.innerHTML = good.length
+        ? `<span>${isKo ? `${who}에게 초대 메일 보내기` : `Email an invite to ${who}`}</span>${bad.length ? `<small class="invite-bad">${isKo ? '이메일 형식이 아니에요' : 'Not an email address'}: ${esc(bad.join(', '))}</small>` : ''}`
+        : `<span class="muted">${isKo ? '이메일 주소를 끝까지 입력해 주세요' : 'Finish typing the email address'}</span>`;
+    }
+    const shown = emailMode ? [] : people.filter((p) => nameMatches(p.display_name, q)).slice(0, q.trim() ? 8 : 5);
+    list.hidden = emailMode || (!shown.length && !q.trim());
+    list.innerHTML = shown.length ? shown.map(row).join('')
+      : `<p class="known-empty">${people.length ? 'No one by that name. Type their email to send an invite.' : 'Type an email address to send an invite.'}</p>`;
   };
   sb.rpc('people_i_know', { p_project: projectId }).then(({ data, error }) => {
     if (error || !data?.length) return;
     people = data.sort((a, b) => String(b.last_together).localeCompare(String(a.last_together)));
-    // A few people: no search box needed, the list is the whole answer.
-    el.querySelector('[data-known-field]').hidden = people.length <= 5;
-    box.hidden = false;
+    // There are people to find by name now, so the field says so.
+    input.placeholder = isKo ? '이름 또는 이메일' : 'Name or email';
+    input.setAttribute('aria-label', input.placeholder);
     paint();
   });
-  const clear = el.querySelector('[data-known-clear]');
-  search.addEventListener('input', () => { clear.hidden = !search.value; paint(); });
-  clear.addEventListener('click', () => { search.value = ''; clear.hidden = true; paint(); search.focus(); });
+  input.addEventListener('input', paint);
+  // Phones: don't open the keyboard over the box; most people came to share the link.
+  if (matchMedia('(pointer: coarse)').matches) input.blur();
+  clear.addEventListener('click', () => { input.value = ''; paint(); input.focus(); });
+
   list.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-add]');
     if (!b) return;
@@ -614,6 +652,50 @@ function wireKnownPeople(el, projectId, title) {
     toast(isKo ? `${person?.display_name || ''}님을 ${title}에 추가했어요.` : `Added ${person?.display_name || 'them'} to ${title}.`);
     paint();
   });
+
+  // Email invites (send-invite function, migration 052).
+  const send = async (emails, button, fromInput = false) => {
+    button.disabled = true;
+    const { data, error } = await sb.functions.invoke('send-invite', { body: { project_id: projectId, emails, lang: isKo ? 'ko' : 'en' } });
+    button.disabled = false;
+    if (error) {
+      let msg = 'Couldn’t send the invite. Try again, or share the link.';
+      try { msg = (await error.context.json()).error || msg; } catch {}
+      return toast(msg, 'error');
+    }
+    const by = (s) => (data.results || []).filter((r) => r.status === s).map((r) => r.email);
+    const sent = by('sent'), recent = by('recent'), failed = [...by('failed'), ...by('invalid')];
+    if (sent.length) {
+      track('invite_email_sent', { count: sent.length });
+      toast(isKo ? (sent.length === 1 ? `${sent[0]}에 초대 메일을 보냈어요.` : `${sent.length}명에게 초대 메일을 보냈어요.`) : (sent.length === 1 ? `Invite sent to ${sent[0]}.` : `Invites sent to ${sent.length} people.`));
+    }
+    if (recent.length) toast(isKo ? `${recent.join(', ')}에는 오늘 이미 보냈어요. 내일 다시 보낼 수 있어요.` : `Already sent to ${recent.join(', ')} today. You can resend tomorrow.`);
+    if (by('you').length) toast(isKo ? '내 이메일로는 초대를 보낼 수 없어요.' : 'That’s your own email.');
+    if (failed.length) toast(isKo ? `${failed.join(', ')}에는 보내지 못했어요. 주소를 확인해 주세요.` : `Couldn’t send to ${failed.join(', ')}. Check the address.`, 'error');
+    // Sent from the field: clear it, keeping anything that wasn't an address so it can be fixed.
+    if (sent.length && fromInput) { input.value = parseEmails(input.value).bad.join(', '); paint(); }
+    paintSent();
+  };
+  sendBtn.addEventListener('click', () => send(parseEmails(input.value).good, sendBtn, true));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing && input.value.includes('@')) { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); }
+  });
+
+  // Invites you sent from here, and whether each person has joined. Resend after a day if they haven't.
+  const sentBox = el.querySelector('[data-sent]');
+  const sentList = el.querySelector('[data-sent-list]');
+  const paintSent = async () => {
+    const { data, error } = await sb.rpc('my_sent_invites', { p_project: projectId });
+    if (error || !data?.length) { sentBox.hidden = true; return; }
+    sentBox.hidden = false;
+    sentList.innerHTML = data.slice(0, 5).map((i) => `<div class="known-row"><span class="invite-avatar">${ic(i.joined ? 'check' : 'mail', 'solo')}</span><span class="known-main"><b>${esc(i.email)}</b><small>${i.joined ? 'Joined' : `Invited ${timeAgo(i.sent_at)}`}</small></span>${!i.joined && Date.now() - Date.parse(i.sent_at) > 864e5 ? `<button type="button" class="btn small ghost" data-resend="${esc(i.email)}">Resend</button>` : ''}</div>`).join('');
+  };
+  sentList.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-resend]');
+    if (b) send([b.dataset.resend], b);
+  });
+  paintSent();
+  paint();
   return added;
 }
 
