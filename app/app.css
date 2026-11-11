@@ -814,6 +814,9 @@ a {
 .player.mirrored .mirror-badge {
   display: inline;
 }
+.player:not(.drawing) {
+  cursor: pointer;
+}
 .big-play {
   position: absolute;
   width: 56px;

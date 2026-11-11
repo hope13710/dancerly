@@ -419,6 +419,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.isConnected) return; $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
   videoEl.addEventListener('error', () => toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'));
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
+  // Clicking anywhere on the picture plays or pauses, like YouTube or Frame.io. Not while drawing a sketch,
+  // and not on the controls that sit on top of the video (they do their own thing).
+  $('[data-player]').addEventListener('click', (e) => {
+    if (r.drawing || e.target.closest('button, a, input, select, [data-sketch-bar], [data-cant-play]')) return;
+    play(videoEl.paused);
+  });
   // Playback speed: a small menu (like YouTube's), < and > to step, and it's remembered on this device.
   const speedBtn = $('[data-speed]');
   const speedMenu = $('[data-speed-menu]');
