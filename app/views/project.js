@@ -128,7 +128,7 @@ export function projectHead({ project, members, goal }, tab, actions = '') {
         <a class="members" href="${base}/people" data-link>${members.slice(0, 6).map((m) => `${avatar(m.name, m.user_id)}`).join('')}${members.length > 6 ? `<span class="avatar more">+${members.length - 6}</span>` : ''}<span class="link">${members.length} ${members.length === 1 ? 'member' : 'members'}</span></a>
         ${goalChip}
       </div></div>
-      <div class="head-actions">${project.is_sample ? `${actions.replace(/<button[^>]*data-invite[^>]*>[^<]*<\/button>/g, '')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
+      <div class="head-actions">${project.is_sample ? `${actions.replace(/data-invite\b/g, 'data-sample-invite')}<button class="btn ghost" data-delete-sample>Delete sample</button>` : actions}</div>
     </header>
     ${projectTabs(base, tab)}`;
 }
@@ -540,7 +540,7 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
   const { link } = invite;
   const el = document.createElement('dialog');
   el.className = 'dialog';
-  el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2><p>${body || `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p><p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
+  el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2>${body ? `<p>${body}</p>` : `<p data-no-i18n>${isKo ? `이 링크가 있으면 누구나 이름과 이메일만으로 <b>${esc(title)}</b>에 참여할 수 있어요.` : `Anyone with this link can join <b>${esc(title)}</b> with just their name and email.`}</p>`}<p class="fine left">It works until ${new Date(invite.expires_at).toLocaleDateString()}.</p>
     <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" /><button class="btn primary" data-copy>Copy</button></div>
     <div class="invite-more">${navigator.share ? '<button class="btn" data-share>Share…</button>' : ''}<button class="btn" data-qr-open>${ic('qr')}Show QR code</button></div>
     <p class="fine left">In the studio? Show the QR code and everyone can scan it with their phone camera to join.</p>

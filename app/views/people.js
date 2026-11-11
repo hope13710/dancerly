@@ -41,7 +41,7 @@ export async function renderPeople() {
   };
 
   view.innerHTML = `<section class="page">
-    ${pageHead('People', { sub: `${people.length} ${people.length === 1 ? 'person' : 'people'} across your projects` })}
+    ${pageHead('People', { sub: `${people.length} ${people.length === 1 ? 'person' : 'people'} across your projects`, actions: people.length > 1 ? '<button class="btn primary" data-start-action="invite">Invite people</button>' : '' })}
     ${people.length > 1 ? `<div class="table-wrap"><table class="table">
       <thead><tr><th>Name</th><th class="hide-sm">Projects</th><th class="num">Notes given</th><th class="num">Takes</th><th class="hide-sm">Last active</th></tr></thead>
       <tbody>${people.map((p) => {

@@ -98,9 +98,19 @@ document.addEventListener('click', (event) => {
   navigate(link.getAttribute('href'));
 });
 // Next-step buttons on empty pages (Upload a video, Invite people).
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   const el = event.target.closest('[data-start-action]');
-  if (el) startAction(el.dataset.startAction);
+  if (el) startAction(el.dataset.startAction, el);
+  // Invite, pressed in the sample: its teammates aren't real, so the invite goes to one of your own projects.
+  if (event.target.closest('[data-sample-invite]')) {
+    const own = state.projects.some((p) => !p.is_sample);
+    const ok = await dialog({
+      title: 'Invites work in your own projects',
+      body: own ? 'The sample is just for trying things out, and its teammates aren’t real. Invite your team to one of your own projects instead.' : 'The sample is just for trying things out, and its teammates aren’t real. Create a project for your team, then invite them with one link.',
+      confirm: own ? 'Invite to my project' : 'Create a project'
+    });
+    if (ok) startAction('invite');
+  }
 });
 
 async function route() {
@@ -243,13 +253,20 @@ async function refreshUnread() {
 }
 
 // Shortcuts from Home's getting-started list.
-async function startAction(kind) {
+async function startAction(kind, anchor = null) {
   if (kind === 'project') return createProject();
   if (kind === 'video') return newVideo();
   if (kind === 'invite') {
     const real = state.projects.filter((p) => !p.is_sample);
     if (!real.length) { toast('Invites are per project. Create one first.'); return createProject(); }
-    const project = real.find((p) => p.id === currentProjectId()) || real[0];
+    // Inside a project, that project. Elsewhere with more than one, ask which: an invite link is per project.
+    let project = real.find((p) => p.id === currentProjectId());
+    if (!project && real.length > 1) {
+      const id = await actionSheet({ title: 'Invite to which project?', anchor, actions: real.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
+      if (!id) return;
+      project = real.find((p) => p.id === id);
+    }
+    project ||= real[0];
     return showInvite(project.id, project.title);
   }
 }

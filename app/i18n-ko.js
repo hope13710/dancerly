@@ -1273,6 +1273,11 @@ export const KO = {
   'You haven’t left a note yet.': '아직 남긴 피드백이 없어요.',
   'No notes on your takes yet.': '아직 내 테이크에 달린 피드백이 없어요.',
   // Same phrases without the old text symbols: icons are SVG now (app/icons.js).
+  'Invites work in your own projects': '초대는 내 프로젝트에서 할 수 있어요',
+  'The sample is just for trying things out, and its teammates aren’t real. Invite your team to one of your own projects instead.': '샘플은 기능을 미리 써 보는 곳이라 팀원도 실제 사람이 아니에요. 내 프로젝트로 팀원을 초대해 보세요.',
+  'The sample is just for trying things out, and its teammates aren’t real. Create a project for your team, then invite them with one link.': '샘플은 기능을 미리 써 보는 곳이라 팀원도 실제 사람이 아니에요. 팀 프로젝트를 만들고 링크 하나로 초대해 보세요.',
+  'Invite to my project': '내 프로젝트에 초대하기',
+  'Invite to which project?': '어느 프로젝트에 초대할까요?',
   'In the sample, recaps are ready-made. Your own projects get fresh ones.': '샘플에서는 미리 만든 요약을 보여줘요. 내 프로젝트에서는 실제 피드백으로 새로 만들어요.',
   'dancerly writes the team recap before each practice.': '연습 전에 dancerly가 팀 요약을 자동으로 만들어요.',
   'Everyone on the project sees the same one. My recap is just your part.': '팀원 모두가 같은 요약을 봐요. 내 요약에는 내 피드백만 모여요.',
