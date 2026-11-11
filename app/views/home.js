@@ -9,6 +9,7 @@ import { myOpenRequests, dueLabel } from './requests.js';
 import { unseenVideos, QUEUE_KEY } from './queue.js';
 import { needsWelcome, onboarding, saveOnboarding, sampleOffer, seen, markSeen, sampleCleanupCard, track } from '../onboarding.js';
 import { ic } from '../icons.js';
+import { homeGreeting } from '../greeting.js';
 
 // What each getting-started step leads to, drawn with the app's own pieces and marked as an example:
 // seeing the result is what makes the step worth doing. Example text follows the app's language.
@@ -35,11 +36,6 @@ function stepPreview(kind, project, goal, days) {
   return `<div class="pv-wrap" data-no-i18n>${ex}${html}</div>`;
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-}
-
 export async function renderHome() {
   const { state, view, setCrumbs } = ctx;
   setCrumbs([['Home']]);
@@ -49,11 +45,15 @@ export async function renderHome() {
   // The sample doesn't count toward getting started.
   const sample = state.projects.find((p) => p.is_sample);
   const real = state.projects.filter((p) => !p.is_sample);
-  const [recapCard, dueFromMe, toReview, { data: upcoming }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }, { count: myTakes }, { count: myReplies }, { count: myViews }] = await Promise.all([
+  // Today through next week, for the line under the greeting (a show soon, rehearsal today or just done).
+  const todayStart = new Date(new Date().toDateString()).toISOString();
+  const weekAhead = new Date(Date.now() + 7 * 864e5).toISOString();
+  const [recapCard, dueFromMe, toReview, { data: upcoming }, { data: soon }, forMe, { data: takes }, { data: notes }, { count: myNotes }, { data: roster }, { count: myTakes }, { count: myReplies }, { count: myViews }] = await Promise.all([
     homeRecapCard(),
     myOpenRequests(),
     unseenVideos(),
     real.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by, projects!project_events_project_id_fkey(title)').in('project_id', real.map((p) => p.id)).gte('starts_at', new Date().toISOString()).order('starts_at').limit(3) : { data: [] },
+    real.length ? sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at').in('project_id', real.map((p) => p.id)).gte('starts_at', todayStart).lte('starts_at', weekAhead).order('starts_at').limit(30) : { data: [] },
     notesForMe(me, { limit: 50 }),
     noSample(sb.from('takes').select('id, number, created_at, uploaded_by, project_id, video_id, videos(title), projects(title)')).order('created_at', { ascending: false }).limit(12),
     noSample(sb.from('notes').select(NOTE_SELECT)).order('created_at', { ascending: false }).limit(12),
@@ -69,7 +69,7 @@ export async function renderHome() {
     ...(takes || []).map((t) => ({ at: t.created_at, who: t.uploaded_by, take: t })),
     ...(notes || []).map((n) => ({ at: n.created_at, who: n.author_id, note: n }))
   ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10);
-  const names = await namesFor([...todo.slice(0, 5).map((n) => n.author_id), ...activity.map((a) => a.who)]);
+  const names = await namesFor([...todo.slice(0, 5).map((n) => n.author_id), ...todo.map((n) => n.author_id), ...activity.map((a) => a.who)]);
 
   // Leaders set things up; people who were invited mostly watch, practice, and send their own videos.
   const owned = real.filter((p) => p.created_by === me);
@@ -110,7 +110,19 @@ export async function renderHome() {
 
   const cleanup = sampleCleanupCard();
 
-  const first = esc(state.profile.display_name.split(' ')[0]);
+  const first = state.profile.display_name.split(' ')[0];
+  // The team recap dancerly wrote for an upcoming rehearsal, if any (migration 049).
+  const rehearsalIds = (soon || []).filter((e) => e.kind === 'rehearsal').map((e) => `rehearsal:${e.id}`);
+  const { data: teamRecaps } = schema.teamRecaps && rehearsalIds.length
+    ? await sb.from('recaps').select('id, cycle').eq('team', true).in('cycle', rehearsalIds).order('created_at', { ascending: false })
+    : { data: [] };
+  const greetingFor = (activationShown) => homeGreeting({
+    name: first, userId: me, firstVisit: !real.length,
+    events: soon, takes, forMe, names,
+    recapFor: (eventId) => (teamRecaps || []).find((r) => r.cycle === `rehearsal:${eventId}`)?.id,
+    // The getting-started card already asks for the invite; the line doesn't repeat it.
+    soloLeader: owned.length > 0 && !(roster || []).length && graduated && !activationShown
+  });
 
   // A leader gets one getting-started card with the one thing to do next, until all four steps are done (or
   // they hide it). Before the first real video it's the whole Home instead of a dashboard of empty boxes;
@@ -180,7 +192,7 @@ export async function renderHome() {
   }
   if (activation && !graduated) {
     view.innerHTML = `<section class="page">
-      <header class="page-head"><div><h1>${greeting()}, ${first}</h1></div></header>
+      ${greetingFor(true)}
       ${activation.html}
     </section>`;
     activation.wire();
@@ -189,7 +201,7 @@ export async function renderHome() {
   }
 
   view.innerHTML = `<section class="page">
-    <header class="page-head"><div><h1>${greeting()}, ${first}</h1></div></header>
+    ${greetingFor(Boolean(activation))}
     ${activation?.html || ''}
     ${sampleCard}${cleanup?.html || ''}
     ${recapCard.html}

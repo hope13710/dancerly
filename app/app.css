@@ -8898,3 +8898,32 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     animation: none;
   }
 }
+
+/* Home: the line under the greeting. One thing that matters now, as a quiet link. */
+.home-head .sub {
+  margin-top: 6px;
+}
+.home-line {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--muted);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.home-line:hover {
+  color: var(--accent);
+}
+.home-line .ic.after {
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  transition: transform 0.15s;
+}
+.home-line:hover .ic.after {
+  transform: translateX(2px);
+}
