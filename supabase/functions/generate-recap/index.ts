@@ -10,7 +10,6 @@
 // Every recap item must cite notes from the input; anything citing an unknown note is dropped.
 import Anthropic from "npm:@anthropic-ai/sdk@0.132.1";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.45.4";
-import { ic } from './icons.js';
 
 const MODEL = "claude-haiku-5-5";
 const MAX_NOTES = 400;
