@@ -30,17 +30,18 @@ const GROUP: Record<string, string> = {
   note_on_your_video: "note_on_your_video", new_take: "new_take", note_resolved: "note_resolved",
   joined: "joined", recap_shared: "recap_shared",
   join_request: "join_request", join_approved: "join_request",
+  added_to_project: "added",
 };
 const DEFAULTS: Record<string, string> = {
   mention: "instant", private_note: "instant", reply: "instant", request: "instant",
   note_on_your_video: "digest", new_take: "digest", note_resolved: "digest", joined: "digest", recap_shared: "digest",
-  join_request: "instant",
+  join_request: "instant", added: "instant",
 };
 const GROUP_LABEL: Record<string, string> = {
   mention: "@mention emails", private_note: "private note emails", reply: "reply emails", request: "assignment emails",
   note_on_your_video: "emails about notes on your videos", new_take: "new take emails", note_resolved: "emails about fixed notes",
   joined: "emails about people joining", recap_shared: "recap emails", digest: "morning summary emails", weekly: "weekly progress emails",
-  onboarding: "getting started emails", join_request: "join request emails",
+  onboarding: "getting started emails", join_request: "join request emails", added: "emails when you’re added to a project",
 };
 const NUDGE_HOUR = 10;
 const WELCOME_DELAY_MIN = 10; // long enough to finish joining through an invite link
@@ -140,6 +141,7 @@ function describe(n: any, c: Ctx, zone: string) {
     case "note_resolved": return { subject: `${who} fixed your note on “${vtitle}”`, line: `✓ <b>${esc(who)}</b> marked your note on <b>${esc(vtitle)}</b> at ${at} as fixed`, href: noteHref, cta: "See it", text: showText ? note.body : null };
     case "joined": return { subject: `${who} joined ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> joined <b>${esc(project?.title ?? "your project")}</b>`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Say hi", text: null };
     case "join_request": { const j = c.joins.get(n.join_request_id); return { subject: `${who} asked to join ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> watched <b>${esc(vtitle)}</b> from your share link and asked to join <b>${esc(project?.title ?? "your project")}</b>${j?.t_start != null ? `. Their note at ${fmt(Number(j.t_start))}:` : "."}`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Review the request", text: j?.body ?? null }; }
+    case "added_to_project": return { subject: `${who} added you to ${project?.title ?? "a project"}`, line: `<b>${esc(who)}</b> added you to <b>${esc(project?.title ?? "a project")}</b>. You can see its videos and leave notes now.`, href: `${SITE}/app/p/${n.project_id}?${ref}`, cta: "Open the project", text: null };
     case "join_approved": return { subject: `You’re in: ${project?.title ?? "the project"}`, line: `<b>${esc(who)}</b> let you into <b>${esc(project?.title ?? "the project")}</b>${note ? `. Your note at ${at} is posted.` : "."}`, href: note ? noteHref : `${SITE}/app/p/${n.project_id}?${ref}`, cta: note ? "See your note" : "Open the project", text: null };
     case "recap_shared": { const r = c.recaps.get(n.recap_id); return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
     case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at, zone)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };

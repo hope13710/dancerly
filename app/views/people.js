@@ -1,5 +1,6 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols } from '../client.js';
+import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, toast, friendlyError } from '../client.js';
+import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample } from './shared.js';
@@ -111,11 +112,14 @@ export async function renderPerson(userId) {
   const resolvedRate = received.length ? Math.round((received.filter((n) => n.status === 'resolved').length / received.length) * 100) : null;
   const base = `/app/people/${userId}`;
 
+  // Your projects this person isn't in yet: add them straight in, as from the invite box (migration 051).
+  const addable = self || sampleOnly ? [] : state.projects.filter((p) => !p.is_sample && !person.projects.some((x) => x.id === p.id));
   view.innerHTML = `<section class="page narrow-wide">
     <div class="me-card">
       ${avatar(person.name, person.id, 'xl')}
       <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}${sampleOnly ? ' <span class="tag sample-tag">Sample member</span>' : ''}</h1>
         <p class="chips">${person.projects.map((x) => `<a class="chip" href="/app/p/${x.id}" data-link>${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</a>`).join('')}</p></div>
+      ${addable.length ? `<button class="btn small push-right" data-add-to-project>${ic('plus')}Add to project</button>` : ''}
     </div>
     <div class="stats">
       <div class="stat"><small>Notes given</small><b>${given?.length ?? 0}</b></div>
@@ -148,5 +152,14 @@ export async function renderPerson(userId) {
   if (tab === 'progress') {
     paintThumbs(growth.flatMap((v) => [v.first, v.last]));
     $$('[data-make-card]').forEach((b) => b.addEventListener('click', () => openCardEditor({ projectId: b.dataset.project, videoId: b.dataset.makeCard, from: 'profile' })));
-  }  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
+  }  view.querySelector('[data-add-to-project]')?.addEventListener('click', async (e) => {
+    const id = addable.length === 1 ? addable[0].id : await actionSheet({ title: 'Add to which project?', anchor: e.currentTarget, actions: addable.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
+    if (!id) return;
+    const project = addable.find((p) => p.id === id);
+    const { error } = await sb.rpc('add_project_member', { p_project: id, p_user: userId });
+    if (error) return toast(friendlyError(error), 'error');
+    toast(isKo ? `${person.name}님을 ${project.title}에 추가했어요.` : `Added ${person.name} to ${project.title}.`);
+    ctx.route();
+  });
+  if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);
 }

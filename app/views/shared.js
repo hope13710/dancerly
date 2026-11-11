@@ -104,6 +104,18 @@ export function pageHead(title, { eyebrow = '', actions = '', sub = '' } = {}) {
   return `<header class="page-head"><div>${eyebrow ? `<p class="eyebrow">${esc(eyebrow)}</p>` : ''}<h1>${esc(title)}</h1>${sub ? `<p class="muted sub">${sub}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</header>`;
 }
 
+// Does a name match what someone typed? Case-insensitive, anywhere in the name, and for Korean also by initial
+// consonants, the way Korean apps search contacts ("ㅈㅇ" finds 주영, "ㄱㅈ" finds 강주영).
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const initialsOf = (s) => [...s].map((ch) => { const c = ch.charCodeAt(0) - 0xac00; return c >= 0 && c <= 11171 ? CHO[Math.floor(c / 588)] : ch; }).join('');
+export function nameMatches(name, query) {
+  const q = query.trim().toLowerCase().replace(/\s+/g, '');
+  if (!q) return true;
+  const n = String(name || '').toLowerCase().replace(/\s+/g, '');
+  if (n.includes(q)) return true;
+  return /^[ㄱ-ㅎ]+$/.test(q) && initialsOf(n).includes(q);
+}
+
 // Notes that concern you: on videos you added, takes you uploaded, or where you were @mentioned.
 export async function notesForMe(me, { limit = 200 } = {}) {
   const [{ data: vids }, { data: takes }, { data: mentions }] = await Promise.all([

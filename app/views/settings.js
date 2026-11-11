@@ -19,6 +19,7 @@ const KINDS = [
   ['new_take', 'New takes', 'When someone uploads to one of your projects.'],
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
+  ['added_to_project', 'Someone adds you to a project', 'When a teammate adds you to another of their projects.'],
   ['recap_shared', 'Recaps shared with you', 'When someone shares an AI recap to a project.'],
   ['request', 'Assignments', 'When someone gives you an assignment, and its reminders.']
 ];
@@ -32,6 +33,7 @@ const EMAIL_GROUPS = [
   ['new_take', 'New takes', 'digest', 'new_take'],
   ['note_resolved', 'Your notes get fixed', 'digest', 'note_resolved'],
   ['joined', 'Someone joins', 'digest', 'joined'],
+  ['added', 'Added to a project', 'instant', 'added_to_project'],
   ['recap_shared', 'Recaps shared with you', 'digest', 'recap_shared']
 ];
 const EMAIL_CHOICES = [['instant', 'Right away'], ['digest', 'Morning summary'], ['off', 'Off']];

@@ -8927,3 +8927,84 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
 .home-line:hover .ic.after {
   transform: translateX(2px);
 }
+
+/* Invite box: people you've worked with, to add without a link. */
+.known {
+  margin: 4px 0 16px;
+}
+.known-search {
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: var(--surface);
+}
+.known-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 92, 226, 0.18);
+}
+@media (max-width: 640px) {
+  .known-search {
+    font-size: 16px; /* below 16px, iPhones zoom the page on focus */
+  }
+}
+.known-list {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.known-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+.known-row + .known-row {
+  border-top: 1px solid var(--line);
+}
+.known-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.known-main b,
+.known-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.known-main b {
+  font-weight: 500;
+  font-size: 14px;
+}
+.known-main small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.known-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 500;
+}
+.known-empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.known-or {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.known:not([hidden]) + p {
+  display: none;
+}

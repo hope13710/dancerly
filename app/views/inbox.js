@@ -25,6 +25,7 @@ function describe(item, names) {
   if (item.kind === 'joined') return `${who} joined <b>${project}</b>`;
   if (item.kind === 'join_request') return `<b>${esc(item.join_requests?.requester_name || 'Someone')}</b> asked to join <b>${project}</b>${item.join_requests?.status === 'approved' ? ' · approved' : item.join_requests?.status === 'declined' ? ' · declined' : ''}`;
   if (item.kind === 'join_approved') return `${who} let you into <b>${project}</b>`;
+  if (item.kind === 'added_to_project') return `${who} added you to <b>${project}</b>`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
   if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
@@ -59,7 +60,7 @@ export async function renderInbox() {
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open.
-  const live = items.filter((i) => i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.notes || i.takes || i.recaps || i.requests);
+  const live = items.filter((i) => i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.notes || i.takes || i.recaps || i.requests);
   const names = await namesFor(live.map((i) => i.actor_id));
 
   view.innerHTML = `<section class="page narrow-wide">
