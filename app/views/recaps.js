@@ -135,11 +135,15 @@ async function runGeneration(params) {
     <div class="ai-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
   </div>`;
   document.body.append(busy);
+  const started = Date.now();
   try {
     const result = await generateRecap(params);
+    // The sample hands back a ready-made recap at once; it still takes a moment to "write", like the real one.
+    if (result.sample) await new Promise((r) => setTimeout(r, Math.max(0, 2200 - (Date.now() - started))));
     if (result.empty) { toast(result.message || 'No notes in this period yet.'); return null; }
-    if (result.cached) toast(result.recap?.team ? 'No new notes since the team’s latest recap — here it is.' : 'No new notes since your last recap — here it is.');
-    else { try { sessionStorage.setItem(FRESH_KEY, result.recap.id); } catch {} }
+    if (result.sample) toast('In the sample, recaps are ready-made. Your own projects get fresh ones.');
+    else if (result.cached) toast(result.recap?.team ? 'No new notes since the team’s latest recap — here it is.' : 'No new notes since your last recap — here it is.');
+    if (!result.cached) { try { sessionStorage.setItem(FRESH_KEY, result.recap.id); } catch {} }
     ctx.navigate(`/app/recaps/${result.recap.id}`);
     return result.recap;
   } catch (err) {
@@ -337,7 +341,7 @@ export async function renderRecap(recapId) {
         <p class="ai-label">${sparkle()}Summary by AI <span>· from ${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span></p>
         <h1 class="recap-headline">${esc(r.content?.headline || 'Recap')}</h1>
         <div class="recap-meta">${recapMeta(r, names)}</div>
-        ${otherLang ? `<p class="recap-lang">${translated ? `<span>${showOriginal ? 'Original' : 'Translated by AI'}</span> · <button class="text-btn link" data-original>${showOriginal ? 'Show translation' : 'Show original'}</button>` : `<button class="btn small ghost" data-translate>${getLang() === 'ko' ? 'Show in Korean' : 'Show in English'}</button>`}</p>` : ''}
+        ${otherLang && !sampleProject ? `<p class="recap-lang">${translated ? `<span>${showOriginal ? 'Original' : 'Translated by AI'}</span> · <button class="text-btn link" data-original>${showOriginal ? 'Show translation' : 'Show original'}</button>` : `<button class="btn small ghost" data-translate>${getLang() === 'ko' ? 'Show in Korean' : 'Show in English'}</button>`}</p>` : ''}
       </header>
       ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${canRedo ? `<button class="btn small primary" data-regenerate>${r.team ? 'Update' : 'Regenerate'}</button>` : ''}</div>` : ''}
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>

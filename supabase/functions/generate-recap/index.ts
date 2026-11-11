@@ -6,9 +6,11 @@
 //                               for projects without rehearsals on the calendar), and updated by any member when new
 //                               feedback comes in. Two people asking for the same thing get the same recap.
 //   Translate                   a team recap someone reads in another language gets a translation saved next to it.
+//   Sample project              never calls the AI: its ready-made recaps (migration 050) are handed back instead.
 // Every recap item must cite notes from the input; anything citing an unknown note is dropped.
 import Anthropic from "npm:@anthropic-ai/sdk@0.132.1";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.45.4";
+import { ic } from './icons.js';
 
 const MODEL = "claude-haiku-5-5";
 const MAX_NOTES = 400;
@@ -277,7 +279,7 @@ async function runSchedule() {
 async function translate(asUser: SupabaseClient, recapId: string, lang: string) {
   const { data: r } = await asUser.from("recaps").select("*").eq("id", recapId).maybeSingle();
   if (!r) throw new Fail("This recap isn’t available.", 404);
-  if (r.content?.lang === lang || r.content?.translations?.[lang]) return r;
+  if (r.model === "sample" || r.content?.lang === lang || r.content?.translations?.[lang]) return r;
   const source = { headline: r.content?.headline ?? "", ...Object.fromEntries(SECTIONS.map((k) => [k, (r.content?.[k] ?? []).map((it: { text: string }) => it.text)])) };
   const target = lang === "ko" ? "Korean" : "English";
   const { parsed } = await ask(TRANSLATE_SYSTEM, `Translate into ${target}:\n${JSON.stringify(source)}`, TRANSLATION_SCHEMA);
@@ -348,6 +350,14 @@ Deno.serve(async (req) => {
     // Membership check through RLS: non-members simply don't see the project.
     const { data: project } = await asUser.from("projects").select("id, title, is_sample").eq("id", project_id).maybeSingle();
     if (!project) return json({ error: "Project not found." }, 404);
+
+    // The sample never calls the AI, whatever is asked for: its ready-made team or personal recap stands in.
+    if (project.is_sample) {
+      let sq = admin.from("recaps").select("*").eq("project_id", project_id).eq("model", "sample").eq("team", team);
+      if (!team) sq = sq.eq("created_by", me);
+      const { data: ready } = await sq.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return ready ? json({ recap: ready, sample: true }) : json({ empty: true, message: "No notes in this period yet." });
+    }
 
     // ---------- Period ----------
     const now = new Date();

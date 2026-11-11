@@ -1273,6 +1273,9 @@ export const KO = {
   'You haven’t left a note yet.': '아직 남긴 피드백이 없어요.',
   'No notes on your takes yet.': '아직 내 테이크에 달린 피드백이 없어요.',
   // Same phrases without the old text symbols: icons are SVG now (app/icons.js).
+  'In the sample, recaps are ready-made. Your own projects get fresh ones.': '샘플에서는 미리 만든 요약을 보여줘요. 내 프로젝트에서는 실제 피드백으로 새로 만들어요.',
+  'dancerly writes the team recap before each practice.': '연습 전에 dancerly가 팀 요약을 자동으로 만들어요.',
+  'Everyone on the project sees the same one. My recap is just your part.': '팀원 모두가 같은 요약을 봐요. 내 요약에는 내 피드백만 모여요.',
   'Team recap': '팀 요약',
   'Made by dancerly': 'dancerly 자동 작성',
   'Custom recap': '기간 지정 요약',

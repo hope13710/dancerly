@@ -95,7 +95,7 @@ export const teamNote = () => '';
 // Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
 const MOMENTS = {
   note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. You can do this on your own videos, and so can anyone you invite.'],
-  recap: ['A quick recap of the notes, before each practice.', 'It’s written from your own notes once there are a few.'],
+  recap: ['dancerly writes the team recap before each practice.', 'Everyone on the project sees the same one. My recap is just your part.'],
   insights: ['This is Insights for the sample project.', 'Where people keep getting stuck, what got fixed, what’s waiting — yours fills in as notes come in.']
 };
 export function sampleMoment(key) {
