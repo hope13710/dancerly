@@ -74,7 +74,8 @@ async function send(to: string, fromName: string, c: Copy, link: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: `${fromName} via dancerly <${FROM_ADDRESS}>`, to: [to], reply_to: REPLY_TO, subject: c.subject, html: html(c, link), text: `${c.text}\n\n${c.fine.replace(/<[^>]+>/g, "")}` }),
+    // A name with a comma, quote or angle bracket would break the From line.
+    body: JSON.stringify({ from: `${fromName.replace(/[<>",;]/g, "").trim() || "A teammate"} via dancerly <${FROM_ADDRESS}>`, to: [to], reply_to: REPLY_TO, subject: c.subject, html: html(c, link), text: `${c.text}\n\n${c.fine.replace(/<[^>]+>/g, "")}` }),
   });
   if (!res.ok) console.error("resend", res.status, (await res.text()).slice(0, 300));
   return res.ok;
