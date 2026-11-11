@@ -3,6 +3,7 @@
 // which render differently on every phone and never line up with the rest.
 const P = {
   check: '<path d="m5 12.5 4.5 4.5L19 7"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   play: '<path class="f" d="M8 5.5v13l10.5-6.5z"/>',

@@ -542,7 +542,7 @@ export async function showInvite(projectId, title, { heading = 'Invite people', 
   el.className = 'dialog';
   el.innerHTML = `<div class="dialog-card"><h2>${esc(heading)}</h2>
     <div class="known" data-known hidden>
-      <input type="search" class="known-search" data-known-search placeholder="Search people you’ve worked with" aria-label="Search people you’ve worked with" autocomplete="off" />
+      <label class="known-field" data-known-field>${ic('search')}<input type="search" class="known-search" data-known-search placeholder="Search people you’ve worked with" aria-label="Search people you’ve worked with" autocomplete="off" enterkeyhint="search" /><button type="button" class="known-clear" data-known-clear hidden aria-label="Clear search" title="Clear">${ic('x', 'solo')}</button></label>
       <div class="known-list" data-known-list></div>
       <p class="known-or">Anyone else can join with this link, using just their name and email.</p>
     </div>
@@ -595,11 +595,13 @@ function wireKnownPeople(el, projectId, title) {
     if (error || !data?.length) return;
     people = data.sort((a, b) => String(b.last_together).localeCompare(String(a.last_together)));
     // A few people: no search box needed, the list is the whole answer.
-    search.hidden = people.length <= 5;
+    el.querySelector('[data-known-field]').hidden = people.length <= 5;
     box.hidden = false;
     paint();
   });
-  search.addEventListener('input', paint);
+  const clear = el.querySelector('[data-known-clear]');
+  search.addEventListener('input', () => { clear.hidden = !search.value; paint(); });
+  clear.addEventListener('click', () => { search.value = ''; clear.hidden = true; paint(); search.focus(); });
   list.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-add]');
     if (!b) return;
