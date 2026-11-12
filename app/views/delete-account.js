@@ -1,6 +1,7 @@
 // Settings › Delete account. One page, top to bottom: what goes and what stays, decide on the projects you manage,
-// download your data, (optionally) tell us why, then confirm with your email and password.
-import { sb, $, $$, esc, toast, friendlyError, loadMembers, TAKE_BUCKET, isPublicMedia } from '../client.js';
+// download your data, (optionally) tell us why, then confirm with your email and your password, or (accounts that
+// sign in with Google) by signing in with Google once more, like Google and Notion do before anything permanent.
+import { sb, $, $$, esc, toast, friendlyError, loadMembers, TAKE_BUCKET, isPublicMedia, GOOGLE_G } from '../client.js';
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
 
@@ -20,6 +21,18 @@ export async function renderDeleteAccount() {
   setCrumbs([['Settings', '/app/settings'], ['Account', '/app/settings/account'], ['Delete account']]);
   const me = state.session.user.id;
   const email = state.session.user.email || '';
+  // How this account signs in. Google-only accounts have no password to type: they confirm with Google instead.
+  const user = state.session.user;
+  const providers = user.app_metadata?.providers || [user.app_metadata?.provider || 'email'];
+  const hasPassword = providers.includes('email');
+  const hasGoogle = providers.includes('google');
+  const REAUTH_MS = 9 * 60 * 1000; // the server allows 10; a minute of slack for the clock
+  const googleFresh = hasGoogle && user.last_sign_in_at && Date.now() - Date.parse(user.last_sign_in_at) < REAUTH_MS;
+  let usePassword = hasPassword && !googleFresh;
+  // Choices made before going to Google and back, so the round trip doesn't lose them.
+  const DRAFT = 'looproom:delete-draft';
+  let draft = {};
+  try { draft = JSON.parse(sessionStorage.getItem(DRAFT) || '{}'); sessionStorage.removeItem(DRAFT); } catch {}
 
   const [{ data: owned }, { count: takeCount }, { count: noteCount }, { count: replyCount }] = await Promise.all([
     sb.from('project_members').select('project_id, projects(id, title, is_sample)').eq('user_id', me).eq('role', 'owner'),
@@ -36,7 +49,7 @@ export async function renderDeleteAccount() {
   }));
   const decide = projects.filter((p) => p.kind === 'decide');
   const alone = projects.filter((p) => p.kind === 'alone');
-  const decisions = Object.fromEntries(decide.map((p) => [p.id, { action: 'transfer', to: p.others[0].user_id }]));
+  const decisions = Object.fromEntries(decide.map((p) => [p.id, draft.decisions?.[p.id] || { action: 'transfer', to: p.others[0].user_id }]));
 
   view.innerHTML = `<section class="page narrow delete-account">
     <header class="page-head"><div><h1>Delete your account</h1><p class="muted sub">This permanently deletes your dancerly account. It can’t be undone.</p></div></header>
@@ -80,10 +93,18 @@ export async function renderDeleteAccount() {
     </section>
 
     <form class="panel da-confirm" data-confirm novalidate>
-      <div class="panel-head"><div><h2>Confirm deletion</h2><p class="muted" data-no-i18n>${isKo ? `확인을 위해 이메일 <b>${esc(email)}</b>과 비밀번호를 입력해 주세요.` : `To confirm, type your email <b>${esc(email)}</b> and your password.`}</p></div></div>
+      <div class="panel-head"><div><h2>Confirm deletion</h2><p class="muted" data-no-i18n data-confirm-help></p></div></div>
       <label class="field"><span>Email</span><input name="confirm" type="email" autocomplete="off" required placeholder="${esc(email)}" /></label>
-      <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required /></label>
-      <p class="fine left">No password yet? <a href="/app/reset" data-link>Set one first</a>.</p>
+      <div data-password-block>
+        <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" /></label>
+        ${hasGoogle ? '<p class="fine left"><button type="button" class="link-btn inline" data-use-google>Confirm with Google instead</button></p>' : ''}
+      </div>
+      ${hasGoogle ? `<div class="da-google" data-google-block>
+        ${googleFresh
+          ? `<p class="da-google-done">${GOOGLE_G}<span data-no-i18n>${isKo ? `Google로 확인했어요 · ${esc(email)}` : `Confirmed with Google · ${esc(email)}`}</span></p>`
+          : `<button type="button" class="btn google wide" data-google-reauth>${GOOGLE_G} Confirm with Google</button><p class="fine left">You’ll sign in with Google once more, then come back here.</p>`}
+        ${hasPassword ? '<p class="fine left"><button type="button" class="link-btn inline" data-use-password>Use my password instead</button></p>' : ''}
+      </div>` : ''}
       <label class="consent"><input type="checkbox" name="understand" required /><span>I understand my account and the content listed above will be permanently deleted.</span></label>
       <p class="form-error" data-error role="alert" hidden></p>
       <div class="da-actions"><a class="btn ghost" href="/app/settings/account" data-link>Cancel</a><button class="btn danger" type="submit" disabled>Delete my account</button></div>
@@ -106,9 +127,40 @@ export async function renderDeleteAccount() {
   // Confirm
   const form = $('[data-confirm]');
   const submit = form.querySelector('[type=submit]');
+  const proven = () => (usePassword ? Boolean(form.password.value) : googleFresh);
   const ready = () => {
-    submit.disabled = !(form.confirm.value.trim().toLowerCase() === email.toLowerCase() && form.password.value && form.understand.checked);
+    submit.disabled = !(form.confirm.value.trim().toLowerCase() === email.toLowerCase() && proven() && form.understand.checked);
   };
+  // Password or Google: only one way shows at a time.
+  const paintWay = () => {
+    $('[data-password-block]').hidden = !usePassword;
+    if ($('[data-google-block]')) $('[data-google-block]').hidden = usePassword;
+    $('[data-confirm-help]').innerHTML = isKo
+      ? `확인을 위해 이메일 <b>${esc(email)}</b>을 입력하고 ${usePassword ? '비밀번호를 입력해 주세요.' : 'Google로 한 번 더 로그인해 주세요.'}`
+      : `To confirm, type your email <b>${esc(email)}</b> and ${usePassword ? 'your password.' : 'sign in with Google once more.'}`;
+    ready();
+  };
+  $('[data-use-google]')?.addEventListener('click', () => { usePassword = false; paintWay(); });
+  $('[data-use-password]')?.addEventListener('click', () => { usePassword = true; paintWay(); form.password.focus(); });
+  $('[data-google-reauth]')?.addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      sessionStorage.setItem(DRAFT, JSON.stringify({ me, decisions, reason: $('input[name=reason]:checked')?.value || null, details: $('[data-details]').value }));
+    } catch {}
+    const { error: gErr } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/app/account/delete`, queryParams: { prompt: 'select_account', login_hint: email } } });
+    if (gErr) { e.currentTarget.disabled = false; toast(friendlyError(gErr), 'error'); }
+  });
+  // Back from Google: put the choices back.
+  if (draft.reason) { const r = $(`input[name=reason][value="${draft.reason}"]`); if (r) r.checked = true; }
+  if (draft.details) $('[data-details]').value = draft.details;
+  $$('.da-project').forEach((row) => {
+    const d = decisions[row.dataset.project];
+    if (d?.action === 'delete') { row.querySelector('input[value=delete]').checked = true; row.classList.add('deleting'); }
+    else if (d?.to) row.querySelector('[data-to]').value = d.to;
+  });
+  if (draft.me && draft.me !== me) toast(isKo ? '다른 Google 계정으로 로그인했어요. 이 계정을 삭제하려는 게 맞는지 확인해 주세요.' : 'You signed in with a different Google account. Make sure this is the account you want to delete.', 'error');
+  else if (googleFresh) form.confirm.focus();
+  paintWay();
   form.addEventListener('input', ready);
   form.addEventListener('change', ready);
   const showError = (msg) => { const el = $('[data-error]'); el.textContent = msg; el.hidden = false; };
@@ -119,7 +171,7 @@ export async function renderDeleteAccount() {
     submit.textContent = isKo ? '삭제하는 중…' : 'Deleting…';
     const body = {
       confirm: form.confirm.value.trim(),
-      password: form.password.value,
+      password: usePassword ? form.password.value : undefined,
       decisions,
       reason: $('input[name=reason]:checked')?.value || null,
       details: $('[data-details]').value.trim() || null

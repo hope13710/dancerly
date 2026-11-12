@@ -1,5 +1,6 @@
 // delete-account: permanently deletes the signed-in person's account.
-// Steps, in order, so nothing is half-done: confirm it's really them (password + typed email) → check every
+// Steps, in order, so nothing is half-done: confirm it's really them (typed email, plus their password, or for
+// people who sign in with Google, signing in with Google again in the last 10 minutes) → check every
 // project they manage has a decision (hand over or delete) → apply those → remove their files from storage →
 // delete their videos nobody else added takes to → delete the user (their own rows cascade; team rows stay).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -31,14 +32,23 @@ Deno.serve(async (req) => {
   let body: { password?: string; confirm?: string; decisions?: Record<string, Decision>; reason?: string; details?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
 
-  // 1. It's really them: the typed email matches, and the password is right.
+  // 1. It's really them: the typed email matches, and either the password is right or, for an account that
+  // signs in with Google, they just signed in with Google again (the way Google and Notion re-check before
+  // something that can't be undone). A refreshed session doesn't count: last_sign_in_at only moves on a real sign-in.
   if (!user.email || String(body.confirm || "").trim().toLowerCase() !== user.email.toLowerCase()) {
     return json({ error: "Type your email address exactly to confirm.", code: "confirm" }, 400);
   }
-  const check = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error: pwError } = await check.auth.signInWithPassword({ email: user.email, password: String(body.password || "") });
-  if (pwError) return json({ error: "That password isn’t right.", code: "password" }, 403);
-  await check.auth.signOut().catch(() => {});
+  const providers: string[] = (user.app_metadata?.providers as string[] | undefined) ?? [String(user.app_metadata?.provider ?? "email")];
+  const viaGoogle = providers.includes("google") && (user.identities ?? []).some((i) => i.provider === "google");
+  const freshSignIn = user.last_sign_in_at && Date.now() - Date.parse(user.last_sign_in_at) < 10 * 60 * 1000;
+  if (body.password) {
+    const check = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { error: pwError } = await check.auth.signInWithPassword({ email: user.email, password: String(body.password) });
+    if (pwError) return json({ error: "That password isn’t right.", code: "password" }, 403);
+    await check.auth.signOut().catch(() => {});
+  } else if (!(viaGoogle && freshSignIn)) {
+    return json({ error: viaGoogle ? "Confirm with Google again, then delete within 10 minutes." : "Enter your password to confirm.", code: viaGoogle ? "reauth" : "password" }, 403);
+  }
 
   // 2. Every project they manage alone, with other people in it, needs a decision.
   const { data: owned } = await admin.from("project_members").select("project_id, projects(id, title, is_sample, deleted_at)").eq("user_id", user.id).eq("role", "owner");

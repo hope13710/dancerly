@@ -9208,3 +9208,21 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     background: var(--bg);
   }
 }
+
+/* Delete account: confirming with Google instead of a password. */
+.da-google .btn.google {
+  margin-top: 4px;
+}
+.da-google-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 14px;
+  font-weight: 500;
+}

@@ -1273,6 +1273,12 @@ export const KO = {
   'You haven’t left a note yet.': '아직 남긴 피드백이 없어요.',
   'No notes on your takes yet.': '아직 내 테이크에 달린 피드백이 없어요.',
   // Same phrases without the old text symbols: icons are SVG now (app/icons.js).
+  'Confirm with Google': 'Google로 확인하기',
+  'Confirm with Google instead': '대신 Google로 확인하기',
+  'Use my password instead': '대신 비밀번호로 확인하기',
+  'You’ll sign in with Google once more, then come back here.': 'Google로 한 번 더 로그인한 뒤 이 화면으로 돌아와요.',
+  'Confirm with Google again, then delete within 10 minutes.': 'Google로 다시 확인한 뒤 10분 안에 삭제해 주세요.',
+  'Enter your password to confirm.': '확인을 위해 비밀번호를 입력해 주세요.',
   'Join': '참여하기',
   'You’ve been invited': '초대받은 팀',
   'Or start your own team': '또는 새 팀 시작하기',
