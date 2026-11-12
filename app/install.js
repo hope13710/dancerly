@@ -102,20 +102,28 @@ function copy(reason) {
 function steps(kind) {
   const step = (icon, html) => `<li><span class="install-step-ic">${ic(icon, 'solo')}</span><span>${html}</span></li>`;
   const add = isKo ? step('check', '<b>추가</b>를 누르면 끝이에요') : step('check', 'Tap <b>Add</b>, and you’re done');
+  // Checked against Apple, Google, Samsung and Mozilla help pages, November 2026. iOS 26 Safari's default tab
+  // layout keeps Share behind the ⋯ button, and asks whether to open it as a web app (on by default).
   if (kind === 'ios-safari') {
-    return [step('share', isKo ? '<b>공유</b> 버튼을 눌러요 (화면 아래 또는 주소창 옆)' : 'Tap <b>Share</b> (at the bottom, or next to the address bar)'),
-      step('addbox', isKo ? '목록을 내려 <b>홈 화면에 추가</b>를 골라요' : 'Scroll down and choose <b>Add to Home Screen</b>'), add];
+    return [step('share', isKo ? '<b>공유</b> 버튼을 눌러요. 안 보이면 <b>⋯</b> 버튼을 누른 뒤 공유를 골라요' : 'Tap <b>Share</b>. Don’t see it? Tap <b>⋯</b>, then Share'),
+      step('addbox', isKo ? '목록을 내려 <b>홈 화면에 추가</b>를 골라요' : 'Scroll down and choose <b>Add to Home Screen</b>'),
+      step('check', isKo ? '<b>웹 앱으로 열기</b>가 켜진 채로 <b>추가</b>를 눌러요' : 'Keep <b>Open as Web App</b> on and tap <b>Add</b>')];
   }
   if (kind === 'ios-other') {
     return [step('share', isKo ? '주소창 오른쪽의 <b>공유</b> 버튼을 눌러요' : 'Tap <b>Share</b> at the right of the address bar'),
-      step('addbox', isKo ? '<b>홈 화면에 추가</b>를 골라요' : 'Choose <b>Add to Home Screen</b>'), add];
+      step('addbox', isKo ? '목록을 내려 <b>홈 화면에 추가</b>를 골라요' : 'Scroll down and choose <b>Add to Home Screen</b>'), add];
   }
   if (kind === 'samsung') {
     return [step('menu', isKo ? '아래쪽 <b>≡ 메뉴</b>를 눌러요' : 'Tap the <b>≡ menu</b> at the bottom'),
-      step('addbox', isKo ? '<b>현재 페이지 추가</b> → <b>홈 화면</b>을 골라요' : 'Choose <b>Add page to</b> → <b>Home screen</b>')];
+      step('addbox', isKo ? '<b>현재 페이지 추가</b> → <b>홈 화면</b>을 골라요' : 'Choose <b>Add page to</b> → <b>Home screen</b>'), add];
+  }
+  if (kind === 'firefox') {
+    return [step('vmore', isKo ? '<b>⋮ 메뉴</b>를 눌러요 (화면 위 또는 아래)' : 'Tap the <b>⋮ menu</b> (at the top or bottom)'),
+      step('addbox', isKo ? '<b>홈 화면에 앱 추가</b> 또는 <b>설치</b>를 골라요' : 'Choose <b>Add app to Home screen</b> or <b>Install</b>'), add];
   }
   return [step('vmore', isKo ? '오른쪽 위 <b>⋮ 메뉴</b>를 눌러요' : 'Tap the <b>⋮ menu</b> at the top right'),
-    step('addbox', isKo ? (kind === 'firefox' ? '<b>설치</b>를 골라요' : '<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 골라요') : (kind === 'firefox' ? 'Choose <b>Install</b>' : 'Choose <b>Install app</b> or <b>Add to Home screen</b>'))];
+    step('addbox', isKo ? '<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 골라요' : 'Choose <b>Install app</b> or <b>Add to Home screen</b>'),
+    step('check', isKo ? '<b>설치</b>를 누르면 끝이에요' : 'Tap <b>Install</b>, and you’re done')];
 }
 
 export function showInstall(reason) {
