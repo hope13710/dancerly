@@ -247,8 +247,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           </div></details>
         </div>
         ${open ? `<div class="thread">
-          ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small></p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">${ic('x', 'solo')}</button>` : ''}</div>`).join('')}
-          <form class="reply-form" data-reply-form="${n.id}"><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
+          ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small>${rp.author_id !== me.id ? ` <button type="button" class="reply-to" data-reply-to="${n.id}" data-name="${esc(nameOf(rp.author_id))}">Reply</button>` : ''}</p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">${ic('x', 'solo')}</button>` : ''}</div>`).join('')}
+          <form class="reply-form" data-reply-form="${n.id}"><div class="mention-menu" data-reply-mentions role="listbox" hidden></div><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;
     }).join('') : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
@@ -749,6 +749,15 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   // ---------- Note actions (one delegated listener) ----------
   async function onClick(e) {
+    const replyTo = e.target.closest('[data-reply-to]');
+    if (replyTo) {
+      const field = view.querySelector(`[data-reply-form="${replyTo.dataset.replyTo}"] input`);
+      const tag = `@${replyTo.dataset.name}`;
+      if (field && !field.value.includes(tag)) field.value = `${tag} ${field.value.trimStart()}`;
+      field?.focus();
+      if (field) field.selectionStart = field.selectionEnd = field.value.length;
+      return;
+    }
     if (e.target.closest('.thread input, .reply-form')) return;
     const notYet = e.target.closest('[data-notyet]');
     if (notYet) {
@@ -881,9 +890,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const body = field.value.trim();
     if (!body) return field.focus();
     field.disabled = true;
-    const { error } = await sb.from('note_replies').insert({ note_id: form.dataset.replyForm, body });
+    const { data: reply, error } = await sb.from('note_replies').insert({ note_id: form.dataset.replyForm, body }).select('id').single();
     field.disabled = false;
     if (error) return toast(friendlyError(error), 'error');
+    const mentioned = members.filter((m) => m.user_id !== me.id && body.includes(`@${m.name}`)).map((m) => m.user_id);
+    if (mentioned.length && reply) sb.rpc('mention_in_reply', { p_reply: reply.id, p_users: mentioned }).then(() => {}, () => {});
     field.value = '';
     await loadNotes();
     view.querySelector(`[data-reply-form="${form.dataset.replyForm}"] input`)?.focus();
@@ -912,23 +923,27 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   $$('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   $$('[data-mark]').forEach((b) => b.addEventListener('click', () => mark(b.dataset.mark)));
 
-  const mentionMatch = () => input.value.slice(0, input.selectionStart).match(/@([^@\n]{0,30})$/);
-  function paintMentions() {
-    const menu = $('[data-mentions]');
-    const m = mentionMatch();
-    const options = m ? rankMentions(m[1]) : [];
+  // The @name being typed, if any. A name already finished ("@Jordan Lee ") isn't one: Enter then sends.
+  const mentionMatch = (field = input) => {
+    const m = field.value.slice(0, field.selectionStart).match(/@([^@\n]{0,30})$/);
+    return m && /\s$/.test(m[1]) && members.some((x) => m[1].startsWith(`${x.name} `)) ? null : m;
+  };
+  // `only`: in a private thread, just the two people in it.
+  function paintMentions(field = input, menu = $('[data-mentions]'), only = null) {
+    const m = mentionMatch(field);
+    const options = m ? rankMentions(m[1], only) : [];
     // Typed a name that isn't on the project (or there's nobody else yet): offer the invite link right there.
-    const missing = Boolean(m) && !project.is_sample && (m[1].trim().length >= 2 || members.length === 1) && !options.length;
+    const missing = field === input && Boolean(m) && !project.is_sample && (m[1].trim().length >= 2 || members.length === 1) && !options.length;
     menu.hidden = !options.length && !missing;
     menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}${missing ? '<button type="button" class="mention-invite" data-invite-copy="mention"><b>Not in this project yet?</b><small>Copy the invite link. Once they join, you can @mention them.</small></button>' : ''}`;
-    $$('[data-pick]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); pick(b.dataset.pick); }));
+    $$('[data-pick]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); pick(b.dataset.pick, field, menu, only); }));
     $$('[data-invite-copy]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); menu.hidden = true; copyInvite(projectId, 'mention'); }));
   }
   // Who to suggest after @: best name match first (start of name, start of a word, anywhere, then loose letters),
   // nudged by who you mention often and who is active on this video.
   const RECENT_KEY = 'looproom:recentMentions';
   const recentMentions = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } };
-  function rankMentions(query) {
+  function rankMentions(query, only = null) {
     const q = query.trim().toLowerCase();
     const recent = recentMentions();
     const active = new Map();
@@ -946,7 +961,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       return i === q.length ? 20 : 0;
     };
     return members
-      .filter((x) => x.user_id !== me.id)
+      .filter((x) => x.user_id !== me.id && (!only || only.includes(x.user_id)))
       .map((x) => {
         const score = match(x.name);
         const ri = recent.indexOf(x.user_id);
@@ -959,18 +974,52 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       .slice(0, 6)
       .map((o) => o.x);
   }
-  function pick(name) {
-    const m = mentionMatch();
+  function pick(name, field = input, menu = $('[data-mentions]'), only = null) {
+    const m = mentionMatch(field);
     if (!m) return;
     const person = members.find((x) => x.name === name);
     if (person) try { localStorage.setItem(RECENT_KEY, JSON.stringify([person.user_id, ...recentMentions().filter((id) => id !== person.user_id)].slice(0, 10))); } catch {}
-    const caret = input.selectionStart;
+    const caret = field.selectionStart;
     const start = caret - m[0].length;
-    input.value = `${input.value.slice(0, start)}@${name} ${input.value.slice(caret)}`;
-    input.selectionStart = input.selectionEnd = start + name.length + 2;
-    input.focus();
-    paintMentions();
+    field.value = `${field.value.slice(0, start)}@${name} ${field.value.slice(caret)}`;
+    field.selectionStart = field.selectionEnd = start + name.length + 2;
+    field.focus();
+    paintMentions(field, menu, only);
   }
+  // Arrow keys move through the @ menu, Enter or Tab picks, Escape closes it. True when the key was used.
+  function mentionKeys(e, field, menu, only) {
+    if (menu.hidden || !$('[data-pick]', menu)) return false;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = $$('[data-pick]', menu);
+      const i = items.findIndex((b) => b.classList.contains('active'));
+      const next = items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
+      items.forEach((b) => b.classList.toggle('active', b === next));
+      return true;
+    }
+    if (e.key === 'Enter' && !isEnter(e)) return true; // a Korean/Japanese IME is finishing a word
+    if ((e.key === 'Enter' || e.key === 'Tab') && $('[data-pick].active', menu)) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick, field, menu, only); return true; }
+    if (e.key === 'Escape') { e.preventDefault(); menu.hidden = true; return true; }
+    return false;
+  }
+  // Reply fields: the same @ menu, above the field.
+  const replyMentions = (field) => {
+    const form = field.closest('[data-reply-form]');
+    const n = r.notes.find((x) => x.id === form.dataset.replyForm);
+    return [$('[data-reply-mentions]', form), n?.private_to ? [n.author_id, n.private_to] : null];
+  };
+  view.addEventListener('input', (e) => {
+    const field = e.target.closest?.('[data-reply-form] input');
+    if (field) paintMentions(field, ...replyMentions(field));
+  });
+  view.addEventListener('keydown', (e) => {
+    const field = e.target.closest?.('[data-reply-form] input');
+    if (field) mentionKeys(e, field, ...replyMentions(field));
+  });
+  view.addEventListener('focusout', (e) => {
+    const field = e.target.closest?.('[data-reply-form] input');
+    if (field) setTimeout(() => { const [menu] = replyMentions(field); if (menu) menu.hidden = true; }, 150);
+  });
   input.addEventListener('focus', () => { play(false); setComposer(true); });
   // On phones the composer is a bar fixed to the bottom of the screen: tap it to open, and it folds away
   // again once the note is pinned (or you leave it empty). On wider screens it's always open.
@@ -994,17 +1043,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   input.addEventListener('input', paintMentions);
   input.addEventListener('keydown', (e) => {
     const menu = $('[data-mentions]');
-    if (!menu.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('[data-pick]', menu)) {
-      e.preventDefault();
-      const items = $$('[data-pick]', menu);
-      const i = items.findIndex((b) => b.classList.contains('active'));
-      const next = items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
-      items.forEach((b) => b.classList.toggle('active', b === next));
-      return;
-    }
+    if (mentionKeys(e, input, menu, null)) return;
     if (e.key === 'Enter' && !isEnter(e)) return; // a Korean/Japanese IME is finishing a word
-    if (!menu.hidden && (e.key === 'Enter' || e.key === 'Tab') && $('[data-pick].active', menu)) { e.preventDefault(); pick($('[data-pick].active', menu).dataset.pick); return; }
-    if (e.key === 'Escape') { if (!menu.hidden) menu.hidden = true; else input.blur(); return; }
+    if (e.key === 'Escape') { input.blur(); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pin(); }
   });
   $('[data-composer]').addEventListener('submit', (e) => { e.preventDefault(); pin(); });

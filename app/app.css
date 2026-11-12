@@ -4446,6 +4446,7 @@ td.ref .play {
   font-weight: 400;
 }
 .reply-form {
+  position: relative; /* its @ menu opens above the field */
   display: flex;
   gap: 6px;
 }
@@ -9430,4 +9431,21 @@ select,
 textarea,
 [role='button'] {
   touch-action: manipulation;
+}
+
+/* "Reply" under someone's reply: starts yours with @their name. */
+.reply-to {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  margin-left: 4px;
+  color: #aab0bd;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reply-to:hover {
+  color: #e3e6ed;
+  text-decoration: underline;
 }
