@@ -9383,3 +9383,25 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     background: rgba(255, 255, 255, 0.08);
   }
 }
+
+/* Touch screens: the small buttons on feedback cards (Reply, 👍, ⋯, ✓) look the same but take a 44px tap,
+   the minimum Apple and Material set for fingers, through an invisible area around each one. */
+@media (hover: none), (max-width: 900px) {
+  .note .note-actions {
+    gap: var(--space-8);
+  }
+  .note .note-actions .mini,
+  .note .note-check {
+    position: relative;
+  }
+  .note .note-actions .mini::after,
+  .note .note-check::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
