@@ -233,7 +233,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
         <div class="note-actions">
-          <button class="mini ${open ? 'on' : ''} ${replies.length ? '' : 'quiet'}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? replies.length : 'Reply'}</button>
+          <button class="mini ${open ? 'on' : ''} ${replies.length ? '' : 'quiet'}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? `${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}` : 'Reply'}</button>
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''} ${agrees ? '' : 'quiet'}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
           ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
           <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">

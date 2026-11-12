@@ -1423,6 +1423,7 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^(\d+) repl(?:y|ies)$/, '답글 $1개'],
   [/^Invited (.+)$/, (m, a) => `${tr(a)} 초대함`],
   [/^Most agreed on \((\d+) agreed\): (.+)$/, '팀이 가장 공감한 피드백(공감 $1): $2'],
   [/^Next due (.+)$/, '다음 마감 $1'],
