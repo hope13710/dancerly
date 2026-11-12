@@ -2856,13 +2856,17 @@ a.side-label[aria-current] {
   body.signed-in .bell:not([hidden]) {
     display: inline-grid;
   }
+  /* Five equal tabs, as on iOS and Android: New is a tab like the others (it used to be a raised button). */
   body.signed-in:not(.is-review) .tabbar:not([hidden]) {
-    grid-template-columns: 1fr 1fr auto 1fr 1fr;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     padding-left: 8px;
     padding-right: 8px;
   }
-  .tab-new {
-    margin: 0 10px;
+  .tabbar > * > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .home-grid {
     grid-template-columns: 1fr;
