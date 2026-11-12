@@ -29,12 +29,13 @@ import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 import { ic } from './icons.js';
 import { skeletonHtml } from './skeleton.js';
-import { offerInstall, noteOpenDay } from './install.js';
+import { offerInstall, noteOpenDay, paintEntries } from './install.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
 // Add to Home Screen (install.js): offered once on phones, right after an upload or on the third day of use.
 window.addEventListener('dancerly:uploaded', () => offerInstall('upload'));
+queueMicrotask(paintEntries); // the account menu's Install app, once the page is up
 let openDayNoted = false;
 // Bumped on every navigation, so a slow page's placeholder never lands on the page that replaced it.
 let routeTicket = 0;
@@ -683,6 +684,7 @@ function renderMe() {
       ${row('/app/trash', 'Trash')}
     </div>
     <div class="list-group">
+      <button type="button" data-install-app hidden><span>Install app</span><i>›</i></button>
       <a href="#help" data-help><span>Help &amp; support</span><i>›</i></a>
     </div>
     <div class="list-group">
@@ -691,6 +693,7 @@ function renderMe() {
     <p class="me-delete"><a href="/app/account/delete" data-link>Delete account</a></p>
   </section>`;
   $('[data-me-signout]').addEventListener('click', signOut);
+  paintEntries();
   refreshUnread();
 }
 
