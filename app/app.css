@@ -9140,3 +9140,71 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
 .invite-link-block .fine {
   margin-top: 10px;
 }
+
+/* Welcome: invites waiting for you, and the way in for people joining a team. */
+.welcome-invites {
+  margin: 14px 0 4px;
+}
+.welcome-label {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.welcome-invite .card-mark {
+  flex: none;
+}
+.welcome-invite .row-main {
+  min-width: 0;
+}
+.welcome-invite .row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.welcome-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.welcome-or::before,
+.welcome-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.welcome-join {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.welcome-join > span {
+  flex: 1;
+}
+.welcome-join .ic {
+  color: var(--muted);
+}
+@media (hover: hover) {
+  .welcome-join:hover {
+    border-color: #c8c9f5;
+    background: var(--bg);
+  }
+}

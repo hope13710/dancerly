@@ -1,6 +1,6 @@
 // First-run guidance: the leader's three-step start, the sample project, a welcome for people who were invited,
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
-import { sb, $, $$, esc, toast, friendlyError, dialog, schema } from './client.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, dialog, schema } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang, isKo } from './i18n.js';
 import { createVideo } from './views/project.js';
@@ -188,22 +188,61 @@ export async function renderWelcome() {
   let projectId = step > 1 ? ob.welcome_project : null;
   let team = ob.team || null;
   let typed = null; // a name they typed beats our suggestion
+  // Someone who came to join a team, not start one (the leader forwarded dancerly.app instead of the invite link).
+  let joining = false;
   const year = new Date().getFullYear();
+  // Invites a teammate already emailed to this address (migration 053): shown first, like Slack's
+  // "workspaces you've been invited to", so nobody makes an empty project when their team is waiting.
+  let pending = [];
+  if (step === 1) {
+    const { data } = await sb.rpc('my_pending_invites').then((r) => r, () => ({ data: [] }));
+    pending = data || [];
+    if (pending.length) track('onboarding_invite_found', { count: pending.length });
+  }
   const finish = async (where) => {
     await saveOnboarding({ welcome: 'done' });
     track('onboarding_step_done', { step: 'finished', via: where });
   };
 
   const frame = (body) => `<section class="auth welcome"><div class="auth-card welcome-card">
-      <div class="steps" aria-label="Step ${step} of 2">${[1, 2].map((n) => `<i class="${n < step ? 'done' : n === step ? 'now' : ''}"></i>`).join('')}<small>Step ${step} of 2</small></div>
+      ${joining ? '' : `<div class="steps" aria-label="Step ${step} of 2">${[1, 2].map((n) => `<i class="${n < step ? 'done' : n === step ? 'now' : ''}"></i>`).join('')}<small>Step ${step} of 2</small></div>`}
       ${body}
     </div></section>`;
+  const invitesHtml = () => !pending.length ? '' : `<div class="welcome-invites">
+      <p class="welcome-label">You’ve been invited</p>
+      <div class="list">${pending.map((i) => `<div class="row welcome-invite"><span class="card-mark">${esc(initials(i.project_title))}</span>
+        <span class="row-main" data-no-i18n><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${isKo ? `${esc(i.invited_by_name)}님이 초대했어요` : `${esc(i.invited_by_name)} invited you`}</span></span>
+        ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta" data-no-i18n>${isKo ? '링크가 만료됐어요' : 'Link expired'}</span>`}</div>`).join('')}</div>
+      <p class="welcome-or"><span>Or start your own team</span></p>
+    </div>`;
 
   const paint = () => {
+    if (joining) {
+      view.innerHTML = frame(`<h1>Join your team</h1>
+        <p class="muted">Your team’s project opens from its invite link. Ask whoever set it up to send it to you. In dancerly, it’s under <b>People › Invite people</b>.</p>
+        <form data-join-form>
+          <label class="field"><span>Invite link</span><input name="link" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dancerly.app/app/join/…" /></label>
+          <button class="btn primary wide" type="submit">Join team</button>
+        </form>
+        <div class="welcome-alt"><button type="button" class="link-btn" data-start-own>Start a new team instead</button><button type="button" class="link-btn" data-skip>Skip for now</button></div>`);
+      $('[data-join-form] input').focus();
+      $('[data-join-form]').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const value = event.currentTarget.elements.namedItem('link').value.trim();
+        // The whole link, or just its code.
+        const code = (value.match(/join\/([a-f0-9]{6,64})/i) || value.match(/^([a-f0-9]{6,64})$/i))?.[1];
+        if (!code) return toast('That doesn’t look like a dancerly invite link. It looks like dancerly.app/app/join/…', 'error');
+        await finish('join_link');
+        navigate(`/app/join/${code.toLowerCase()}`);
+      });
+      $('[data-start-own]').addEventListener('click', () => { joining = false; paint(); });
+      $('[data-skip]').addEventListener('click', async () => { await finish('skip'); navigate('/app', { replace: true }); });
+      return;
+    }
     if (step === 1) {
       const pick = TEAMS.find((x) => x[0] === team) || TEAMS[0];
       const suggest = (isKo ? pick[3] : pick[2]).replace('{year}', year);
-      view.innerHTML = frame(`<h1>Who do you practice with?</h1>
+      view.innerHTML = frame(`${invitesHtml()}<h1>Who do you practice with?</h1>
         <p class="muted">One project per goal. Its videos, feedback, and schedule live inside it.</p>
         <div class="chips" role="group" aria-label="Who you practice with">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === (team || TEAMS[0][0])}">${label}</button>`).join('')}</div>
         ${team === 'solo' ? '<p class="muted small solo-hint">Track your progress, and invite a coach whenever you want feedback.</p>' : ''}
@@ -211,7 +250,10 @@ export async function renderWelcome() {
           <label class="field"><span>Project name</span><input name="title" maxlength="120" required value="${esc(typed ?? suggest)}" /></label>
           <button class="btn primary wide" type="submit">Create project</button>
         </form>
+        <button type="button" class="welcome-join" data-joining>${ic('people')}<span>Joining a team that’s already on dancerly?</span>${ic('right', 'after')}</button>
         <div class="welcome-alt"><button type="button" class="link-btn" data-open-sample="welcome">Explore a sample project first</button><button type="button" class="link-btn" data-skip>Skip for now</button></div>`);
+      $('[data-joining]').addEventListener('click', () => { joining = true; track('onboarding_join_view'); paint(); });
+      $$('[data-join-invite]').forEach((a) => a.addEventListener('click', () => finish('pending_invite'), { capture: true }));
       $$('[data-team]').forEach((b) => b.addEventListener('click', () => { team = b.dataset.team; paint(); }));
       $('[data-step-form] input').addEventListener('input', (e) => { typed = e.target.value; });
       $('[data-step-form]').addEventListener('submit', async (event) => {
