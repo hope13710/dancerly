@@ -312,7 +312,9 @@ export async function withUploadBar(label, task) {
   bar.setAttribute('aria-hidden', 'false');
   uploading += 1;
   try {
-    return await task((stage) => { bar.querySelector('span').textContent = `${stage} · ${label}`; });
+    const result = await task((stage) => { bar.querySelector('span').textContent = `${stage} · ${label}`; });
+    window.dispatchEvent(new CustomEvent('dancerly:uploaded'));
+    return result;
   } finally {
     uploading -= 1;
     // Still another upload going: keep the bar (and its message) up until the last one finishes.

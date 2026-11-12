@@ -9230,3 +9230,54 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
   font-size: 14px;
   font-weight: 500;
 }
+
+/* Add to Home Screen: the offer sheet (install.js). */
+.install-sheet .dialog-card {
+  text-align: left;
+}
+.install-icon {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(26, 32, 44, 0.12);
+}
+.install-sheet h2 {
+  margin: 0 0 6px;
+}
+.install-sheet .muted {
+  margin: 0;
+}
+.install-steps {
+  list-style: none;
+  margin: 18px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.install-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.install-steps b {
+  font-weight: 600;
+}
+.install-step-ic {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--accent);
+  flex: none;
+  font-size: 16px;
+}
+
+.install-sheet .dialog-card:focus {
+  outline: none;
+}

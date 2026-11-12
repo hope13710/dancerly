@@ -29,9 +29,13 @@ import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 import { ic } from './icons.js';
 import { skeletonHtml } from './skeleton.js';
+import { offerInstall, noteOpenDay } from './install.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
+// Add to Home Screen (install.js): offered once on phones, right after an upload or on the third day of use.
+window.addEventListener('dancerly:uploaded', () => offerInstall('upload'));
+let openDayNoted = false;
 // Bumped on every navigation, so a slow page's placeholder never lands on the page that replaced it.
 let routeTicket = 0;
 const SKELETON_DELAY_MS = 250;
@@ -141,6 +145,7 @@ async function route() {
     // Someone moved on while this page was still loading: tidy it up now, the next page's route() never saw it.
     if (ticket !== routeTicket) { cleanup?.(); return; }
     state.cleanup = cleanup;
+    if (state.session && !openDayNoted && !document.body.classList.contains('is-onboarding')) { openDayNoted = true; noteOpenDay(); }
     // Phones: keep the current tab in view when a tab row scrolls sideways.
     document.querySelector('.tabs a[aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   } catch (error) {
