@@ -128,9 +128,7 @@ applyLang();
 // ---------- Hero: pin → sketch → loop → fixed, on a gentle loop while visible ----------
 const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
-const status = $('[data-hero-status]');
 const NOTE = { en: '@Maya reach all the way out on the arm hit…', ko: '@Maya 팔을 뻗는 동작에서 끝까지 뻗어 주세요…' };
-const STATUS = { en: ['Open', 'Practicing', 'Resolved'], ko: ['미해결', '연습 중', '해결됨'] };
 let step = 0;
 let typing = 0;
 let visible = true;
@@ -189,8 +187,6 @@ function show(next) {
   demo.dataset.step = String(step);
   // Step 0 (typing + sketching) and 1 (pinned) are one chapter: "Note it and sketch it".
   $$('[data-hero-step]').forEach((li) => li.classList.toggle('on', Number(li.dataset.heroStep) === Math.max(1, step)));
-  status.textContent = STATUS[lang][step >= 3 ? 2 : step >= 2 ? 1 : 0];
-  status.className = `status ${step >= 3 ? 'ok' : step >= 2 ? 'info' : ''}`;
   clearInterval(typing);
   clearTimeout(toolTimer);
   typed.textContent = '';

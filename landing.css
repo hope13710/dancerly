@@ -193,6 +193,22 @@ h3 { font-size: 20px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 60
 .note-card { background: var(--dark-3); border: 1px solid var(--dark-line); border-radius: 12px; padding: 11px 12px; display: grid; gap: 7px; font-size: 13px; color: #e3e6ed; }
 .note-card p { line-height: 1.45; }
 .note-top { display: flex; align-items: center; gap: 6px; }
+/* The app's note card: who and when with ✓, the note starting at its moment, focus area, then actions. */
+.note-head { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #aab1bf; }
+.note-head b { color: #e3e6ed; font-weight: 600; }
+.note-check { margin-left: auto; flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #4a5263; color: #8993a1; transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+.note-check .ic { width: 12px; height: 12px; stroke-width: 2.6; }
+.note-check.on, .hero-app[data-step="3"] [data-hero-check] { border-color: #2fa877; background: #2fa877; color: #fff; }
+.note-body .time-chip { display: inline-flex; align-items: center; gap: 3px; margin-right: 2px; vertical-align: 1px; }
+.time-chip .ic { width: 11px; height: 11px; }
+.chip-count { margin-left: 4px; padding-left: 5px; border-left: 1px solid rgba(255, 255, 255, 0.25); }
+.chip-sketch { display: inline-grid; place-items: center; margin-left: 4px; color: #c9caff; }
+.note-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.note-meta .status { margin-left: 0; }
+.hero-app:not([data-step="2"]) [data-hero-status] { display: none; }
+/* Fixed notes are dimmed and shortened to one line, as in the app. */
+.n-team .note-head { opacity: 0.7; }
+.n-team .note-body { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: #8993a1; }
 .time-chip { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: #3a4150; color: #e3e6ed; font-variant-numeric: tabular-nums; }
 .tag-sketch { display: inline-grid; place-items: center; width: 20px; height: 20px; font-size: 12px; line-height: 1; border-radius: 6px; background: rgba(91, 92, 226, 0.2); color: #c9caff; }
 .status { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(255, 181, 71, 0.15); color: #ffb547; transition: background 0.3s ease, color 0.3s ease; }
@@ -211,19 +227,16 @@ h3 { font-size: 20px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 60
 .av.more { background: #eceef2; color: var(--muted); }
 .reply { display: flex; gap: 8px; align-items: flex-start; padding-top: 8px; border-top: 1px solid var(--dark-line); font-size: 12px; color: #c9ced9; }
 .reply b { color: #fff; margin-right: 4px; }
-.n-team { opacity: 0.7; }
 .n-new { transform-origin: top; transition: opacity 0.45s var(--ease), transform 0.45s var(--ease), max-height 0.5s var(--ease); max-height: 340px; overflow: hidden; }
-/* The same actions as a note in the app: reply, resolve or reopen, agree, looping (only while looping), more. */
+/* The same actions as a note in the app: reply, agree, looping (only while looping), more. */
 .ago { color: #8a92a1; }
 .note-acts { display: flex; flex-wrap: wrap; gap: 5px; }
 .mini { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--dark-line); color: #c9ced9; white-space: nowrap; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
 .mini.ok { border-color: rgba(70, 211, 154, 0.45); color: #46d39a; }
-.mini .busy, .act-reopen, .act-loop { display: none; }
+.mini .busy, .act-loop { display: none; }
 .hero-app:is([data-step="2"], [data-step="3"]) .act-thread .idle { display: none; }
 .hero-app:is([data-step="2"], [data-step="3"]) .act-thread .busy { display: inline; }
 .hero-app[data-step="2"] .act-loop { display: inline-flex; background: rgba(254, 175, 117, 0.16); border-color: rgba(254, 175, 117, 0.5); color: #feaf75; }
-.hero-app[data-step="3"] .act-resolve { display: none; }
-.hero-app[data-step="3"] .act-reopen { display: inline-flex; }
 .reply-box { font-size: 12px; color: #6f7786; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--dark-line); background: #161a21; transition: opacity 0.4s ease, max-height 0.4s ease; max-height: 40px; overflow: hidden; }
 .hero-app:not([data-step="2"]):not([data-step="3"]) .n-new .reply-box { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
 .n-new .reply { transition: opacity 0.4s ease, max-height 0.4s ease; max-height: 60px; overflow: hidden; }
@@ -656,7 +669,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 }
 @media (min-width: 1021px) {
   /* Once the reply opens, the older note folds to its top line so the new one has room. */
-  .hero-app:is([data-step="2"], [data-step="3"]) .n-team :is(p, .note-foot, .note-acts) { display: none; }
+  .hero-app:is([data-step="2"], [data-step="3"]) .n-team .note-body { display: none; }
   .hero-app:is([data-step="2"], [data-step="3"]) .n-team { padding-top: 7px; padding-bottom: 7px; }
 }
 
