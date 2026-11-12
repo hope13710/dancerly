@@ -1142,6 +1142,7 @@ a {
   }
   .note:hover .note-actions .quiet,
   .note:focus-within .note-actions .quiet,
+  .note .note-actions .note-more[open],
   .note.selected .note-actions .quiet {
     opacity: 1;
   }
@@ -8180,9 +8181,12 @@ body.is-onboarding .tabbar {
   justify-content: center;
 }
 .note-more .tabs-more-menu {
-  top: calc(100% + 4px);
-  right: 0;
-  left: auto;
+  position: fixed; /* placed next to ⋯ by review.js, so the scrolling list can't cut it off */
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  z-index: 60;
   min-width: 170px;
   background: #232935;
   border-color: #343b48;
@@ -9368,7 +9372,8 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     transition: opacity 0.15s ease;
   }
   .note:hover .note-actions:not(:has(> :not(.quiet))),
-  .note:focus-within .note-actions:not(:has(> :not(.quiet))) {
+  .note:focus-within .note-actions:not(:has(> :not(.quiet))),
+  .note .note-actions:has(.note-more[open]) {
     opacity: 1;
     pointer-events: auto;
   }

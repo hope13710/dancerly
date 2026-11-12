@@ -199,7 +199,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     // Keep half-typed replies (and focus) across live refreshes.
     const drafts = Object.fromEntries([...list.querySelectorAll('[data-reply-form]')].map((f) => [f.dataset.replyForm, f.elements.namedItem('reply').value]));
     const focused = document.activeElement?.closest?.('[data-reply-form]')?.dataset.replyForm;
+    // An open ⋯ menu stays open when the list refreshes underneath it.
+    const menuOpen = list.querySelector('.note-more[open]')?.closest('[data-note]')?.dataset.note;
     queueMicrotask(() => {
+      if (menuOpen) { const d = list.querySelector(`[data-note="${menuOpen}"] .note-more`); if (d) d.open = true; }
       for (const [id, value] of Object.entries(drafts)) { const input = list.querySelector(`[data-reply-form="${id}"] input`); if (input && value) input.value = value; }
       if (focused) list.querySelector(`[data-reply-form="${focused}"] input`)?.focus();
     });
@@ -829,9 +832,32 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       if (error) return toast(friendlyError(error), 'error');
       return loadNotes();
     }
-    if (!e.target.closest('button')) { r.selected = id; paintNotes(); }
+    if (!e.target.closest('button, summary, details')) { r.selected = id; paintNotes(); }
   }
   view.addEventListener('click', onClick);
+  // A note's ⋯ menu opens next to its button, above the scrolling list (which would cut it off), and upward
+  // when there's no room below. Scrolling closes it, as Notion's and Slack's menus do.
+  view.addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (!d.matches?.('.note-more') || !d.open) return;
+    const menu = d.querySelector('.tabs-more-menu');
+    const at = d.querySelector('summary').getBoundingClientRect();
+    const h = menu.offsetHeight, w = menu.offsetWidth;
+    const below = at.bottom + 4 + h <= innerHeight - 8;
+    menu.style.top = `${below ? at.bottom + 4 : Math.max(8, at.top - 4 - h)}px`;
+    menu.style.left = `${Math.min(Math.max(8, at.right - w), innerWidth - w - 8)}px`;
+  }, true);
+  const closeNoteMenus = (e) => {
+    if (e.target.closest?.('.note-more .tabs-more-menu')) return;
+    view.querySelectorAll('.note-more[open]').forEach((d) => { d.open = false; });
+  };
+  // The page scrolling (phones) or a click elsewhere closes it too; these stop once the page is left.
+  const away = (e) => {
+    if (!view.isConnected) { document.removeEventListener('click', away); removeEventListener('scroll', away, true); return; }
+    if (e.type === 'click' ? !e.target.closest('.note-more') : true) closeNoteMenus(e);
+  };
+  document.addEventListener('click', away);
+  addEventListener('scroll', away, true);
 
   // Replies: one line, Enter sends. Private threads stay between the two people (enforced by the database).
   async function onReply(e) {
