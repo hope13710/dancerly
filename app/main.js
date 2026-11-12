@@ -30,12 +30,14 @@ import { renderProjects, createProject, renderProject, renderProjectNotes, rende
 import { ic } from './icons.js';
 import { skeletonHtml } from './skeleton.js';
 import { offerInstall, noteOpenDay, paintEntries } from './install.js';
+import { watchForUpdates, reloadIfUpdated } from './update.js';
 
 const view = $('[data-view]');
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
 // Add to Home Screen (install.js): offered once on phones, right after an upload or on the third day of use.
 window.addEventListener('dancerly:uploaded', () => offerInstall('upload'));
 queueMicrotask(paintEntries); // the account menu's Install app, once the page is up
+watchForUpdates(); // a deploy since this page loaded: switch over on the next page change (update.js)
 let openDayNoted = false;
 // Bumped on every navigation, so a slow page's placeholder never lands on the page that replaced it.
 let routeTicket = 0;
@@ -119,6 +121,8 @@ document.addEventListener('click', async (event) => {
 });
 
 async function route() {
+  // A newer version is out and nothing's in progress: load this page fresh from it instead.
+  if (reloadIfUpdated()) return;
   if (state.cleanup) { state.cleanup(); state.cleanup = null; }
   const path = location.pathname;
   const match = routes.map((r) => ({ r, m: path.match(r.re) })).find((x) => x.m);

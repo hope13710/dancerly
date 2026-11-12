@@ -304,6 +304,7 @@ function dropMenu({ title, actions, anchor, label }) {
 // One shared upload bar, so people can keep working while a take uploads.
 // Closing the tab mid-upload asks first; picking the same file again later resumes it.
 let uploading = 0;
+export const isUploading = () => uploading > 0;
 window.addEventListener('beforeunload', (e) => { if (uploading) { e.preventDefault(); e.returnValue = ''; } });
 export async function withUploadBar(label, task) {
   const bar = $('[data-upload-bar]');

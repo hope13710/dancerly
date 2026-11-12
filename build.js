@@ -9,4 +9,6 @@ await Promise.all(files.map((file) => cp(file, `dist/${file}`)));
 await cp('app', 'dist/app', { recursive: true });
 await cp('public', 'dist', { recursive: true });
 await writeFile('dist/sitemap.xml', await buildSitemap());
+// The deployed version: the app compares it with the one it started with (app/update.js).
+await writeFile('dist/version.json', JSON.stringify({ v: process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now()) }));
 console.log(`Built ${files.length} files and the app/ folder into dist/`);
