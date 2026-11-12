@@ -3081,9 +3081,9 @@ ul.todo.compact li {
   background: #dcdcfa;
 }
 .cite-pop {
-  position: absolute;
+  position: fixed; /* placed next to its chip by recaps.js */
   z-index: 60;
-  width: 320px;
+  width: min(320px, calc(100vw - 24px));
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -9409,4 +9409,25 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
     height: 44px;
     transform: translate(-50%, -50%);
   }
+}
+
+/* Phones and tablets:
+   • Text fields use 16px text: smaller, and iPhone zooms the page in when you tap into one (and stays zoomed).
+   • A quick second tap on a button doesn't zoom in (double-tap zoom); pinching to zoom still works. */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+button,
+a,
+summary,
+label,
+input,
+select,
+textarea,
+[role='button'] {
+  touch-action: manipulation;
 }

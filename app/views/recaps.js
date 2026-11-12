@@ -483,7 +483,10 @@ export async function renderRecap(recapId) {
 
 // Tap a [n] chip: the note behind the sentence, and a link to play that moment.
 export function wireCitations(r, root = document) {
-  const pop = $('[data-pop]', root) || Object.assign(document.body.appendChild(document.createElement('div')), { className: 'cite-pop' });
+  // One popup, on the page itself: inside the recap it was placed twice as far right and widened the page,
+  // which made phones zoom out.
+  $$('[data-pop]', root).forEach((el) => { if (el.parentElement !== document.body) el.remove(); });
+  const pop = document.querySelector('body > [data-pop]') || Object.assign(document.body.appendChild(document.createElement('div')), { className: 'cite-pop', hidden: true });
   pop.setAttribute('data-pop', '');
   $$('[data-cite]', root).forEach((chip) => chip.addEventListener('click', (event) => {
     event.preventDefault();
@@ -495,16 +498,19 @@ export function wireCitations(r, root = document) {
       <p>${esc(s.body)}</p>
       <a class="link" href="/app/p/${r.project_id}/v/${s.video_id}?take=${s.take_number ?? ''}&note=${s.note_id}" data-link>${ic('play')}Play this moment</a>`;
     pop.hidden = false;
+    // Next to the chip, kept on screen: below it, or above when there's no room.
     const box = chip.getBoundingClientRect();
-    const left = Math.min(Math.max(12, box.left + window.scrollX - 20), window.scrollX + document.documentElement.clientWidth - 332);
-    pop.style.left = `${left}px`;
-    pop.style.top = `${box.bottom + window.scrollY + 8}px`;
+    const vw = document.documentElement.clientWidth, w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = `${Math.min(Math.max(12, box.left - 20), vw - w - 12)}px`;
+    pop.style.top = `${box.bottom + 8 + h <= innerHeight - 12 ? box.bottom + 8 : Math.max(12, box.top - 8 - h)}px`;
   }));
 }
 document.addEventListener('click', (e) => {
   const pop = document.querySelector('[data-pop]');
   if (pop && !e.target.closest('[data-pop]')) pop.hidden = true;
 });
+// It stays by its chip: scrolling closes it.
+addEventListener('scroll', () => { const pop = document.querySelector('[data-pop]'); if (pop) pop.hidden = true; }, { capture: true, passive: true });
 
 // ---------- Home card ----------
 const RECAP_MIN_NOTES = 3;
