@@ -342,6 +342,8 @@ export const KO = {
   'Merge': '합치기',
   'Marked as practicing.': '상태를 ‘연습 중’으로 변경했어요.',
   'Note reopened.': '피드백을 다시 열었어요.',
+  'Practicing cleared.': '‘연습 중’을 해제했어요.',
+  'Clear “Practicing”': '‘연습 중’ 해제',
   'Private: only the two of you': '비공개 · 두 사람만 볼 수 있어요',
   'Shift+N': 'Shift+N',
 

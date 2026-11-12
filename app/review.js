@@ -242,6 +242,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
             ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
             ${n.status === 'open' ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
+            ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Practicing”</button>` : ''}
             ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>
         </div>
@@ -817,12 +818,24 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       return loadNotes();
     }
     if (el.dataset.status) {
-      const { error } = await sb.rpc('set_note_status', { p_note: id, p_status: el.dataset.status });
+      const to = el.dataset.status, from = note.status;
+      const { error } = await sb.rpc('set_note_status', { p_note: id, p_status: to });
       if (error) return toast(friendlyError(error), 'error');
-      toast(el.dataset.status === 'resolved' ? `Correction landed · ${noteTime(note)}` : el.dataset.status === 'practicing' ? 'Marked as practicing.' : 'Note reopened.');
+      // Fixing a note or "I'm on it" can be undone right there, like Gmail and Linear: back to how it was.
+      // (Reopening and clearing are themselves the undo, so they don't offer one.)
+      const undo = to === 'resolved' || to === 'practicing' ? { label: 'Undo', run: async () => {
+        const { error: again } = await sb.rpc('set_note_status', { p_note: id, p_status: from });
+        if (again) return toast(friendlyError(again), 'error');
+        toast(to === 'resolved' ? 'Note reopened.' : 'Practicing cleared.');
+        loadNotes();
+      } } : null;
+      toast(to === 'resolved' ? `Correction landed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as practicing.' : from === 'practicing' ? 'Practicing cleared.' : 'Note reopened.', 'info', undo);
       await loadNotes();
-      // The last open note on this video just got fixed: offer a progress card, once.
-      if (el.dataset.status === 'resolved' && !r.notes.some((n) => !n.private_to && n.status !== 'resolved')) celebrate({ projectId, videoId });
+      // The last open note on this video just got fixed: offer a progress card, once, after Undo has had its
+      // moment (8 seconds), and only if it's still fixed.
+      if (to === 'resolved' && !r.notes.some((n) => !n.private_to && n.status !== 'resolved')) {
+        setTimeout(() => { if (view.isConnected && r.notes.find((n) => n.id === id)?.status === 'resolved') celebrate({ projectId, videoId }); }, 8000);
+      }
       return;
     }
     if (el.dataset.delete) {
