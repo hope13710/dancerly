@@ -1057,6 +1057,7 @@ a {
   place-items: center;
   width: 28px;
   height: 28px;
+  padding: 0; /* the browser's button padding left the icon less room than its size, off center (iPhone most) */
   border-radius: 50%;
   border: 1.5px solid #4a5263;
   background: transparent;
