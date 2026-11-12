@@ -6,6 +6,14 @@ import { empty, namesFor } from './shared.js';
 import { ic } from '../icons.js';
 
 // A small, safe Markdown subset: everything is escaped first, then a few patterns become tags.
+// A page whose text opens with its own title as a heading ("# This week" under the title "This week", common
+// when pasting from Notes or Notion) shows the title once.
+const withoutTitle = (body, title) => {
+  const [first, ...rest] = (body || '').split('\n');
+  const heading = first.match(/^#{1,2}\s+(.+?)\s*$/);
+  return heading && heading[1].toLowerCase() === (title || '').trim().toLowerCase() ? rest.join('\n').replace(/^\s*\n/, '') : body;
+};
+
 export function markdown(src) {
   const inline = (t) => esc(t)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -45,7 +53,7 @@ export async function renderProjectPages(projectId) {
     ${projectHead(p, 'pages', '<button class="btn primary" data-new-page>+ New page</button>')}
     ${pages.length ? `<div class="list">${pages.map((pg) => `<a class="row" href="/app/p/${projectId}/pages/${pg.id}" data-link>
         <span class="page-icon">${ic(pg.pinned ? 'pin' : 'file', 'solo')}</span>
-        <span class="row-main"><span class="row-title">${esc(pg.title)}</span><span class="row-meta">${esc(pg.body.replace(/[#*>`\-[\]]/g, '').trim().slice(0, 110)) || 'Empty page'}</span></span>
+        <span class="row-main"><span class="row-title">${esc(pg.title)}</span><span class="row-meta">${esc(withoutTitle(pg.body, pg.title).replace(/[#*>`\-[\]]/g, '').trim().slice(0, 110)) || 'Empty page'}</span></span>
         <span class="row-side"><small>${esc(names[pg.updated_by] || '')} · ${timeAgo(pg.updated_at)}</small><span class="chev">${ic('right', 'solo')}</span></span></a>`).join('')}</div>`
       : empty('file', 'No pages yet', 'Keep the plan in one place: practice schedule, spacing, costumes, music cues. Everyone on the project can read and edit.', '<button class="btn primary" data-new-page>+ New page</button>')}
   </section>`;
@@ -84,9 +92,9 @@ export async function renderPage(projectId, pageId) {
     ${editing ? `<input class="doc-title-input" data-title maxlength="120" value="${esc(page.title)}" aria-label="Title" />
       <div class="doc-editor">
         <textarea data-body placeholder="Write in plain text. # Heading, - list, - [ ] checklist, **bold**, [link](https://…)" aria-label="Page">${esc(page.body)}</textarea>
-        <article class="doc" data-preview aria-label="Preview">${markdown(page.body) || '<p class="muted">Preview shows here.</p>'}</article>
+        <article class="doc" data-preview aria-label="Preview">${markdown(withoutTitle(page.body, page.title)) || '<p class="muted">Preview shows here.</p>'}</article>
       </div>`
-      : `<h1 class="doc-title">${esc(page.title)}</h1><article class="doc">${markdown(page.body) || `<p class="muted">This page is empty. <a class="link" href="?edit=1" data-link>Start writing${ic('right', 'after')}</a></p>`}</article>`}
+      : `<h1 class="doc-title">${esc(page.title)}</h1><article class="doc">${markdown(withoutTitle(page.body, page.title)) || `<p class="muted">This page is empty. <a class="link" href="?edit=1" data-link>Start writing${ic('right', 'after')}</a></p>`}</article>`}
   </section>`;
 
   $('[data-pin]').addEventListener('click', async () => {
@@ -118,7 +126,7 @@ export async function renderPage(projectId, pageId) {
     state.classList.toggle('error', Boolean(e));
   };
   const queue = () => { pending = true; state.textContent = 'Editing…'; clearTimeout(timer); timer = setTimeout(save, 700); };
-  bodyEl.addEventListener('input', () => { $('[data-preview]').innerHTML = markdown(bodyEl.value) || '<p class="muted">Preview shows here.</p>'; queue(); });
+  bodyEl.addEventListener('input', () => { $('[data-preview]').innerHTML = markdown(withoutTitle(bodyEl.value, $('[data-title]').value)) || '<p class="muted">Preview shows here.</p>'; queue(); });
   titleEl.addEventListener('input', queue);
   // Enter in the title moves on to writing, the way Notion and Google Docs do.
   titleEl.addEventListener('keydown', (e) => { if (isEnter(e)) { e.preventDefault(); bodyEl.focus(); } });
