@@ -9285,3 +9285,25 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
 [data-install-app][hidden] {
   display: none !important;
 }
+
+/* Which browser the steps are for, switchable when we guessed wrong. */
+.install-browsers {
+  margin: 18px 0 0;
+}
+.install-browsers .chip {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.install-browsers .chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.install-browsers + .install-steps {
+  margin-top: 14px;
+}

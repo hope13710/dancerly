@@ -24,7 +24,14 @@ const isIos = () => /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacI
 const inAppBrowser = () => /Instagram|FBAN|FBAV|KAKAOTALK|Line\/|TikTok|musical_ly|Snapchat|; wv\)/i.test(ua);
 const offered = () => { try { return localStorage.getItem(KEY) === 'shown'; } catch { return true; } };
 
-// Which browser's steps to show.
+// The browsers whose steps people can switch between, per platform (detection can be wrong: an iPad asking
+// for desktop sites looks like a Mac, some Android browsers say they're Chrome).
+const CHOICES = {
+  ios: [['ios-safari', 'Safari'], ['ios-other', 'Chrome · Edge · Firefox']],
+  android: [['android', 'Chrome · Edge'], ['samsung', isKo ? '삼성 인터넷' : 'Samsung Internet'], ['firefox', 'Firefox']],
+};
+
+// Which browser's steps to show first.
 function browser() {
   if (isIos()) return /CriOS|FxiOS|EdgiOS/.test(ua) ? 'ios-other' : 'ios-safari';
   if (/SamsungBrowser/.test(ua)) return 'samsung';
@@ -112,8 +119,9 @@ function steps(kind) {
 }
 
 export function showInstall(reason) {
-  const kind = browser();
+  let kind = browser();
   const oneTap = Boolean(deferred); // Chrome, Edge, Samsung Internet, Opera: the browser's own prompt
+  const choices = CHOICES[kind.startsWith('ios') ? 'ios' : 'android'];
   const [title, body] = copy(reason);
   const el = document.createElement('dialog');
   el.className = 'dialog sheet install-sheet';
@@ -121,7 +129,8 @@ export function showInstall(reason) {
     <img class="install-icon" src="/icon-192.png" alt="" width="56" height="56" />
     <h2>${title}</h2>
     <p class="muted">${body}</p>
-    ${oneTap ? '' : `<ol class="install-steps">${steps(kind).join('')}</ol>`}
+    ${oneTap ? '' : `<div class="install-browsers chips" role="group" aria-label="${isKo ? '브라우저' : 'Browser'}">${choices.map(([k, label]) => `<button type="button" class="chip" data-browser="${k}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
+    <ol class="install-steps" data-steps>${steps(kind).join('')}</ol>`}
     <div class="dialog-actions">
       <button type="button" class="btn ghost" data-later>${isKo ? '나중에' : 'Not now'}</button>
       ${oneTap ? `<button type="button" class="btn primary" data-install>${isKo ? '설치하기' : 'Install'}</button>` : `<button type="button" class="btn primary" data-later>${isKo ? '확인' : 'Got it'}</button>`}
@@ -135,6 +144,13 @@ export function showInstall(reason) {
   card.focus({ preventScroll: true });
   track('install_offered', { reason, browser: kind, one_tap: oneTap });
   el.querySelectorAll('[data-later]').forEach((b) => b.addEventListener('click', () => el.close()));
+  // Another browser than the one we guessed: its steps instead.
+  el.querySelectorAll('[data-browser]').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.browser;
+    el.querySelectorAll('[data-browser]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    el.querySelector('[data-steps]').innerHTML = steps(kind).join('');
+    track('install_browser_switched', { browser: kind });
+  }));
   el.addEventListener('click', (e) => { if (e.target === el) el.close(); });
   el.querySelector('[data-install]')?.addEventListener('click', async () => {
     const prompt = deferred;
