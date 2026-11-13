@@ -180,7 +180,9 @@ async function teamPulse(r) {
   const counts = {};
   for (const n of open) if (n.category && n.category !== 'other') counts[n.category] = (counts[n.category] || 0) + 1;
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  const since = String(r.cycle || '').startsWith('rehearsal:') ? 'practice' : String(r.cycle || '').startsWith('week:') ? 'week' : 'period';
+  const cycle = String(r.cycle || '');
+  // The sample's team recap covers its last week, like a weekly one.
+  const since = cycle.startsWith('rehearsal:') ? 'practice' : cycle.startsWith('week:') || cycle === 'sample' ? 'week' : 'period';
   return { fixed, open: open.length, top: top && top[1] >= 2 ? top[0] : null, since };
 }
 function pulseText(p) {
@@ -389,7 +391,7 @@ export async function renderRecap(recapId) {
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${r.team && !newer ? `<span class="fine">${ic('check')}Up to date</span>` : ''}
-        ${r.team && isOwner && !sampleProject ? `<a class="btn small ghost" href="/app/p/${r.project_id}/overview" data-link>How it’s going${ic('right', 'after')}</a>` : ''}
+        ${r.team && isOwner ? `<a class="btn small ghost" href="/app/p/${r.project_id}/overview" data-link>How it’s going${ic('right', 'after')}</a>` : ''}
         ${mine || (r.team && isOwner) ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
       </footer>
       ${cited.length ? `<details class="recap-sources"><summary>Sources · ${cited.length} ${cited.length === 1 ? 'note' : 'notes'} cited</summary><ol>${cited.map((src) => `<li><span class="src-n">${src.n}</span><a href="/app/p/${r.project_id}/v/${src.video_id}?take=${src.take_number ?? ''}&note=${src.note_id}" data-link><span class="row-meta"><b>${esc(src.author)}</b> · ${esc(src.video_title)}${src.take_number ? ` · Take ${src.take_number}` : ''} · <span class="time-tag">${src.t_end === null ? fmt(src.t_start) : `${fmt(src.t_start)}–${fmt(src.t_end)}`}</span></span><span>${esc(src.body)}</span></a></li>`).join('')}</ol></details>` : ''}
