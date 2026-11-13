@@ -721,15 +721,24 @@ async function renderJoin(code) {
   const signedIn = Boolean(state.session);
   // Coming back from signing up or in for this invite: join straight away instead of asking again.
   const auto = new URLSearchParams(location.search).get('auto') === '1';
-  const back = `/app/join/${code}?auto=1`;
+  // What the link was shared for (a team recap posted in the group chat): opened right after joining.
+  const thenParam = new URLSearchParams(location.search).get('then') || '';
+  const then = /^\/app\/recaps\/[0-9a-f-]{36}$/.test(thenParam) ? thenParam : '';
+  const back = `/app/join/${code}?auto=1${then ? `&then=${encodeURIComponent(then)}` : ''}`;
   const join = async () => {
     if (!state.profile) return renderName();
     const { data: projectId, error: joinErr } = await sb.rpc('accept_invite', { p_code: code });
     if (joinErr) return toast(friendlyError(joinErr), 'error');
+    if (then) return navigate(then, { replace: true });
     // The project page greets them with what to do first.
     state.justJoined = projectId;
     navigate(`/app/p/${projectId}`, { replace: true });
   };
+  // Already on the team (they can open it): straight to what was shared, no invite screen.
+  if (signedIn && then) {
+    const { data: seen } = await sb.from('recaps').select('id').eq('id', then.split('/').pop()).maybeSingle();
+    if (seen) return navigate(then, { replace: true });
+  }
   if (signedIn && auto) {
     view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="card-mark big">${esc(initials(invite.project_title))}</div><h1>Joining ${esc(invite.project_title)}…</h1></div></section>`;
     return join();

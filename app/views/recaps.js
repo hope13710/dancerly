@@ -163,8 +163,8 @@ function chatMessage(r, link, invite, pulse = null) {
     `${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
     pulse ? pulseText(pulse) : '',
     next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
-    `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${link}`,
-    invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not in this project yet? Join here'}: ${invite}` : ''
+    // One link for everyone: teammates land on the recap, anyone not on the team yet joins first, then lands there.
+    `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${invite ? `${invite}?then=${encodeURIComponent(new URL(link).pathname)}` : link}`
   ].filter(Boolean).join('\n');
 }
 
@@ -346,7 +346,12 @@ export async function renderRecap(recapId) {
   const { data: raw, error } = await sb.from('recaps').select(SELECT()).eq('id', recapId).maybeSingle();
   if (error) throw error;
   const r = localize(raw);
-  if (!r) throw new Error('This recap isn’t available. It may be private or deleted.');
+  // Not on that project (or it was deleted): not an error to report, just a way forward.
+  if (!r) {
+    setCrumbs([['Recaps', '/app/me/recaps'], ['Recap']]);
+    view.innerHTML = `<section class="page narrow-wide">${empty('recap', 'This recap isn’t available to you', 'It belongs to a project you’re not in, or it was deleted. If your team shared it, ask them for the project’s invite link.', '<a class="btn" href="/app" data-link>Go to Home</a>')}</section>`;
+    return;
+  }
   setCrumbs([['Projects', '/app/projects'], [r.projects?.title || 'Project', `/app/p/${r.project_id}`], ['Recaps', `/app/p/${r.project_id}/recaps`], [r.content?.headline ? 'Recap' : 'Recap']]);
   const names = await namesFor([r.created_by]);
   const mine = r.created_by === me && !r.team;
