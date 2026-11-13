@@ -69,7 +69,7 @@ for (const [file, size, opts] of outputs) {
   console.log('wrote', file);
 }
 
-// iPhone launch images (Home Screen app): the app icon, 120pt, in the middle of the app's background, the same
+// iPhone and iPad launch images (Home Screen app): the app icon, 120pt, in the middle of the app's background, the same
 // picture Android draws from the manifest and the app shows until its first screen (app/index.html, .boot).
 // iPhone only uses an image made for its exact screen, so one per screen size, portrait. [css width, height, scale]
 const SPLASH_BG = '#F7F8FA';
@@ -87,15 +87,33 @@ const SCREENS = [
   [414, 736, 3], // 8 Plus
   [375, 667, 2], // SE (2nd and 3rd), 8
 ];
+// iPads, held either way: one image per orientation.
+const IPADS = [
+  [1032, 1376, 2], // Pro 13" (M4), Air 13"
+  [1024, 1366, 2], // Pro 12.9"
+  [834, 1210, 2], // Pro 11" (M4)
+  [834, 1194, 2], // Pro 11"
+  [820, 1180, 2], // Air 10.9"/11", iPad 10th gen and A16
+  [834, 1112, 2], // Air 10.5", Pro 10.5"
+  [810, 1080, 2], // iPad 10.2" (7th–9th gen)
+  [768, 1024, 2], // mini 7.9", iPad 9.7"
+  [744, 1133, 2], // mini 8.3" (6th gen and later)
+];
+const LAUNCH = [
+  ...SCREENS.map(([w, h, dpr]) => ['iphone', w, h, dpr, 'portrait']),
+  ...IPADS.flatMap(([w, h, dpr]) => [['ipad', w, h, dpr, 'portrait'], ['ipad', w, h, dpr, 'landscape']]),
+];
 await mkdir('public/splash', { recursive: true });
 const tags = [];
-for (const [w, h, dpr] of SCREENS) {
-  const file = `splash/iphone-${w * dpr}x${h * dpr}.png`;
-  const shot = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
+for (const [kind, w, h, dpr, orientation] of LAUNCH) {
+  // device-width/height are the portrait size either way; a landscape image is that size turned on its side.
+  const [vw, vh] = orientation === 'portrait' ? [w, h] : [h, w];
+  const file = `splash/${kind}-${vw * dpr}x${vh * dpr}.png`;
+  const shot = await browser.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr });
   await shot.setContent(`<html><body style="margin:0;height:100vh;display:grid;place-items:center;background:${SPLASH_BG}"><div style="width:120px;height:120px">${svg({ size: 120 })}</div></body></html>`);
   await shot.screenshot({ path: `public/${file}` });
   await shot.close();
-  tags.push(`    <link rel="apple-touch-startup-image" href="/${file}" media="(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)" />`);
+  tags.push(`    <link rel="apple-touch-startup-image" href="/${file}" media="(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: ${orientation})" />`);
   console.log('wrote', `public/${file}`);
 }
 await browser.close();
