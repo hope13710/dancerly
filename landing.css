@@ -785,3 +785,10 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .ic { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.22em; margin-inline-end: 0.35em; }
 .ic .f { fill: currentColor; stroke: none; }
 .ic.solo { margin-inline-end: 0; }
+
+/* Trust › Phone-first: dancerly among a phone's apps, the way it sits once added to the Home Screen. */
+.home-strip { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px 10px; border-radius: 12px; background: var(--soft, #f1f2f6); }
+.home-strip i { width: 22px; height: 22px; border-radius: 6px; background: #d9dce4; }
+.home-strip img { width: 30px; height: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(73, 72, 212, 0.25); }
+/* Final call to action: the app icon above the last line, the way people will see it on their phone. */
+.final-icon { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 10px 30px -8px rgba(91, 92, 226, 0.6); }
