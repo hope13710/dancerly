@@ -9472,3 +9472,22 @@ textarea,
     display: none;
   }
 }
+
+/* Project › Overview › How it's going: the Insights picture for one project, under the project's numbers. */
+.ins-embed-head {
+  margin: var(--space-32) 0 var(--space-12);
+}
+.ins-embed-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.ins-embed-head .muted {
+  margin: var(--space-4) 0 0;
+}
+.ins-embed-loading {
+  height: 160px;
+  border-radius: var(--radius);
+}
+.ins-embed-empty {
+  margin-bottom: var(--space-24);
+}

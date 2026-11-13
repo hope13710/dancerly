@@ -56,20 +56,25 @@ function hotSpots(video, notes, takesOfVideo) {
 }
 
 const askedToSort = new Set();
-export async function renderInsights() {
-  const { state, view, setCrumbs, navigate } = ctx;
-  setCrumbs([['Insights']]);
+// The Insights page (all your projects, or one picked in the filter), or, with `root`, the same picture for one
+// project drawn inside that project's Overview ("How it's going"): there the team is the subject, so the page's own
+// header, project filter and sample walkthrough stay out, and the range links keep you on the project.
+export async function renderInsights({ projectId: inProject = null, root = null } = {}) {
+  const { state, view: pageView, setCrumbs, navigate } = ctx;
+  const embedded = Boolean(root);
+  const view = root || pageView;
+  if (!embedded) setCrumbs([['Insights']]);
   await state.projectsReady;
   const params = new URLSearchParams(location.search);
   const days = RANGES.some(([d]) => d === params.get('range')) ? Number(params.get('range')) : 30;
-  const project = params.get('project') || '';
+  const project = inProject || params.get('project') || '';
   const url = (changes) => {
-    const next = new URLSearchParams({ range: String(days), ...(project ? { project } : {}), ...changes });
+    const next = new URLSearchParams({ range: String(days), ...(project && !embedded ? { project } : {}), ...changes });
     if (!next.get('project')) next.delete('project');
-    return `/app/insights?${next}`;
+    return `${embedded ? location.pathname : '/app/insights'}?${next}`;
   };
   const sample = state.projects.find((p) => p.is_sample);
-  const demo = Boolean(sample && project === sample.id);
+  const demo = !embedded && Boolean(sample && project === sample.id);
   // Everything is scoped to one project, or to all projects except the sample.
   const scope = (q) => (project ? q.eq('project_id', project) : sample ? q.neq('project_id', sample.id) : q);
 
@@ -84,7 +89,7 @@ export async function renderInsights() {
   if (error || tErr) throw error || tErr;
 
   // No data of your own yet: show what this page does, using the sample project.
-  if (!project && !notes.length && !takes.length && sample) return navigate(url({ project: sample.id }), { replace: true });
+  if (!embedded && !project && !notes.length && !takes.length && sample) return navigate(url({ project: sample.id }), { replace: true });
 
   const me = state.session?.user?.id;
   const since = Date.now() - days * DAY;
@@ -266,14 +271,14 @@ export async function renderInsights() {
         ${s.unaligned ? `<p class="fine left">${s.unaligned} ${s.unaligned === 1 ? 'note' : 'notes'} from earlier takes placed by time only — opening the latest take lines them up.</p>` : ''}
       </div>`;
 
-  view.innerHTML = `<section class="page">
-    ${pageHead('Insights', { sub: 'What to work on next, from your feedback' })}
+  view.innerHTML = `<section class="${embedded ? 'ins-embed' : 'page'}">
+    ${embedded ? '<div class="ins-embed-head"><h2>How it’s going</h2><p class="muted">What to work on next, from this project’s notes</p></div>' : pageHead('Insights', { sub: 'What to work on next, from your feedback' })}
     ${demo ? teamNote('insights') : ''}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
-      ${state.projects.length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
+      ${state.projects.length > 1 && !embedded ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
-    ${!hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
+    ${!hasData && embedded ? '<p class="panel-empty ins-embed-empty">Once the team uploads a take and leaves a few notes, you’ll see here what to work on next and what got better.</p>' : !hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
     <p class="ins-summary" data-no-i18n>${summary}</p>
 
     <section class="panel insight-lines next-panel">
@@ -331,7 +336,7 @@ export async function renderInsights() {
     </section>` : ''}`}
   </section>`;
 
-  $('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
+  view.querySelector('[data-project]')?.addEventListener('change', (event) => navigate(url({ project: event.target.value })));
 
   // A list of notes in a sheet: the stuck ones, or one focus area (open first, then fixed in this range).
   const sheet = (title, list) => {
@@ -374,14 +379,14 @@ export async function renderInsights() {
   if (ask.length) {
     ask.forEach((id) => askedToSort.add(id));
     sb.functions.invoke('classify-notes', { body: { note_ids: ask } }).then(({ data }) => {
-      if (data?.classified?.length && location.pathname === '/app/insights') renderInsights();
+      if (data?.classified?.length && view.isConnected && (embedded || location.pathname === '/app/insights')) renderInsights({ projectId: inProject, root });
     });
   }
   // The demo is the sample, so it gets the sample's bar (and, the first time, what to take from it).
   if (demo) { ctx.sampleBar(sample); sampleMoment('insights'); }
-  const chart = $('[data-chart]');
+  const chart = view.querySelector('[data-chart]');
   if (!chart) return;
-  const tip = $('[data-tip]');
+  const tip = view.querySelector('[data-tip]');
   const show = (col) => {
     const b = buckets[Number(col.dataset.i)];
     tip.replaceChildren();

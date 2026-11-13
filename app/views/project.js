@@ -106,8 +106,8 @@ export async function loadProject(projectId) {
 
 // Four tabs people use every week; the rest one tap away under More, and Settings as a gear (Hick's law:
 // nine equal tabs made every visit a choice, and on phones most of them were off screen).
-const MAIN_TABS = [['videos', 'Videos', ''], ['notes', 'Notes', '/notes'], ['requests', 'Assignments', '/requests'], ['people', 'People', '/people']];
-const MORE_TABS = [['overview', 'Overview', '/overview'], ['calendar', 'Calendar', '/calendar'], ['recaps', 'Recaps', '/recaps'], ['pages', 'Pages', '/pages']];
+const MAIN_TABS = [['videos', 'Videos', ''], ['notes', 'Notes', '/notes'], ['requests', 'Assignments', '/requests'], ['people', 'People', '/people'], ['overview', 'Overview', '/overview']];
+const MORE_TABS = [['calendar', 'Calendar', '/calendar'], ['recaps', 'Recaps', '/recaps'], ['pages', 'Pages', '/pages']];
 function projectTabs(base, current) {
   const link = ([key, label, path]) => `<a href="${base}${path}" data-link ${key === current ? 'aria-current="page"' : ''}>${esc(label)}</a>`;
   const inMore = MORE_TABS.find(([key]) => key === current);

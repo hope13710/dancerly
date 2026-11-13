@@ -6,6 +6,7 @@ import { kindClass, daysUntil, daysLabel } from './shared.js';
 import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
 import { ic } from '../icons.js';
+import { renderInsights } from './insights.js';
 
 const STATUS = [['learning', 'Learning'], ['practicing', 'Practicing'], ['clean', 'Clean']];
 
@@ -45,6 +46,7 @@ export async function renderProjectOverview(projectId) {
       <a class="stat link-stat" href="/app/p/${projectId}/requests" data-link><small>Open assignments</small><b>${requests?.length ?? 0}</b><span>${requests?.[0]?.due_at ? `Next due ${new Date(requests[0].due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'videos asked for'}</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/people" data-link><small>People</small><b>${p.members.length}</b><span>on this project</span></a>
     </div>
+    <div data-project-insights><div class="ins-embed-head"><h2>How it’s going</h2></div><span class="sk ins-embed-loading" aria-hidden="true"></span></div>
     <div class="home-grid">
       <section class="panel">
         <div class="panel-head"><div><h2>Coming up</h2></div><a class="link" href="/app/p/${projectId}/calendar" data-link>Calendar${ic('right', 'after')}</a></div>
@@ -56,6 +58,9 @@ export async function renderProjectOverview(projectId) {
       </section>
     </div>
   </section>`;
+  // How it's going: the Insights picture for this project, filled in after the rest of the page is up.
+  const insightsHost = view.querySelector('[data-project-insights]');
+  renderInsights({ projectId, root: insightsHost }).catch(() => { if (insightsHost.isConnected) insightsHost.remove(); });
   // Any event on this page opens its details (and, for the owner, "Set as project goal").
   const byId = Object.fromEntries([...(events || []), ...(goal ? [goal] : [])].map((e) => [e.id, e]));
   $$('[data-event]').forEach((b) => b.addEventListener('click', () => showEvent(byId[b.dataset.event], () => renderProjectOverview(projectId), projectId)));
