@@ -49,7 +49,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const who = members.some((m) => m.user_id === id)
       ? `<a class="uploader" href="/app/people/${id}" data-link>${avatar(name, id, 'xs')}<span>${esc(name)}</span></a>`
       : esc(name);
-    return `<span data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}`}</span>`;
+    return `<span class="byline" data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}`}</span>`;
   };
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
@@ -80,7 +80,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   view.innerHTML = `<section class="review">
     <header class="review-head">
-      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'an assignment')}</a>` : ''} · ${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</p></div>
+      <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'an assignment')}</a>` : ''} <span class="meta-by"><span class="meta-sep">· </span>${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</span></p></div>
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video${ic('right', 'after')}</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">${ic('upload')}<span class="wide-only">Upload new take</span><span class="narrow-only">New take</span></button><button class="btn small wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">${ic('compare')}Compare</button><button class="btn small wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">${ic('more', 'solo')}</button></div>
     </header>

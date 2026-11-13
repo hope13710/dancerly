@@ -9450,3 +9450,25 @@ textarea,
   color: #e3e6ed;
   text-decoration: underline;
 }
+
+/* Under a video's title: the project, then who uploaded it and when. "uploaded by" stays with the person's photo
+   and name, lines are spaced for the photo, and on phones the uploader gets a line of its own (like YouTube) instead
+   of breaking wherever the width runs out. */
+.review-head p.muted {
+  line-height: 24px;
+}
+.byline,
+.meta-by {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .meta-by {
+    display: block;
+  }
+  .meta-by::first-letter {
+    text-transform: uppercase; /* "Uploaded by", now that it starts the line */
+  }
+  .meta-sep {
+    display: none;
+  }
+}
