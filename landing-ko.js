@@ -99,6 +99,8 @@ export const LANDING_KO = {
   "See how your team is doing": "팀이 어디쯤인지 한눈에",
   "Every project shows what to work on before the next practice, where notes pile up, and what’s getting fixed. Leaders also see who to check in with.": "프로젝트마다 다음 연습 전에 할 일, 피드백이 몰리는 구간, 해결되고 있는 것을 보여줘요. 리더에게는 챙겨야 할 멤버까지 보여요.",
   "Next up": "다음에 할 것",
+  'Demo steps': '데모 단계',
+  'Pause demo': '데모 일시정지',
   "Open notes pile up in": "미해결 피드백이 몰린 곳:",
   "Chorus": "코러스",
   "at": "·",

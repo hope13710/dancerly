@@ -162,19 +162,24 @@ if (video) {
   const fill = $('[data-hero-fill]');
   const head = $('[data-hero-head]');
   const badge = $('[data-hero-time]');
-  const tick = () => {
+  const draw = () => {
     const t = video.currentTime;
     if (step === 0 && t >= MOMENT) { video.pause(); video.currentTime = MOMENT; }
     if (step === 2 && t >= LOOP[1]) video.currentTime = LOOP[0];
     if (step === 3 && t >= NEXT_TAKE[1]) video.currentTime = NEXT_TAKE[0];
-    const pct = `${Math.min(100, (video.currentTime / DURATION) * 100)}%`;
-    fill.style.width = pct;
-    head.style.left = pct;
+    const share = Math.min(1, video.currentTime / DURATION);
+    fill.style.transform = `scaleX(${share})`;
+    head.style.left = `${share * 100}%`;
     now.textContent = clock(video.currentTime);
     badge.textContent = `${clock(video.currentTime)}.${Math.floor((video.currentTime % 1) * 10)}`;
-    requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  // The timeline only redraws while the video plays (it pauses off screen), and once after any jump.
+  let frame = 0;
+  const loop = () => { draw(); frame = requestAnimationFrame(loop); };
+  video.addEventListener('play', () => { cancelAnimationFrame(frame); loop(); });
+  video.addEventListener('pause', () => { cancelAnimationFrame(frame); draw(); });
+  video.addEventListener('seeked', draw);
+  video.addEventListener('loadedmetadata', draw);
 }
 
 let toolTimer = 0;
@@ -187,7 +192,7 @@ function show(next) {
   stageFor(step);
   demo.dataset.step = String(step);
   // Step 0 (typing + sketching) and 1 (pinned) are one chapter: "Note it and sketch it".
-  $$('[data-hero-step]').forEach((li) => li.classList.toggle('on', Number(li.dataset.heroStep) === Math.max(1, step)));
+  $$('[data-hero-step]').forEach((b) => { const on = Number(b.dataset.heroStep) === Math.max(1, step); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'step' : 'false'); });
   clearInterval(typing);
   clearTimeout(toolTimer);
   typed.textContent = '';
@@ -209,19 +214,61 @@ function show(next) {
 }
 if (reducedMotion) show(3);
 else {
+  // The demo plays on its own until someone takes over: picking a step stays on that step, and Pause stops it
+  // (anything that moves on its own for more than a few seconds needs a way to stop it).
+  let auto = true;
+  let stopped = false; // paused with the button: nothing moves until Play
+  let timer = 0;
+  const DURATIONS = [3400, 2200, 3400, 3000];
+  const pauseBtn = $('[data-hero-pause]');
+  const LABEL = { pause: { en: 'Pause demo', ko: '데모 일시정지' }, play: { en: 'Play demo', ko: '데모 재생' } };
+  const paintPause = () => {
+    const label = LABEL[auto ? 'pause' : 'play'];
+    pauseBtn.setAttribute('aria-pressed', String(!auto));
+    pauseBtn.setAttribute('data-en-aria-label', label.en); // what the language switch restores
+    pauseBtn.setAttribute('aria-label', label[lang]);
+  };
+  const schedule = () => {
+    clearTimeout(timer);
+    if (!auto) return;
+    timer = setTimeout(() => {
+      if (visible && !document.hidden) show((step + 1) % 4);
+      schedule();
+    }, DURATIONS[step]);
+  };
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     // Off screen, the video rests.
-    if (!visible) video?.pause(); else if (step !== 1) video?.play().catch(() => {});
+    if (!visible) video?.pause(); else if (step !== 1 && !stopped) video?.play().catch(() => {});
   }, { threshold: 0.2 }).observe(demo);
   show(0);
-  const DURATIONS = [3400, 2200, 3400, 3000];
-  const advance = () => {
-    if (visible && !document.hidden) show((step + 1) % 4);
-    setTimeout(advance, DURATIONS[step]);
-  };
-  setTimeout(advance, DURATIONS[0]);
+  schedule();
+  $$('[data-hero-step]').forEach((b) => b.addEventListener('click', () => {
+    const n = Number(b.dataset.heroStep);
+    auto = false;
+    stopped = false;
+    clearTimeout(timer);
+    show(n === 1 ? 0 : n);
+    paintPause();
+    track('hero_step_click', { step: n });
+  }));
+  pauseBtn.addEventListener('click', () => {
+    if (auto) {
+      auto = false;
+      stopped = true;
+      clearTimeout(timer);
+      clearInterval(typing);
+      video?.pause();
+      track('hero_demo_pause');
+    } else {
+      auto = true;
+      stopped = false;
+      if (step !== 1) video?.play().catch(() => {});
+      schedule();
+    }
+    paintPause();
+  });
+  paintPause();
 }
-$$('[data-hero-step]').forEach((li) => li.addEventListener('click', () => { const n = Number(li.dataset.heroStep); show(n === 1 ? 0 : n); }));
 
 
