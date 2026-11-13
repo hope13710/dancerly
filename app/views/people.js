@@ -3,7 +3,7 @@ import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionShe
 import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
-import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample } from './shared.js';
+import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample, empty } from './shared.js';
 import { paintThumbs } from './project.js';
 import { openCardEditor } from '../progress-card.js';
 import { ic } from '../icons.js';
@@ -68,7 +68,12 @@ export async function renderPerson(userId) {
   const person = people.find((p) => p.id === userId)
     || (userId === me ? { id: me, name: state.profile?.display_name || 'You', projects: [] } : null);
   const scope = (q) => (sampleOnly ? q : noSample(q));
-  if (!person) throw new Error('You don’t share a project with this person.');
+  // Someone you no longer share a project with (they left, or you did): not an error, just not yours to see.
+  if (!person) {
+    setCrumbs([['People', '/app/people'], ['Profile']]);
+    view.innerHTML = `<section class="page">${empty('people', 'This profile isn’t available', 'You don’t share a project with this person anymore, so their profile and notes aren’t visible to you.', '<a class="btn" href="/app/people" data-link>Back to People</a>')}</section>`;
+    return;
+  }
   setCrumbs([['People', '/app/people'], [person.name]]);
   // Your own page speaks to you ("your takes"), everyone else's about them.
   const self = userId === me;

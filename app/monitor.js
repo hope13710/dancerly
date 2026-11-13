@@ -61,13 +61,21 @@ export function setMonitoredUser(id) { userId = id || null; }
 // Failures the app catches and explains to the person, but that we still need to see — like a phone that
 // can't shrink a video, which never reaches the server. Grouped by area, step, and reason (numbers left out),
 // so "can't read this format" on 40 phones is one issue with a device breakdown, not 40.
+const safeJson = (value) => { try { return JSON.stringify(value).slice(0, 200); } catch { return 'Unknown error'; } };
+
 export function reportFailure(area, error, { level = 'error', ...details } = {}) {
   if (!sentry) return;
-  const reason = String(error?.message || error).replace(/\d+/g, '#').slice(0, 120);
-  sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+  // Supabase hands back plain objects ({ message, code, details, hint }), not Errors: keep their words, or the
+  // report only says "[object Object]".
+  const plain = error && typeof error === 'object' && !(error instanceof Error);
+  const text = plain
+    ? [error.message || error.error_description || error.msg, error.code && `(${error.code})`].filter(Boolean).join(' ') || safeJson(error)
+    : String(error?.message || error);
+  const reason = text.replace(/\d+/g, '#').slice(0, 120);
+  sentry.captureException(error instanceof Error ? error : new Error(text), {
     level,
     tags: { area, step: details.step },
-    contexts: { [area]: details },
+    contexts: { [area]: details, ...(plain ? { cause: { code: error.code, status: error.status, details: error.details, hint: error.hint } } : {}) },
     fingerprint: [area, String(details.step), reason]
   });
 }
