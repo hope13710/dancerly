@@ -15,7 +15,7 @@ const resolveRequestPath = (requestPath) => {
   if (/^\/app(\/[^.]*)?$/.test(requestPath)) return 'app/index.html';
   if (requestPath === '/terms' || requestPath === '/privacy') return `${requestPath.slice(1)}.html`;
   // The build copies public/ to the site root; locally, serve it from there.
-  if (requestPath.startsWith('/samples/') || /^\/(robots\.txt|site\.webmanifest|icon-192\.png|icon-maskable-(192|512)\.png|\.well-known\/security\.txt)$/.test(requestPath)) return `public${requestPath}`;
+  if (requestPath.startsWith('/samples/') || /^\/(robots\.txt|site\.webmanifest|favicon\.svg|icon-192\.png|icon-maskable-(192|512)\.png|\.well-known\/security\.txt)$/.test(requestPath)) return `public${requestPath}`;
   return requestPath.replace(/^\/+/, '');
 };
 const server = http.createServer(async (request, response) => {
