@@ -1,4 +1,4 @@
-// Landing page: nav, signed-in state, English/Korean switch, reveal-on-scroll (once), and the small product animations.
+// Landing page: nav, signed-in state, English/Korean switch, and the small product animations.
 import { LANDING_KO } from './landing-ko.js';
 import { rememberSource } from '/app/source.js';
 rememberSource(); // ?ref=ig_dm etc., so a signup days later is still credited
@@ -88,41 +88,16 @@ window.addEventListener('scroll', () => {
   mobileCta.classList.toggle('show', pastHero && !atEnd);
 }, { passive: true });
 
-// ---------- Reveal: each block fades up the first time it scrolls into view ----------
-document.documentElement.classList.add('js');
-const revealed = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    if (!entry.isIntersecting) continue;
-    entry.target.classList.add('in');
-    revealed.unobserve(entry.target);
-  }
-}, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
-$$('[data-reveal]').forEach((el) => (reducedMotion ? el.classList.add('in') : revealed.observe(el)));
-
 // Product modules play their little animation once, when they're mostly on screen.
 const played = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
     entry.target.classList.add('play');
-    countUp(entry.target);
     played.unobserve(entry.target);
   }
 }, { threshold: 0.45 });
 $$('[data-play]').forEach((el) => (reducedMotion ? el.classList.add('play', 'still') : played.observe(el)));
 
-function countUp(root) {
-  for (const el of $$('[data-count]', root)) {
-    const end = Number(el.dataset.count);
-    const suffix = el.dataset.suffix || '';
-    const start = performance.now();
-    const step = (now) => {
-      const t = Math.min(1, (now - start) / 1100);
-      el.textContent = `${Math.round(end * (1 - Math.pow(1 - t, 3)))}${suffix}`;
-      if (t < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-}
 
 applyLang();
 
@@ -225,12 +200,24 @@ else {
   const paintPause = () => {
     const label = LABEL[auto ? 'pause' : 'play'];
     pauseBtn.setAttribute('aria-pressed', String(!auto));
+    if (!auto) chips.forEach((c) => c.classList.remove('run')); // the bar only runs while the demo does
     pauseBtn.setAttribute('data-en-aria-label', label.en); // what the language switch restores
     pauseBtn.setAttribute('aria-label', label[lang]);
   };
+  const chips = $$('[data-hero-step]');
+  const runChip = () => {
+    if (step === 1) return; // chip 1 is already running from step 0
+    const chip = chips[Math.max(1, step) - 1];
+    chips.forEach((c) => c.classList.remove('run'));
+    if (!auto || reducedMotion) return;
+    void chip.offsetWidth; // restart the bar
+    chip.style.setProperty('--run', `${step === 0 ? DURATIONS[0] + DURATIONS[1] : DURATIONS[step]}ms`);
+    chip.classList.add('run');
+  };
   const schedule = () => {
     clearTimeout(timer);
-    if (!auto) return;
+    if (!auto) { chips.forEach((c) => c.classList.remove('run')); return; }
+    runChip();
     timer = setTimeout(() => {
       if (visible && !document.hidden) show((step + 1) % 4);
       schedule();
