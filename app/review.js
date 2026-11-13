@@ -152,7 +152,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const videoEl = $('[data-video]');
   // Some browsers can't decode certain phone formats (older iPhone HEVC uploads). Say so instead of showing a black box.
   const cantPlay = () => {
-    if ($('[data-cant-play]')) return;
+    if (!videoEl.isConnected || $('[data-cant-play]')) return;
     $('[data-player]').insertAdjacentHTML('beforeend', `<div class="cant-play" data-cant-play><b>This take can’t play in this browser.</b><span>It was recorded in a format (often iPhone HEVC) this browser doesn’t support. Open it in Safari, or ask ${esc(nameOf(take.uploaded_by))} to upload it again — dancerly now converts phone videos automatically.</span></div>`);
   };
   videoEl.addEventListener('error', cantPlay);
@@ -426,7 +426,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   // The video can finish loading after someone has already left this page (Sentry DANCERLY-3): nothing to paint then.
   videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.isConnected) return; $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
-  videoEl.addEventListener('error', () => toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'));
+  videoEl.addEventListener('error', () => { if (videoEl.isConnected) toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'); });
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
   // Clicking anywhere on the picture plays or pauses, like YouTube or Frame.io. Not while drawing a sketch,
   // and not on the controls that sit on top of the video (they do their own thing).
@@ -1178,6 +1178,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   if (target) {
     r.selected = target.id;
     const jump = () => {
+      if (!videoEl.isConnected) return;
       seek(target.t_end === null ? Math.max(0, target.t_start - 1) : target.t_start);
       paintNotes();
       view.querySelector(`[data-note="${target.id}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -1189,7 +1190,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const params = new URLSearchParams(location.search);
     const from = takes.find((t) => t.id === params.get('from'));
     const at = Number(params.get('t')) + ((from && shiftBetween(from, take)) || 0);
-    if (at > 0) { const go = () => seek(at); if (videoEl.readyState >= 1) go(); else videoEl.addEventListener('loadedmetadata', go, { once: true }); }
+    if (at > 0) { const go = () => { if (videoEl.isConnected) seek(at); }; if (videoEl.readyState >= 1) go(); else videoEl.addEventListener('loadedmetadata', go, { once: true }); }
   }
 
   // Uploaded a new take as its own video by mistake? Move its takes and notes onto the right video.
@@ -1292,6 +1293,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     window.removeEventListener('resize', onResize);
     r.drawing?.stop();
     video2.pause();
+    // Stop downloading the take once you've left (phones keep loading a detached video otherwise).
+    for (const v of [videoEl, video2]) { v.pause(); v.removeAttribute('src'); v.load(); }
     view.removeEventListener('click', onClick);
     view.removeEventListener('submit', onReply);
     sb.removeChannel(channel);
