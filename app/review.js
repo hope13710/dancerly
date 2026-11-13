@@ -1,5 +1,6 @@
 import { ic } from './icons.js';
 import { cols, schema } from './client.js';
+import { thumbUrls } from './thumbs.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
@@ -68,6 +69,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const takeNo = Object.fromEntries(takes.map((t) => [t.id, t.number]));
   canDeleteTake = takes.length > 1 && (isOwner || take.uploaded_by === me.id || sampleMine);
   const signed = { signedUrl: await takeUrl(take.storage_path) };
+  // What shows before it plays: the take's still, like YouTube's thumbnail. Without one, ask for the first frame
+  // (#t): iPhone otherwise draws nothing until you press play, a black box.
+  const poster = take.thumb_path ? (await thumbUrls([take.thumb_path]).catch(() => ({})))[take.thumb_path] : null;
 
   const showCountsPref = () => { try { return localStorage.getItem('looproom:counts') !== '0'; } catch { return true; } };
   const r = { counts: { bpm: video.bpm === null || video.bpm === undefined ? null : Number(video.bpm), start: take.count_start === null || take.count_start === undefined ? null : Number(take.count_start) }, showCounts: showCountsPref(), countDraft: null, countKey: '', compare: { on: false, offset: 0, aligned: null, src: null, url: null, options: null }, abStart: null, sketch: null, sketchAt: 0, drawing: null, tool: 'pen', color: COLORS[0], shownKey: '', openThreads: new Set(), notes: [], selected: null, loop: null, mode: 'point', rangeStart: null, rangeEnd: null, speed: 1, nowIds: new Set(), nowKey: '', listTouched: 0, justPinned: null, asked: new Set(), starter: null, mirror: localStorage.getItem('looproom:mirror') === '1', frame: 0 };
@@ -89,7 +93,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       <div class="player-col">
         <div class="player-pair" data-pair>
         <div class="player ${r.mirror ? 'mirrored' : ''}" data-player>
-          <video src="${esc(signed.signedUrl)}" playsinline preload="metadata" data-video></video>
+          <video src="${esc(poster ? signed.signedUrl : `${signed.signedUrl}#t=0.001`)}" ${poster ? `poster="${esc(poster)}"` : ''} playsinline preload="metadata" data-video></video>
           <span class="pair-label">Take ${take.number}</span>
           <span class="count-badge" data-count-badge hidden></span>
           <svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg>
