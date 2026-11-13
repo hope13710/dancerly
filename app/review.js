@@ -1044,7 +1044,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Reading or scrolling the list yourself pauses its follow-along for a few seconds.
   const touchList = () => { r.listTouched = Date.now(); };
   ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach((ev) => $('[data-list]').addEventListener(ev, touchList, { passive: true }));
-  input.addEventListener('input', paintMentions);
+  input.addEventListener('input', () => paintMentions()); // not the event: paintMentions' first argument is the field
   input.addEventListener('keydown', (e) => {
     const menu = $('[data-mentions]');
     if (mentionKeys(e, input, menu, null)) return;
