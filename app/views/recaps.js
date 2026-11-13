@@ -7,6 +7,7 @@ import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
 import { loadProject, projectHead, inviteLink } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './shared.js';
 import { ic } from '../icons.js';
+import { catChip, catLabel } from '../categories.js';
 
 const SECTIONS = [
   ['worked_on', 'Worked on'],
@@ -155,15 +156,48 @@ async function runGeneration(params) {
 }
 
 // The group-chat version of a recap: headline, the top three to-dos, and links. In the app's language.
-function chatMessage(r, link, invite) {
+function chatMessage(r, link, invite, pulse = null) {
   const ko = getLang() === 'ko';
   const next = (r.content?.next || []).slice(0, 3).map((it) => `• ${it.text}`).join('\n');
   return [
     `${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
+    pulse ? pulseText(pulse) : '',
     next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
     `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${link}`,
     invite ? `${ko ? '아직 팀에 없다면 여기서 합류하세요' : 'Not in this project yet? Join here'}: ${invite}` : ''
   ].filter(Boolean).join('\n');
+}
+
+// ---------- The team's numbers since the last practice ----------
+// A team recap is words; this is the one line of numbers that goes with it: what got fixed since the practice
+// before, what's still open now, and where most of it is. Team-visible notes only, like the recap itself.
+async function teamPulse(r) {
+  const { data } = await sb.from('notes').select('status, resolved_at, category').eq('project_id', r.project_id).is('private_to', null).limit(5000);
+  if (!data) return null;
+  const from = new Date(r.period_start).getTime();
+  const fixed = data.filter((n) => n.status === 'resolved' && n.resolved_at && new Date(n.resolved_at).getTime() >= from).length;
+  const open = data.filter((n) => n.status !== 'resolved');
+  const counts = {};
+  for (const n of open) if (n.category && n.category !== 'other') counts[n.category] = (counts[n.category] || 0) + 1;
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const since = String(r.cycle || '').startsWith('rehearsal:') ? 'practice' : String(r.cycle || '').startsWith('week:') ? 'week' : 'period';
+  return { fixed, open: open.length, top: top && top[1] >= 2 ? top[0] : null, since };
+}
+function pulseText(p) {
+  const ko = getLang() === 'ko';
+  const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
+  const parts = ko
+    ? [`해결 ${p.fixed}개`, `남은 피드백 ${p.open}개`, p.top ? `가장 많은 분야: ${catLabel(p.top)}` : '']
+    : [`${p.fixed} fixed`, `${p.open} still open`, p.top ? `most open: ${catLabel(p.top)}` : ''];
+  return `${lead}: ${parts.filter(Boolean).join(' · ')}`;
+}
+function pulseHtml(p) {
+  const ko = getLang() === 'ko';
+  const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
+  return `<p class="recap-pulse" data-no-i18n><span class="pulse-lead">${lead}</span>
+    <span class="pulse-num ok">${ic('check')}${ko ? `해결 <b>${p.fixed}</b>개` : `<b>${p.fixed}</b> fixed`}</span>
+    <span class="pulse-num">${ko ? `남은 피드백 <b>${p.open}</b>개` : `<b>${p.open}</b> still open`}</span>
+    ${p.top ? `<span class="pulse-num">${ko ? '가장 많은 분야' : 'Most open'} ${catChip(p.top)}</span>` : ''}</p>`;
 }
 
 // ---------- Rendering ----------
@@ -324,6 +358,7 @@ export async function renderRecap(recapId) {
   ]);
   const isOwner = role?.role === 'owner';
   const canRedo = mine || r.team;
+  const pulse = r.team ? await teamPulse(r).catch(() => null) : null;
   // Written in another language: the saved translation, or a button that makes one.
   const otherLang = (raw.content?.lang || 'en') !== getLang();
   const translated = otherLang && raw.content?.translations?.[getLang()];
@@ -341,6 +376,7 @@ export async function renderRecap(recapId) {
         <p class="ai-label">${sparkle()}Summary by AI <span>· from ${r.note_count} ${r.note_count === 1 ? 'note' : 'notes'}</span></p>
         <h1 class="recap-headline">${esc(r.content?.headline || 'Recap')}</h1>
         <div class="recap-meta">${recapMeta(r, names)}</div>
+        ${pulse ? pulseHtml(pulse) : ''}
         ${otherLang && !sampleProject ? `<p class="recap-lang">${translated ? `<span>${showOriginal ? 'Original' : 'Translated by AI'}</span> · <button class="text-btn link" data-original>${showOriginal ? 'Show translation' : 'Show original'}</button>` : `<button class="btn small ghost" data-translate>${getLang() === 'ko' ? 'Show in Korean' : 'Show in English'}</button>`}</p>` : ''}
       </header>
       ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${canRedo ? `<button class="btn small primary" data-regenerate>${r.team ? 'Update' : 'Regenerate'}</button>` : ''}</div>` : ''}
@@ -353,6 +389,7 @@ export async function renderRecap(recapId) {
         ${mine && r.shared_at ? '<button class="btn small ghost" data-unshare>Make private</button>' : ''}
         ${mine && !newer ? '<button class="btn small ghost" data-regenerate>Regenerate</button>' : ''}
         ${r.team && !newer ? `<span class="fine">${ic('check')}Up to date</span>` : ''}
+        ${r.team && isOwner && !sampleProject ? `<a class="btn small ghost" href="/app/p/${r.project_id}/overview" data-link>How it’s going${ic('right', 'after')}</a>` : ''}
         ${mine || (r.team && isOwner) ? '<button class="btn small ghost danger push-right" data-delete>Delete</button>' : ''}
       </footer>
       ${cited.length ? `<details class="recap-sources"><summary>Sources · ${cited.length} ${cited.length === 1 ? 'note' : 'notes'} cited</summary><ol>${cited.map((src) => `<li><span class="src-n">${src.n}</span><a href="/app/p/${r.project_id}/v/${src.video_id}?take=${src.take_number ?? ''}&note=${src.note_id}" data-link><span class="row-meta"><b>${esc(src.author)}</b> · ${esc(src.video_title)}${src.take_number ? ` · Take ${src.take_number}` : ''} · <span class="time-tag">${src.t_end === null ? fmt(src.t_start) : `${fmt(src.t_start)}–${fmt(src.t_end)}`}</span></span><span>${esc(src.body)}</span></a></li>`).join('')}</ol></details>` : ''}
@@ -434,7 +471,7 @@ export async function renderRecap(recapId) {
     }
     let invite = null;
     try { invite = (await inviteLink(r.project_id)).link; } catch {}
-    const text = chatMessage(r, `${location.origin}/app/recaps/${r.id}`, invite);
+    const text = chatMessage(r, `${location.origin}/app/recaps/${r.id}`, invite, pulse);
     track('recap_chat_shared', { scope: r.scope });
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
       try { await navigator.share({ text }); return renderRecap(recapId); } catch (e) { if (e?.name === 'AbortError') return renderRecap(recapId); }

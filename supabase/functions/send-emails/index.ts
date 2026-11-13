@@ -143,7 +143,11 @@ function describe(n: any, c: Ctx, zone: string) {
     case "join_request": { const j = c.joins.get(n.join_request_id); return { subject: `${who} asked to join ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> watched <b>${esc(vtitle)}</b> from your share link and asked to join <b>${esc(project?.title ?? "your project")}</b>${j?.t_start != null ? `. Their note at ${fmt(Number(j.t_start))}:` : "."}`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Review the request", text: j?.body ?? null }; }
     case "added_to_project": return { subject: `${who} added you to ${project?.title ?? "a project"}`, line: `<b>${esc(who)}</b> added you to <b>${esc(project?.title ?? "a project")}</b>. You can see its videos and leave notes now.`, href: `${SITE}/app/p/${n.project_id}?${ref}`, cta: "Open the project", text: null };
     case "join_approved": return { subject: `You’re in: ${project?.title ?? "the project"}`, line: `<b>${esc(who)}</b> let you into <b>${esc(project?.title ?? "the project")}</b>${note ? `. Your note at ${at} is posted.` : "."}`, href: note ? noteHref : `${SITE}/app/p/${n.project_id}?${ref}`, cta: note ? "See your note" : "Open the project", text: null };
-    case "recap_shared": { const r = c.recaps.get(n.recap_id); return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
+    case "recap_shared": {
+      const r = c.recaps.get(n.recap_id);
+      // Written on schedule before practice (migration 056): from dancerly, about the whole team.
+      if (!n.actor_id) return { subject: `Before practice: your team’s recap for ${project?.title ?? "your project"}`, line: `Your team’s recap for <b>${esc(project?.title ?? "your project")}</b> is ready: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null };
+      return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
     case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at, zone)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
     case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
     case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your assignment"}`, line: `Your assignment <b>${esc(req?.title ?? "")}</b> is due ${esc(dueLabel(req?.due_at, zone))}. You haven’t submitted yet.`, href: reqHref, cta: "Submit your video", text: null };
@@ -219,9 +223,15 @@ async function followUp(key: string) {
   const users = [...new Set(open.map((r) => r.user_id))];
   const { data: settings } = await admin.from("notification_settings").select("user_id, email, timezone").in("user_id", users);
   const prefs = new Map((settings ?? []).map((s: any) => [s.user_id, s]));
-  const pref = (user: string, kind: string) => (prefs.get(user)?.email?.[GROUP[kind]] ?? DEFAULTS[GROUP[kind]] ?? "digest");
+  // The team's recap before practice is only useful before practice: it comes right away unless the person chose
+  // the morning summary (or off) for recap emails.
+  const pref = (user: string, kind: string, r?: any) => {
+    const chosen = prefs.get(user)?.email?.[GROUP[kind]];
+    if (kind === "recap_shared" && r && !r.actor_id) return chosen ?? "instant";
+    return chosen ?? DEFAULTS[GROUP[kind]] ?? "digest";
+  };
 
-  const off = open.filter((r) => pref(r.user_id, r.kind) === "off").map((r) => r.id);
+  const off = open.filter((r) => pref(r.user_id, r.kind, r) === "off").map((r) => r.id);
   if (off.length) await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "skipped" }).in("id", off);
 
   const celebrated = await firstTeammate(key, open, prefs, off, now);
@@ -245,8 +255,8 @@ async function followUp(key: string) {
     // The morning summary goes out at 8 AM where they are; the period is their local date, so it's once a day for them.
     const digestNow = h === DIGEST_HOUR;
     const today = (() => { try { return dayIn(tz); } catch { return dayIn(DIGEST_ZONE); } })();
-    const ready = mine.filter((r) => pref(user, r.kind) === "instant" && Date.parse(r.created_at) <= now - INSTANT_DELAY_MIN * 60e3);
-    const forDigest = mine.filter((r) => pref(user, r.kind) === "digest");
+    const ready = mine.filter((r) => pref(user, r.kind, r) === "instant" && Date.parse(r.created_at) <= now - INSTANT_DELAY_MIN * 60e3);
+    const forDigest = mine.filter((r) => pref(user, r.kind, r) === "digest");
     const to = (ready.length && !quiet) || (forDigest.length && digestNow) ? await emailOf(user) : null;
     if (!to) continue;
 
@@ -262,7 +272,7 @@ async function followUp(key: string) {
         : items.map(({ d }) => itemRow(d.line, d.href, d.text ? quote(d.text) : "")).join("");
       const html = layout({ heading: items.length === 1 ? lead.line.replace(/<\/?b>/g, "") : `${items.length} things waiting for you`, body, cta: items.length === 1 ? lead.cta : "Open dancerly", ctaHref: items.length === 1 ? lead.href : `${SITE}/app/inbox?ref=email_instant`, footer: footerFor("You got this because it was for you on dancerly", unsub, GROUP_LABEL[GROUP[ready[0].kind]]) });
       const text = `${items.map(({ d }) => `${d.line.replace(/<[^>]+>/g, "")}${d.text ? `\n“${clip(d.text)}”` : ""}\n${d.href}`).join("\n\n")}\n\nTurn off: ${unsub}`;
-      const fromName = actors.size === 1 ? `${first(ctx.names.get(ready[0].actor_id))} via dancerly` : "dancerly";
+      const fromName = actors.size === 1 && ready[0].actor_id ? `${first(ctx.names.get(ready[0].actor_id))} via dancerly` : "dancerly";
       if (await send(to, subject, html, text, fromName, unsub)) {
         await admin.from("notifications").update({ emailed_at: new Date().toISOString(), email_state: "sent" }).in("id", ready.map((r) => r.id));
         instant++;

@@ -4,6 +4,7 @@ import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
 import { ic } from '../icons.js';
+import { isKo } from '../i18n.js';
 
 const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 // Requests to join (migration 040) carry the requester's name: owners can't read a non-member's profile.
@@ -26,6 +27,8 @@ function describe(item, names) {
   if (item.kind === 'join_request') return `<b>${esc(item.join_requests?.requester_name || 'Someone')}</b> asked to join <b>${project}</b>${item.join_requests?.status === 'approved' ? ' · approved' : item.join_requests?.status === 'declined' ? ' · declined' : ''}`;
   if (item.kind === 'join_approved') return `${who} let you into <b>${project}</b>`;
   if (item.kind === 'added_to_project') return `${who} added you to <b>${project}</b>`;
+  // Written on schedule before practice: from dancerly, not a person.
+  if (item.kind === 'recap_shared' && !item.actor_id) return isKo ? `<b>${project}</b> 팀 요약이 준비됐어요. 연습 전에 확인해 보세요.` : `Your team’s recap for <b>${project}</b> is ready. Have a look before practice.`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
   if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
@@ -67,7 +70,7 @@ export async function renderInbox() {
     ${pageHead('Inbox', { actions: unread ? '<button class="btn" data-read-all>Mark all as read</button>' : '' })}
     ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue']], filter)}
     ${live.length ? `<div class="list">${live.map((item) => `<a class="row inbox-row ${item.read_at ? '' : 'unread'}" href="${hrefFor(item)}" data-link data-item="${item.id}">
-        ${avatar(names[item.actor_id] || '?', item.actor_id, 'sm')}
+        ${item.actor_id ? avatar(names[item.actor_id] || '?', item.actor_id, 'sm') : '<span class="avatar sm app-avatar" aria-hidden="true"><img src="/favicon.svg" alt="" width="28" height="28" /></span>'}
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
