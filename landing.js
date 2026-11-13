@@ -29,8 +29,9 @@ if (signedIn()) {
 
 // ---------- English / Korean (English by default; the choice is shared with the app) ----------
 const LANG_KEY = 'looproom:lang';
-let lang = 'en';
-try { lang = localStorage.getItem(LANG_KEY) === 'ko' ? 'ko' : 'en'; } catch {}
+// A saved choice wins; on a first visit, the browser's language (a Korean phone opens in Korean).
+let lang = /^ko\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || '') ? 'ko' : 'en';
+try { const saved = localStorage.getItem(LANG_KEY); if (saved === 'ko' || saved === 'en') lang = saved; } catch {}
 const originalText = new WeakMap();
 const ATTRS = ['aria-label', 'placeholder'];
 function applyLang() {

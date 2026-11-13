@@ -11,7 +11,7 @@ const VIEWS = [
 ];
 const STATUSES = [
   ['todo', 'To do'],
-  ['resolved', 'Resolved'],
+  ['resolved', 'Fixed'],
   ['all', 'All']
 ];
 

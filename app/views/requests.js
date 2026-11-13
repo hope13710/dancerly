@@ -67,7 +67,7 @@ export async function renderProjectRequests(projectId) {
   const base = `/app/p/${projectId}/requests`;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'requests', '<button class="btn primary" data-new-request>+ New assignment</button>')}
-    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['active', 'Active'], ['closed', 'Closed']].map(([k, l]) => `<a href="${base}${k === 'active' ? '' : '?show=closed'}" data-link aria-selected="${k === show}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
+    <div class="filters"><div class="seg small" role="group" aria-label="Filter">${[['active', 'Active'], ['closed', 'Closed']].map(([k, l]) => `<a href="${base}${k === 'active' ? '' : '?show=closed'}" data-link aria-selected="${k === show}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((r) => {
       const subs = submissionsFor(r, p.members, videos);
       const done = subs.filter((s) => s.video).length;

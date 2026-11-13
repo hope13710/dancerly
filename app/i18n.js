@@ -5,8 +5,13 @@ import { KO, KO_RULES, KO_ATTR, KO_ACTION, KO_FIELD } from './i18n-ko.js';
 
 const KEY = 'looproom:lang';
 export const LANGS = [['en', 'English'], ['ko', '한국어']];
+// A saved choice wins; on a first visit, the browser's language (a Korean phone opens in Korean).
 export function getLang() {
-  try { return localStorage.getItem(KEY) === 'ko' ? 'ko' : 'en'; } catch { return 'en'; }
+  let saved = null;
+  try { saved = localStorage.getItem(KEY); } catch {}
+  if (saved === 'ko' || saved === 'en') return saved;
+  const langs = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
+  return /^ko\b/i.test(langs[0] || '') ? 'ko' : 'en';
 }
 export function setLang(lang) {
   try { localStorage.setItem(KEY, lang === 'ko' ? 'ko' : 'en'); } catch {}
@@ -47,10 +52,12 @@ function translate(raw, { attr = false, action = false, field = false } = {}) {
   if (whole !== null) return whole;
   // "Chorus · Take 2 · 3h ago": translate the parts that are interface words, keep the rest.
   if (text.includes('·')) {
+    // A dot at either end ("· 3h ago", "Team recap · This week ·") stays where it is.
     const lead = text.startsWith('· ') ? '· ' : '';
-    const parts = text.slice(lead.length).split(' · ');
+    const tail = text.endsWith(' ·') ? ' ·' : '';
+    const parts = text.slice(lead.length, text.length - tail.length).split(' · ');
     const out = parts.map((p) => (p ? exact(p) ?? p : p));
-    if (out.some((p, i) => p !== parts[i])) return lead + out.join(' · ');
+    if (out.some((p, i) => p !== parts[i])) return lead + out.join(' · ') + tail;
   }
   if (!/[가-힣]/.test(text)) missing.add(text);
   return null;
@@ -58,7 +65,7 @@ function translate(raw, { attr = false, action = false, field = false } = {}) {
 window.__i18nMissing = missing;
 
 // Places where people's own words appear.
-const SKIP = 'script, style, textarea, input, [data-no-i18n], .note > p:not(.private-tag), .reply p:not(:first-child), .row-quote, .recap-headline, .recap-row, .doc, .doc-title, .note-row .row-title, code, pre, .mention';
+const SKIP = 'script, style, textarea, input, [data-no-i18n], .note > p:not(.private-tag), .reply p:not(:first-child), .row-quote, .recap-headline, .recap-row .row-title, .doc, .doc-title, .note-row .row-title, code, pre, .mention';
 const ATTRS = ['placeholder', 'title', 'aria-label'];
 const done = new WeakMap();
 

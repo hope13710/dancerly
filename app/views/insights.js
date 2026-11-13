@@ -210,7 +210,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     : `<b>${stuck.length}</b> ${stuck.length === 1 ? 'note has' : 'notes have'} been open for ${STUCK_DAYS}+ days`, cta: 'See them', sheet: 'stuck' });
   if (agreed[0]) next.push({ icon: ic('agree', 'solo'), html: isKo
     ? `팀이 가장 공감한 피드백(공감 ${agreed[0].note_reactions.length}): “${esc(snippet(agreed[0].body, 60))}”`
-    : `Most agreed on (${agreed[0].note_reactions.length} agreed): “${esc(snippet(agreed[0].body, 60))}”`, cta: 'Open', href: noteLink(agreed[0]) });
+    : `Most agreed: “${esc(snippet(agreed[0].body, 60))}” (${agreed[0].note_reactions.length} 👍)`, cta: 'Open', href: noteLink(agreed[0]) });
   const topArea = areas.find((a) => a.key !== 'other' && a.open);
   if (topArea) next.push({ icon: '<i class="li-dot"></i>', color: catColor(topArea.key), html: isKo
     ? `<b>${catLabel(topArea.key)}</b> 피드백이 가장 많이 남아 있어요 (${topArea.open}개)`
@@ -237,11 +237,11 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   // ---------- Key numbers: three, the ones with enough behind them ----------
   const delta = (cur, prev, goodUp = true) => (!prevLeft.length && !prevFixed.length) || cur === prev ? '' : `<em class="${(cur > prev) === goodUp ? 'up' : 'down'}" data-no-i18n>${cur > prev ? '↑' : '↓'} ${Math.abs(cur - prev)}</em>`;
   const stats = [
-    fixRate !== null && { label: 'Fix rate', value: `${fixRate}%`, sub: 'of notes left in this range' },
+    fixRate !== null && { label: 'Fix rate', value: `${fixRate}%`, sub: 'of new notes in this range' },
     { label: 'Notes fixed', value: fixed.length, sub: 'in this range', extra: delta(fixed.length, prevFixed.length) },
     avgTakesToFix !== null && { label: 'Takes to fix', value: avgTakesToFix.toFixed(1), sub: 'on average' },
     { label: 'Still open', value: openNow.length, sub: 'right now' },
-    { label: 'Notes left', value: left.length, sub: 'in this range', extra: delta(left.length, prevLeft.length, false) }
+    { label: 'New notes', value: left.length, sub: 'in this range', extra: delta(left.length, prevLeft.length, false) }
   ].filter(Boolean).slice(0, 3);
   const locked = [fixRate === null && (isKo ? `해결률은 이 기간 피드백이 ${MIN_FOR_RATE}개 이상이면 보여요.` : `Fix rate shows once there are ${MIN_FOR_RATE}+ notes in this range.`), avgTakesToFix === null && (isKo ? '해결까지 걸린 테이크 수는 해결된 피드백이 3개 이상이면 보여요.' : 'Takes to fix shows after 3 notes are fixed.')].filter(Boolean);
 
@@ -304,11 +304,11 @@ export async function renderInsights({ projectId: inProject = null, root = null 
 
     <section class="panel progress-panel">
       <div class="panel-head"><div><h2>Progress</h2><p class="muted">${bucketMs === DAY ? 'Per day' : 'Per week'}</p></div>
-        <div class="legend"><span><i class="key left"></i>Left</span><span><i class="key fixed"></i>Fixed</span></div></div>
+        <div class="legend"><span><i class="key left"></i>New notes</span><span><i class="key fixed"></i>Fixed</span></div></div>
       <div class="stats three">${stats.map((s) => `<div class="stat"><small>${s.label}</small><b>${s.value}${s.extra || ''}</b><span>${s.sub}</span></div>`).join('')}</div>
       <div class="bars" style="--cols:${count}" data-chart>
         <div class="bars-grid">${ticks.map((t) => `<div style="bottom:${(t / top) * 100}%"><span>${t}</span></div>`).join('')}</div>
-        <div class="bars-plot">${buckets.map((b, i) => `<div class="bars-col" tabindex="0" data-i="${i}" aria-label="${label(b)}: ${b.left} left, ${b.fixed} fixed">
+        <div class="bars-plot">${buckets.map((b, i) => `<div class="bars-col" tabindex="0" data-i="${i}" aria-label="${label(b)}: ${b.left} new, ${b.fixed} fixed">
           <div class="bars-pair"><i class="bar left" style="height:${(b.left / top) * 100}%"></i><i class="bar fixed" style="height:${(b.fixed / top) * 100}%"></i></div>
           <span class="bars-x">${label(b)}</span>
         </div>`).join('')}</div>
@@ -316,7 +316,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
       </div>
       ${locked.length ? `<p class="fine left" data-no-i18n>${locked.join(' ')}</p>` : ''}
       <details class="table-toggle"><summary>Show as table</summary>
-        <table class="table compact"><thead><tr><th>${bucketMs === DAY ? 'Day' : 'Week of'}</th><th class="num">Left</th><th class="num">Fixed</th></tr></thead>
+        <table class="table compact"><thead><tr><th>${bucketMs === DAY ? 'Day' : 'Week of'}</th><th class="num">New notes</th><th class="num">Fixed</th></tr></thead>
         <tbody>${buckets.map((b) => `<tr><td>${label(b)}</td><td class="num">${b.left}</td><td class="num">${b.fixed}</td></tr>`).join('')}</tbody></table>
       </details>
     </section>
@@ -392,7 +392,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     tip.replaceChildren();
     const head = document.createElement('small'); head.textContent = bucketMs === DAY ? label(b) : `Week of ${label(b)}`;
     tip.append(head);
-    for (const [cls, name, value] of [['left', 'Left', b.left], ['fixed', 'Fixed', b.fixed]]) {
+    for (const [cls, name, value] of [['left', 'New notes', b.left], ['fixed', 'Fixed', b.fixed]]) {
       const row = document.createElement('div'); row.className = 'tip-row';
       row.innerHTML = `<i class="key line ${cls}"></i><b></b><span></span>`;
       row.querySelector('b').textContent = value; row.querySelector('span').textContent = name;

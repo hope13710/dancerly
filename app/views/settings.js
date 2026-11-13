@@ -17,7 +17,7 @@ const KINDS = [
   ['note_on_your_video', 'Notes on your videos', 'On a video you added or a take you uploaded.'],
   ['reply', 'Replies', 'When someone replies to a note you wrote or a thread you’re in.'],
   ['new_take', 'New takes', 'When someone uploads to one of your projects.'],
-  ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as resolved.'],
+  ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as fixed.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
   ['added_to_project', 'Someone adds you to a project', 'When a teammate adds you to another of their projects.'],
   ['recap_shared', 'Recaps shared with you', 'When someone shares an AI recap to a project.'],

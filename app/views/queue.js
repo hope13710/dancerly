@@ -56,7 +56,7 @@ export async function renderQueue() {
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Inbox', { actions: list.length && show !== 'overdue' ? '<button class="btn primary" data-start>Start reviewing</button>' : '' })}
     ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread'], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue', needs.length]], 'review')}
-    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['needs', 'New videos', needs.length], ['resubmitted', 'Re-submitted', resubmitted.length], ['overdue', 'Late', overdue.length]].map(([k, label, n]) => `<a href="${url({ show: k })}" data-link aria-selected="${k === show}">${label} <span>${n}</span></a>`).join('')}</div></div>
+    <div class="filters"><div class="seg small" role="group" aria-label="Filter">${[['needs', 'New videos', needs.length], ['resubmitted', 'Re-submitted', resubmitted.length], ['overdue', 'Late', overdue.length]].map(([k, label, n]) => `<a href="${url({ show: k })}" data-link aria-selected="${k === show}">${label} <span>${n}</span></a>`).join('')}</div></div>
     <p class="muted queue-sub">New takes you haven’t watched yet, oldest first.</p>
     ${realProjects().length > 1 ? `<div class="filters"><label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label></div>` : ''}
     ${show === 'overdue'
@@ -68,7 +68,7 @@ export async function renderQueue() {
           ${avatar(names[v.latest.uploaded_by], v.latest.uploaded_by, 'sm')}
           <span class="row-main"><span class="row-title">${esc(v.title)}</span>
             <span class="row-meta"><b>${esc(names[v.latest.uploaded_by] || 'Someone')}</b> · ${v.latest.number === 1 ? 'new video' : `Take ${v.latest.number}`}${v.takes.length > 1 ? ` · ${v.takes.length} new takes` : ''} · ${esc(v.project)}</span></span>
-          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>waiting ${timeAgo(v.waiting_since).replace(' ago', '')}</small><span class="chev">${ic('right', 'solo')}</span></span>
+          <span class="row-side">${v.resubmitted ? '<span class="pill info">Re-submitted</span>' : ''}${v.request_id ? '<span class="pill">Assignment</span>' : ''}<small>Waiting since ${new Date(v.waiting_since).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</small><span class="chev">${ic('right', 'solo')}</span></span>
         </a>`).join('')}</div>`
       : alone ? previewEmpty('rows', 'New videos land here', 'When someone uploads a video or a new take to your projects, it waits here until you’ve watched it. Invite people to get started.', `<button class="btn primary" data-start-action="invite">Invite people</button>${samplePeek('queue')}`, 'queue')
       : empty('check_circle', 'You’re all caught up', 'When someone uploads a video or a new take, it waits here until you’ve watched it.', samplePeek('queue'))}

@@ -19,7 +19,7 @@ export const NOTE_SELECT = 'id, project_id, video_id, take_id, t_start, t_end, b
 export const noteHref = (n) => `/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}`;
 export const noteTime = (n) => (n.t_end === null || n.t_end === undefined ? fmt(Number(n.t_start)) : `${fmt(Number(n.t_start))}–${fmt(Number(n.t_end))}`);
 
-const STATUS = { open: ['Open', 'warn'], practicing: ['Practicing', 'info'], resolved: ['Resolved', 'ok'] };
+const STATUS = { open: ['Open', 'warn'], practicing: ['Practicing', 'info'], resolved: ['Fixed', 'ok'] };
 export const statusPill = (status) => `<span class="pill ${STATUS[status][1]}">${STATUS[status][0]}</span>`;
 
 export async function namesFor(ids) {

@@ -215,7 +215,7 @@ export async function renderProjectNotes(projectId) {
   const base = `/app/p/${projectId}/notes`;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'notes')}
-    <div class="filters"><div class="seg small" role="group" aria-label="Status">${[['todo', 'To do'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, l]) => `<a href="${base}?status=${k}" data-link aria-selected="${k === status}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
+    <div class="filters"><div class="seg small" role="group" aria-label="Status">${[['todo', 'To do'], ['resolved', 'Fixed'], ['all', 'All']].map(([k, l]) => `<a href="${base}?status=${k}" data-link aria-selected="${k === status}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showProject: false })).join('')}</div>`
       : notes.length ? empty('check_circle', 'All caught up', 'Nothing in this view.') : empty('note', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.', samplePeek('notes'))}
   </section>`;

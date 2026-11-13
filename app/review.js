@@ -289,7 +289,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     $('[data-summary]').hidden = !visibleNotes().length && takes.length === 1;
     $('[data-summary]').innerHTML = takes.length === 1
       ? `<span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
-      : `<b>Take ${take.number}</b> · <span class="ok">${ic('check')}${earlierResolved} resolved from earlier takes</span> · <span class="open">${open} still open</span>`;
+      : `<b>Take ${take.number}</b> · <span class="ok">${ic('check')}${earlierResolved} fixed from earlier takes</span> · <span class="open">${open} still open</span>`;
   }
 
   function paintMarkers(notes) {

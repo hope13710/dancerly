@@ -292,7 +292,7 @@ export async function renderProjectRecaps(projectId) {
   const base = `/app/p/${projectId}/recaps`;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'recaps', `<button class="btn primary" data-my-recap>My recap</button><button class="icon-btn" data-recap-more aria-label="More" title="More">${ic('more', 'solo')}</button>`)}
-    <div class="filters"><div class="seg small" role="group" aria-label="Show">${[['all', 'All'], ['team', 'Team'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
+    <div class="filters"><div class="seg small" role="group" aria-label="Filter">${[['all', 'All'], ['team', 'Team'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
     ${groups.length ? `
       ${pinned.length ? `<h2 class="group-title">${ic('pin')}Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
       ${[...byWeek].map(([label, gs]) => `<h2 class="group-title">${label}</h2><div class="list">${gs.map((g) => recapRow(g, names)).join('')}</div>`).join('')}`

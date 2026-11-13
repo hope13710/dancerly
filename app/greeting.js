@@ -123,7 +123,7 @@ function situation(s) {
   const fixed = (s.forMe || []).filter((n) => n.status === 'resolved' && n.resolved_at && n.resolved_at > weekAgo).length;
   if (fixed) {
     return {
-      text: isKo ? `이번 주에 피드백 ${fixed}개를 해결했어요. 좋은 흐름이에요` : `You fixed ${fixed === 1 ? '1 note' : `${fixed} notes`} this week. Keep it going`,
+      text: isKo ? `이번 주에 피드백 ${fixed}개를 해결했어요. 좋은 흐름이에요.` : `You fixed ${fixed === 1 ? '1 note' : `${fixed} notes`} this week. Keep it going.`,
       href: '/app/insights'
     };
   }

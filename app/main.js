@@ -420,7 +420,7 @@ const TERMS_VERSION = '2026-10-25';
 // Google's own "G" mark (their branding rules ask for it on sign-in buttons).
 // Signing up (with email or Google) is the agreement: this line sits under every way in.
 const legalLine = () => isKo
-  ? '계속하면 만 14세 이상이며 <a href="/terms" target="_blank" rel="noopener">이용약관</a>과 <a href="/privacy" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의하는 것으로 봐요.'
+  ? '계속하면 만 14세 이상이며 <a href="/terms" target="_blank" rel="noopener">이용약관</a>과 <a href="/privacy" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의하게 돼요.'
   : 'By continuing, you confirm you’re 14 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.';
 // Only ever send people back inside the app after signing in.
 const safeNext = (next) => (next && /^\/app(\/|$|\?)/.test(next) && !next.startsWith('//') ? next : '/app');
@@ -691,7 +691,7 @@ function renderMe() {
     <div class="list-group">
       ${row('/app/settings/account', 'Account')}
       ${row('/app/settings/notifications', 'Notifications')}
-      ${row('/app/settings/plan', 'Plan', '<small data-no-i18n>Free</small>')}
+      ${row('/app/settings/plan', 'Plan', '<small>Free</small>')}
       ${row('/app/trash', 'Trash')}
     </div>
     <div class="list-group">
