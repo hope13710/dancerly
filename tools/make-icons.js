@@ -5,7 +5,7 @@
 //     because thin parts blur away at tab size. Big companies tune small icon sizes the same way.
 //   • Maskable (Android): full-bleed square, "d" at 82% so it stays inside the area Android may crop to a circle.
 //   • apple-touch-icon: full-bleed square; iOS rounds the corners itself.
-import { writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -68,4 +68,40 @@ for (const [file, size, opts] of outputs) {
   await page.locator('svg').screenshot({ path: file, omitBackground: true });
   console.log('wrote', file);
 }
+
+// iPhone launch images (Home Screen app): the app icon, 120pt, in the middle of the app's background, the same
+// picture Android draws from the manifest and the app shows until its first screen (app/index.html, .boot).
+// iPhone only uses an image made for its exact screen, so one per screen size, portrait. [css width, height, scale]
+const SPLASH_BG = '#F7F8FA';
+const SCREENS = [
+  [440, 956, 3], // 16 Pro Max, 17 Pro Max
+  [430, 932, 3], // 14 Pro Max, 15 Plus/Pro Max, 16 Plus
+  [420, 912, 3], // Air
+  [402, 874, 3], // 16 Pro, 17, 17 Pro
+  [393, 852, 3], // 14 Pro, 15, 15 Pro, 16
+  [428, 926, 3], // 12 Pro Max, 13 Pro Max, 14 Plus
+  [390, 844, 3], // 12, 12 Pro, 13, 13 Pro, 14, 16e
+  [375, 812, 3], // X, XS, 11 Pro, 12 mini, 13 mini
+  [414, 896, 3], // XS Max, 11 Pro Max
+  [414, 896, 2], // XR, 11
+  [414, 736, 3], // 8 Plus
+  [375, 667, 2], // SE (2nd and 3rd), 8
+];
+await mkdir('public/splash', { recursive: true });
+const tags = [];
+for (const [w, h, dpr] of SCREENS) {
+  const file = `splash/iphone-${w * dpr}x${h * dpr}.png`;
+  const shot = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
+  await shot.setContent(`<html><body style="margin:0;height:100vh;display:grid;place-items:center;background:${SPLASH_BG}"><div style="width:120px;height:120px">${svg({ size: 120 })}</div></body></html>`);
+  await shot.screenshot({ path: `public/${file}` });
+  await shot.close();
+  tags.push(`    <link rel="apple-touch-startup-image" href="/${file}" media="(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)" />`);
+  console.log('wrote', `public/${file}`);
+}
 await browser.close();
+
+// The <link> tags go in app/index.html between the splash markers.
+const html = await readFile('app/index.html', 'utf8');
+const marked = html.replace(/(<!-- splash -->\n)[\s\S]*?( *<!-- \/splash -->)/, `$1${tags.join('\n')}\n$2`);
+if (marked === html && !html.includes('<!-- splash -->')) console.warn('app/index.html has no <!-- splash --> markers: tags not written');
+else await writeFile('app/index.html', marked);

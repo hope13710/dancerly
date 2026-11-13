@@ -24,6 +24,32 @@
     <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="dancerly" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- iPhone launch images (tools/make-icons.js writes these): the app icon on the app's background. -->
+    <!-- splash -->
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1260x2736.png" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/iphone-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <!-- /splash -->
+    <style>
+      /* Opened from the Home Screen: the same picture as the launch image until the first screen (or its
+         skeleton) is drawn, so opening the app doesn't flash a blank screen. Not shown in a browser tab. */
+      .boot { display: none; }
+      @media (display-mode: standalone) {
+        .boot { display: grid; place-items: center; position: fixed; inset: 0; z-index: 9999; background: #f7f8fa; transition: opacity 0.2s ease; }
+        .boot img { width: 120px; height: 120px; }
+        .boot.done { opacity: 0; pointer-events: none; }
+      }
+    </style>
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="/app/app.css" />
     <!-- Visit statistics: Vercel Web Analytics (no cookies). App addresses are reduced to their shape first:
@@ -45,6 +71,7 @@
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
+    <div class="boot" data-boot aria-hidden="true"><img src="/logo.svg" alt="" width="120" height="120" /></div>
     <aside class="sidebar" data-sidebar hidden aria-label="Main">
       <div class="side-top">
         <a class="brand" href="/app" data-link aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>

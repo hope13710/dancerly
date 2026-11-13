@@ -33,6 +33,13 @@ import { offerInstall, noteOpenDay, paintEntries } from './install.js';
 import { watchForUpdates, reloadIfUpdated } from './update.js';
 
 const view = $('[data-view]');
+// Home Screen app: the launch picture (index.html, .boot) fades out once the first screen or its skeleton is drawn.
+const boot = document.querySelector('[data-boot]');
+if (boot) {
+  const done = () => { if (!boot.isConnected) return; boot.classList.add('done'); setTimeout(() => boot.remove(), 250); };
+  new MutationObserver((_, watcher) => { if (view.childElementCount) { watcher.disconnect(); done(); } }).observe(view, { childList: true });
+  setTimeout(done, 6000); // never stuck on it
+}
 const state = { session: null, profile: null, cleanup: null, authError: null, recovering: false, projects: [] };
 // Add to Home Screen (install.js): offered once on phones, right after an upload or on the third day of use.
 window.addEventListener('dancerly:uploaded', () => offerInstall('upload'));
