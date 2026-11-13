@@ -31,9 +31,14 @@ const D = {
 };
 const dPath = ({ bowl, stem, counter }) => `${circle(...bowl)}${rrect(...stem)}${circle(...counter, false)}`;
 
+// Optical centering: centered by its outline, the "d" looks low and to the right (the bowl's weight sits bottom
+// left of the stem, and the stem's tip is thin). Its visual weight was 4% right and 4% below center, so it moves
+// up and left by about two thirds of that: centered to the eye, without overcorrecting.
+const NUDGE = [-14, -12];
+
 function svg({ weight = 'regular', scale = 1, rounded = true, size = 512 }) {
-  // Scale the letter about its own center (255.5, 255) and place it at the icon's center.
-  const t = `translate(256 256) scale(${scale}) translate(-255.5 -255)`;
+  // Scale the letter about its own center (255.5, 255), place it at the icon's center, then nudge it.
+  const t = `translate(${256 + NUDGE[0] * scale} ${256 + NUDGE[1] * scale}) scale(${scale}) translate(-255.5 -255)`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
   <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${TOP}"/><stop offset="1" stop-color="${BOTTOM}"/></linearGradient></defs>
   <rect width="512" height="512" ${rounded ? 'rx="112"' : ''} fill="url(#bg)"/>
