@@ -172,7 +172,7 @@ export async function renderSettings(section = 'account') {
       html: `<section class="panel">
         <div class="panel-head"><div><h2>Your projects</h2><p class="muted">Rename, manage people, invite links, or leave — in each project’s Settings tab.</p></div></div>
         ${data.length ? `<div class="list flush">${data.map((m) => `<a class="row" href="/app/p/${m.project_id}/settings" data-link>
-          ${projectMark(m.projects, 'xs')}
+          ${projectMark(m.projects, 'xs', m.project_id)}
           <span class="row-main"><span class="row-title">${esc(m.projects?.title || '')}</span><span class="row-meta">${m.projects?.project_members?.[0]?.count ?? 1} members</span></span>
           <span class="row-side"><span class="role ${m.role}">${m.role === 'owner' ? 'Owner' : 'Member'}</span><span class="chev">${ic('right', 'solo')}</span></span></a>`).join('')}</div>`
           : '<p class="panel-empty">You’re not in any projects yet.</p>'}
@@ -207,7 +207,7 @@ export async function renderSettings(section = 'account') {
           ${byProject.length ? `<ul class="free-up-list">${byProject.map((r, i) => {
             const p = projectOf(r.project_id);
             const share = Math.round((Number(r.bytes) / Math.max(used, 1)) * 100);
-            return `<li>${projectMark(p, 'xs')}<span class="free-up-main"><span class="free-up-title">${esc(p?.title || ownedTitle(r.project_id))}</span><span class="free-up-meta">${size(Number(r.bytes))}${byProject.length > 1 ? ` · ${ko ? `전체의 ${share}%` : `${share}% of your storage`}` : ''}</span>${byProject.length > 1 ? `<span class="free-up-bar"><i style="width:${share}%"></i></span>` : ''}</span><a class="btn small${i === 0 ? ' primary' : ''}" href="/app/p/${r.project_id}" data-link>${ko ? '영상 정리하기' : 'Review videos'} <span aria-hidden="true">›</span></a></li>`;
+            return `<li>${projectMark(p || { title: ownedTitle(r.project_id) }, 'xs', r.project_id)}<span class="free-up-main"><span class="free-up-title">${esc(p?.title || ownedTitle(r.project_id))}</span><span class="free-up-meta">${size(Number(r.bytes))}${byProject.length > 1 ? ` · ${ko ? `전체의 ${share}%` : `${share}% of your storage`}` : ''}</span>${byProject.length > 1 ? `<span class="free-up-bar"><i style="width:${share}%"></i></span>` : ''}</span><a class="btn small${i === 0 ? ' primary' : ''}" href="/app/p/${r.project_id}" data-link>${ko ? '영상 정리하기' : 'Review videos'} <span aria-hidden="true">›</span></a></li>`;
           }).join('')}</ul>` : ''}
           <p class="free-up-more">${ko ? '공간이 더 필요하신가요?' : 'Need more room?'} <button type="button" class="link-btn" data-more-storage>${ko ? '저희에게 알려 주세요' : 'Tell us'}</button>${ko ? '. 늘려 드릴게요.' : ' and we’ll add more.'}</p>
         </div>` : '';

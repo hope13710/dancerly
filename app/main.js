@@ -740,14 +740,14 @@ async function renderJoin(code) {
     if (seen) return navigate(then, { replace: true });
   }
   if (signedIn && auto) {
-    view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="card-mark big">${esc(initials(invite.project_title))}</div><h1>Joining ${esc(invite.project_title)}…</h1></div></section>`;
+    view.innerHTML = `<section class="auth"><div class="auth-card center">${projectMark({ title: invite.project_title }, 'big')}<h1>Joining ${esc(invite.project_title)}…</h1></div></section>`;
     return join();
   }
   // From an email invite (send-invite): the address it went to, so sign-up starts with it filled in.
   const sentTo = new URLSearchParams(location.search).get('email');
   const invitedEmail = sentTo && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sentTo) ? `&email=${encodeURIComponent(sentTo)}` : '';
   view.innerHTML = `<section class="auth"><div class="auth-card center">
-    <div class="card-mark big">${esc(initials(invite.project_title))}</div>
+    ${projectMark({ title: invite.project_title }, 'big')}
     <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
     <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on practice videos.</p>
     ${signedIn

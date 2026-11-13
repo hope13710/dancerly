@@ -504,6 +504,15 @@ a {
   font-weight: 700;
   font-size: 12px;
 }
+/* Project colors (no image): one of eight, picked from the project id. */
+.card-mark.mk-0 { background: #ededff; color: #4b49d8; }
+.card-mark.mk-1 { background: #e3edfd; color: #1d4fb8; }
+.card-mark.mk-2 { background: #dcf3ef; color: #0f6b63; }
+.card-mark.mk-3 { background: #e4f4e6; color: #2b6f36; }
+.card-mark.mk-4 { background: #fcefd9; color: #8f4a08; }
+.card-mark.mk-5 { background: #fde6df; color: #b23a12; }
+.card-mark.mk-6 { background: #fbe6f1; color: #a8185a; }
+.card-mark.mk-7 { background: #eaecf1; color: #434d5e; }
 .card-mark.big {
   width: 60px;
   height: 60px;

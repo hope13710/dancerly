@@ -1,6 +1,6 @@
 // First-run guidance: the leader's three-step start, the sample project, a welcome for people who were invited,
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
-import { sb, $, $$, esc, initials, toast, friendlyError, dialog, schema } from './client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, schema, projectMark } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang, isKo } from './i18n.js';
 import { createVideo } from './views/project.js';
@@ -210,7 +210,7 @@ export async function renderWelcome() {
     </div></section>`;
   const invitesHtml = () => !pending.length ? '' : `<div class="welcome-invites">
       <p class="welcome-label">You’ve been invited</p>
-      <div class="list">${pending.map((i) => `<div class="row welcome-invite"><span class="card-mark">${esc(initials(i.project_title))}</span>
+      <div class="list">${pending.map((i) => `<div class="row welcome-invite">${projectMark({ id: i.project_id, title: i.project_title })}
         <span class="row-main" data-no-i18n><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${isKo ? `${esc(i.invited_by_name)}님이 초대했어요` : `${esc(i.invited_by_name)} invited you`}</span></span>
         ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta" data-no-i18n>${isKo ? '링크가 만료됐어요' : 'Link expired'}</span>`}</div>`).join('')}</div>
       <p class="welcome-or"><span>Or start your own team</span></p>

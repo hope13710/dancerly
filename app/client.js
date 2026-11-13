@@ -79,9 +79,20 @@ export function avatar(name, userId, cls = '') {
   if (isSamplePerson(userId)) cls += ' sample-person';
   return `<span class="avatar ${cls}" title="${esc(name || '')}${isSamplePerson(userId) ? (isKo ? ' (샘플)' : ' (sample)') : ''}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
 }
-// A project's square mark: its image, or its initials.
-export function projectMark(project, cls = '') {
-  return `<span class="card-mark ${cls}">${project?.image_url ? `<img src="${esc(project.image_url)}" alt="" loading="lazy" />` : esc(initials(project?.title))}</span>`;
+// A project's square mark: its image, or its initials on a color of its own, so projects without an image still
+// look different in a list. The color comes from the project's id (or its name when the id isn't known yet), so it
+// stays the same everywhere and doesn't change on rename.
+const MARK_COLORS = 8;
+function markColor(key) {
+  let h = 2166136261;
+  for (const ch of String(key || '')) h = Math.imul(h ^ ch.codePointAt(0), 16777619);
+  h = Math.imul(h ^ (h >>> 16), 2246822507); // mix, so similar ids still spread across the colors
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return ((h ^ (h >>> 16)) >>> 0) % MARK_COLORS;
+}
+export function projectMark(project, cls = '', id = '') {
+  if (project?.image_url) return `<span class="card-mark ${cls}"><img src="${esc(project.image_url)}" alt="" loading="lazy" /></span>`;
+  return `<span class="card-mark mk-${markColor(project?.id || id || project?.title)} ${cls}">${esc(initials(project?.title))}</span>`;
 }
 
 // Wires [data-pick-image] / [data-remove-image] / [data-image-file] on the current screen.
