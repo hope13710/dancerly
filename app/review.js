@@ -141,7 +141,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <div class="composer-foot"><label class="visibility"><span class="sr-only">Who can see this note</span><select data-visibility>
             <option value="">Everyone</option>
             ${members.filter((m) => m.user_id !== me.id).sort((a, b) => (b.user_id === take.uploaded_by) - (a.user_id === take.uploaded_by)).map((m) => `<option value="${m.user_id}">Private to ${esc(m.name)}${m.user_id === take.uploaded_by ? ' (in this take)' : ''}</option>`).join('')}
-          </select></label><button type="button" class="btn small ghost draw-btn" data-draw aria-pressed="false" title="Draw on the frame (D)">${ic('pen')}Draw</button><span class="sketch-chip" data-sketch-chip hidden></span><button class="btn primary small" type="submit">Pin note</button></div>
+          </select></label><button type="button" class="btn small ghost draw-btn" data-draw aria-pressed="false" title="Draw on the frame (D)">${ic('pen')}Draw</button><span class="sketch-chip" data-sketch-chip hidden></span><button class="btn primary small" type="submit">Add note</button></div>
           </div>
         </form>
       </aside>
@@ -1093,7 +1093,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
     toast(recipient
       ? `Private note pinned. Only ${recipient.split(' ')[0]} can see it.`
-      : `Note pinned at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
+      : `Note added at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
   }
 
   // ---------- Keyboard ----------

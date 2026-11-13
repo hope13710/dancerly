@@ -231,7 +231,7 @@ export async function renderWelcome() {
         const value = event.currentTarget.elements.namedItem('link').value.trim();
         // The whole link, or just its code.
         const code = (value.match(/join\/([a-f0-9]{6,64})/i) || value.match(/^([a-f0-9]{6,64})$/i))?.[1];
-        if (!code) return toast('That doesn’t look like a dancerly invite link. It looks like dancerly.app/app/join/…', 'error');
+        if (!code) return toast('That doesn’t look like a dancerly invite link. Invite links look like dancerly.app/app/join/…', 'error');
         await finish('join_link');
         navigate(`/app/join/${code.toLowerCase()}`);
       });
@@ -315,7 +315,7 @@ export async function memberWelcome(projectId, project, members) {
     <h2>You’re in ${esc(project.title)}</h2>
     <p>${owner && owner.user_id !== me ? `${esc(owner.name)} and everyone here review practice videos together.` : 'This is where practice videos get reviewed.'} Three things you’ll do most:</p>
     <ol class="welcome-list">
-      <li><span class="wl-icon" aria-hidden="true">${ic('reply', 'solo')}</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} waiting for you — tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
+      <li><span class="wl-icon" aria-hidden="true">${ic('reply', 'solo')}</span><span><b>Check feedback on your moves</b><small>${forMe.length ? `${forMe.length} ${forMe.length === 1 ? 'note' : 'notes'} waiting for you. Tap one to jump to that moment.` : 'Tap any note to jump to that moment in the video.'}</small></span></li>
       <li><span class="wl-icon" aria-hidden="true">${ic('loop', 'solo')}</span><span><b>Practice with loop and mirror</b><small>Loop the part you’re working on, slow it down, flip it to match the mirror.</small></span></li>
       <li><span class="wl-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span><b>Submit your video</b><small>${requests[0] ? `Assignment: ${esc(requests[0].title)}.` : 'Film from the front, whole body in frame, with the music.'}</small></span></li>
     </ol>
@@ -341,7 +341,7 @@ export function reviewTips({ isOwner }) {
       ['[data-ab]', 'Loop the hard part', 'Tap A–B at the start and the end. Slow it down with the speed button.']
     ]
     : [
-      ['[data-list]', 'Your feedback, at its moment', 'Tap a note to jump there. Mark it Practicing, then Resolved when it’s clean.'],
+      ['[data-list]', 'Your feedback, at its moment', 'Tap a note to jump there. Tap “I’m on it” while you work on it, then ✓ when it’s clean.'],
       ['[data-ab]', 'Loop the part you’re drilling', 'Tap A–B at the start and the end. Slow it down with the speed button.'],
       ['[data-mirror]', 'Flip it to match the mirror', 'Mirror mode shows the video the way you see yourself in the studio.']
     ];
