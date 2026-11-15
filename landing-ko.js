@@ -225,7 +225,7 @@ export const LANDING_KO = {
   "Pin a single frame or drag across a phrase. @mention anyone and it lands in their inbox.": "한 프레임을 지정하거나 원하는 구간을 드래그해 피드백을 남기세요. @멘션하면 상대방에게 바로 알림이 가요.",
   'Done': '완료',
   'Draw what words can’t': '말보다 그림으로 정확하게',
-  "Circle who’s sitting high, arrow how low to go. Sketches stay on the frame, even in mirror mode.": "높은 자세로 앉은 멤버는 동그라미로 표시하고, 더 낮춰야 할 위치는 화살표로 그려 보세요. 거울 모드에서도 스케치 위치가 그대로 유지돼요.",
+  "Circle what’s off, arrow where it should go. Sketches stay on the frame, even in mirror mode.": "어긋난 동작은 동그라미로, 가야 할 방향은 화살표로 그려 보세요. 거울 모드에서도 스케치 위치가 그대로 유지돼요.",
   'Practice mode, built in': '바로 사용할 수 있는 연습 모드',
   "Loop any eight, slow it to half speed, and flip to mirror so it matches the studio.": "원하는 에잇을 반복하고, 0.5배속으로 늦춰 보고, 거울 모드로 전환해 연습실 거울처럼 확인하세요.",
   'Heads snap on 1': '1카운트에 고개 스냅',
