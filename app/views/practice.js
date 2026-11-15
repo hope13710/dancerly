@@ -588,7 +588,7 @@ export function choreoCard({ projectId, choreo, isOwner }) {
   return `<div class="choreo-card">
     <a class="choreo-main" href="/app/p/${projectId}/practice?from=videos" data-link>
       <span class="video-thumb choreo-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>
-      <span class="video-copy"><span class="choreo-badge">Choreo</span><b data-no-i18n>${esc(title)}</b><small>${isKo ? '구간 반복 · 속도 조절 · 거울 모드' : 'Loop a section · Slow it down · Mirror'}</small></span>
+      <span class="video-copy"><span class="choreo-badge">Choreo</span><b data-no-i18n title="${esc(title)}">${esc(title)}</b><small>${isKo ? '구간 반복 · 속도 조절 · 거울 모드' : 'Loop a section · Slow it down · Mirror'}</small></span>
       <span class="btn primary small choreo-cta">${ic('play')}Practice</span>
     </a>
     ${isOwner ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}

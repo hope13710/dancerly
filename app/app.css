@@ -9908,3 +9908,12 @@ textarea,
     display: none;
   }
 }
+/* The choreo card shows at most two lines of the title (YouTube titles run long); Practice shows all of it. */
+.choreo-card .video-copy b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
