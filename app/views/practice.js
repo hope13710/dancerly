@@ -128,6 +128,20 @@ async function retireChoreo(projectId, old, next = null) {
   }
 }
 
+// Rename the choreo video without uploading it again: a file's name lives on its video, a YouTube link's on the
+// project (choreo_title). Owners only, like the rest of the choreo menu. Returns true when it changed.
+export async function renameChoreo(projectId, choreo) {
+  const now = choreoTitle(choreo);
+  const got = await dialog({ title: 'Rename choreo video', fields: [{ name: 'title', label: 'Name', value: now, required: true, max: 120, placeholder: 'e.g. Chorus by the choreographer' }], confirm: 'Save' });
+  if (!got || !got.title || got.title === now) return false;
+  const { error } = choreo.kind === 'file'
+    ? await sb.from('videos').update({ title: got.title }).eq('id', choreo.video.id)
+    : await sb.from('projects').update({ choreo_title: got.title }).eq('id', projectId);
+  if (error) { toast(friendlyError(error), 'error'); return false; }
+  toast('Choreo video renamed.');
+  return true;
+}
+
 export async function removeChoreo(projectId, choreo) {
   const ok = await dialog({
     title: 'Remove the choreo video?',
