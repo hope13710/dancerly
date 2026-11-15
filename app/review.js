@@ -1157,7 +1157,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   wireUpload();
   $('[data-video-more]')?.addEventListener('click', moreActions);
   // Share: a progress card (Take 1 next to the latest), or the read-only guest link. In the sample too, as a preview.
-  const openShare = () => shareChoice({ projectId, videoId, videoTitle: video.title, sample: project.is_sample, takes: takes.length, latest: takes[takes.length - 1]?.number, linkShare: shareVideo });
+  const openShare = () => shareChoice({ projectId, videoId, videoTitle: video.title, sample: project.is_sample, takes: takes.length, latest: takes[takes.length - 1]?.number, linkShare: () => shareVideo(videoId, video.title, { projectId, isOwner }) });
   $('[data-share-video]')?.addEventListener('click', openShare);
   $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
   $('[data-invite-dismiss]')?.addEventListener('click', () => {

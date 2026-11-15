@@ -10054,3 +10054,96 @@ textarea,
     z-index: 7;
   }
 }
+
+/* ---------- Share with a link (takes and Practice, migration 061) ---------- */
+.share-what {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-toggle {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.share-settings {
+  margin-top: 12px;
+}
+.share-expiry {
+  margin-bottom: 4px;
+}
+.share-meta {
+  margin: 4px 0 0;
+}
+.share-rights {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+.share-invite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+.share-invite .ic {
+  flex: none;
+}
+/* Settings › Shared links: what kind of link each row is. */
+.share-kind {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 6px;
+  margin-right: 4px;
+  vertical-align: 1px;
+  background: #eef0f4;
+  color: var(--muted);
+}
+.share-kind.practice {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+/* A Practice link, opened by anyone: the Practice screen with the guest bar, and a card to ask to join. */
+.practice-guest-bar {
+  max-width: 1360px;
+  margin: 16px auto 0;
+  padding: 0 clamp(12px, 3vw, 32px) 12px;
+}
+.guest-join {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(91, 92, 226, 0.14);
+  border: 1px solid rgba(139, 140, 255, 0.4);
+  font-size: 13px;
+  color: #c9ced9;
+}
+.guest-join:empty {
+  display: none;
+}
+.guest-join b {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+}
+.guest-join p {
+  margin: 4px 0 10px;
+  line-height: 1.5;
+}
+.guest-join > .btn {
+  margin-top: 6px;
+}
+/* Guest pages have their own bar (logo, Open dancerly); the app's tab bar would cover the bottom of the page. */
+body.is-guest .tabbar {
+  display: none !important;
+}
+.share-toggle .row-meta {
+  white-space: normal;
+  overflow: visible;
+}

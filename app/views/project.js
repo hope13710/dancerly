@@ -9,7 +9,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, da
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 import { ic } from '../icons.js';
-import { loadChoreo, chooseChoreo, removeChoreo, choreoCard } from './practice.js';
+import { loadChoreo, chooseChoreo, removeChoreo, choreoCard, choreoTitle } from './practice.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -95,7 +95,7 @@ export async function restoreFromTrash(kind, id, after = () => {}) {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap, choreo_video_id, choreo_youtube, choreo_title')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap, choreo_video_id, choreo_youtube, choreo_title, members_share_practice')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -250,9 +250,9 @@ export async function renderProjectPeople(projectId) {
     : { data: [] };
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'people', '<button class="btn primary" data-invite>Invite people</button>')}
-    ${(asks || []).length ? `<div class="panel join-asks"><div class="panel-head"><div><h2>Requests to join</h2><p class="muted">They watched a video you shared. Approving adds them as a member and posts their note.</p></div></div>
+    ${(asks || []).length ? `<div class="panel join-asks"><div class="panel-head"><div><h2>Requests to join</h2><p class="muted">They opened a link you shared. Approving adds them as a member and posts their note, if they wrote one.</p></div></div>
       <div class="list">${asks.map((a) => `<div class="row join-ask" data-ask="${a.id}">
-        ${avatar(a.requester_name || '?', a.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(a.requester_name || 'Someone')}</span><span class="row-meta">${esc(a.videos?.title || 'A shared video')} · ${timeAgo(a.created_at)}</span>
+        ${avatar(a.requester_name || '?', a.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(a.requester_name || 'Someone')}</span><span class="row-meta">${a.video_id ? esc(a.videos?.title || 'A shared video') : (isKo ? '연습 링크' : 'Practice link')} · ${timeAgo(a.created_at)}</span>
           ${a.body ? `<span class="join-ask-note"><b>${fmtFine(Number(a.t_start || 0))}</b> ${esc(a.body)}</span>` : ''}</span>
         <span class="row-side"><button class="btn small ghost" data-ask-no="${a.id}">Decline</button><button class="btn small primary" data-ask-yes="${a.id}">Approve</button></span>
       </div>`).join('')}</div></div>` : ''}
@@ -311,7 +311,17 @@ export async function renderProjectSettings(projectId) {
   const p = await loadProject(projectId);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Settings']]);
   const { data: invites } = await sb.from('project_invites').select('code, created_at, expires_at, created_by').eq('project_id', projectId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
-  const names = await namesFor((invites || []).map((i) => i.created_by));
+  // Every link that's open to anyone right now (migration 061), so the owner can see and turn them off in one place.
+  const liveLink = (l) => !l.revoked && (!l.expires_at || new Date(l.expires_at) > new Date());
+  const [{ data: takeLinks }, { data: practiceLinks }] = p.isOwner && schema.shareLinks
+    ? await Promise.all([
+      sb.from('video_shares').select('token, views, expires_at, revoked, created_by, video_id, videos(title)').eq('project_id', projectId).eq('revoked', false),
+      sb.from('practice_shares').select('token, views, expires_at, revoked, created_by').eq('project_id', projectId).eq('revoked', false)
+    ])
+    : [{ data: [] }, { data: [] }];
+  const links = [...(practiceLinks || []).filter(liveLink).map((l) => ({ ...l, kind: 'practice' })), ...(takeLinks || []).filter(liveLink).map((l) => ({ ...l, kind: 'take' }))];
+  const names = await namesFor([...(invites || []).map((i) => i.created_by), ...links.map((l) => l.created_by)]);
+  const practiceName = links.some((l) => l.kind === 'practice') ? choreoTitle(await loadChoreo(p.project)) : '';
   const canRevoke = (i) => p.isOwner || i.created_by === p.me;
   // A project goes to the Trash first (migration 033); the sample keeps its own Remove sample.
   const trashable = schema.projectTrash && !p.project.is_sample;
@@ -336,6 +346,14 @@ export async function renderProjectSettings(projectId) {
         ${invites?.length ? `<div class="list flush">${invites.map((i) => `<div class="row"><span class="row-main"><span class="row-title mono">…/join/${esc(i.code.slice(0, 6))}…</span><span class="row-meta">Created by ${esc(names[i.created_by] || 'someone')} · expires ${new Date(i.expires_at).toLocaleDateString()}</span></span><span class="row-side"><button class="btn ghost small" data-copy-link="${esc(i.code)}">Copy</button>${canRevoke(i) ? `<button class="btn ghost small danger" data-revoke="${esc(i.code)}">Turn off</button>` : ''}</span></div>`).join('')}</div>`
           : '<p class="panel-empty">No active links.</p>'}
       </section>
+      ${p.isOwner && !p.project.is_sample && schema.shareLinks ? `<section class="panel">
+        <div class="panel-head"><div><h2>Shared links</h2><p class="muted">Anyone with one of these links can watch, no account needed. Turn one off and it stops opening.</p></div></div>
+        ${links.length ? `<div class="list flush">${links.map((l) => `<div class="row"><span class="row-main"><span class="row-title"><span class="share-kind ${l.kind}" data-no-i18n>${l.kind === 'practice' ? (isKo ? '연습 화면' : 'Practice') : (isKo ? '테이크' : 'Take')}</span> <span data-no-i18n>${esc(l.kind === 'practice' ? practiceName : (l.videos?.title || 'Video'))}</span></span><span class="row-meta" data-no-i18n>${isKo ? `조회 ${l.views}회 · ${l.expires_at ? `${new Date(l.expires_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} 만료` : '만료 없음'} · ${esc(names[l.created_by] || '팀원')}님이 만듦` : `${l.views} ${l.views === 1 ? 'view' : 'views'} · ${l.expires_at ? `expires ${new Date(l.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'never expires'} · by ${esc(names[l.created_by] || 'someone')}`}</span></span>
+          <span class="row-side"><button class="btn small" data-copy-link="${l.token}">Copy</button><button class="btn small ghost" data-link-off="${l.kind}:${l.token}">Turn off</button></span></div>`).join('')}</div>`
+          : '<p class="panel-empty">No links are on. Share a take or the Practice page from its Share button.</p>'}
+        <label class="row toggle-row"><span class="row-main"><span class="row-title">Members can share the Practice page</span><span class="row-meta">When it’s off, only you can make a Practice link. Anyone on the project can share takes.</span></span>
+          <span class="switch"><input type="checkbox" data-members-share-practice ${p.project.members_share_practice ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
+      </section>` : ''}
       ${p.isOwner && !p.project.is_sample && schema.shareCards ? `<section class="panel">
         <label class="row toggle-row"><span class="row-main"><span class="row-title">Members can share progress cards</span><span class="row-meta">Anyone on the project can turn its takes into a progress image for Instagram and the like. Turn this off for choreography that’s secret until a show or competition.</span></span>
           <span class="switch"><input type="checkbox" data-share-cards ${p.project.allow_share_cards !== false ? 'checked' : ''} /><i aria-hidden="true"></i></span></label>
@@ -360,6 +378,22 @@ export async function renderProjectSettings(projectId) {
     if (error) return toast(friendlyError(error), 'error');
     toast('Project renamed.');
     ctx.route();
+  });
+  $$('[data-copy-link]').forEach((b) => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(`${location.origin}/app/s/${b.dataset.copyLink}`); toast('Link copied.'); } catch { toast('Couldn’t copy. Open the Share button instead.', 'error'); }
+  }));
+  $$('[data-link-off]').forEach((b) => b.addEventListener('click', async () => {
+    const [kind, token] = b.dataset.linkOff.split(':');
+    const { error } = await sb.from(kind === 'practice' ? 'practice_shares' : 'video_shares').update({ revoked: true }).eq('token', token);
+    if (error) return toast(friendlyError(error), 'error');
+    toast('Link turned off. It doesn’t open anymore.');
+    ctx.route();
+  }));
+  $('[data-members-share-practice]')?.addEventListener('change', async (event) => {
+    const on = event.target.checked;
+    const { error } = await sb.from('projects').update({ members_share_practice: on }).eq('id', projectId);
+    if (error) { event.target.checked = !on; return toast(friendlyError(error), 'error'); }
+    toast(on ? 'Members can share the Practice page now.' : 'Only you can share the Practice page now.');
   });
   $('[data-share-cards]')?.addEventListener('change', async (event) => {
     const on = event.target.checked;

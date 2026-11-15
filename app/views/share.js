@@ -1,5 +1,7 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
 import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog } from '../client.js';
+import { isKo } from '../i18n.js';
+import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 import { countAt } from '../counts.js';
@@ -24,42 +26,94 @@ function sheet(html) {
   return el;
 }
 
-// ---------- Guest link for one video ----------
-export async function shareVideo(videoId, videoTitle) {
+// ---------- Share with a link: one model for takes and for Practice (migration 061) ----------
+// Like Notion's or Figma's "Anyone with the link": a switch, the link with Copy, then a few settings, all saved as
+// they change. One live link per take (video) and one per project's Practice page. Whoever made a link, or the
+// owner, can change it or turn it off. Sharing isn't inviting: a link to People sits at the bottom for that.
+export function shareVideo(videoId, videoTitle, opts = {}) {
+  return openShare({ kind: 'take', videoId, title: videoTitle, ...opts });
+}
+export function sharePractice(projectId, title, opts = {}) {
+  return openShare({ kind: 'practice', projectId, title, ...opts });
+}
+
+const live = (l) => l && !l.revoked && (!l.expires_at || new Date(l.expires_at) > new Date());
+const DAY = 864e5;
+
+async function openShare({ kind, videoId = null, projectId = null, title = '', isOwner = false, canCreate = true }) {
   const me = ctx.state.session.user.id;
-  const { data: links } = await sb.from('video_shares').select('*').eq('video_id', videoId).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false });
-  const el = sheet(`<h2>Share outside the project</h2>
-    <p>Anyone with the link can watch the latest take of <b>${esc(videoTitle)}</b> — no account needed. They can’t download it, and the link stops working when it expires.</p>
-    <form class="share-form" data-new-share>
-      <label class="check-row"><input type="checkbox" name="notes" checked /> <span><b>Include notes</b><small>Guests see the notes on this take, read-only.</small></span></label>
-      ${schema.joinRequests ? `<label class="check-row"><input type="checkbox" name="requests" checked /> <span><b>Let people ask to join</b><small>They can write a note and send it with a request to join. Nothing is posted until the owner approves.</small></span></label>` : ''}
-      <label class="field"><span>Expires</span><select name="days"><option value="7">In 7 days</option><option value="14" selected>In 14 days</option><option value="30">In 30 days</option></select></label>
-      <button class="btn primary" type="submit">Create link</button>
-    </form>
-    <div data-links>${(links || []).map((l) => `<div class="share-link">
-      ${copyRow(`${location.origin}/app/s/${l.token}`)}
-      <p class="fine left">${l.include_notes ? 'With notes' : 'Video only'}${l.allow_requests === false ? '' : ' · takes requests'} · expires ${new Date(l.expires_at).toLocaleDateString()} · ${l.views} ${l.views === 1 ? 'view' : 'views'}
-        ${l.created_by === me ? `· <button class="link-btn inline danger" type="button" data-off="${l.token}">Turn off</button>` : ''}</p>
-    </div>`).join('')}</div>`);
-  wireCopy(el);
-  $('[data-new-share]', el).addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.currentTarget.elements;
-    const expires = new Date(Date.now() + Number(f.namedItem('days').value) * 864e5).toISOString();
-    const { data, error } = await sb.from('video_shares').insert({ video_id: videoId, include_notes: f.namedItem('notes').checked, expires_at: expires, ...(f.namedItem('requests') && !f.namedItem('requests').checked ? { allow_requests: false } : {}) }).select('token').single();
-    if (error) return toast(friendlyError(error), 'error');
-    const url = `${location.origin}/app/s/${data.token}`;
-    try { await navigator.clipboard.writeText(url); toast('Link created and copied.'); } catch { toast('Link created.'); }
-    el.close();
-    shareVideo(videoId, videoTitle);
-  });
-  $$('[data-off]', el).forEach((b) => b.addEventListener('click', async () => {
-    const { error } = await sb.from('video_shares').update({ revoked: true }).eq('token', b.dataset.off);
-    if (error) return toast(friendlyError(error), 'error');
-    toast('Link turned off.');
-    el.close();
-    shareVideo(videoId, videoTitle);
-  }));
+  const table = kind === 'take' ? 'video_shares' : 'practice_shares';
+  const [col, id] = kind === 'take' ? ['video_id', videoId] : ['project_id', projectId];
+  const supportsSettings = kind === 'practice' || schema.shareLinks;
+  const load = async () => {
+    const { data } = await sb.from(table).select('*').eq(col, id).eq('revoked', false).order('created_at', { ascending: false });
+    return (data || []).find(live) || null;
+  };
+  let link = await load();
+  const el = sheet('<div data-share-body></div>');
+  const body = $('[data-share-body]', el);
+  el.addEventListener('click', (e) => { if (e.target.closest('a[data-link]')) el.close(); });
+
+  const mine = () => link && (link.created_by === me || isOwner);
+  // Never, or the date it stops working (picking 7 or 30 days sets that date from today).
+  const expiryValue = () => (link?.expires_at ? 'custom' : 'never');
+  const paint = () => {
+    const url = link ? `${location.origin}/app/s/${link.token}` : '';
+    const canEdit = mine();
+    const what = kind === 'take' ? 'the latest take' : 'the choreo video and its sections';
+    body.innerHTML = `<h2>Share with a link</h2>
+      <p class="muted share-what" data-no-i18n>${esc(title)}</p>
+      <label class="row toggle-row share-toggle"><span class="row-main"><span class="row-title">Anyone with the link can watch</span><span class="row-meta">${isKo ? (kind === 'take' ? '최신 테이크를 계정 없이 볼 수 있어요.' : '원본 안무 영상과 파트를 계정 없이 볼 수 있어요. 수정은 할 수 없어요.') : `They see ${what}, no account needed${kind === 'practice' ? ', and can’t change anything' : ''}.`}</span></span>
+        <span class="switch"><input type="checkbox" data-share-on ${link ? 'checked' : ''} ${link ? (canEdit ? '' : 'disabled') : (canCreate ? '' : 'disabled')} /><i aria-hidden="true"></i></span></label>
+      ${link ? `${copyRow(url)}
+        <div class="share-settings">
+          ${kind === 'take' ? `<label class="check-row"><input type="checkbox" data-share-notes ${link.include_notes ? 'checked' : ''} ${canEdit && supportsSettings ? '' : 'disabled'} /> <span><b>Show notes</b><small>The notes on this take, read-only. Private notes never show.</small></span></label>` : ''}
+          ${schema.joinRequests ? `<label class="check-row"><input type="checkbox" data-share-requests ${link.allow_requests !== false ? 'checked' : ''} ${canEdit && supportsSettings ? '' : 'disabled'} /> <span><b>Let people ask to join</b><small>They send a request, and you approve it in People. Nothing is shared until you do.</small></span></label>` : ''}
+          <label class="field share-expiry"><span>Link expires</span><select data-share-expiry ${canEdit && supportsSettings ? '' : 'disabled'}>
+            <option value="never" ${expiryValue() === 'never' ? 'selected' : ''}>Never expires</option>
+            ${expiryValue() === 'custom' ? `<option value="custom" selected data-no-i18n>${isKo ? `${new Date(link.expires_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}에 만료` : `On ${new Date(link.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}</option>` : ''}
+            <option value="7">In 7 days</option>
+            <option value="30">In 30 days</option>
+          </select></label>
+        </div>
+        <p class="fine left share-meta" data-no-i18n>${isKo ? `조회 ${link.views}회` : `${link.views} ${link.views === 1 ? 'view' : 'views'}`}${canEdit ? '' : isKo ? ' · 링크를 만든 사람이나 프로젝트 관리자만 바꿀 수 있어요.' : ' · Only whoever made the link or the owner can change it.'}</p>`
+        : `<p class="fine left">${canCreate ? (isKo ? '켜면 링크가 만들어지고 바로 복사돼요.' : 'Turn it on to make a link. It’s copied right away.') : (isKo ? '프로젝트 관리자만 이 페이지를 링크로 공유할 수 있어요.' : 'Only the project owner can share this page with a link.')}</p>`}
+      <p class="fine left share-rights">Anyone with the link can watch. Only share videos you have the rights to share.</p>
+      ${projectId ? `<p class="share-invite" data-no-i18n>${ic('people')}<span>${isKo ? `프로젝트 멤버로 추가하려면 <a href="/app/p/${projectId}/people" data-link>초대하기</a>를 이용해 주세요.` : `To add someone to the project, <a href="/app/p/${projectId}/people" data-link>invite them</a> instead.`}</span></p>` : ''}`;
+    wireCopy(body);
+    $('[data-share-on]', body).addEventListener('change', async (e) => {
+      if (e.target.checked) {
+        const { data, error } = await sb.from(table).insert({ [col]: id }).select('*').single();
+        if (error) { e.target.checked = false; return toast(friendlyError(error), 'error'); }
+        link = data;
+        track('share_link_on', { kind });
+        try { await navigator.clipboard.writeText(`${location.origin}/app/s/${link.token}`); toast('Link copied.'); } catch { toast('Link is on.'); }
+      } else {
+        const { error } = await sb.from(table).update({ revoked: true }).eq(col, id).eq('revoked', false);
+        if (error) { e.target.checked = true; return toast(friendlyError(error), 'error'); }
+        link = null;
+        track('share_link_off', { kind });
+        toast('Link turned off. It doesn’t open anymore.');
+      }
+      paint();
+    });
+    const save = async (patch, ok) => {
+      const { error } = await sb.from(table).update(patch).eq('token', link.token);
+      if (error) { toast(friendlyError(error), 'error'); return paint(); }
+      Object.assign(link, patch);
+      if (ok) toast(ok);
+    };
+    $('[data-share-notes]', body)?.addEventListener('change', (e) => save({ include_notes: e.target.checked }));
+    $('[data-share-requests]', body)?.addEventListener('change', (e) => save({ allow_requests: e.target.checked }));
+    $('[data-share-expiry]', body)?.addEventListener('change', (e) => {
+      const v = e.target.value;
+      if (v === 'custom') return;
+      const expires = v === 'never' ? null : new Date(Date.now() + Number(v) * DAY).toISOString();
+      // Days are counted from now: keep created_at as is and read the choice back from the date.
+      save({ expires_at: expires }, v === 'never' ? 'The link won’t expire.' : `The link expires in ${v} days.`).then(paint);
+    });
+  };
+  paint();
 }
 
 // What a guest sees at /app/s/:token.
@@ -69,6 +123,12 @@ export async function renderShared(token) {
   const { data, error } = await sb.functions.invoke('shared-video', { body: { token } });
   let message = null;
   if (error) { try { message = (await error.context.json()).error; } catch { message = 'This link isn’t available.'; } }
+  // A Practice link (migration 061): the Practice screen, read-only.
+  if (!message && data?.kind === 'practice') {
+    const { renderPractice } = await import('./practice.js');
+    const done = await renderPractice(null, { ...data, token });
+    return () => { done?.(); document.body.classList.remove('is-guest'); };
+  }
   if (message || !data?.url) {
     view.innerHTML = `<section class="auth"><div class="auth-card center"><div class="inbox-icon">${ic('clock', 'solo')}</div><h1>Link unavailable</h1><p class="muted">${esc(message || 'This video isn’t available.')}${/new one/.test(message || '') ? '' : ' <span>Ask the person who shared it for a new link.</span>'}</p>
       <p class="guest-expired-pitch">Give your team feedback like this.</p><a class="btn wide" href="/?ref=share" data-guest-cta="expired">See how it works</a></div></section>`;
@@ -82,7 +142,7 @@ export async function renderShared(token) {
   const topLabel = signedIn ? 'Open dancerly' : 'What’s dancerly?';
   view.innerHTML = `<section class="page guest">
     <div class="guest-bar"><a class="guest-brand" href="/?ref=share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small ${signedIn ? 'primary' : 'ghost guest-what'}" href="${topHref}" data-guest-cta="top">${topLabel}</a></div>
-    <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take} · link expires ${new Date(data.expires_at).toLocaleDateString()}</p></div></header>
+    <header class="page-head"><div><p class="eyebrow">Shared with you · ${esc(data.project)}</p><h1>${esc(data.title)}</h1><p class="muted sub">Take ${data.take}${data.expires_at ? ` · link expires ${new Date(data.expires_at).toLocaleDateString()}` : ''}</p></div></header>
     <div class="guest-layout">
       <div class="guest-main">
       <div class="guest-player" data-gplayer><video class="guest-video" src="${esc(`${data.url}#t=0.001`)}" playsinline preload="metadata" controlslist="nodownload" disablepictureinpicture data-video></video><span class="guest-mirror-badge" aria-hidden="true">${ic('mirror')}Mirrored</span><button type="button" class="guest-big-play" data-gplay aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><svg class="sketch-layer" data-sketch-layer aria-hidden="true"></svg><span class="count-badge" data-count-badge hidden></span>

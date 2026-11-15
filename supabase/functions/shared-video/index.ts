@@ -1,5 +1,6 @@
-// shared-video: what a guest link (/app/s/:token) shows — one video's latest take and, if allowed, its notes.
-// Read-only; the link expires and can be turned off by whoever made it or the project owner.
+// shared-video: what a guest link (/app/s/:token) shows — one video's latest take and, if allowed, its notes;
+// or, for a Practice link (migration 061), the project's choreo video and its sections.
+// Read-only; a link can expire and can be turned off by whoever made it or the project owner.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -18,8 +19,13 @@ Deno.serve(async (req) => {
 
   // "*" so the link keeps working whether or not allow_requests (migration 040) is in the database yet.
   const { data: share } = await admin.from("video_shares").select("*").eq("token", token).maybeSingle();
+  if (!share) {
+    // Not a take link: maybe a Practice link (before migration 061 the table isn't there, and this finds nothing).
+    const { data: practice } = await admin.from("practice_shares").select("*").eq("token", token).maybeSingle();
+    if (practice) return practiceLink(practice);
+  }
   if (!share || share.revoked) return json({ error: "This link was turned off." }, 404);
-  if (new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
+  if (share.expires_at && new Date(share.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
 
   // A video, take, or project in the Trash (migrations 032, 033) isn't shown to guests.
   const { data: video } = await admin.from("videos").select("id, title, bpm, projects(title, deleted_at, is_sample)").eq("id", share.video_id).is("deleted_at", null).maybeSingle();
@@ -67,3 +73,45 @@ Deno.serve(async (req) => {
     owner,
   });
 });
+
+// A Practice link: the choreo video (a YouTube id, or a signed URL for an uploaded file) and its sections, read-only.
+async function practiceLink(ps: any) {
+  if (ps.revoked) return json({ error: "This link was turned off." }, 404);
+  if (ps.expires_at && new Date(ps.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
+  const { data: project } = await admin.from("projects").select("id, title, deleted_at, is_sample, choreo_video_id, choreo_youtube, choreo_title").eq("id", ps.project_id).maybeSingle();
+  if (!project || project.deleted_at || project.is_sample) return json({ error: "This page isn’t available." }, 404);
+  let choreo: Record<string, unknown> | null = null;
+  let title = project.choreo_title ?? "";
+  if (project.choreo_youtube) {
+    choreo = { kind: "youtube", id: project.choreo_youtube, title: project.choreo_title ?? "" };
+  } else if (project.choreo_video_id) {
+    const { data: video } = await admin.from("videos").select("id, title, bpm").eq("id", project.choreo_video_id).is("deleted_at", null).maybeSingle();
+    const { data: take } = video ? await admin.from("takes").select("storage_path, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle() : { data: null };
+    if (video && take) {
+      const url = take.storage_path.startsWith("public:")
+        ? take.storage_path.slice("public:".length)
+        : (await admin.storage.from("takes").createSignedUrl(take.storage_path, 60 * 60 * 3)).data?.signedUrl ?? null;
+      if (url) { choreo = { kind: "file", url, bpm: video.bpm ?? null, count_start: take.count_start ?? null }; title = video.title; }
+    }
+  }
+  if (!choreo) return json({ error: "There’s no choreo video here anymore." }, 404);
+  let rows = admin.from("count_sheet_rows").select("id, section, counts, t_start, t_end").eq("project_id", project.id).not("t_start", "is", null);
+  rows = project.choreo_youtube ? rows.is("video_id", null) : rows.eq("video_id", project.choreo_video_id);
+  const { data: sections } = await rows;
+  let owner: string | null = null;
+  if (ps.allow_requests) {
+    const { data: o } = await admin.from("project_members").select("user_id").eq("project_id", project.id).eq("role", "owner").limit(1).maybeSingle();
+    if (o) owner = ((await admin.from("profiles").select("display_name").eq("id", o.user_id).maybeSingle()).data?.display_name ?? "").split(" ")[0] || null;
+  }
+  admin.from("practice_shares").update({ views: ps.views + 1 }).eq("token", ps.token).then(() => {});
+  return json({
+    kind: "practice",
+    project: project.title,
+    title,
+    choreo,
+    sections: (sections ?? []).map((r: any) => ({ id: r.id, section: r.section, counts: r.counts, t_start: Number(r.t_start), t_end: r.t_end === null ? null : Number(r.t_end) })),
+    allow_requests: ps.allow_requests === true,
+    owner,
+    expires_at: ps.expires_at,
+  });
+}

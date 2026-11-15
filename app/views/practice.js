@@ -5,6 +5,7 @@ import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { loadProject, createVideo } from './project.js';
+import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
 import { ic } from '../icons.js';
 import { isKo } from '../i18n.js';
@@ -225,12 +226,18 @@ function youtubePlayer(host, id, onError) {
 const SECTION_NAMES = isKo ? ['인트로', '벌스', '프리코러스', '코러스', '댄스 브레이크', '브릿지', '아웃트로'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
 const BANDS = 6;
 
-export async function renderPractice(projectId) {
+// guest: what a Practice share link (/app/s/:token) shows, from the shared-video function: the same screen,
+// read-only (no adding or changing sections), with a way to ask to join the project.
+export async function renderPractice(projectId, guest = null) {
   const { view, setCrumbs } = ctx;
-  const p = await loadProject(projectId);
-  const choreo = await loadChoreo(p.project);
-  const base = `/app/p/${projectId}`;
-  setCrumbs([['Projects', '/app/projects'], [p.project.title, base], ['Practice']]);
+  const p = guest ? { project: { id: null, title: guest.project, is_sample: false }, isOwner: false } : await loadProject(projectId);
+  const choreo = guest
+    ? (guest.choreo.kind === 'youtube' ? { kind: 'youtube', id: guest.choreo.id, title: guest.choreo.title || guest.title || '' }
+      : { kind: 'file', url: guest.choreo.url, video: { id: null, title: guest.title, bpm: guest.choreo.bpm }, take: { id: null, count_start: guest.choreo.count_start } })
+    : await loadChoreo(p.project);
+  const base = guest ? null : `/app/p/${projectId}`;
+  const canShare = !guest && schema.shareLinks && !p.project.is_sample && (p.isOwner || p.project.members_share_practice);
+  if (!guest) setCrumbs([['Projects', '/app/projects'], [p.project.title, base], ['Practice']]);
   if (!choreo) {
     view.innerHTML = `<section class="page practice-page"><div class="empty"><div class="empty-icon">${ic('play', 'solo')}</div>
       <h2>No choreo video yet</h2>
@@ -247,6 +254,7 @@ export async function renderPractice(projectId) {
   const belongs = (r) => r.t_start !== null && (videoId ? r.video_id === videoId : !r.video_id);
   let sections = [];
   const loadSections = async () => {
+    if (guest) { sections = (guest.sections || []).filter((r) => r.t_start !== null).sort((a, b) => Number(a.t_start) - Number(b.t_start)); return; }
     const { data } = await sb.from('count_sheet_rows').select(`id, position, section, counts, video_id, t_start${schema.sectionEnd ? ', t_end' : ''}`).eq('project_id', projectId).order('position');
     sections = (data || []).filter(belongs).sort((a, b) => Number(a.t_start) - Number(b.t_start));
   };
@@ -263,9 +271,12 @@ export async function renderPractice(projectId) {
   const counts = choreo.kind === 'file' && choreo.video.bpm && choreo.take.count_start !== null && choreo.take.count_start !== undefined
     ? { bpm: Number(choreo.video.bpm), start: Number(choreo.take.count_start) } : null;
 
-  view.innerHTML = `<section class="review practice">
+  const signedIn = Boolean(ctx.state.session);
+  view.innerHTML = `${guest ? `<div class="guest-bar practice-guest-bar"><a class="guest-brand" href="/?ref=practice-share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small ghost" href="${signedIn ? '/app' : '/?ref=practice-share'}">${signedIn ? 'Open dancerly' : 'What’s dancerly?'}</a></div>` : ''}
+  <section class="review practice${guest ? ' is-guest-practice' : ''}">
     <header class="review-head">
-      <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted">${esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
+      <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted" data-no-i18n>${guest ? (isKo ? `공유됨 · ${esc(p.project.title)}` : `Shared with you · ${esc(p.project.title)}`) : esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
+      ${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}
     </header>
     <div class="review-layout practice-layout">
       <div class="player-col" data-col>
@@ -291,11 +302,12 @@ export async function renderPractice(projectId) {
         </div>
       </div>
       <aside class="notes-col practice-side">
+        ${guest ? '<div class="guest-join" data-guest-join></div>' : ''}
         <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
-        <div class="sec-mark" data-mark-box hidden></div>
-        <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section</span></button>
+        ${guest ? '' : `<div class="sec-mark" data-mark-box hidden></div>
+        <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section</span></button>`}
       </aside>
     </div>
   </section>`;
@@ -308,7 +320,7 @@ export async function renderPractice(projectId) {
   };
   let player;
   try {
-    player = choreo.kind === 'file' ? filePlayer(media, await takeUrl(choreo.take.storage_path)) : youtubePlayer(media, choreo.id, showError);
+    player = choreo.kind === 'file' ? filePlayer(media, guest ? choreo.url : await takeUrl(choreo.take.storage_path)) : youtubePlayer(media, choreo.id, showError);
   } catch (error) {
     media.innerHTML = `<div class="practice-error"><p>${esc(friendlyError(error))}</p></div>`;
     return null;
@@ -336,13 +348,13 @@ export async function renderPractice(projectId) {
           <span class="sec-text"><b ${i >= 0 ? 'data-no-i18n' : ''}>${name}</b><small>${meta}</small></span>
           <span class="sec-state">${on ? `${ic('loop')}<span>Looping</span>` : ic('loop', 'solo')}</span>
         </button>
-        ${i >= 0 ? `<button type="button" class="icon-btn sec-more" data-sec-more="${i}" aria-label="Options for ${esc(sections[i].section || '')}">${ic('more', 'solo')}</button>` : ''}
+        ${i >= 0 && !guest ? `<button type="button" class="icon-btn sec-more" data-sec-more="${i}" aria-label="Options for ${esc(sections[i].section || '')}">${ic('more', 'solo')}</button>` : ''}
       </div>`;
     };
     const time = (i) => { const [a, b] = bounds(i); return `${fmt(a)}–${Number.isFinite(b) ? fmt(b) : '…'}`; };
     $('[data-secs]').innerHTML = row(-1, isKo ? '전체' : 'Whole song', player.duration ? `${fmt(0)}–${fmt(player.duration)}` : '')
       + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span data-no-i18n>${esc(s.counts)}</span>` : ''}`)).join('')
-      + (sections.length ? '' : `<div class="sec-empty"><b>Mark the parts of the song</b><p>Play to where a part starts (the intro, a verse, the chorus), then tap “Add a section”. Tap a section to loop it.</p></div>`);
+      + (sections.length || guest ? '' : `<div class="sec-empty"><b>Mark the parts of the song</b><p>Play to where a part starts (the intro, a verse, the chorus), then tap “Add a section”. Tap a section to loop it.</p></div>`);
     $('[data-bands]').innerHTML = sections.map((s, i) => { const [a, b] = bounds(i); return `<i class="t-band b${i % BANDS}" style="left:${pct(a)};width:calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})" title="${esc(s.section || '')}"></i>`; }).join('');
     $$('[data-prev], [data-next]').forEach((b) => { b.disabled = !sections.length; });
     $$('[data-loop]').forEach((b) => b.addEventListener('click', () => pick(Number(b.dataset.loop), { from: 'list' })));
@@ -410,6 +422,7 @@ export async function renderPractice(projectId) {
   const NEXT_KEY = `looproom:practice-next:${projectId}`;
   const lapped = () => {
     laps += 1;
+    if (guest) return;
     const box = $('[data-next-step]');
     if (laps < 3 || !box.hidden || current < 0) return;
     try { if (localStorage.getItem(NEXT_KEY) === new Date().toDateString()) return; } catch {}
@@ -534,12 +547,14 @@ export async function renderPractice(projectId) {
     draft.style.width = `calc(${pct(end)} - ${pct(mark.start)})`;
   };
   const startMark = () => {
+    if (guest) return;
     if (looping) { looping = false; current = -1; paintSections(); }
     mark = { start: now10(), end: null };
     paintMark();
     $('[data-mark-box]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   function markAt(which) {
+    if (guest) return;
     if (!mark) { startMark(); if (which === 'start') return; }
     const t = now10();
     if (which === 'start') {
@@ -662,7 +677,9 @@ export async function renderPractice(projectId) {
   $$('[data-speed]').forEach((b) => b.addEventListener('click', () => setSpeed(Number(b.dataset.speed))));
   $('[data-mirror]').addEventListener('click', () => setMirror(!mirror));
   fullBtn.addEventListener('click', toggleFull);
-  $('[data-add-sec]').addEventListener('click', startMark);
+  $('[data-add-sec]')?.addEventListener('click', startMark);
+  $('[data-share-practice]')?.addEventListener('click', () => sharePractice(projectId, title, { isOwner: p.isOwner, canCreate: true }));
+  if (guest) wireGuestJoin(guest);
 
   const onKey = (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable], dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -685,7 +702,7 @@ export async function renderPractice(projectId) {
   document.addEventListener('visibilitychange', onVisible);
 
   paintSections();
-  track('practice_open', { kind: choreo.kind, from: params.get('from') || 'direct', sections: sections.length });
+  track(guest ? 'practice_share_open' : 'practice_open', { kind: choreo.kind, from: params.get('from') || (guest ? 'share' : 'direct'), sections: sections.length });
   player.ready.then(() => {
     setSpeed(speed, { quiet: true });
     const v = media.querySelector('video');
@@ -693,7 +710,7 @@ export async function renderPractice(projectId) {
     $('[data-player]').style.aspectRatio = v?.videoWidth ? `${v.videoWidth} / ${v.videoHeight}` : '16 / 9';
     if (choreo.kind === 'youtube' && !choreo.title && player.title) {
       $('[data-practice-title]').textContent = player.title;
-      if (p.isOwner) sb.from('projects').update({ choreo_title: player.title.slice(0, 120) }).eq('id', projectId).then(() => {});
+      if (p.isOwner && !guest) sb.from('projects').update({ choreo_title: player.title.slice(0, 120) }).eq('id', projectId).then(() => {});
     }
     const at = wanted ? sections.findIndex((s) => s.id === wanted) : -1;
     if (at >= 0) { current = at; looping = true; player.seek(bounds()[0]); }
@@ -732,4 +749,54 @@ export function choreoCard({ projectId, choreo, isOwner }) {
     </a>
     ${isOwner ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}
   </div></div>`;
+}
+
+// ---------- A Practice share link: ask to join the project ----------
+// Signed out: the button signs them in (or up) and comes back here to send it. Already in: open the project.
+// The owner approves in People, as with a take link (migration 061 lets requests come from Practice links).
+async function wireGuestJoin(guest) {
+  const host = document.querySelector('[data-guest-join]');
+  if (!host) return;
+  const owner = guest.owner || (isKo ? '프로젝트 관리자' : 'the owner');
+  const project = esc(guest.project);
+  const signedIn = Boolean(ctx.state.session);
+  const pitch = `<b>${isKo ? '이 팀과 함께 연습하고 싶나요?' : 'Want to practice with this team?'}</b>`;
+  let access = { status: 'signed_out' };
+  if (signedIn) {
+    const { data } = await sb.rpc('share_access', { p_token: guest.token });
+    access = data || { status: 'none' };
+  }
+  if (access.status === 'member') {
+    host.innerHTML = `<b>${isKo ? '이미 이 프로젝트 멤버예요.' : 'You’re in this project.'}</b><a class="btn small primary" href="/app/p/${esc(access.project_id)}/practice" data-link>${isKo ? '프로젝트에서 연습하기' : 'Practice in the project'}</a>`;
+    return;
+  }
+  if (access.status === 'pending') {
+    host.innerHTML = `<b>${isKo ? '참여 요청을 보냈어요.' : 'Request sent.'}</b><p>${isKo ? `${esc(owner)}님이 승인하면 알려드릴게요.` : `We’ll let you know when ${esc(owner)} lets you in.`}</p>`;
+    return;
+  }
+  if (!guest.allow_requests || access.status === 'closed' || access.status === 'unavailable') {
+    if (signedIn) { host.remove(); return; }
+    host.innerHTML = `${isKo ? '<b>우리 팀도 이렇게 연습해 보세요.</b><p>원본 안무를 파트별로 반복하고, 테이크에 정확한 순간 피드백을 남겨요.</p>' : '<b>Practice like this with your own team.</b><p>Loop the choreo section by section, and leave feedback on the exact moment of every take.</p>'}<a class="btn small primary" href="/app/login?mode=signup&ref=practice-share">${isKo ? '무료로 시작하기' : 'Start free'}</a>`;
+    return;
+  }
+  host.innerHTML = `${pitch}<p>${isKo ? `참여를 요청하면 ${esc(owner)}님이 승인해요. 승인되면 팀의 테이크와 피드백도 함께 볼 수 있어요.` : `Ask to join and ${esc(owner)} will approve it. Once you’re in, you’ll see the team’s takes and feedback too.`}</p>
+    <button type="button" class="btn small primary" data-ask-join>${isKo ? `${project}에 참여 요청` : `Ask to join ${project}`}</button>`;
+  const send = async () => {
+    const btn = host.querySelector('[data-ask-join]');
+    if (btn) btn.disabled = true;
+    const { data, error } = await sb.rpc('request_join', { p_token: guest.token, p_body: null, p_t: 0 });
+    if (error) { if (btn) btn.disabled = false; return toast(friendlyError(error), 'error'); }
+    track('practice_share_join_request');
+    if (data?.status === 'member') return ctx.navigate(`/app/p/${data.project_id}/practice`);
+    host.innerHTML = `<b>${isKo ? `${esc(owner)}님에게 보냈어요.` : `Sent to ${esc(owner)}.`}</b><p>${isKo ? '승인되면 알림과 이메일로 알려드릴게요.' : 'We’ll let you know by notification and email once you’re in.'}</p>`;
+  };
+  host.querySelector('[data-ask-join]').addEventListener('click', () => {
+    if (!signedIn) return ctx.navigate(`/app/login?mode=signup&next=${encodeURIComponent(`/app/s/${guest.token}?ask=1`)}`);
+    send();
+  });
+  // Back from signing in, having pressed the button: send it now.
+  if (signedIn && new URLSearchParams(location.search).get('ask') === '1') {
+    history.replaceState(history.state, '', location.pathname);
+    send();
+  }
 }
