@@ -10308,3 +10308,6 @@ body.is-guest .tabbar {
   .take-tabs a, .take-tabs button, .seg a { display: inline-flex; align-items: center; justify-content: center; }
   .settings-nav a, .tabs-more-menu a, .tabs-more-menu button { display: flex; align-items: center; }
 }
+/* Theater mode is for computers: on phones and tablets the video is already full width with notes below.
+   (Keeps the centering rule above from showing it there.) */
+@media (max-width: 900px) { .controls .theater-btn { display: none; } }
