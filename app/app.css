@@ -9870,6 +9870,10 @@ textarea,
   .practice-controls .wide-only {
     display: none;
   }
+  /* With the label hidden, the icon drops the space it keeps for it, so it sits in the middle of the button. */
+  .practice-controls .ic:has(+ .wide-only) {
+    margin-inline-end: 0;
+  }
 }
 /* The choreo row shows at most two lines of the title (YouTube titles run long); Practice shows all of it. */
 .choreo-list .video-copy b {
