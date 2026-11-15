@@ -9553,37 +9553,6 @@ textarea,
   padding: 2px 7px;
   margin-bottom: 4px;
 }
-.choreo-card {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-.choreo-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 64px 14px 16px;
-  text-decoration: none;
-  color: inherit;
-  border-radius: 12px;
-}
-.choreo-card:not(:has(.row-more)) .choreo-main {
-  padding-right: 16px;
-}
-.choreo-main:hover {
-  background: #fafbfc;
-}
-.choreo-thumb {
-  width: 96px;
-  height: 54px;
-  position: relative;
-  overflow: hidden;
-}
-.choreo-cta {
-  flex: none;
-}
 .choreo-hint {
   display: flex;
   align-items: center;
@@ -9606,14 +9575,6 @@ textarea,
   color: var(--accent);
 }
 @media (max-width: 600px) {
-  .choreo-main {
-    flex-wrap: wrap;
-    padding: 12px 48px 12px 12px;
-  }
-  .choreo-cta {
-    width: 100%;
-    justify-content: center;
-  }
   .choreo-hint {
     flex-direction: column;
     align-items: stretch;
@@ -9908,8 +9869,8 @@ textarea,
     display: none;
   }
 }
-/* The choreo card shows at most two lines of the title (YouTube titles run long); Practice shows all of it. */
-.choreo-card .video-copy b {
+/* The choreo row shows at most two lines of the title (YouTube titles run long); Practice shows all of it. */
+.choreo-list .video-copy b {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -9922,11 +9883,11 @@ textarea,
 .video-zone-head {
   margin: 8px 0 10px;
 }
-.video-zone-head + .choreo-card,
+.video-zone-head + .choreo-list,
 .video-zone-head + .choreo-hint {
   margin-bottom: 0;
 }
-.choreo-card + .video-zone-head,
+.choreo-list + .video-zone-head,
 .choreo-hint + .video-zone-head {
   margin-top: 28px;
 }

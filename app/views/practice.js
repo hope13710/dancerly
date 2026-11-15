@@ -1,7 +1,7 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { loadProject, createVideo } from './project.js';
@@ -37,7 +37,7 @@ export async function loadChoreo(project) {
   if (project.choreo_youtube) return { kind: 'youtube', id: project.choreo_youtube, title: project.choreo_title || '' };
   if (!project.choreo_video_id) return null;
   // A trashed video is hidden by row-level security: then there's no choreo video.
-  const { data: video } = await sb.from('videos').select('id, title, bpm, takes(id, number, storage_path, thumb_path, count_start)').eq('id', project.choreo_video_id).maybeSingle();
+  const { data: video } = await sb.from('videos').select('id, title, bpm, takes(id, number, created_at, storage_path, thumb_path, count_start)').eq('id', project.choreo_video_id).maybeSingle();
   const take = video?.takes?.length ? [...video.takes].sort((a, b) => b.number - a.number)[0] : null;
   return take ? { kind: 'file', video, take } : null;
 }
@@ -659,14 +659,17 @@ export async function renderPractice(projectId) {
 
 // The choreo card at the top of a project's videos: practice is one tap away.
 export function choreoCard({ projectId, choreo, isOwner }) {
+  // The same row as a take (thumbnail, name, one line about it, chevron, ⋯): the zone heading says what it is,
+  // and the whole row opens Practice.
   const title = choreoTitle(choreo);
   const thumb = choreo.kind === 'youtube' ? `<img src="${youtubeThumb(choreo.id)}" alt="" loading="lazy" />` : '';
-  return `<div class="choreo-card">
-    <a class="choreo-main" href="/app/p/${projectId}/practice?from=videos" data-link>
-      <span class="video-thumb choreo-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>
-      <span class="video-copy"><span class="choreo-badge">Choreo</span><b data-no-i18n title="${esc(title)}">${esc(title)}</b><small>${isKo ? '구간 반복 · 속도 조절 · 거울 모드' : 'Loop a section · Slow it down · Mirror'}</small></span>
-      <span class="btn primary small choreo-cta">${ic('play')}Practice</span>
+  const meta = choreo.kind === 'youtube' ? 'YouTube' : choreo.take.created_at ? `Uploaded ${timeAgo(choreo.take.created_at)}` : '';
+  return `<div class="video-list choreo-list"><div class="video-item${isOwner ? ' has-more' : ''}">
+    <a class="video-row" href="/app/p/${projectId}/practice?from=videos" data-link aria-label="Practice ${esc(title)}">
+      <span class="video-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>
+      <span class="video-copy"><b data-no-i18n title="${esc(title)}">${esc(title)}</b><small>${meta}</small></span>
+      <span class="chev">${ic('right', 'solo')}</span>
     </a>
     ${isOwner ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}
-  </div>`;
+  </div></div>`;
 }
