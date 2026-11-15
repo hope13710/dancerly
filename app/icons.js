@@ -13,7 +13,7 @@ const P = {
   play: '<path class="f" d="M8 5.5v13l10.5-6.5z"/>',
   pause: '<path class="f" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>',
   loop: '<path d="m17 2 3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="m7 22-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
-  mirror: '<path d="m3 7 5 5-5 5z"/><path d="m21 7-5 5 5 5z"/><path d="M12 3v2M12 9v2M12 15v2M12 21v-1"/>',
+  mirror: '<path d="m3 7 5 5-5 5z"/><path d="m21 7-5 5 5 5z"/><path d="M12 3v3M12 10.5v3M12 18v3"/>',
   music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
   expand: '<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
   shrink: '<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>',
