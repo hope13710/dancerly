@@ -1089,6 +1089,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     r.starter = null;
     input.value = '';
     input.blur();
+    // On phones the form folds back into the "Add a note" bar, so the notes and the video are in view again.
+    if (composer.contains(document.activeElement)) document.activeElement.blur();
+    setComposer(false);
     dropSketch();
     setMode('point');
     paintMentions();

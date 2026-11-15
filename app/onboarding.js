@@ -138,8 +138,8 @@ export function sampleCleanupCard() {
   };
 }
 
-// The first video of your own is the moment the sample has done its job: say so, and offer to clear it away.
-// Keeping it is the default; it moves aside to "Try it out" in the sidebar either way.
+// The first video of your own is the moment the sample has done its job. Nothing asks about it (the invite prompt
+// comes next, and people clear the sample themselves when they want); it moves aside to "Try it out" in the sidebar.
 window.addEventListener('take-uploaded', (event) => {
   if (event.detail?.kind === 'choreo') return; // the choreo video isn't the team's own video
   const sample = ctx.state.projects.find((p) => p.is_sample);
@@ -149,10 +149,6 @@ window.addEventListener('take-uploaded', (event) => {
   if (!sample || !real || seen('sample_graduated')) return;
   markSeen('sample_graduated');
   track('sample_graduated');
-  setTimeout(async () => {
-    const clear = await dialog({ title: 'Your first real video is in', body: 'That’s the real thing now — your notes, recaps, and Insights will build on it. Delete the sample, or keep it under “Try it out” in the sidebar for later.', confirm: 'Delete sample', cancel: 'Keep it' });
-    if (clear) removeSample(sample.id);
-  }, 800);
 });
 
 document.addEventListener('click', (event) => {
