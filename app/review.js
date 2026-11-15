@@ -26,7 +26,7 @@ const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY
 
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, is_sample, created_by')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample, created_by, choreo_video_id')).eq('id', projectId).single(),
     sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
@@ -85,6 +85,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'an assignment')}</a>` : ''} <span class="meta-by"><span class="meta-sep">· </span>${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</span></p></div>
+      ${project.choreo_video_id === videoId ? `<a class="btn small primary review-practice" href="/app/p/${projectId}/practice?from=review" data-link>${ic('play')}Practice</a>` : ''}
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video${ic('right', 'after')}</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">${ic('upload')}<span class="wide-only">Upload new take</span><span class="narrow-only">New take</span></button><button class="btn small wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">${ic('compare')}Compare</button><button class="btn small wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">${ic('more', 'solo')}</button></div>
     </header>

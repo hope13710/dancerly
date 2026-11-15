@@ -9,6 +9,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, da
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 import { ic } from '../icons.js';
+import { loadChoreo, chooseChoreo, setChoreo, choreoCard } from './practice.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -94,7 +95,7 @@ export async function restoreFromTrash(kind, id, after = () => {}) {
 // Shared header + tabs for every project screen.
 export async function loadProject(projectId) {
   const [{ data: project, error }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap, choreo_video_id, choreo_youtube, choreo_title')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
   if (error) throw error;
@@ -140,11 +141,13 @@ export async function renderProject(projectId) {
     sb.from('videos').select('id, title, created_at, created_by, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (vErr) throw vErr;
+  const choreo = await loadChoreo(p.project);
   setCrumbs([['Projects', '/app/projects'], [p.project.title]]);
   // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
   const sampleMine = p.project.is_sample && p.project.created_by === p.me;
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'videos', `<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
+    ${choreo ? choreoCard({ projectId, choreo, isOwner: p.isOwner }) : p.isOwner && schema.choreo && !p.project.is_sample ? `<div class="choreo-hint"><span>${ic('play')}<span>Add the video your team learns from, and everyone can practice it section by section.</span></span><button class="btn small" data-add-choreo>Add a choreo video</button></div>` : ''}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
@@ -162,18 +165,36 @@ export async function renderProject(projectId) {
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
     const v = videos.find((x) => x.id === b.dataset.rowMore);
-    const choice = await actionSheet({ title: v.title, anchor: b, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
+    const isChoreo = choreo?.kind === 'file' && choreo.video.id === v.id;
+    const choreoAction = p.isOwner && schema.choreo && v.takes.length ? [isChoreo ? { value: 'unchoreo', icon: 'x', label: 'Remove as choreo video', hint: 'The video stays here' } : { value: 'choreo', icon: 'play', label: 'Set as choreo video', hint: 'Everyone can practice it section by section' }] : [];
+    const choice = await actionSheet({ title: v.title, anchor: b, actions: [...choreoAction, { value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
+    if (choice === 'choreo' || choice === 'unchoreo') {
+      if (await setChoreo(projectId, choice === 'choreo' ? { videoId: v.id } : {})) renderProject(projectId);
+      return;
+    }
     if (choice !== 'delete') return;
     if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes, afterUndo: () => renderProject(projectId) })) renderProject(projectId);
   }));
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
+  $('[data-add-choreo]')?.addEventListener('click', async (e) => { if (await chooseChoreo({ projectId, videos, anchor: e.currentTarget })) renderProject(projectId); });
+  $('[data-choreo-more]')?.addEventListener('click', async (e) => {
+    const choice = await actionSheet({ title: 'Choreo video', anchor: e.currentTarget, actions: [
+      ...(choreo.kind === 'file' ? [{ value: 'feedback', icon: 'note', label: 'Open with notes', hint: 'Leave feedback on this video' }] : [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }]),
+      { value: 'change', icon: 'pen', label: 'Change choreo video' },
+      { value: 'remove', icon: 'x', label: 'Remove choreo video', hint: choreo.kind === 'file' ? 'The video stays in the project' : '' }
+    ] });
+    if (choice === 'feedback') ctx.navigate(`/app/p/${projectId}/v/${choreo.video.id}`);
+    if (choice === 'youtube') window.open(`https://www.youtube.com/watch?v=${choreo.id}`, '_blank', 'noopener');
+    if (choice === 'change' && await chooseChoreo({ projectId, videos, anchor: e.currentTarget })) renderProject(projectId);
+    if (choice === 'remove' && await setChoreo(projectId, {})) renderProject(projectId);
+  });
   // People who just joined get a short welcome once.
   const mine = p.members.find((m) => m.user_id === p.me);
   if (!p.isOwner && (ctx.state.justJoined === projectId || (mine?.joined_at && Date.now() - new Date(mine.joined_at) < 3 * 86400000))) {
     ctx.state.justJoined = null;
     memberWelcome(projectId, p.project, p.members);
   }
-  paintThumbs(videos.map((v) => [...v.takes].sort((a, b) => b.number - a.number)[0]).filter(Boolean));
+  paintThumbs([...videos.map((v) => [...v.takes].sort((a, b) => b.number - a.number)[0]), choreo?.kind === 'file' ? choreo.take : null].filter(Boolean));
   // Opened from Home's QR code or the "send to my phone" email: straight to the upload.
   const params = new URLSearchParams(location.search);
   if (params.get('upload') === '1') {

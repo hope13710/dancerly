@@ -100,7 +100,11 @@ export async function renderCountSheet(projectId) {
   // A reference time belongs to the take that was newest when it was set; opening it later lands on the same moment.
   const latestTake = (videoId) => (videos || []).find((v) => v.id === videoId)?.takes.reduce((a, t) => (!a || t.number > a.number ? t : a), null) || null;
   const clean = rows.filter((r) => r.status === 'clean').length;
-  const videoOptions = (selected) => `<option value="">—</option>${(videos || []).map((v) => `<option value="${v.id}" ${v.id === selected ? 'selected' : ''}>${esc(v.title)}</option>`).join('')}`;
+  const choreoId = p.project.choreo_video_id || null;
+  const ytChoreo = Boolean(p.project.choreo_youtube);
+  // A YouTube choreo video has no video row: its sections are the ones with a time and no video ("Choreo (YouTube)").
+  const videoOptions = (selected) => `<option value="">${ytChoreo ? 'Choreo (YouTube)' : '—'}</option>${(videos || []).map((v) => `<option value="${v.id}" ${v.id === selected ? 'selected' : ''}>${esc(v.title)}${v.id === choreoId ? ' · Choreo' : ''}</option>`).join('')}`;
+  const onChoreo = (r) => r.t_start !== null && (choreoId ? r.video_id === choreoId : ytChoreo && !r.video_id);
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'overview', '<button class="btn primary" data-add-row>+ Add section</button>')}
     ${rows.length ? `<div class="sheet-summary"><div class="progress"><i style="width:${(clean / rows.length) * 100}%"></i></div><span>${clean} of ${rows.length} sections clean</span></div>
@@ -111,7 +115,7 @@ export async function renderCountSheet(projectId) {
         <td><input class="cell" data-field="section" value="${esc(r.section)}" maxlength="80" aria-label="Section" /></td>
         <td><input class="cell narrow" data-field="counts" value="${esc(r.counts || '')}" maxlength="80" placeholder="1–8 ×2" aria-label="Counts" /></td>
         <td><input class="cell wide" data-field="focus" value="${esc(r.focus || '')}" maxlength="500" placeholder="What to watch for" aria-label="Focus" /></td>
-        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select><input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Time" />${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
+        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select>${onChoreo(r) ? `<a class="icon-btn sec-practice" href="/app/p/${projectId}/practice?section=${r.id}&from=counts" data-link aria-label="Practice this section" title="Practice this section">${ic('play', 'solo')}</a>` : ''}<input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Time" />${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
         <td><select class="cell status s-${r.status}" data-field="status" aria-label="Status">${STATUS.map(([k, l]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
         <td><button class="icon-btn" data-delete-row aria-label="Delete section">${ic('x', 'solo')}</button></td>
       </tr>`).join('')}</tbody>
@@ -175,7 +179,9 @@ export async function renderCountSheet(projectId) {
   $$('[data-add-row]').forEach((b) => b.addEventListener('click', async () => {
     const values = await dialog({ title: 'Add section', fields: [{ name: 'section', label: 'Section', placeholder: 'Chorus', required: true, max: 80 }, { name: 'counts', label: 'Counts (optional)', placeholder: '1–8 ×4', max: 80 }], confirm: 'Add' });
     if (!values?.section) return;
-    const { error: e } = await sb.from('count_sheet_rows').insert({ project_id: projectId, section: values.section, counts: values.counts || null, position: rows.length });
+    // New sections point at the choreo video, so their start times are practice loops right away.
+    const ref = choreoId ? { video_id: choreoId, ...(schema.sheetTake ? { take_id: latestTake(choreoId)?.id || null } : {}) } : {};
+    const { error: e } = await sb.from('count_sheet_rows').insert({ project_id: projectId, section: values.section, counts: values.counts || null, position: rows.length, ...ref });
     if (e) return toast(friendlyError(e), 'error');
     renderCountSheet(projectId);
   }));

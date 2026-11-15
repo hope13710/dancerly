@@ -25,6 +25,7 @@ import { openSearch } from './views/search.js';
 import { renderShared } from './views/share.js';
 import { renderProjectPages, renderPage } from './views/pages.js';
 import { renderProjectOverview, renderCountSheet } from './views/overview.js';
+import { renderPractice } from './views/practice.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 import { ic } from './icons.js';
@@ -65,6 +66,7 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/overview\/?$/, render: renderProjectOverview },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/counts\/?$/, render: renderCountSheet },
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/practice\/?$/, render: renderPractice },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/?$/, render: renderProjectPages },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/([0-9a-f-]{36})\/?$/, render: renderPage },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/requests\/?$/, render: renderProjectRequests },
