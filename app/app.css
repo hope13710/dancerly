@@ -10257,3 +10257,8 @@ body.is-guest .tabbar {
     flex: 1;
   }
 }
+
+/* YouTube's icon, only beside the word "YouTube". Its own colors, never larger than the text. */
+.yt-ic { display: inline-block; flex: none; width: auto; height: 1em; vertical-align: -0.125em; }
+.yt-src { display: inline-flex; align-items: center; gap: 5px; }
+.sheet-icon.sheet-brand { width: 22px; height: 16px; justify-self: center; }

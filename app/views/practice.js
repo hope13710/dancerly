@@ -7,7 +7,7 @@ import { ctx } from '../ctx.js';
 import { loadProject, createVideo } from './project.js';
 import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
-import { ic } from '../icons.js';
+import { ic, ytIcon } from '../icons.js';
 import { isKo } from '../i18n.js';
 import { countAt, countLabel } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
@@ -55,7 +55,7 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
     title: title || (current ? 'Change the choreo video' : 'Add a choreo video'),
     anchor,
     actions: [
-      { value: 'youtube', icon: 'play', label: 'Paste a YouTube link', hint: 'Plays from YouTube. Nothing to upload.' },
+      { value: 'youtube', iconHtml: ytIcon('sheet-icon sheet-brand'), label: 'Paste a YouTube link', hint: 'Plays from YouTube. Nothing to upload.' },
       { value: 'file', icon: 'upload', label: 'Upload a video file', hint: 'A choreographer’s or teacher’s video on your device' }
     ]
   }) : 'youtube';
@@ -742,7 +742,7 @@ export function choreoCard({ projectId, choreo, isOwner }) {
   // and the whole row opens Practice.
   const title = choreoTitle(choreo);
   const thumb = choreo.kind === 'youtube' ? `<img src="${youtubeThumb(choreo.id)}" alt="" loading="lazy" />` : '';
-  const meta = choreo.kind === 'youtube' ? 'YouTube' : choreo.take.created_at ? `Uploaded ${timeAgo(choreo.take.created_at)}` : '';
+  const meta = choreo.kind === 'youtube' ? `<span class="yt-src">${ytIcon()}YouTube</span>` : choreo.take.created_at ? `Uploaded ${timeAgo(choreo.take.created_at)}` : '';
   return `<div class="video-list choreo-list"><div class="video-item${isOwner ? ' has-more' : ''}">
     <a class="video-row" href="/app/p/${projectId}/practice?from=videos" data-link aria-label="Practice ${esc(title)}">
       <span class="video-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>

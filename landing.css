@@ -756,3 +756,11 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 /* Theater mode: computers only, like the app's button. */
 .theater-chip { padding-left: 7px; padding-right: 7px; }
 @media (max-width: 900px) { .theater-chip { display: none; } }
+
+/* Practice: the choreo video, its source, and its parts. YouTube's icon only beside the word, never larger than it. */
+.yt-ic { display: inline-block; flex: none; width: auto; height: 1em; vertical-align: -0.125em; }
+.prac-src { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 12px; font-size: 13px; color: #dbe0f0; }
+.prac-src b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prac-src span { display: inline-flex; align-items: center; gap: 6px; flex: none; color: #a3a9b8; font-size: 12px; }
+.pr-parts { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.pr-parts .part-on { background: rgba(254, 175, 117, 0.16); border-color: rgba(254, 175, 117, 0.5); color: #feaf75; }

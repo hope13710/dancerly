@@ -275,14 +275,14 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
 // A list of choices. On a computer, opened from a button (anchor), it drops down under that button like any
 // app menu; on a phone, or with no anchor, it slides up from the bottom as a sheet.
 export function actionSheet({ title, actions, anchor = null }) {
-  const label = (a) => `${a.icon ? ic(a.icon, 'sheet-icon') : ''}<span class="sheet-text"><b>${a.color ? `<span class="sheet-chip" style="--cat:${esc(a.color)}">${esc(a.label)}</span>` : esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</span>`;
+  const label = (a) => `${a.iconHtml || (a.icon ? ic(a.icon, 'sheet-icon') : '')}<span class="sheet-text"><b>${a.color ? `<span class="sheet-chip" style="--cat:${esc(a.color)}">${esc(a.label)}</span>` : esc(a.label)}</b>${a.hint ? `<small>${esc(a.hint)}</small>` : ''}</span>`;
   if (anchor && matchMedia('(min-width: 901px)').matches) return dropMenu({ title, actions, anchor, label });
   return new Promise((resolve) => {
     const el = document.createElement('dialog');
     el.className = 'dialog sheet';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>
-      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action${a.icon ? ' has-icon' : ''}${a.danger ? ' danger' : ''}${a.checked ? ' checked' : ''}"${a.checked ? ' aria-current="true"' : ''}>${label(a)}</button>`).join('')}</div>
+      <div class="sheet-actions">${actions.map((a) => `<button value="${esc(a.value)}" class="sheet-action${a.icon || a.iconHtml ? ' has-icon' : ''}${a.danger ? ' danger' : ''}${a.checked ? ' checked' : ''}"${a.checked ? ' aria-current="true"' : ''}>${label(a)}</button>`).join('')}</div>
       <button value="" class="btn ghost wide">Cancel</button>
     </form>`;
     document.body.append(el);
@@ -298,7 +298,7 @@ function dropMenu({ title, actions, anchor, label }) {
     menu.className = 'drop-menu';
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', title);
-    menu.innerHTML = actions.map((a) => `<button type="button" role="menuitem" data-value="${esc(a.value)}" class="sheet-action${a.icon ? ' has-icon' : ''}${a.danger ? ' danger' : ''}">${label(a)}</button>`).join('');
+    menu.innerHTML = actions.map((a) => `<button type="button" role="menuitem" data-value="${esc(a.value)}" class="sheet-action${a.icon || a.iconHtml ? ' has-icon' : ''}${a.danger ? ' danger' : ''}">${label(a)}</button>`).join('');
     document.body.append(menu);
     const r = anchor.getBoundingClientRect();
     const w = Math.max(r.width, 300);
