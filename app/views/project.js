@@ -9,7 +9,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, da
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 import { ic } from '../icons.js';
-import { loadChoreo, chooseChoreo, removeChoreo, renameChoreo, choreoCard, choreoTitle } from './practice.js';
+import { loadChoreo, chooseChoreo, choreoMenu, choreoCard, choreoTitle } from './practice.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -190,16 +190,7 @@ export async function renderProject(projectId) {
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
   $('[data-add-choreo]')?.addEventListener('click', async (e) => { if (await chooseChoreo({ projectId, anchor: e.currentTarget })) ctx.navigate(`/app/p/${projectId}/practice?from=added`); });
   $('[data-choreo-more]')?.addEventListener('click', async (e) => {
-    const choice = await actionSheet({ title: 'Choreo video', anchor: e.currentTarget, actions: [
-      ...(choreo.kind === 'youtube' ? [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }] : []),
-      { value: 'rename', icon: 'pen', label: 'Rename' },
-      { value: 'change', icon: 'upload', label: 'Change choreo video', hint: 'A new link or file · sections carry over' },
-      { value: 'remove', icon: 'x', label: 'Remove choreo video', danger: true }
-    ] });
-    if (choice === 'youtube') window.open(`https://www.youtube.com/watch?v=${choreo.id}`, '_blank', 'noopener');
-    if (choice === 'rename' && await renameChoreo(projectId, choreo)) renderProject(projectId);
-    if (choice === 'change' && await chooseChoreo({ projectId, current: choreo, anchor: e.currentTarget })) renderProject(projectId);
-    if (choice === 'remove' && await removeChoreo(projectId, choreo)) renderProject(projectId);
+    if (await choreoMenu({ projectId, choreo, anchor: e.currentTarget })) renderProject(projectId);
   });
   // People who just joined get a short welcome once.
   const mine = p.members.find((m) => m.user_id === p.me);

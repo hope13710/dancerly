@@ -128,6 +128,22 @@ async function retireChoreo(projectId, old, next = null) {
   }
 }
 
+// ⋯ on the choreo video, the same from the project's Videos tab and from Practice (owners only): what a choreo
+// video needs and nothing a take has (no takes, merge, or notes). Returns 'renamed', 'changed', 'removed' or null.
+export async function choreoMenu({ projectId, choreo, anchor }) {
+  const choice = await actionSheet({ title: choreoTitle(choreo), anchor, actions: [
+    ...(choreo.kind === 'youtube' ? [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }] : []),
+    { value: 'rename', icon: 'pen', label: 'Rename' },
+    { value: 'change', icon: 'upload', label: 'Change choreo video', hint: 'A new link or file · sections carry over' },
+    { value: 'remove', icon: 'x', label: 'Remove choreo video', danger: true }
+  ] });
+  if (choice === 'youtube') { window.open(`https://www.youtube.com/watch?v=${choreo.id}`, '_blank', 'noopener'); return null; }
+  if (choice === 'rename') return (await renameChoreo(projectId, choreo)) ? 'renamed' : null;
+  if (choice === 'change') return (await chooseChoreo({ projectId, current: choreo, anchor })) ? 'changed' : null;
+  if (choice === 'remove') return (await removeChoreo(projectId, choreo)) ? 'removed' : null;
+  return null;
+}
+
 // Rename the choreo video without uploading it again: a file's name lives on its video, a YouTube link's on the
 // project (choreo_title). Owners only, like the rest of the choreo menu. Returns true when it changed.
 export async function renameChoreo(projectId, choreo) {
@@ -295,7 +311,7 @@ export async function renderPractice(projectId, guest = null) {
   <section class="review practice${guest ? ' is-guest-practice' : ''}">
     <header class="review-head">
       <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted" data-no-i18n>${guest ? (isKo ? `공유됨 · ${esc(p.project.title)}` : `Shared with you · ${esc(p.project.title)}`) : esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
-      ${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}
+      ${canShare || (p.isOwner && !guest) ? `<div class="practice-actions">${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}${p.isOwner && !guest ? `<button type="button" class="icon-btn more-btn" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}</div>` : ''}
     </header>
     <div class="review-layout practice-layout">
       <div class="player-col" data-col>
@@ -700,6 +716,12 @@ export async function renderPractice(projectId, guest = null) {
   fullBtn.addEventListener('click', toggleFull);
   $('[data-add-sec]')?.addEventListener('click', startMark);
   $('[data-share-practice]')?.addEventListener('click', () => sharePractice(projectId, title, { isOwner: p.isOwner, canManage: canManageLink }));
+  // ⋯: rename and change redraw Practice with the new video; removing it goes back to the project.
+  $('[data-choreo-more]')?.addEventListener('click', async (e) => {
+    const done = await choreoMenu({ projectId, choreo, anchor: e.currentTarget });
+    if (done === 'removed') ctx.navigate(`/app/p/${projectId}`, { replace: true });
+    else if (done) ctx.route();
+  });
   if (guest) wireGuestJoin(guest);
 
   const onKey = (e) => {

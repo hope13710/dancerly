@@ -10321,3 +10321,5 @@ body.is-guest .tabbar {
 /* "I'm on it" beside Reply on a note addressed to you: the one pill that's filled in, so it reads as the next step. */
 .note-actions .mini.on-it { border-color: transparent; background: var(--accent); color: #fff; }
 .note-actions .mini.on-it:hover { background: var(--accent-dark, var(--accent)); color: #fff; }
+/* Practice header: Share and the choreo ⋯ side by side, like the video page's actions. */
+.practice-actions { display: flex; align-items: center; gap: 6px; flex: none; }
