@@ -1,6 +1,6 @@
 // AI recaps: made per project × period, saved automatically, pinned per person, shared on purpose.
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, actionSheet } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, actionSheet, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
@@ -80,7 +80,7 @@ export async function newRecap({ projectId = null, scope = 'me' } = {}) {
   const projects = projectId ? ctx.state.projects : realProjects();
   if (!projects.length) { toast('Recaps summarize a project’s notes. Create a project first.'); return null; }
   const pid = projectId || projects[0].id;
-  const { data: videos } = await sb.from('videos').select('id, title, project_id').in('project_id', projects.map((p) => p.id)).order('created_at', { ascending: false });
+  const { data: videos } = await notChoreo(sb.from('videos').select('id, title, project_id')).in('project_id', projects.map((p) => p.id)).order('created_at', { ascending: false });
   const el = document.createElement('dialog');
   el.className = 'dialog';
   el.innerHTML = `<form method="dialog" class="dialog-card recap-form">

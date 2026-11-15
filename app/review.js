@@ -1,5 +1,5 @@
 import { ic } from './icons.js';
-import { cols, schema } from './client.js';
+import { cols, schema, notChoreo } from './client.js';
 import { thumbUrls } from './thumbs.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
@@ -26,12 +26,14 @@ const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY
 
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, is_sample, created_by, choreo_video_id')).eq('id', projectId).single(),
-    sb.from('videos').select('id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)').eq('id', videoId).eq('project_id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample, created_by, choreo_video_id, choreo_youtube')).eq('id', projectId).single(),
+    sb.from('videos').select(`id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)${schema.videoKind ? ', kind' : ''}`).eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
+  // The choreo video is practiced, not reviewed (migration 059): its link opens Practice.
+  if (video.kind === 'choreo') { navigate(`/app/p/${projectId}/practice`, { replace: true }); return null; }
   setCrumbs([['Projects', '/app/projects'], [project.title, `/app/p/${projectId}`], [video.title]]);
   const base = `/app/p/${projectId}/v/${videoId}`;
   // Remembered so a later upload from the project page can offer to stack onto this video.
@@ -85,7 +87,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   view.innerHTML = `<section class="review">
     <header class="review-head">
       <div><h1>${esc(video.title)}</h1><p class="muted">${esc(project.title)}${video.request_id ? ` · for <a class="link" href="/app/p/${projectId}/requests/${video.request_id}" data-link>${esc(video.requests?.title || 'an assignment')}</a>` : ''} <span class="meta-by"><span class="meta-sep">· </span>${uploader(take.uploaded_by)} · ${timeAgo(take.created_at)}</span></p></div>
-      ${project.choreo_video_id === videoId ? `<a class="btn small primary review-practice" href="/app/p/${projectId}/practice?from=review" data-link>${ic('play')}Practice</a>` : ''}
+      ${project.choreo_video_id || project.choreo_youtube ? `<a class="btn small review-practice" href="/app/p/${projectId}/practice?from=review" data-link title="Practice the choreo video, section by section">${ic('loop')}Practice the choreo</a>` : ''}
       ${queue ? `<div class="queue-nav"><small>${queue.position} of ${queue.total} in your queue</small>${queue.next ? `<a class="btn small primary" href="${queue.next}" data-link title="Shift+N">Next video${ic('right', 'after')}</a>` : '<a class="btn small" href="/app/queue" data-link>Back to queue</a>'}</div>` : ''}
       <div class="take-tabs" role="tablist" aria-label="Takes">${takes.length > 1 ? takes.map((t) => `<a role="tab" href="${base}?take=${t.number}" data-link aria-selected="${t.id === take.id}">Take ${t.number}</a>`).join('') : ''}<button class="btn small" data-upload title="Another try of the same piece — open notes carry over">${ic('upload')}<span class="wide-only">Upload new take</span><span class="narrow-only">New take</span></button><button class="btn small wide-only" data-compare-toggle aria-pressed="false" title="Play another take or video side by side (C)">${ic('compare')}Compare</button><button class="btn small wide-only" data-share-video title="A progress card for Instagram, or a read-only link">Share</button><button class="icon-btn more-btn${canManageVideo || canDeleteVideo || canDeleteTake ? '' : ' narrow-only'}" data-video-more aria-label="More actions" title="More actions">${ic('more', 'solo')}</button></div>
     </header>
@@ -619,7 +621,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const video2 = $('[data-video2]');
   async function compareOptions() {
     if (r.compare.options) return r.compare.options;
-    const { data: others } = await sb.from('videos').select('id, title, bpm, takes(id, number, storage_path, count_start)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false }).limit(50);
+    const { data: others } = await notChoreo(sb.from('videos').select('id, title, bpm, takes(id, number, storage_path, count_start)')).eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false }).limit(50);
     const num = (v) => (v === null || v === undefined ? null : Number(v));
     const own = takes.filter((t) => t.id !== take.id).map((t) => ({ key: t.id, label: `Take ${t.number}`, group: 'this', storage_path: t.storage_path, count_start: num(t.count_start), bpm: r.counts.bpm, take: t }));
     const rest = (others || []).filter((v) => v.takes?.length).map((v) => {
@@ -1243,7 +1245,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
 
   async function mergeInto() {
-    const { data: others, error } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });
+    const { data: others, error } = await notChoreo(sb.from('videos').select('id, title, takes(count)')).eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });
     if (error) return toast(friendlyError(error), 'error');
     if (!others.length) return toast('There’s no other video in this project to merge into.');
     const values = await dialog({

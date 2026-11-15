@@ -1,9 +1,10 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, toast, friendlyError, dialog, actionSheet, schema, takeUrl } from '../client.js';
+import { sb, $, $$, esc, fmt, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET } from '../client.js';
+import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
-import { loadProject } from './project.js';
+import { loadProject, createVideo } from './project.js';
 import { track } from '../onboarding.js';
 import { ic } from '../icons.js';
 import { isKo } from '../i18n.js';
@@ -43,53 +44,104 @@ export async function loadChoreo(project) {
 export const choreoTitle = (choreo) => (choreo?.kind === 'file' ? choreo.video.title : choreo?.title) || (isKo ? '원본 안무 영상' : 'Choreo video');
 export const youtubeThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 
-// Owners pick the choreo video: a YouTube link, or one of the project's videos.
-export async function chooseChoreo({ projectId, videos = [], anchor = null }) {
-  const usable = videos.filter((v) => v.takes?.length);
-  let how = 'youtube';
-  if (usable.length) {
-    how = await actionSheet({
-      title: 'Add a choreo video',
-      anchor,
-      actions: [
-        { value: 'youtube', icon: 'play', label: 'Paste a YouTube link', hint: 'An official dance practice video, a tutorial, or the choreographer’s video' },
-        { value: 'video', icon: 'video', label: 'Use a video from this project', hint: 'One you’ve already uploaded here' }
-      ]
-    });
-    if (!how) return false;
-  }
-  if (how === 'video') {
-    const picked = await dialog({
-      title: 'Choose the choreo video',
-      body: 'Everyone in the project can practice from it, section by section.',
-      fields: [{ name: 'video', label: 'Video', type: 'select', required: true, options: usable.map((v) => ({ value: v.id, label: v.title })) }],
-      confirm: 'Set as choreo video'
-    });
-    return picked ? setChoreo(projectId, { videoId: picked.video }) : false;
-  }
-  for (let value = ''; ;) {
+// Owners add the choreo video: a YouTube link (nothing uploaded), or a video file uploaded as the choreo video.
+// It's never one of the team's takes (migration 059). Changing it keeps the sections and removes the old file.
+// Returns where to go next ('practice') or false.
+export async function chooseChoreo({ projectId, current = null, anchor = null, title = null }) {
+  const canUpload = schema.videoKind;
+  const how = canUpload ? await actionSheet({
+    title: title || (current ? 'Change the choreo video' : 'Add a choreo video'),
+    anchor,
+    actions: [
+      { value: 'youtube', icon: 'play', label: 'Paste a YouTube link', hint: 'Plays from YouTube. Nothing to upload.' },
+      { value: 'file', icon: 'upload', label: 'Upload a video file', hint: 'A choreographer’s or teacher’s video on your device' }
+    ]
+  }) : 'youtube';
+  if (!how) return false;
+  let next = null;
+  if (how === 'file') {
     const got = await dialog({
-      title: 'Add a YouTube choreo video',
-      body: 'Paste the link to the video your team learns from. It plays here from YouTube, so nothing is uploaded.',
+      title: 'Upload the choreo video',
+      body: 'The original your team learns from. It stays apart from your takes, so nobody leaves feedback on it.',
       fields: [
-        { name: 'url', label: 'YouTube link', placeholder: 'https://youtu.be/…', value, required: true, max: 300 },
-        { name: 'title', label: 'Name (optional)', placeholder: 'e.g. Official dance practice', max: 120 }
+        { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 15 minutes' },
+        { name: 'title', label: 'Name', placeholder: 'e.g. Chorus by the choreographer', required: true, max: 120 }
       ],
-      confirm: 'Add'
+      confirm: 'Upload'
     });
     if (!got) return false;
-    const id = youtubeId(got.url);
-    if (id) return setChoreo(projectId, { youtube: id, title: got.title || null });
-    toast('That doesn’t look like a YouTube video link. Copy it from the Share button on YouTube.', 'error');
-    value = got.url;
+    const problem = checkTakeFile(got.file);
+    if (problem) { toast(problem, 'error'); return false; }
+    const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: got.title, kind: 'choreo' }).select('id').single();
+    if (error) { toast(friendlyError(error), 'error'); return false; }
+    let take;
+    try {
+      take = await withUploadBar(got.title, (stage) => uploadTake({ projectId, videoId: video.id, file: got.file, onStage: stage }));
+    } catch (err) {
+      await sb.from('videos').delete().eq('id', video.id);
+      toast(friendlyError(err), 'error');
+      return false;
+    }
+    next = { videoId: video.id, takeId: take?.id || null };
+  } else {
+    for (let value = ''; ;) {
+      const got = await dialog({
+        title: 'Add a YouTube choreo video',
+        body: 'Paste the link to the video your team learns from. It plays here from YouTube, so nothing is uploaded.',
+        fields: [
+          { name: 'url', label: 'YouTube link', placeholder: 'https://youtu.be/…', value, required: true, max: 300 },
+          { name: 'title', label: 'Name (optional)', placeholder: 'e.g. Official dance practice', max: 120 }
+        ],
+        confirm: 'Add'
+      });
+      if (!got) return false;
+      const id = youtubeId(got.url);
+      if (id) { next = { youtube: id, title: got.title || null }; break; }
+      toast('That doesn’t look like a YouTube video link. Copy it from the Share button on YouTube.', 'error');
+      value = got.url;
+    }
   }
+  if (!(await setChoreo(projectId, next))) {
+    if (next.videoId) await sb.from('videos').delete().eq('id', next.videoId);
+    return false;
+  }
+  if (current) await retireChoreo(projectId, current, next);
+  return 'practice';
+}
+
+// The old choreo video goes: its sections move to the new one (same song, so the times usually still fit), and an
+// uploaded file is deleted for good (it isn't a take, so there's nothing to keep).
+async function retireChoreo(projectId, old, next = null) {
+  const to = { video_id: next?.videoId || null, ...(schema.sheetTake ? { take_id: next?.takeId || null } : {}) };
+  let move = sb.from('count_sheet_rows').update(to).eq('project_id', projectId).not('t_start', 'is', null);
+  move = old.kind === 'file' ? move.eq('video_id', old.video.id) : move.is('video_id', null);
+  if (next && (old.kind === 'file' || next.videoId)) await move;
+  if (old.kind === 'file') {
+    const { error } = await sb.from('videos').delete().eq('id', old.video.id);
+    if (!error) {
+      const paths = [old.take.storage_path, old.take.thumb_path].filter((x) => x && !String(x).startsWith('public:'));
+      if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
+    }
+  }
+}
+
+export async function removeChoreo(projectId, choreo) {
+  const ok = await dialog({
+    title: 'Remove the choreo video?',
+    body: choreo.kind === 'file' ? 'The uploaded file is deleted. Sections stay in the count sheet.' : 'Practice turns off until you add another. Sections stay in the count sheet.',
+    confirm: 'Remove',
+    danger: true
+  });
+  if (!ok || !(await setChoreo(projectId, {}))) return false;
+  await retireChoreo(projectId, choreo, null);
+  return true;
 }
 
 export async function setChoreo(projectId, { videoId = null, youtube = null, title = null } = {}) {
   const { error } = await sb.from('projects').update({ choreo_video_id: videoId, choreo_youtube: youtube, choreo_title: youtube ? title : null }).eq('id', projectId);
   if (error) { toast(friendlyError(error), 'error'); return false; }
   if (videoId || youtube) track('choreo_set', { kind: youtube ? 'youtube' : 'file' });
-  toast(videoId || youtube ? 'Choreo video set. Everyone in the project can practice from it.' : 'Choreo video removed.');
+  toast(videoId || youtube ? 'Choreo video added. Everyone in the project can practice it, section by section.' : 'Choreo video removed.');
   return true;
 }
 
@@ -184,8 +236,7 @@ export async function renderPractice(projectId) {
       <p>${p.isOwner ? 'Add the video your team learns from, and everyone can practice it here, section by section.' : 'When the project owner adds the choreo video, you can practice it here, section by section.'}</p>
       <div class="empty-actions">${p.isOwner && schema.choreo ? '<button class="btn primary" data-add-choreo>Add a choreo video</button>' : ''}<a class="btn" href="${base}" data-link>Back to videos</a></div></div></section>`;
     $('[data-add-choreo]')?.addEventListener('click', async (e) => {
-      const { data: videos } = await sb.from('videos').select('id, title, takes(id)').eq('project_id', projectId).order('created_at', { ascending: false });
-      if (await chooseChoreo({ projectId, videos: videos || [], anchor: e.currentTarget })) ctx.route();
+      if (await chooseChoreo({ projectId, anchor: e.currentTarget })) ctx.route();
     });
     return null;
   }
@@ -214,7 +265,6 @@ export async function renderPractice(projectId) {
   view.innerHTML = `<section class="review practice">
     <header class="review-head">
       <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted">${esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
-      ${choreo.kind === 'file' ? `<a class="btn small" href="${base}/v/${choreo.video.id}" data-link>${ic('note')}Give feedback</a>` : ''}
     </header>
     <div class="review-layout practice-layout">
       <div class="player-col" data-col>
@@ -241,6 +291,7 @@ export async function renderPractice(projectId) {
       </div>
       <aside class="notes-col practice-side">
         <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
+        <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
         <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section at <b data-at>00:00</b></span></button>
       </aside>
@@ -342,12 +393,37 @@ export async function renderPractice(projectId) {
     if (!player.paused) {
       const [a, b] = bounds(looping ? current : -1);
       const t = player.time;
-      if (t >= b - 0.08) player.seek(a);
+      if (t >= b - 0.08) { player.seek(a); if (looping) lapped(); }
       else if (looping && t < a - 0.5) player.seek(a);
     }
     paintTime();
   };
   const startTick = () => { if (!tick) { last = performance.now(); tick = setInterval(loop, 50); } };
+
+  // After a few laps of one section: practice → a take. Film it, upload it, get feedback on that part.
+  // Once a day at most, and it never covers the video.
+  let laps = 0;
+  const NEXT_KEY = `looproom:practice-next:${projectId}`;
+  const lapped = () => {
+    laps += 1;
+    const box = $('[data-next-step]');
+    if (laps < 3 || !box.hidden || current < 0) return;
+    try { if (localStorage.getItem(NEXT_KEY) === new Date().toDateString()) return; } catch {}
+    const name = sections[current].section || '';
+    box.innerHTML = `<b>Ready to film it?</b><p data-no-i18n>${isKo ? `‘${esc(name)}’ 테이크를 찍어 올리면 팀원이 정확한 순간에 피드백을 남길 수 있어요.` : `Upload a take of ${esc(name)}, and your team can leave feedback on the exact moment.`}</p>
+      <div class="practice-next-actions"><button type="button" class="btn small primary" data-film>${ic('upload')}Upload a take</button><button type="button" class="link-btn" data-not-now>Not now</button></div>`;
+    box.hidden = false;
+    const done = () => { box.hidden = true; try { localStorage.setItem(NEXT_KEY, new Date().toDateString()); } catch {} };
+    box.querySelector('[data-not-now]').addEventListener('click', done);
+    box.querySelector('[data-film]').addEventListener('click', () => {
+      done();
+      player.pause();
+      track('practice_to_take', { laps });
+      const day = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      createVideo(projectId, { name: `${name} · ${day}` });
+    });
+    track('practice_next_shown', { laps });
+  };
   const stopTick = () => { clearInterval(tick); tick = 0; loop(); };
 
   let lock = null;

@@ -1,7 +1,7 @@
 // Insights: what to do before the next practice, then why. A one-line summary against the period before, "Next up"
 // (at most three things, each with one action), focus areas you can open, three key numbers with the trend, where notes
 // pile up, and for leaders who to check in with. Numbers with too little data behind them stay hidden.
-import { sb, $, $$, esc, timeAgo, avatar, cols, fmt, schema, toast, friendlyError } from '../client.js';
+import { sb, $, $$, esc, timeAgo, avatar, cols, fmt, schema, toast, friendlyError, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { pageHead, previewEmpty, hasRealVideo, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
@@ -80,8 +80,8 @@ export async function renderInsights({ projectId: inProject = null, root = null 
 
   const [{ data: notes, error }, { data: takes, error: tErr }, { data: videos }, { data: requests }, { data: submitted }, { data: roster }] = await Promise.all([
     scope(sb.from('notes').select(cols('id, project_id, video_id, take_id, author_id, status, created_at, resolved_at, t_start, t_end, body, category, videos(title), takes(number, uploaded_by), note_reactions(user_id)'))).order('created_at', { ascending: false }).limit(5000),
-    scope(sb.from('takes').select(cols('id, project_id, video_id, number, uploaded_by, created_at, count_start, align'))).limit(5000),
-    scope(sb.from('videos').select('id, project_id, title, bpm')).limit(1000),
+    scope(notChoreo(sb.from('takes').select(cols('id, project_id, video_id, number, uploaded_by, created_at, count_start, align')))).limit(5000),
+    scope(notChoreo(sb.from('videos').select('id, project_id, title, bpm'))).limit(1000),
     scope(sb.from('requests').select('id, project_id, title, due_at, everyone, created_by, request_assignees(user_id)')).eq('status', 'active').limit(100),
     scope(sb.from('videos').select('request_id, created_by')).not('request_id', 'is', null).limit(2000),
     scope(sb.from('project_members').select('project_id, user_id, role')).limit(2000)

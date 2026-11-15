@@ -9917,3 +9917,78 @@ textarea,
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+
+/* Videos: two labelled zones, Choreo (learn from it) and Takes (feedback on them). */
+.video-zone-head {
+  margin: 8px 0 10px;
+}
+.video-zone-head + .choreo-card,
+.video-zone-head + .choreo-hint {
+  margin-bottom: 0;
+}
+.choreo-card + .video-zone-head,
+.choreo-hint + .video-zone-head {
+  margin-top: 28px;
+}
+/* Onboarding step 2: two ways in, styled like the "Joining a team" row. */
+.welcome-choices {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.welcome-choice {
+  margin-top: 0;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.welcome-choice b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.welcome-choice small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.welcome-choice > .ic:last-child {
+  align-self: center;
+}
+.welcome-choice > .wl-icon {
+  flex: none;
+}
+.welcome-choice .wl-icon .ic {
+  color: var(--accent);
+}
+/* Practice → a take: shown under the sections after a few laps. */
+.practice-next {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(91, 92, 226, 0.14);
+  border: 1px solid rgba(139, 140, 255, 0.4);
+  font-size: 13px;
+  color: #c9ced9;
+}
+.practice-next[hidden] {
+  display: none;
+}
+.practice-next b {
+  color: #fff;
+  font-size: 14px;
+}
+.practice-next p {
+  margin: 4px 0 10px;
+  line-height: 1.5;
+}
+.practice-next-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.practice-next .link-btn {
+  color: #aab1bd;
+}

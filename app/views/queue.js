@@ -1,6 +1,6 @@
 // To review (an Inbox tab): new takes you haven't watched yet, oldest first, plus requests that are past due.
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
-import { sb, $, esc, initials, timeAgo, avatar } from '../client.js';
+import { sb, $, esc, initials, timeAgo, avatar, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { pageHead, tabs, empty, previewEmpty, hasTeammates, namesFor, noSample, realProjects } from './shared.js';
@@ -14,7 +14,7 @@ export async function unseenVideos() {
   const me = ctx.state.session.user.id;
   const since = new Date(Date.now() - 60 * 864e5).toISOString();
   const [{ data: takes, error }, { data: views }] = await Promise.all([
-    noSample(sb.from('takes').select('id, number, created_at, uploaded_by, video_id, project_id, videos(title, request_id), projects(title)')).neq('uploaded_by', me).gte('created_at', since).order('created_at', { ascending: true }).limit(1000),
+    noSample(notChoreo(sb.from('takes').select('id, number, created_at, uploaded_by, video_id, project_id, videos(title, request_id), projects(title)'))).neq('uploaded_by', me).gte('created_at', since).order('created_at', { ascending: true }).limit(1000),
     sb.from('video_views').select('video_id, seen_at').eq('user_id', me)
   ]);
   if (error) throw error;

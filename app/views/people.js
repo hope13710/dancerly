@@ -1,5 +1,5 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, toast, friendlyError } from '../client.js';
+import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, toast, friendlyError, notChoreo } from '../client.js';
 import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
@@ -32,7 +32,7 @@ export async function renderPeople() {
   // Activity counts in two light queries.
   const [{ data: notes }, { data: takes }] = await Promise.all([
     noSample(sb.from('notes').select('author_id, created_at')).in('author_id', ids).order('created_at', { ascending: false }).limit(1000),
-    noSample(sb.from('takes').select('uploaded_by, created_at')).in('uploaded_by', ids).order('created_at', { ascending: false }).limit(1000)
+    noSample(notChoreo(sb.from('takes').select('uploaded_by, created_at'))).in('uploaded_by', ids).order('created_at', { ascending: false }).limit(1000)
   ]);
   const stat = (id) => {
     const n = (notes || []).filter((x) => x.author_id === id);
@@ -81,7 +81,7 @@ export async function renderPerson(userId) {
   const tab = ['received', 'videos', 'progress'].includes(show) ? show : 'given';
   const [{ data: given }, { data: theirTakes }] = await Promise.all([
     scope(sb.from('notes').select(NOTE_SELECT)).eq('author_id', userId).order('created_at', { ascending: false }).limit(100),
-    scope(sb.from('takes').select('id, number, created_at, thumb_path, storage_path, project_id, video_id, videos(title), projects(title)')).eq('uploaded_by', userId).order('created_at', { ascending: false })
+    scope(notChoreo(sb.from('takes').select('id, number, created_at, thumb_path, storage_path, project_id, video_id, videos(title), projects(title)'))).eq('uploaded_by', userId).order('created_at', { ascending: false })
   ]);
   // The videos they put takes into, newest first: each opens at their latest take there.
   const videos = [];

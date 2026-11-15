@@ -1,9 +1,10 @@
 // First-run guidance: the leader's three-step start, the sample project, a welcome for people who were invited,
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
-import { sb, $, $$, esc, toast, friendlyError, dialog, schema, projectMark } from './client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, schema, projectMark, notChoreo } from './client.js';
 import { ctx } from './ctx.js';
 import { getLang, isKo } from './i18n.js';
 import { createVideo } from './views/project.js';
+import { chooseChoreo } from './views/practice.js';
 import { myOpenRequests } from './views/requests.js';
 import { notesForMe } from './views/shared.js';
 import { ic } from './icons.js';
@@ -71,7 +72,7 @@ export async function openSample({ from = 'unknown' } = {}) {
   }
   if (SAMPLE_SPOTS[spot]) return ctx.navigate(`/app/p/${projectId}${SAMPLE_SPOTS[spot]}`);
   // Otherwise straight to the review: that's where the product makes sense.
-  const { data: video } = await sb.from('videos').select('id').eq('project_id', projectId).order('created_at').limit(1).maybeSingle();
+  const { data: video } = await notChoreo(sb.from('videos').select('id')).eq('project_id', projectId).order('created_at').limit(1).maybeSingle();
   ctx.navigate(video ? `/app/p/${projectId}/v/${video.id}?take=1` : `/app/p/${projectId}`);
 }
 
@@ -140,6 +141,7 @@ export function sampleCleanupCard() {
 // The first video of your own is the moment the sample has done its job: say so, and offer to clear it away.
 // Keeping it is the default; it moves aside to "Try it out" in the sidebar either way.
 window.addEventListener('take-uploaded', (event) => {
+  if (event.detail?.kind === 'choreo') return; // the choreo video isn't the team's own video
   const sample = ctx.state.projects.find((p) => p.is_sample);
   const real = !ctx.state.projects.some((p) => p.is_sample && p.id === event.detail?.project_id);
   // Activation: the first video into a real project, whether or not they ever opened the sample.
@@ -271,13 +273,27 @@ export async function renderWelcome() {
         paint();
       });
     } else {
-      view.innerHTML = frame(`<h1>Add your first practice video</h1>
+      // Two ways in, side by side: learn the choreo (a YouTube link, nothing to upload) or get feedback on a video.
+      // Practice needs migration 057; without it, the upload is the one way in.
+      const learn = `<button type="button" class="welcome-join welcome-choice" data-choice="learn"><span class="wl-icon" aria-hidden="true">${ic('loop', 'solo')}</span><span><b>Learn a choreo</b><small>Paste a YouTube link and loop it section by section, slowed down and mirrored. Nothing to upload.</small></span>${ic('right', 'after')}</button>`;
+      const review = `<button type="button" class="welcome-join welcome-choice" data-choice="feedback"><span class="wl-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span><b>Get feedback on your video</b><small>Upload a run-through. Your team pauses on any moment and leaves notes right there.</small></span>${ic('right', 'after')}</button>`;
+      view.innerHTML = frame(schema.choreo ? `<h1>What do you want to do first?</h1>
+        <p class="muted">You can do both in this project. Start with either one.</p>
+        <div class="welcome-choices">${team === 'solo' ? learn + review : review + learn}</div>
+        <div class="welcome-alt"><button type="button" class="link-btn" data-open-sample="welcome-video">See a sample first</button><button type="button" class="link-btn" data-skip>Skip for now</button></div>`
+        : `<h1>Add your first practice video</h1>
         <p class="muted">A full run-through works best. Pause on any moment and leave feedback right there.</p>
         <ul class="film-tips"><li><b>From the front</b><span>Where the audience sits</span></li><li><b>Whole body in frame</b><span>Feet and hands included</span></li><li><b>With the music</b><span>So counts and sync work</span></li><li><b>Start to finish</b><span>Not just the hard part</span></li></ul>
-        <button class="btn primary wide" data-upload>Upload video</button>
+        <button class="btn primary wide" data-choice="feedback">Upload video</button>
         <button class="btn wide" data-open-sample="welcome-video">No video yet? See a sample</button>
         <div class="welcome-alt"><button type="button" class="link-btn" data-skip>Skip — take me to my project</button></div>`);
-      $('[data-upload]').addEventListener('click', async () => { await finish('upload'); createVideo(projectId); });
+      $('[data-choice="feedback"]').addEventListener('click', async () => { track('onboarding_choice', { choice: 'feedback', team }); await finish('upload'); createVideo(projectId); });
+      $('[data-choice="learn"]')?.addEventListener('click', async (e) => {
+        track('onboarding_choice', { choice: 'learn', team });
+        if (!(await chooseChoreo({ projectId, anchor: e.currentTarget, title: 'Add the choreo video' }))) return;
+        await finish('choreo');
+        navigate(`/app/p/${projectId}/practice?from=onboarding`, { replace: true });
+      });
     }
     $('[data-skip]')?.addEventListener('click', async () => {
       await finish('skip');
@@ -300,7 +316,7 @@ export async function memberWelcome(projectId, project, members) {
   const [forMe, requests, { data: latest }] = await Promise.all([
     notesForMe(me, { limit: 50 }).then((n) => n.filter((x) => x.project_id === projectId && x.status !== 'resolved')).catch(() => []),
     myOpenRequests().then((r) => r.filter((x) => x.project_id === projectId)).catch(() => []),
-    sb.from('videos').select('id, title, takes(number)').eq('project_id', projectId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    notChoreo(sb.from('videos').select('id, title, takes(number)')).eq('project_id', projectId).order('created_at', { ascending: false }).limit(1).maybeSingle()
   ]);
   const latestHref = latest ? `/app/p/${projectId}/v/${latest.id}?take=${Math.max(1, ...latest.takes.map((t) => t.number))}` : null;
   // The one thing most worth doing right now.

@@ -1,7 +1,7 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
-import { cols, schema, fmtFine } from '../client.js';
+import { cols, schema, fmtFine, notChoreo } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
@@ -9,7 +9,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, da
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 import { ic } from '../icons.js';
-import { loadChoreo, chooseChoreo, setChoreo, choreoCard } from './practice.js';
+import { loadChoreo, chooseChoreo, removeChoreo, choreoCard } from './practice.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -138,16 +138,21 @@ export async function renderProject(projectId) {
   const { view, setCrumbs } = ctx;
   const [p, { data: videos, error: vErr }] = await Promise.all([
     loadProject(projectId),
-    sb.from('videos').select('id, title, created_at, created_by, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)').eq('project_id', projectId).order('created_at', { ascending: false })
+    notChoreo(sb.from('videos').select('id, title, created_at, created_by, takes(id, number, created_at, storage_path, thumb_path, project_id, video_id), notes(status)')).eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (vErr) throw vErr;
   const choreo = await loadChoreo(p.project);
   setCrumbs([['Projects', '/app/projects'], [p.project.title]]);
   // The sample is its creator's sandbox: they can always clear it out, even after handing ownership away.
   const sampleMine = p.project.is_sample && p.project.created_by === p.me;
+  // Choreo and Takes as two labelled zones, once Practice exists (migration 057); the sample keeps one list for now.
+  const zones = schema.choreo && (choreo || !p.project.is_sample);
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'videos', `<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
-    ${choreo ? choreoCard({ projectId, choreo, isOwner: p.isOwner }) : p.isOwner && schema.choreo && !p.project.is_sample ? `<div class="choreo-hint"><span>${ic('play')}<span>Add the video your team learns from, and everyone can practice it section by section.</span></span><button class="btn small" data-add-choreo>Add a choreo video</button></div>` : ''}
+    ${zones ? `<div class="panel-head video-zone-head"><div><h2>Choreo</h2><p class="muted">The original you learn from. Loop a section, slow it down, mirror it.</p></div></div>
+    ${choreo ? choreoCard({ projectId, choreo, isOwner: p.isOwner })
+      : `<div class="choreo-hint"><span>${ic('loop')}<span>${p.isOwner ? 'Add the video your team learns from: a YouTube link or a video file.' : 'No choreo video yet. The project owner can add one.'}</span></span>${p.isOwner ? '<button class="btn small" data-add-choreo>Add a choreo video</button>' : ''}</div>`}
+    <div class="panel-head video-zone-head"><div><h2>Takes</h2><p class="muted">Videos your team films. Pause on any moment and leave feedback.</p></div></div>` : ''}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);
       const open = v.notes.filter((n) => n.status !== 'resolved').length;
@@ -159,34 +164,27 @@ export async function renderProject(projectId) {
       </a>${canDelete ? `<button class="icon-btn row-more" data-row-more="${v.id}" aria-label="More actions for ${esc(v.title)}" title="More actions">${ic('more', 'solo')}</button>` : ''}</div>`;
     }).join('')}</div>`
     : p.isOwner
-      ? empty('video', 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>${ic('upload')}Upload video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
+      ? empty('video', zones ? 'Upload your first take' : 'Add your first practice video', 'Upload a run-through, a section, or someone’s part. Every new take of the same piece goes into the same video.', `<button class="btn primary" data-new-video>${ic('upload')}Upload video</button>${!p.project.is_sample && sampleOffer() ? '<button class="btn" data-open-sample="empty-videos">See how it works in a sample</button>' : ''}`)
       : empty('video', 'No videos yet', 'When a video is uploaded here, you’ll get a notification. Have one of your own? Upload it to start getting feedback.', `<button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
   </section>`;
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
     const v = videos.find((x) => x.id === b.dataset.rowMore);
-    const isChoreo = choreo?.kind === 'file' && choreo.video.id === v.id;
-    const choreoAction = p.isOwner && schema.choreo && v.takes.length ? [isChoreo ? { value: 'unchoreo', icon: 'x', label: 'Remove as choreo video', hint: 'The video stays here' } : { value: 'choreo', icon: 'play', label: 'Set as choreo video', hint: 'Everyone can practice it section by section' }] : [];
-    const choice = await actionSheet({ title: v.title, anchor: b, actions: [...choreoAction, { value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
-    if (choice === 'choreo' || choice === 'unchoreo') {
-      if (await setChoreo(projectId, choice === 'choreo' ? { videoId: v.id } : {})) renderProject(projectId);
-      return;
-    }
+    const choice = await actionSheet({ title: v.title, anchor: b, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
     if (choice !== 'delete') return;
     if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes, afterUndo: () => renderProject(projectId) })) renderProject(projectId);
   }));
   $('[data-invite]')?.addEventListener('click', () => showInvite(projectId, p.project.title));
-  $('[data-add-choreo]')?.addEventListener('click', async (e) => { if (await chooseChoreo({ projectId, videos, anchor: e.currentTarget })) renderProject(projectId); });
+  $('[data-add-choreo]')?.addEventListener('click', async (e) => { if (await chooseChoreo({ projectId, anchor: e.currentTarget })) ctx.navigate(`/app/p/${projectId}/practice?from=added`); });
   $('[data-choreo-more]')?.addEventListener('click', async (e) => {
     const choice = await actionSheet({ title: 'Choreo video', anchor: e.currentTarget, actions: [
-      ...(choreo.kind === 'file' ? [{ value: 'feedback', icon: 'note', label: 'Open with notes', hint: 'Leave feedback on this video' }] : [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }]),
-      { value: 'change', icon: 'pen', label: 'Change choreo video' },
-      { value: 'remove', icon: 'x', label: 'Remove choreo video', hint: choreo.kind === 'file' ? 'The video stays in the project' : '' }
+      ...(choreo.kind === 'youtube' ? [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }] : []),
+      { value: 'change', icon: 'pen', label: 'Change choreo video', hint: 'Sections carry over' },
+      { value: 'remove', icon: 'x', label: 'Remove choreo video', danger: true }
     ] });
-    if (choice === 'feedback') ctx.navigate(`/app/p/${projectId}/v/${choreo.video.id}`);
     if (choice === 'youtube') window.open(`https://www.youtube.com/watch?v=${choreo.id}`, '_blank', 'noopener');
-    if (choice === 'change' && await chooseChoreo({ projectId, videos, anchor: e.currentTarget })) renderProject(projectId);
-    if (choice === 'remove' && await setChoreo(projectId, {})) renderProject(projectId);
+    if (choice === 'change' && await chooseChoreo({ projectId, current: choreo, anchor: e.currentTarget })) renderProject(projectId);
+    if (choice === 'remove' && await removeChoreo(projectId, choreo)) renderProject(projectId);
   });
   // People who just joined get a short welcome once.
   const mine = p.members.find((m) => m.user_id === p.me);
@@ -434,27 +432,27 @@ function suggestStack(title, videos, lastViewedId) {
 }
 
 // request: answer a request. Your first upload becomes your submission; later ones are its next takes.
-export async function createVideo(projectId, { request = null } = {}) {
+export async function createVideo(projectId, { request = null, name = null } = {}) {
   if (request) {
     const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
     if (mine) return resubmit(projectId, mine);
   }
   // The name is a typed value (not translated with the page), so it's written in the reader's language here.
-  const autoName = `${isKo ? '연습' : 'Practice'} ·${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  const autoName = `${isKo ? '런스루' : 'Run-through'} · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   const values = await dialog({
     title: request ? `Submit: ${request.title}` : 'Upload video',
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload new take</b> — its open notes come along.',
     // The video first (what people reach for), then a name that's already filled in and easy to change.
     fields: [
       { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT },
-      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : autoName }
+      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : name || autoName }
     ],
     confirm: 'Upload'
   });
   if (!values) return;
   const problem = checkTakeFile(values.file);
   if (problem) return toast(problem, 'error');
-  const { data: existing } = await sb.from('videos').select('id, title, takes(count)').eq('project_id', projectId);
+  const { data: existing } = await notChoreo(sb.from('videos').select('id, title, takes(count)')).eq('project_id', projectId);
   let lastViewed = null;
   try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
   // A name left as filled in says nothing about which video this is, so don't match on it.

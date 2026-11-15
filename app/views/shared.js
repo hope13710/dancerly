@@ -1,5 +1,5 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
-import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos } from '../client.js';
+import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
 import { ic } from '../icons.js';
@@ -96,7 +96,7 @@ export async function hasTeammates() {
 // Whether any real project has a video yet.
 export async function hasRealVideo() {
   if (!realProjects().length) return false;
-  const { data } = await noSample(sb.from('videos').select('id')).limit(1);
+  const { data } = await noSample(notChoreo(sb.from('videos').select('id'))).limit(1);
   return Boolean(data?.length);
 }
 
@@ -119,8 +119,8 @@ export function nameMatches(name, query) {
 // Notes that concern you: on videos you added, takes you uploaded, or where you were @mentioned.
 export async function notesForMe(me, { limit = 200 } = {}) {
   const [{ data: vids }, { data: takes }, { data: mentions }] = await Promise.all([
-    sb.from('videos').select('id').eq('created_by', me),
-    sb.from('takes').select('id').eq('uploaded_by', me),
+    notChoreo(sb.from('videos').select('id')).eq('created_by', me),
+    notChoreo(sb.from('takes').select('id')).eq('uploaded_by', me),
     sb.from('note_mentions').select('note_id').eq('user_id', me)
   ]);
   const parts = [`private_to.eq.${me}`]; // private notes addressed to you

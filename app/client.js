@@ -21,7 +21,7 @@ export const GOOGLE_G = '<svg class="g" viewBox="0 0 48 48" width="18" height="1
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d, e, f, g, h, i, j, k] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k, l] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
@@ -32,7 +32,8 @@ export async function detectSchema() {
     sb.from('join_requests').select('id').limit(1),
     sb.from('notes').select('category').limit(1),
     sb.from('recaps').select('team').limit(1),
-    sb.from('projects').select('choreo_youtube').limit(1)
+    sb.from('projects').select('choreo_youtube').limit(1),
+    sb.from('videos').select('kind').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
@@ -45,11 +46,16 @@ export async function detectSchema() {
   schema.noteCategories = !missing(i.error); // migration 041
   schema.teamRecaps = !missing(j.error); // migration 049
   schema.choreo = !missing(k.error); // migration 057
+  schema.videoKind = !missing(l.error); // migration 059
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id']), ...(schema.shareCards ? [] : ['allow_share_cards']), ...(schema.noteCategories ? [] : ['category']), ...(schema.teamRecaps ? [] : ['team', 'cycle', 'auto', 'auto_recap']), ...(schema.choreo ? [] : ['choreo_video_id', 'choreo_youtube', 'choreo_title'])];
   return drop.reduce((s, c) => s.replace(new RegExp(`,\\s*${c}\\b`, 'g'), '').replace(new RegExp(`\\b${c},\\s*`, 'g'), ''), list);
 }
+
+// The choreo video is for Practice only (migration 059): lists of videos and takes leave it out.
+// Works on a videos or a takes query (both have a kind); before 059 there's nothing to leave out.
+export const notChoreo = (query) => (schema.videoKind ? query.neq('kind', 'choreo') : query);
 
 export const TAKE_BUCKET = 'takes';
 export const MAX_TAKE_BYTES = 50 * 1024 * 1024;

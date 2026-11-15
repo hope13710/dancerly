@@ -1,5 +1,5 @@
 // ⌘K / Ctrl+K: jump to any project, person, video, request, or note — or run a command.
-import { sb, esc, initials, fmt, isSamplePerson, isEnter } from '../client.js';
+import { sb, esc, initials, fmt, isSamplePerson, isEnter, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { noSample } from './shared.js';
 import { ic } from '../icons.js';
@@ -70,7 +70,7 @@ export function openSearch() {
     }
     const like = `%${term.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
     const [videos, requests, notes, people] = await Promise.all([
-      noSample(sb.from('videos').select('id, title, project_id, projects(title)')).ilike('title', like).limit(6),
+      noSample(notChoreo(sb.from('videos').select('id, title, project_id, projects(title)'))).ilike('title', like).limit(6),
       noSample(sb.from('requests').select('id, title, project_id, projects(title)')).ilike('title', like).limit(5),
       noSample(sb.from('notes').select('id, body, t_start, project_id, video_id, takes(number), videos(title)')).ilike('body', like).order('created_at', { ascending: false }).limit(8),
       sb.from('profiles').select('id, display_name').ilike('display_name', like).limit(5)

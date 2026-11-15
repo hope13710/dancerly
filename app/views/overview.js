@@ -1,5 +1,5 @@
 // Project › Overview (goal, music, what's next, how it's going) and › Count sheet (the piece, section by section).
-import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema, isEnter } from '../client.js';
+import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema, isEnter, notChoreo } from '../client.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { kindClass, daysUntil, daysLabel } from './shared.js';
@@ -20,7 +20,7 @@ export async function renderProjectOverview(projectId) {
     sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by').eq('project_id', projectId).gte('starts_at', nowIso).order('starts_at').limit(5),
     sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', projectId).neq('status', 'resolved'),
     sb.from('requests').select('id, title, due_at').eq('project_id', projectId).eq('status', 'active').order('due_at', { ascending: true, nullsFirst: false }).limit(3),
-    sb.from('videos').select('id, title, created_at').eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
+    notChoreo(sb.from('videos').select('id, title, created_at')).eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
   ]);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Overview']]);
   const goal = p.goal; // picked by the owner, else the next show

@@ -10,7 +10,7 @@
 //    reload continues where it stopped instead of starting over.
 import { Upload } from './vendor/tus-js-client-4.3.1.js';
 import { grabStill, saveThumb } from './thumbs.js';
-import { sb, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, TAKE_BUCKET, MAX_TAKE_BYTES, TAKE_TYPES } from './client.js';
+import { sb, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, TAKE_BUCKET, MAX_TAKE_BYTES, TAKE_TYPES, schema } from './client.js';
 import { reportFailure } from './monitor.js';
 
 const TARGET_BYTES = 45 * 1024 * 1024; // leaves headroom under the 50 MB storage limit
@@ -255,7 +255,7 @@ async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
   }
   at('save');
   onStage('Saving');
-  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select('id, number, project_id, video_id').single();
+  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select(`id, number, project_id, video_id${schema.videoKind ? ', kind' : ''}`).single();
   if (error) {
     await sb.storage.from(TAKE_BUCKET).remove([record.path]);
     clearRecord(key);
