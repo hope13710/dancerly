@@ -1,5 +1,5 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
-import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog } from '../client.js';
+import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog, canShareLinks } from '../client.js';
 import { isKo } from '../i18n.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
@@ -40,7 +40,7 @@ export function sharePractice(projectId, title, opts = {}) {
 const live = (l) => l && !l.revoked && (!l.expires_at || new Date(l.expires_at) > new Date());
 const DAY = 864e5;
 
-async function openShare({ kind, videoId = null, projectId = null, title = '', isOwner = false, canCreate = true }) {
+async function openShare({ kind, videoId = null, projectId = null, title = '', isOwner = false, canManage = true }) {
   const me = ctx.state.session.user.id;
   const table = kind === 'take' ? 'video_shares' : 'practice_shares';
   const [col, id] = kind === 'take' ? ['video_id', videoId] : ['project_id', projectId];
@@ -54,10 +54,19 @@ async function openShare({ kind, videoId = null, projectId = null, title = '', i
   const body = $('[data-share-body]', el);
   el.addEventListener('click', (e) => { if (e.target.closest('a[data-link]')) el.close(); });
 
-  const mine = () => link && (link.created_by === me || isOwner);
+  // Team-managed (064): anyone who can share in the project manages the one link. Before 064: its maker or the owner.
+  const mine = () => link && (schema.teamLinks ? canManage : link.created_by === me || isOwner);
+  const canCreate = canManage;
+  const who = new Map();
+  const nameOf = async (id) => {
+    if (!id) return '';
+    if (!who.has(id)) who.set(id, id === me ? (isKo ? '나' : 'You') : ((await sb.from('profiles').select('display_name').eq('id', id).maybeSingle()).data?.display_name || '').split(' ')[0]);
+    return who.get(id);
+  };
   // Never, or the date it stops working (picking 7 or 30 days sets that date from today).
   const expiryValue = () => (link?.expires_at ? 'custom' : 'never');
-  const paint = () => {
+  const paint = async () => {
+    const changedBy = link ? await nameOf(link.updated_by || link.created_by) : '';
     const url = link ? `${location.origin}/app/s/${link.token}` : '';
     const canEdit = mine();
     const what = kind === 'take' ? 'the latest take' : 'the choreo video and its sections';
@@ -76,13 +85,14 @@ async function openShare({ kind, videoId = null, projectId = null, title = '', i
             <option value="30">In 30 days</option>
           </select></label>
         </div>
-        <p class="fine left share-meta" data-no-i18n>${isKo ? `조회 ${link.views}회` : `${link.views} ${link.views === 1 ? 'view' : 'views'}`}${canEdit ? '' : isKo ? ' · 링크를 만든 사람이나 프로젝트 관리자만 바꿀 수 있어요.' : ' · Only whoever made the link or the owner can change it.'}</p>`
-        : `<p class="fine left">${canCreate ? (isKo ? '켜면 링크가 만들어지고 바로 복사돼요.' : 'Turn it on to make a link. It’s copied right away.') : (isKo ? '프로젝트 관리자만 이 페이지를 링크로 공유할 수 있어요.' : 'Only the project owner can share this page with a link.')}</p>`}
+        <p class="fine left share-meta" data-no-i18n>${changedBy ? (isKo ? `${esc(changedBy)}${changedBy === '나' ? '가' : '님이'} 마지막으로 바꿈 · ` : `Last changed by ${esc(changedBy)} · `) : ''}${isKo ? `조회 ${link.views}회` : `${link.views} ${link.views === 1 ? 'view' : 'views'}`}${canEdit ? '' : isKo ? ' · 프로젝트 관리자만 바꿀 수 있어요.' : ' · Only the project owner can change it.'}</p>`
+        : `<p class="fine left">${canCreate ? (isKo ? '켜면 링크가 만들어지고 바로 복사돼요.' : 'Turn it on to make a link. It’s copied right away.') : (isKo ? '이 프로젝트에서는 프로젝트 관리자만 링크로 공유할 수 있어요.' : 'In this project, only the owner can share with a link.')}</p>`}
       <p class="fine left share-rights">Anyone with the link can watch. Only share videos you have the rights to share.</p>
       ${projectId ? `<p class="share-invite" data-no-i18n>${ic('people')}<span>${isKo ? `프로젝트 멤버로 추가하려면 <a href="/app/p/${projectId}/people" data-link>초대하기</a>를 이용해 주세요.` : `To add someone to the project, <a href="/app/p/${projectId}/people" data-link>invite them</a> instead.`}</span></p>` : ''}`;
     wireCopy(body);
     $('[data-share-on]', body).addEventListener('change', async (e) => {
       if (e.target.checked) {
+        await sb.from(table).update({ revoked: true }).eq(col, id).eq('revoked', false); // an expired one, if any
         const { data, error } = await sb.from(table).insert({ [col]: id }).select('*').single();
         if (error) { e.target.checked = false; return toast(friendlyError(error), 'error'); }
         link = data;

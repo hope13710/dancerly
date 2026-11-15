@@ -1,5 +1,5 @@
 import { ic } from './icons.js';
-import { cols, schema, notChoreo } from './client.js';
+import { cols, schema, notChoreo, canShareLinks } from './client.js';
 import { overlayChrome } from './player-chrome.js';
 import { thumbUrls } from './thumbs.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
@@ -27,7 +27,7 @@ const savedSpeed = () => { try { const s = Number(localStorage.getItem(SPEED_KEY
 
 export async function mountReview({ projectId, videoId, me, view, navigate, setCrumbs }) {
   const [{ data: project, error: pErr }, { data: video, error: vErr }, { data: takes, error: tErr }, members] = await Promise.all([
-    sb.from('projects').select(cols('id, title, is_sample, created_by, choreo_video_id, choreo_youtube')).eq('id', projectId).single(),
+    sb.from('projects').select(cols('id, title, is_sample, created_by, choreo_video_id, choreo_youtube, members_share_links')).eq('id', projectId).single(),
     sb.from('videos').select(`id, title, created_by, request_id, bpm, requests!videos_request_id_fkey(title)${schema.videoKind ? ', kind' : ''}`).eq('id', videoId).eq('project_id', projectId).single(),
     sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
@@ -1157,7 +1157,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   wireUpload();
   $('[data-video-more]')?.addEventListener('click', moreActions);
   // Share: a progress card (Take 1 next to the latest), or the read-only guest link. In the sample too, as a preview.
-  const openShare = () => shareChoice({ projectId, videoId, videoTitle: video.title, sample: project.is_sample, takes: takes.length, latest: takes[takes.length - 1]?.number, linkShare: () => shareVideo(videoId, video.title, { projectId, isOwner }) });
+  const openShare = () => shareChoice({ projectId, videoId, videoTitle: video.title, sample: project.is_sample, takes: takes.length, latest: takes[takes.length - 1]?.number, linkShare: () => shareVideo(videoId, video.title, { projectId, isOwner, canManage: canShareLinks(project, isOwner) }) });
   $('[data-share-video]')?.addEventListener('click', openShare);
   $('[data-invite-strip] [data-invite-copy]')?.addEventListener('click', () => copyInvite(projectId, 'review'));
   $('[data-invite-dismiss]')?.addEventListener('click', () => {

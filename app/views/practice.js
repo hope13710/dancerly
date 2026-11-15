@@ -1,7 +1,7 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { loadProject, createVideo } from './project.js';
@@ -236,7 +236,9 @@ export async function renderPractice(projectId, guest = null) {
       : { kind: 'file', url: guest.choreo.url, video: { id: null, title: guest.title, bpm: guest.choreo.bpm }, take: { id: null, count_start: guest.choreo.count_start } })
     : await loadChoreo(p.project);
   const base = guest ? null : `/app/p/${projectId}`;
-  const canShare = !guest && schema.shareLinks && !p.project.is_sample && (p.isOwner || p.project.members_share_practice);
+  // Everyone in the project sees Share (to copy the link); turning it on or changing it follows canShareLinks.
+  const canShare = !guest && schema.shareLinks && !p.project.is_sample;
+  const canManageLink = schema.teamLinks ? canShareLinks(p.project, p.isOwner) : (p.isOwner || p.project.members_share_practice);
   if (!guest) setCrumbs([['Projects', '/app/projects'], [p.project.title, base], ['Practice']]);
   if (!choreo) {
     view.innerHTML = `<section class="page practice-page"><div class="empty"><div class="empty-icon">${ic('play', 'solo')}</div>
@@ -678,7 +680,7 @@ export async function renderPractice(projectId, guest = null) {
   $('[data-mirror]').addEventListener('click', () => setMirror(!mirror));
   fullBtn.addEventListener('click', toggleFull);
   $('[data-add-sec]')?.addEventListener('click', startMark);
-  $('[data-share-practice]')?.addEventListener('click', () => sharePractice(projectId, title, { isOwner: p.isOwner, canCreate: true }));
+  $('[data-share-practice]')?.addEventListener('click', () => sharePractice(projectId, title, { isOwner: p.isOwner, canManage: canManageLink }));
   if (guest) wireGuestJoin(guest);
 
   const onKey = (e) => {
