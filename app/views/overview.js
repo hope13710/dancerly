@@ -90,7 +90,7 @@ export async function renderCountSheet(projectId) {
   const { view, setCrumbs } = ctx;
   const [p, { data: rows, error }, { data: videos }] = await Promise.all([
     loadProject(projectId),
-    sb.from('count_sheet_rows').select(`id, position, section, counts, focus, video_id, t_start, status, updated_by, updated_at${schema.sheetTake ? ', take_id' : ''}`).eq('project_id', projectId).order('position').order('created_at'),
+    sb.from('count_sheet_rows').select(`id, position, section, counts, focus, video_id, t_start, status, updated_by, updated_at${schema.sheetTake ? ', take_id' : ''}${schema.sectionEnd ? ', t_end' : ''}`).eq('project_id', projectId).order('position').order('created_at'),
     sb.from('videos').select('id, title, takes(id, number)').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (error) throw error;
@@ -115,7 +115,7 @@ export async function renderCountSheet(projectId) {
         <td><input class="cell" data-field="section" value="${esc(r.section)}" maxlength="80" aria-label="Section" /></td>
         <td><input class="cell narrow" data-field="counts" value="${esc(r.counts || '')}" maxlength="80" placeholder="1–8 ×2" aria-label="Counts" /></td>
         <td><input class="cell wide" data-field="focus" value="${esc(r.focus || '')}" maxlength="500" placeholder="What to watch for" aria-label="Focus" /></td>
-        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select>${onChoreo(r) ? `<a class="icon-btn sec-practice" href="/app/p/${projectId}/practice?section=${r.id}&from=counts" data-link aria-label="Practice this section" title="Practice this section">${ic('play', 'solo')}</a>` : ''}<input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Time" />${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
+        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select>${onChoreo(r) ? `<a class="icon-btn sec-practice" href="/app/p/${projectId}/practice?section=${r.id}&from=counts" data-link aria-label="Practice this section" title="Practice this section">${ic('play', 'solo')}</a>` : ''}<input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Start time" />${schema.sectionEnd ? `<span class="time-dash" aria-hidden="true">–</span><input class="cell time" data-field="t_end" value="${r.t_end === null || r.t_end === undefined ? '' : fmt(Number(r.t_end))}" placeholder="0:00" aria-label="End time" />` : ''}${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
         <td><select class="cell status s-${r.status}" data-field="status" aria-label="Status">${STATUS.map(([k, l]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
         <td><button class="icon-btn" data-delete-row aria-label="Delete section">${ic('x', 'solo')}</button></td>
       </tr>`).join('')}</tbody>
@@ -142,7 +142,14 @@ export async function renderCountSheet(projectId) {
       const commit = () => {
         let value = input.value.trim();
         if (field === 'section' && !value) return toast('A section needs a name.', 'error');
-        if (field === 't_start') { value = value ? parseTime(value) : null; if (input.value.trim() && value === null) return toast('Use minutes:seconds, like 1:05.', 'error'); }
+        if (field === 't_start' || field === 't_end') { value = value ? parseTime(value) : null; if (input.value.trim() && value === null) return toast('Use minutes:seconds, like 1:05.', 'error'); }
+        if (field === 't_start' || field === 't_end') {
+          const row = rows.find((x) => x.id === id);
+          const start = field === 't_start' ? value : row?.t_start;
+          const end = field === 't_end' ? value : row?.t_end;
+          if (start !== null && start !== undefined && end !== null && end !== undefined && Number(end) <= Number(start)) return toast('The end has to come after the start.', 'error');
+          if (row) row[field] = value;
+        }
         if (field === 'status') input.className = `cell status s-${value}`;
         save(id, { [field]: value === '' ? null : value });
         if (field === 'status' || field === 'video_id') setTimeout(() => renderCountSheet(projectId), 150);

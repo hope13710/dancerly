@@ -9953,3 +9953,104 @@ textarea,
 .practice-next .link-btn {
   color: #aab1bd;
 }
+/* Practice: marking a new section (Start → End), the video screen's range row on the dark panel. */
+.sec-mark {
+  padding: 14px;
+  border-radius: 10px;
+  background: #14171d;
+  border: 1px solid rgba(139, 140, 255, 0.45);
+  font-size: 13px;
+  color: #aab1bd;
+}
+.sec-mark[hidden] {
+  display: none;
+}
+.sec-mark > b {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.sec-mark .range-row button {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.sec-mark p {
+  margin: 8px 0 12px;
+  line-height: 1.5;
+  font-size: 12px;
+}
+.sec-mark-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sec-mark .btn.ghost {
+  color: #c9ced9;
+}
+.time-dash {
+  color: var(--muted);
+  margin: 0 2px;
+}
+
+/* Full screen on a phone held sideways: the video fills the screen, like YouTube. The timeline and controls float
+   over the bottom of the picture and fade while it plays (player-chrome.js adds .chrome-off); a tap brings them back. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .player-col.is-full {
+    padding: 0;
+    gap: 0;
+    justify-content: flex-end;
+  }
+  .player-col.is-full .player-pair {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+  .player-col.is-full .player,
+  .player-col.is-full .player-pair.comparing .player {
+    border-radius: 0;
+  }
+  .player-col.is-full::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 112px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.2s ease;
+  }
+  .player-col.is-full > :not(.player-pair) {
+    position: relative;
+    z-index: 6;
+    transition: opacity 0.2s ease;
+  }
+  .player-col.is-full .timeline {
+    margin: 0 0 2px;
+    padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+    color: #dbe0f0;
+  }
+  .player-col.is-full .controls {
+    padding: 0 max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    color: #e3e6ed;
+  }
+  .player-col.is-full .compare-bar {
+    display: none;
+  }
+  .player-col.is-full.chrome-off::after,
+  .player-col.is-full.chrome-off > :not(.player-pair) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* While the controls are hidden, a tap anywhere on the picture only brings them back (also over YouTube's frame). */
+  .player-col.is-full.chrome-off .player::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+  }
+}

@@ -1,5 +1,6 @@
 import { ic } from './icons.js';
 import { cols, schema, notChoreo } from './client.js';
+import { overlayChrome } from './player-chrome.js';
 import { thumbUrls } from './thumbs.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
@@ -477,6 +478,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const playerCol = $('[data-pair]').closest('.player-col');
   const fullBtn = $('[data-full]');
   const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  // Sideways on a phone, full screen fills the screen and the controls float over the video (player-chrome.js).
+  const chrome = overlayChrome(playerCol, { playing: () => !videoEl.paused });
+  videoEl.addEventListener('play', chrome.sync);
+  videoEl.addEventListener('pause', chrome.sync);
   const setFull = (on) => {
     playerCol.classList.toggle('is-full', on);
     document.body.classList.toggle('player-full', on);
@@ -485,6 +490,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     fullBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
     fullBtn.innerHTML = ic(on ? 'shrink' : 'expand', 'solo');
     requestAnimationFrame(fitFull);
+    chrome.sync();
   };
   // In full screen each player is sized to its video's shape, so badges and sketches sit on the picture.
   const pairEl = $('[data-pair]');
@@ -1281,6 +1287,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
 
   return () => {
+    chrome.stop();
     closeTips();
     cancelAnimationFrame(r.frame);
     document.removeEventListener('keydown', onKey);

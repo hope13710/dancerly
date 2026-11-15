@@ -9,6 +9,7 @@ import { track } from '../onboarding.js';
 import { ic } from '../icons.js';
 import { isKo } from '../i18n.js';
 import { countAt, countLabel } from '../counts.js';
+import { overlayChrome } from '../player-chrome.js';
 
 const SPEEDS = [0.5, 0.75, 1];
 const SPEED_KEY = 'looproom:practice-speed';
@@ -246,7 +247,7 @@ export async function renderPractice(projectId) {
   const belongs = (r) => r.t_start !== null && (videoId ? r.video_id === videoId : !r.video_id);
   let sections = [];
   const loadSections = async () => {
-    const { data } = await sb.from('count_sheet_rows').select('id, position, section, counts, video_id, t_start').eq('project_id', projectId).order('position');
+    const { data } = await sb.from('count_sheet_rows').select(`id, position, section, counts, video_id, t_start${schema.sectionEnd ? ', t_end' : ''}`).eq('project_id', projectId).order('position');
     sections = (data || []).filter(belongs).sort((a, b) => Number(a.t_start) - Number(b.t_start));
   };
   await loadSections();
@@ -277,12 +278,12 @@ export async function renderPractice(projectId) {
             <span class="practice-flag" data-flag hidden></span>
           </div>
         </div>
-        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0"><span class="t-bands" data-bands></span><span class="t-loop" data-tloop hidden></span><span class="t-fill" data-tfill></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
+        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0"><span class="t-bands" data-bands></span><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
         <div class="controls practice-controls">
           <button data-play aria-label="Play (Space)">${ic('play', 'solo')}</button>
           <button data-prev aria-label="Previous section (←)" title="Previous section (←)">${ic('back', 'solo')}</button>
           <button data-next aria-label="Next section (→)" title="Next section (→)">${ic('right', 'solo')}</button>
-          <div class="seg dark pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-selected="${s === speed}" title="Speed ([ and ])">${s}×</button>`).join('')}</div>
+          <div class="seg dark pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-selected="${s === speed}" title="Speed (&lt; and &gt;)">${s}×</button>`).join('')}</div>
           <span class="loop-chip" data-loopchip></span>
           <span class="spacer"></span>
           <button class="toggle-btn" data-mirror aria-pressed="${mirror}" title="Mirror (M)">${ic('mirror')}<span class="wide-only">Mirror</span></button>
@@ -293,7 +294,8 @@ export async function renderPractice(projectId) {
         <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
-        <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section at <b data-at>00:00</b></span></button>
+        <div class="sec-mark" data-mark-box hidden></div>
+        <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section</span></button>
       </aside>
     </div>
   </section>`;
@@ -317,6 +319,7 @@ export async function renderPractice(projectId) {
     const end = player.duration || Infinity;
     if (i < 0) return [0, end];
     const s = Number(sections[i].t_start);
+    if (sections[i].t_end !== null && sections[i].t_end !== undefined) return [s, Math.min(Number(sections[i].t_end), end)];
     const next = sections.slice(i + 1).find((x) => Number(x.t_start) > s);
     return [s, next ? Number(next.t_start) : end];
   };
@@ -367,9 +370,10 @@ export async function renderPractice(projectId) {
   const paintTime = () => {
     const t = player.time;
     $('[data-cur]').textContent = fmt(t);
-    $('[data-at]').textContent = fmt(t);
     if (player.duration) $('[data-dur]').textContent = fmt(player.duration);
     $('[data-tfill]').style.width = pct(t);
+    // While marking, the new section grows from its start to where the video is.
+    if (mark && mark.end === null) { const d = $('[data-tdraft]'); d.hidden = t <= mark.start; d.style.left = pct(mark.start); d.style.width = `calc(${pct(t)} - ${pct(mark.start)})`; }
     $('[data-thead]').style.left = pct(t);
     const track = $('[data-track]');
     track.setAttribute('aria-valuemax', String(Math.round(player.duration || 0)));
@@ -426,6 +430,7 @@ export async function renderPractice(projectId) {
   };
   const stopTick = () => { clearInterval(tick); tick = 0; loop(); };
 
+  let chrome = null; // full screen controls that float and fade (set up with full screen, below)
   let lock = null;
   const keepAwake = async (on) => {
     try {
@@ -441,6 +446,7 @@ export async function renderPractice(projectId) {
     $('[data-player]').classList.toggle('playing', playing);
     if (playing) startTick(); else stopTick();
     keepAwake(playing);
+    chrome?.sync();
     if (player.ended) { player.seek(bounds(looping ? current : -1)[0]); player.play(); }
   };
   player.on(paintPlay);
@@ -505,27 +511,71 @@ export async function renderPractice(projectId) {
     { name: 'section', label: 'Section name', value: s.section || '', placeholder: 'Chorus', required: true, max: 80, chips: SECTION_NAMES },
     { name: 'counts', label: 'Counts (optional)', value: s.counts || '', placeholder: '1–8 ×4', max: 80 }
   ];
-  const addSection = async () => {
-    const t = Math.round(player.time * 10) / 10;
+  // Marking a new section: Start is where the video is now; play or drag on, then set End (or press [ and ]).
+  let mark = null; // { start, end }
+  const now10 = () => Math.round(player.time * 10) / 10;
+  const paintMark = () => {
+    const box = $('[data-mark-box]');
+    const draft = $('[data-tdraft]');
+    $('[data-add-sec]').hidden = Boolean(mark);
+    box.hidden = !mark;
+    if (!mark) { draft.hidden = true; return; }
+    const ready = mark.end !== null && mark.end > mark.start;
+    box.innerHTML = `<b>New section</b>
+      <div class="range-row"><button type="button" data-mark="start">Start <b>${fmt(mark.start)}</b></button><span>${ic('right', 'solo')}</span>${schema.sectionEnd ? `<button type="button" data-mark="end">End <b>${mark.end === null ? '—' : fmt(mark.end)}</b></button>` : `<span>${isKo ? '다음 파트 전까지' : 'until the next section'}</span>`}</div>
+      <p>${schema.sectionEnd ? 'Play or drag the timeline, then tap Start or End to set it there. Or press [ and ].' : 'Play or drag the timeline, then tap Start to set it there.'}</p>
+      <div class="sec-mark-actions"><button type="button" class="btn small ghost" data-mark-cancel>Cancel</button><button type="button" class="btn small primary" data-mark-next ${ready || !schema.sectionEnd ? '' : 'disabled'}>Name it</button></div>`;
+    box.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', () => markAt(b.dataset.mark)));
+    box.querySelector('[data-mark-cancel]').addEventListener('click', cancelMark);
+    box.querySelector('[data-mark-next]').addEventListener('click', saveMark);
+    const end = mark.end ?? mark.start;
+    draft.hidden = end <= mark.start;
+    draft.style.left = pct(mark.start);
+    draft.style.width = `calc(${pct(end)} - ${pct(mark.start)})`;
+  };
+  const startMark = () => {
+    if (looping) { looping = false; current = -1; paintSections(); }
+    mark = { start: now10(), end: null };
+    paintMark();
+    $('[data-mark-box]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  function markAt(which) {
+    if (!mark) { startMark(); if (which === 'start') return; }
+    const t = now10();
+    if (which === 'start') {
+      mark.start = t;
+      if (mark.end !== null && mark.end <= t) mark.end = null;
+    } else if (schema.sectionEnd) {
+      if (t <= mark.start) return toast('The end has to come after the start. Play a little further.', 'error');
+      mark.end = t;
+    }
+    paintMark();
+  }
+  function cancelMark() { mark = null; paintMark(); }
+  async function saveMark() {
+    if (!mark) return;
     player.pause();
-    if (sections.some((s) => Math.abs(Number(s.t_start) - t) < 0.5)) return toast('A section already starts here. Play a little further, or edit that section.', 'error');
-    const got = await dialog({ title: `${isKo ? '파트 추가' : 'Add a section'} · ${fmt(t)}`, body: 'It starts here and runs until the next section.', fields: nameFields(), confirm: 'Add section' });
+    const got = await dialog({ title: `${isKo ? '파트 추가' : 'Add a section'} · ${fmt(mark.start)}${mark.end !== null ? `–${fmt(mark.end)}` : ''}`, fields: nameFields(), confirm: 'Add section' });
     if (!got?.section) return;
     const position = sections.length ? Math.max(...sections.map((s) => Number(s.position) || 0)) + 1 : 0;
-    const row = { project_id: projectId, section: got.section, counts: got.counts || null, t_start: t, video_id: videoId, position, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    const t = mark.start;
+    const row = { project_id: projectId, section: got.section, counts: got.counts || null, t_start: t, ...(schema.sectionEnd && mark.end !== null ? { t_end: mark.end } : {}), video_id: videoId, position, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    mark = null;
+    paintMark();
     const { error } = await sb.from('count_sheet_rows').insert(row);
     if (error) return toast(friendlyError(error), 'error');
-    track('practice_section_added', { kind: choreo.kind, count: sections.length + 1 });
+    track('practice_section_added', { kind: choreo.kind, count: sections.length + 1, end: 't_end' in row });
     await loadSections();
     paintSections();
     toast(`“${got.section}” added. Tap it to loop.`);
-  };
+  }
   const sectionMenu = async (i, anchor) => {
     const s = sections[i];
     const t = Math.round(player.time * 10) / 10;
     const choice = await actionSheet({ title: s.section || 'Section', anchor, actions: [
       { value: 'rename', icon: 'pen', label: 'Rename' },
-      { value: 'move', icon: 'at', label: `${isKo ? '시작을 여기로' : 'Start here'} · ${fmt(t)}`, hint: 'Move this section’s start to where the video is now' },
+      { value: 'start', icon: 'at', label: `${isKo ? '시작을 여기로' : 'Set start here'} · ${fmt(t)}`, hint: 'Where the video is now' },
+      ...(schema.sectionEnd ? [{ value: 'end', icon: 'at', label: `${isKo ? '끝을 여기로' : 'Set end here'} · ${fmt(t)}`, hint: 'Where the video is now' }] : []),
       { value: 'delete', icon: 'x', label: 'Delete section', danger: true }
     ] });
     let patch = null;
@@ -533,9 +583,13 @@ export async function renderPractice(projectId) {
       const got = await dialog({ title: 'Rename section', fields: nameFields(s), confirm: 'Save' });
       if (got?.section) patch = { section: got.section, counts: got.counts || null };
     }
-    if (choice === 'move') {
-      if (sections.some((x, k) => k !== i && Math.abs(Number(x.t_start) - t) < 0.5)) return toast('Another section already starts here.', 'error');
+    if (choice === 'start') {
+      if (s.t_end !== null && s.t_end !== undefined && t >= Number(s.t_end)) return toast('The start has to come before the end.', 'error');
       patch = { t_start: t, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    }
+    if (choice === 'end') {
+      if (t <= Number(s.t_start)) return toast('The end has to come after the start. Play a little further.', 'error');
+      patch = { t_end: t };
     }
     if (choice === 'delete') {
       if (!(await dialog({ title: `Delete “${s.section}”?`, body: 'It’s removed from the count sheet too. The video isn’t changed.', confirm: 'Delete', danger: true }))) return;
@@ -570,6 +624,7 @@ export async function renderPractice(projectId) {
     pl.style.width = `${Math.floor(w)}px`;
     pl.style.height = `${Math.floor(w / ar)}px`;
   };
+  chrome = overlayChrome(col, { playing: () => !player.paused });
   const setFull = (on) => {
     col.classList.toggle('is-full', on);
     document.body.classList.toggle('player-full', on);
@@ -578,6 +633,7 @@ export async function renderPractice(projectId) {
     fullBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
     fullBtn.innerHTML = ic(on ? 'shrink' : 'expand', 'solo');
     requestAnimationFrame(fit);
+    chrome.sync();
   };
   const toggleFull = async () => {
     if (!col.classList.contains('is-full')) {
@@ -606,7 +662,7 @@ export async function renderPractice(projectId) {
   $$('[data-speed]').forEach((b) => b.addEventListener('click', () => setSpeed(Number(b.dataset.speed))));
   $('[data-mirror]').addEventListener('click', () => setMirror(!mirror));
   fullBtn.addEventListener('click', toggleFull);
-  $('[data-add-sec]').addEventListener('click', addSection);
+  $('[data-add-sec]').addEventListener('click', startMark);
 
   const onKey = (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable], dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -614,11 +670,14 @@ export async function renderPractice(projectId) {
     if (k === ' ') { e.preventDefault(); toggle(); }
     else if (k === 'arrowleft') { e.preventDefault(); step(-1); }
     else if (k === 'arrowright') { e.preventDefault(); step(1); }
-    else if (k === '[' || k === ']') { const i = SPEEDS.indexOf(speed) + (k === ']' ? 1 : -1); if (SPEEDS[i]) setSpeed(SPEEDS[i]); }
+    else if (k === '<' || k === '>' || k === ',' || k === '.') { const i = SPEEDS.indexOf(speed) + (k === '>' || k === '.' ? 1 : -1); if (SPEEDS[i]) setSpeed(SPEEDS[i]); }
+    else if (k === '[') { e.preventDefault(); markAt('start'); }
+    else if (k === ']') { e.preventDefault(); markAt('end'); }
     else if (k === 'm') setMirror(!mirror);
     else if (k === 'f') toggleFull();
-    else if (k === 's') addSection();
+    else if (k === 's') startMark();
     else if (k === 'escape' && col.classList.contains('is-full') && !fsElement()) toggleFull();
+    else if (k === 'escape' && mark) cancelMark();
     else if (k === 'escape' && looping) { looping = false; current = -1; paintSections(); }
   };
   document.addEventListener('keydown', onKey);
@@ -649,6 +708,7 @@ export async function renderPractice(projectId) {
     document.removeEventListener('fullscreenchange', onFs);
     document.removeEventListener('webkitfullscreenchange', onFs);
     document.body.classList.remove('player-full');
+    chrome.stop();
     resize?.disconnect();
     clearInterval(tick);
     keepAwake(false);

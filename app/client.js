@@ -21,7 +21,7 @@ export const GOOGLE_G = '<svg class="g" viewBox="0 0 48 48" width="18" height="1
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d, e, f, g, h, i, j, k, l] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k, l, m] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
@@ -33,7 +33,8 @@ export async function detectSchema() {
     sb.from('notes').select('category').limit(1),
     sb.from('recaps').select('team').limit(1),
     sb.from('projects').select('choreo_youtube').limit(1),
-    sb.from('videos').select('kind').limit(1)
+    sb.from('videos').select('kind').limit(1),
+    sb.from('count_sheet_rows').select('t_end').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
@@ -47,6 +48,7 @@ export async function detectSchema() {
   schema.teamRecaps = !missing(j.error); // migration 049
   schema.choreo = !missing(k.error); // migration 057
   schema.videoKind = !missing(l.error); // migration 059
+  schema.sectionEnd = !missing(m.error); // migration 060
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id']), ...(schema.shareCards ? [] : ['allow_share_cards']), ...(schema.noteCategories ? [] : ['category']), ...(schema.teamRecaps ? [] : ['team', 'cycle', 'auto', 'auto_recap']), ...(schema.choreo ? [] : ['choreo_video_id', 'choreo_youtube', 'choreo_title'])];
