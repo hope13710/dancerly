@@ -91,11 +91,41 @@ const routes = [
   { re: /^\/app\/?$/, render: renderHome }
 ];
 
+// Each history entry remembers where it was opened from (path and that page's name), and the page it leaves
+// remembers how far it was scrolled. The phone back link uses the first (setCrumbs, backContext); the browser's
+// back button uses the second (route). A refresh keeps both; a link opened fresh has neither.
 export function navigate(path, { replace = false } = {}) {
-  history[replace ? 'replaceState' : 'pushState']({}, '', path);
+  const here = location.pathname + location.search;
+  // A dialog that just closed leaves its history entry behind for a moment: the new page takes that entry's
+  // place, and still counts as opened from the page under the dialog.
+  const overDialog = Boolean(history.state?.modal);
+  const opened = !replace || overDialog;
+  if (!replace && !overDialog) history.replaceState({ ...(history.state || {}), scrollY: window.scrollY }, '');
+  const from = opened ? here : history.state?.from;
+  const fromLabel = opened ? document.querySelector('[data-crumbs] b:last-of-type')?.textContent.trim() : history.state?.fromLabel;
+  history[replace || overDialog ? 'replaceState' : 'pushState'](from && from !== path ? { from, fromLabel } : {}, '', path);
   route();
 }
-window.addEventListener('popstate', route);
+// Back closes an open dialog or sheet first (browser back, Android's back button, iPhone's swipe), as native
+// sheets do, instead of leaving the page underneath. Every dialog opens with showModal, so it's handled here once.
+let skipPops = 0;
+const nativeShowModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function showModal() {
+  nativeShowModal.call(this);
+  if (!history.state?.modal) history.pushState({ ...(history.state || {}), modal: true }, '');
+  this.addEventListener('close', () => {
+    // Closed with a button or Escape: drop the entry it added, unless another dialog took over or a page opened.
+    setTimeout(() => {
+      if (history.state?.modal && !document.querySelector('dialog[open]')) { skipPops += 1; history.back(); }
+    }, 0);
+  }, { once: true });
+};
+window.addEventListener('popstate', () => {
+  if (skipPops) { skipPops -= 1; return; }
+  const open = [...document.querySelectorAll('dialog[open]')].pop();
+  if (open) { open.close(); return; }
+  route({ restoreScroll: true });
+});
 setInterval(() => {
   const id = location.pathname.match(/^\/app\/p\/([0-9a-f-]{36})/)?.[1];
   if (id && document.visibilityState === 'visible' && state.projects.some((p) => p.id === id && p.is_sample)) markSampleSeen();
@@ -115,7 +145,8 @@ document.addEventListener('click', (event) => {
   const link = event.target.closest('a[data-link]');
   if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
   event.preventDefault();
-  navigate(link.getAttribute('href'));
+  // data-replace: tabs inside one screen (Take 1, Take 2) switch in place, so Back leaves the screen.
+  navigate(link.getAttribute('href'), { replace: link.hasAttribute('data-replace') });
 });
 // Next-step buttons on empty pages (Upload a video, Invite people).
 document.addEventListener('click', async (event) => {
@@ -133,7 +164,7 @@ document.addEventListener('click', async (event) => {
   }
 });
 
-async function route() {
+async function route({ restoreScroll = false } = {}) {
   // A newer version is out and nothing's in progress: load this page fresh from it instead.
   if (reloadIfUpdated()) return;
   if (state.cleanup) { state.cleanup(); state.cleanup = null; }
@@ -173,6 +204,9 @@ async function route() {
     if (state.session && !openDayNoted && !document.body.classList.contains('is-onboarding')) { openDayNoted = true; noteOpenDay(); }
     // Phones: keep the current tab in view when a tab row scrolls sideways.
     document.querySelector('.tabs a[aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    // Back to a list: where you were in it. A new page starts at the top.
+    const y = restoreScroll ? history.state?.scrollY : 0;
+    requestAnimationFrame(() => window.scrollTo(0, y || 0));
   } catch (error) {
     if (ticket !== routeTicket) return; // an old page failing doesn't get to cover the new one
     // Pages that fail to load are reported, so we hear about it before anyone has to tell us.
@@ -186,14 +220,32 @@ async function route() {
 }
 
 // ---------- Header ----------
+const PROJECT_TAB = /^\/app\/p\/([0-9a-f-]{36})(?:\/(?:notes|people|requests|overview|calendar|recaps|pages|settings))?\/?$/;
+const NO_RETURN = /^\/app\/(?:login|logout|reset|welcome|join\/|s\/|account\/delete)/;
+// Where the phone back link goes when this page was opened from another one, or null to use the parent.
+// Not back down into a page under this one, not to a tab beside this one, and not to sign-in or welcome screens.
+function backContext(parentHref) {
+  const s = history.state;
+  if (!s?.from || !s.fromLabel) return null;
+  const from = s.from.split('?')[0].replace(/\/$/, '');
+  const here = location.pathname.replace(/\/$/, '');
+  if (from === here || from === parentHref.replace(/\/$/, '') || from.startsWith(`${here}/`) || NO_RETURN.test(from)) return null;
+  const a = from.match(PROJECT_TAB), b = here.match(PROJECT_TAB);
+  if (a && b && a[1] === b[1]) return null;
+  return [s.fromLabel, s.from];
+}
 function setCrumbs(items) {
   $('[data-crumbs]').innerHTML = items.map(([label, href]) => href ? `<a href="${href}" data-link>${esc(label)}</a>` : `<b>${esc(label)}</b>`).join('<i>/</i>');
   // On phones the breadcrumb is hidden; a back link to the nearest parent takes its place.
-  const parent = [...items].reverse().find(([, href]) => href);
+  let parent = [...items].reverse().find(([, href]) => href);
+  // A project's tabs (Notes, People, Overview…) sit beside Videos, not under it: back leaves the project.
+  if (parent && PROJECT_TAB.test(location.pathname) && !/^\/app\/p\/[0-9a-f-]{36}\/?$/.test(location.pathname)) parent = ['Projects', '/app/projects'];
+  // Opened from somewhere else (Inbox, Feedback, an assignment, a video…): back returns there, not to the parent.
+  const target = (parent && backContext(parent[1])) || parent;
   const back = $('[data-back]');
-  back.hidden = !parent;
-  document.body.classList.toggle('has-back', Boolean(parent));
-  if (parent) { back.href = parent[1]; back.innerHTML = `${ic('back')}${esc(parent[0])}`; }
+  back.hidden = !target;
+  document.body.classList.toggle('has-back', Boolean(target));
+  if (target) { back.href = target[1]; back.innerHTML = `${ic('back')}${esc(target[0])}`; }
 }
 // Signed in: a sidebar on wide screens, a tab bar on phones. Both reach the same places and actions.
 function renderChrome() {
