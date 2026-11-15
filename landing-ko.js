@@ -414,7 +414,7 @@ export const LANDING_KO = {
   // 마지막
   "Make the next take": "다음 테이크를,",
   "the one that lands.": "더 완성도 있게.",
-  "Every dancer deserves to see their progress. Give your team a place to see it. Set up takes under a minute.": "모든 댄서가 자신의 성장을 확인할 수 있도록. 우리 팀의 성장을 기록할 공간을 만들어 보세요. 첫 설정은 1분이면 충분해요.",
+  "Every dancer deserves to see their progress. Setup takes under a minute.": "모든 댄서가 자신의 성장을 볼 수 있어야 해요. 시작은 1분이면 충분해요.",
   'Your email': '이메일 주소',
   "No credit card": "신용카드 등록 없이",
   "Feedback that lands on the count.": "카운트에 딱 맞는 피드백.",
