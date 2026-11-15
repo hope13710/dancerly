@@ -160,7 +160,7 @@ export async function renderShared(token) {
         ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>${ic('loop')}Watch again</button></div></div>`}</div>
       <div class="guest-controls">
         <div class="guest-timeline"><button type="button" class="guest-pp" data-gplay aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="guest-time" data-gcur>00:00</span><input type="range" min="0" max="1000" value="0" step="1" data-gseek aria-label="Playback position" /><span class="guest-time" data-gdur>--:--</span></div>
-        <div class="guest-tools">${volumeControl()}<div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">${ic('loop')}A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">${ic('expand', 'solo')}</button></div>
+        <div class="guest-tools">${volumeControl()}<div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end" aria-label="A–B">${ic('loop')}<span class="ctl-label">A–B</span></button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)" aria-label="Mirror">${ic('mirror')}<span class="ctl-label">Mirror</span></button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">${ic('expand', 'solo')}</button></div>
       </div>
       ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
       </div>
@@ -261,7 +261,7 @@ function wirePlayerTools(video) {
     api.loop = range && range[1] > range[0] ? range : null;
     api.abStart = null;
     abBtn.setAttribute('aria-pressed', String(Boolean(api.loop)));
-    abBtn.innerHTML = `${ic('loop')}A–B`;
+    abBtn.innerHTML = `${ic('loop')}<span class="ctl-label">A–B</span>`;
     loopChip.innerHTML = api.loop ? `<span>${ic('loop')}Looping ${fmt(api.loop[0])}–${fmt(api.loop[1])}</span><button type="button" aria-label="Stop looping" data-gloop-off>${ic('x', 'solo')}</button>` : '';
     $('[data-gloop-off]', loopChip)?.addEventListener('click', () => api.setLoop(null));
   };
@@ -270,7 +270,7 @@ function wirePlayerTools(video) {
     if (api.abStart === null) {
       api.abStart = video.currentTime;
       abBtn.setAttribute('aria-pressed', 'true');
-      abBtn.innerHTML = `${ic('loop')}A–B ${fmt(api.abStart)}…`;
+      abBtn.innerHTML = `${ic('loop')}<span class="ctl-label">A–B ${fmt(api.abStart)}…</span><span class="ctl-short" aria-hidden="true">B</span>`;
       return;
     }
     const a = Math.min(api.abStart, video.currentTime), b = Math.max(api.abStart, video.currentTime);

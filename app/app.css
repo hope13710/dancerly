@@ -10273,3 +10273,26 @@ body.is-guest .tabbar {
 @media (prefers-reduced-motion: reduce) { .vol-range { transition: none; } }
 /* Narrow portrait phones: the parts list sits right under the player, so previous/next give way to sound and full screen. */
 @media (max-width: 480px) { .practice-controls [data-prev], .practice-controls [data-next] { display: none; } }
+
+/* Player buttons: icon and label centered as one, at any height. */
+.controls .toggle-btn, .guest-tools .toggle-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.ctl-short { display: none; font-weight: 700; }
+/* Narrow phones: A–B, Counts and Mirror are icons (their names stay for screen readers and tooltips), so the row
+   never spills over in any language. While waiting for B, a short "B" says what the next tap does. */
+@media (max-width: 480px) {
+  .controls .ctl-label, .guest-tools .ctl-label { display: none; }
+  .controls .ctl-short, .guest-tools .ctl-short { display: inline; }
+  .controls .toggle-btn, .guest-tools .toggle-btn { min-width: 44px; padding-inline: 8px; }
+}
+
+/* Note actions (Reply, Agree, ⋯): one pill height, so a count-only button is a short pill, not a circle.
+   With touch, the 44px tap area is invisible around a 32px pill. */
+.note-actions { align-items: center; }
+.note-actions .mini, .note-actions .agrees { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 0 12px; line-height: 1; }
+.note-actions .mini .ic, .note-actions .agrees .ic { width: 14px; height: 14px; margin: 0; }
+.note-actions [data-agree] { min-width: 52px; }
+.note-actions .note-more > summary.mini { min-width: 30px; padding: 0 8px; }
+@media (pointer: coarse) {
+  .note-actions .mini, .note-actions .note-more > summary.mini { position: relative; min-height: 32px; }
+  .note-actions .mini::after { content: ""; position: absolute; inset: -6px -2px; }
+}
