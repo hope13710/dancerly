@@ -786,3 +786,6 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .prac-thumb small { display: flex; align-items: center; gap: 12px; width: 62%; font-size: clamp(8px, 1.2vw, 12px); font-weight: 500; letter-spacing: 0.42em; white-space: nowrap; }
 .prac-thumb small::before, .prac-thumb small::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.75); }
 .prac-badge, .prac-count { z-index: 2; }
+
+/* Take 1 reads as the past: faded, a little darker. Take 2 keeps its color. Landing only: the app shows both in color. */
+.tk-pair figure:first-child img { filter: saturate(0.25) brightness(0.88); }
