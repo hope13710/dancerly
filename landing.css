@@ -764,3 +764,17 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .prac-src span { display: inline-flex; align-items: center; gap: 6px; flex: none; color: #a3a9b8; font-size: 12px; }
 .pr-parts { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
 .pr-parts .part-on { background: rgba(254, 175, 117, 0.16); border-color: rgba(254, 175, 117, 0.5); color: #feaf75; }
+
+/* Practice: the two ways in, as in the app's "Add a choreo video" sheet. */
+.prac-stack { display: grid; gap: 14px; min-width: 0; }
+.prac-add { background: #0f1217; border: 1px solid #222731; border-radius: 16px; padding: 14px 16px 16px; }
+.pa-title { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #dbe0f0; }
+.pa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pa-opt { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #2a303b; background: #161a21; }
+.pa-opt.on { border-color: rgba(91, 92, 226, 0.6); background: rgba(91, 92, 226, 0.1); }
+.pa-opt b { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #eef0f6; }
+.pa-opt b .ic { width: 15px; height: 15px; color: #a3a9b8; }
+.pa-field { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 4px 4px 8px; border-radius: 7px; background: #0f1217; border: 1px solid #333945; }
+.pa-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #c3c9d6; }
+.pa-btn { flex: none; padding: 3px 9px; border-radius: 5px; background: #5b5ce2; color: #fff; font-size: 11px; font-weight: 600; }
+.pa-drop { display: grid; place-items: center; min-height: 30px; padding: 0 6px; border-radius: 7px; border: 1px dashed #3a4150; font-size: 11px; color: #8f96a6; text-align: center; }
