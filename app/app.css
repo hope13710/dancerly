@@ -6725,6 +6725,12 @@ button.row {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
+  /* Hide gets a row of its own at the right edge, not the next grid cell (which left it mid-card). */
+  .activate-steps li.activate-hide {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-left: 0;
+  }
 }
 
 /* Video page: phones keep Takes, New take, and ⋯ on top; the rest is in the ⋯ menu */
