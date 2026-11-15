@@ -1,6 +1,7 @@
 import { ic } from './icons.js';
 import { cols, schema, notChoreo, canShareLinks } from './client.js';
 import { overlayChrome } from './player-chrome.js';
+import { volumeControl, wireVolume } from './volume.js';
 import { thumbUrls } from './thumbs.js';
 import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
@@ -117,7 +118,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         </div>
         </div>
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track title="Drag to scrub" role="slider" aria-label="Playback position"><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span data-eights></span><span data-markers></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
-        <div class="controls"><button data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">${ic('loop')}A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">${ic('music')}Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button class="toggle-btn theater-btn" data-theater aria-pressed="false" title="Theater mode (W)" aria-label="Theater mode">${ic('theater', 'solo')}</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button></div>
+        <div class="controls"><button data-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button>${volumeControl()}<span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">1×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((s) => `<button type="button" role="menuitemradio" aria-checked="false" data-set-speed="${s}">${s === 1 ? 'Normal' : `${s}×`}</button>`).join('')}</div></span><button class="toggle-btn" data-ab title="Loop any part: tap at the start, then at the end (B)">${ic('loop')}A–B</button><button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)">${ic('music')}Counts</button><span class="loop-chip" data-loopchip></span><span class="spacer"></span><button class="toggle-btn" data-mirror aria-pressed="${r.mirror}" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button class="toggle-btn theater-btn" data-theater aria-pressed="false" title="Theater mode (W)" aria-label="Theater mode">${ic('theater', 'solo')}</button><button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button></div>
         <div class="counts-panel" data-counts-panel hidden>
           <div class="counts-row">
             <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
@@ -154,6 +155,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   <input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;
 
   const videoEl = $('[data-video]');
+  wireVolume($('[data-vol]').parentElement, ({ muted, volume }) => { videoEl.muted = muted; videoEl.volume = volume; });
   // Some browsers can't decode certain phone formats (older iPhone HEVC uploads). Say so instead of showing a black box.
   const cantPlay = () => {
     if (!videoEl.isConnected || $('[data-cant-play]')) return;

@@ -4,6 +4,7 @@
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
+import { volumeControl, wireVolume } from '../volume.js';
 import { loadProject, createVideo } from './project.js';
 import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
@@ -164,6 +165,7 @@ function filePlayer(host, src) {
     pause() { v.pause(); },
     seek(t) { v.currentTime = t; },
     rate(r) { v.playbackRate = r; },
+    sound({ muted, volume }) { v.muted = muted; v.volume = volume; },
     on(f) { listeners.add(f); },
     destroy() { v.pause(); v.removeAttribute('src'); v.load(); }
   };
@@ -214,6 +216,7 @@ function youtubePlayer(host, id, onError) {
     pause() { p?.pauseVideo?.(); },
     seek(t) { p?.seekTo?.(t, true); },
     rate(r) { p?.setPlaybackRate?.(r); },
+    sound({ muted, volume }) { ready.then(() => { if (muted) p?.mute?.(); else p?.unMute?.(); p?.setVolume?.(Math.round(volume * 100)); }); },
     on(f) { listeners.add(f); },
     destroy() { try { p?.destroy?.(); } catch {} }
   };
@@ -294,6 +297,7 @@ export async function renderPractice(projectId, guest = null) {
         <div class="timeline"><span data-cur>00:00</span><div class="track" data-track role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0"><span class="t-bands" data-bands></span><span class="t-loop" data-tloop hidden></span><span class="t-draft" data-tdraft hidden></span><span class="t-fill" data-tfill></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
         <div class="controls practice-controls">
           <button data-play aria-label="Play (Space)">${ic('play', 'solo')}</button>
+          ${volumeControl()}
           <button data-prev aria-label="Previous section (←)" title="Previous section (←)">${ic('back', 'solo')}</button>
           <button data-next aria-label="Next section (→)" title="Next section (→)">${ic('right', 'solo')}</button>
           <div class="seg dark pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-selected="${s === speed}" title="Speed (&lt; and &gt;)">${s}×</button>`).join('')}</div>
@@ -327,6 +331,7 @@ export async function renderPractice(projectId, guest = null) {
     media.innerHTML = `<div class="practice-error"><p>${esc(friendlyError(error))}</p></div>`;
     return null;
   }
+  wireVolume($('[data-vol]').parentElement, (s) => player.sound(s));
 
   // ---------- Sections: where each starts and ends ----------
   const bounds = (i = current) => {

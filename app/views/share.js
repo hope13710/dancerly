@@ -6,6 +6,7 @@ import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
 import { countAt } from '../counts.js';
 import { ic } from '../icons.js';
+import { volumeControl, wireVolume } from '../volume.js';
 
 function copyRow(value) {
   return `<div class="copy-row"><input readonly value="${esc(value)}" /><button class="btn primary" type="button" data-copy="${esc(value)}">Copy</button></div>`;
@@ -159,7 +160,7 @@ export async function renderShared(token) {
         ${signedIn ? '' : `<div class="guest-end" data-guest-end hidden><p>Give your team feedback like this.</p><div><a class="btn primary" href="${ctaHref}" data-guest-cta="end">Start free</a><button type="button" class="btn ghost" data-replay>${ic('loop')}Watch again</button></div></div>`}</div>
       <div class="guest-controls">
         <div class="guest-timeline"><button type="button" class="guest-pp" data-gplay aria-label="Play or pause (Space)">${ic('play', 'solo')}</button><span class="guest-time" data-gcur>00:00</span><input type="range" min="0" max="1000" value="0" step="1" data-gseek aria-label="Playback position" /><span class="guest-time" data-gdur>--:--</span></div>
-        <div class="guest-tools"><div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">${ic('loop')}A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">${ic('expand', 'solo')}</button></div>
+        <div class="guest-tools">${volumeControl()}<div class="seg small guest-speed" role="group" aria-label="Playback speed">${[0.5, 0.75, 1].map((r) => `<button type="button" data-grate="${r}" aria-pressed="${r === 1}">${r}×</button>`).join('')}</div><button type="button" class="toggle-btn" data-gab aria-pressed="false" title="Loop any part: tap at the start, then at the end">${ic('loop')}A–B</button><span class="loop-chip" data-gloop></span><span class="spacer"></span><button type="button" class="toggle-btn" data-gmirror aria-pressed="false" title="Mirror mode (M)">${ic('mirror')}Mirror</button><button type="button" class="toggle-btn full-btn" data-gfull aria-label="Full screen" title="Full screen">${ic('expand', 'solo')}</button></div>
       </div>
       ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
       </div>
@@ -173,6 +174,7 @@ export async function renderShared(token) {
     <p class="fine guest-foot">Shared with <a href="/?ref=share">dancerly</a> · dancerly.app</p>
   </section>`;
   const video = $('[data-video]');
+  wireVolume($('[data-vol]').parentElement, ({ muted, volume }) => { video.muted = muted; video.volume = volume; });
   // The end card: once per visit, after the video plays to the end.
   const end = $('[data-guest-end]');
   let endShown = false;

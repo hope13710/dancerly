@@ -10262,3 +10262,14 @@ body.is-guest .tabbar {
 .yt-ic { display: inline-block; flex: none; width: auto; height: 1em; vertical-align: -0.125em; }
 .yt-src { display: inline-flex; align-items: center; gap: 5px; }
 .sheet-icon.sheet-brand { width: 22px; height: 16px; justify-self: center; }
+
+/* Sound: a mute button on every player; where there's a mouse, a volume slider opens beside it on hover. */
+.vol-wrap { display: inline-flex; align-items: center; flex: none; }
+.vol-range { -webkit-appearance: none; appearance: none; width: 0; height: 4px; margin: 0; opacity: 0; border-radius: 4px; cursor: pointer; background: linear-gradient(90deg, #fff var(--v, 100%), rgba(255, 255, 255, 0.28) var(--v, 100%)); transition: width 0.18s ease, opacity 0.18s ease, margin 0.18s ease; }
+.vol-wrap:hover .vol-range, .vol-wrap:focus-within .vol-range { width: 72px; opacity: 1; margin: 0 8px 0 4px; }
+.vol-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+.vol-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+@media (hover: none) { .vol-range { display: none; } }
+@media (prefers-reduced-motion: reduce) { .vol-range { transition: none; } }
+/* Narrow portrait phones: the parts list sits right under the player, so previous/next give way to sound and full screen. */
+@media (max-width: 480px) { .practice-controls [data-prev], .practice-controls [data-next] { display: none; } }
