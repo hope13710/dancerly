@@ -4,7 +4,7 @@ import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { startTranslating, isKo, lang } from './i18n.js';
-import { renderWelcome, markSeen } from './onboarding.js';
+import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
 import { startMonitoring, setMonitoredUser, reportFailure } from './monitor.js';
@@ -96,6 +96,10 @@ export function navigate(path, { replace = false } = {}) {
   route();
 }
 window.addEventListener('popstate', route);
+setInterval(() => {
+  const id = location.pathname.match(/^\/app\/p\/([0-9a-f-]{36})/)?.[1];
+  if (id && document.visibilityState === 'visible' && state.projects.some((p) => p.id === id && p.is_sample)) markSampleSeen();
+}, 60e3);
 // A person's name or photo inside a row that's itself a link (see personLink): open their profile, not the row.
 const openPerson = (event) => {
   const el = event.target.closest('[data-person]');
@@ -143,6 +147,13 @@ async function route() {
   renderChrome();
   // Views that list projects wait on this; the sidebar repaints when it lands.
   state.projectsReady = refreshNav();
+  // The sample, opened again after a while with changes in it: a fresh one first (it navigates there itself).
+  const inProject = path.match(/^\/app\/p\/([0-9a-f-]{36})/)?.[1];
+  if (inProject && state.session) {
+    await state.projectsReady;
+    const sample = state.projects.find((p) => p.id === inProject && p.is_sample && p.created_by === state.session.user.id);
+    if (sample && await sampleOnReturn(sample.id)) return;
+  }
   if (state.profile) refreshUnread();
   // Loading: nothing for the first moment (most pages are ready by then, so nothing flashes), then a placeholder
   // shaped like the page that's coming. Screen readers hear "Loading…" once.
@@ -251,8 +262,8 @@ function paintSampleBar(sample) {
   const graduated = Boolean(state.profile?.onboarding?.seen?.sample_graduated);
   const [cta, next] = !hasOwn ? ['Start my own project', 'project'] : graduated ? ['Go to my projects', 'projects'] : ['Upload a video of my own', 'upload'];
   bar.innerHTML = `<span class="sample-dot" aria-hidden="true">${ic('sample', 'solo')}</span>
-    <p><b>You’re in the sample project.</b> <span>Only you can see it. Try anything — nothing here reaches anyone, and it stays out of Home, Feedback, and your calendar.</span></p>
-    <span class="sample-actions"><button class="btn small primary" data-sample-own="${next}">${cta}</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
+    <p><b>You’re in the sample project.</b> <span>Only you can see it. Try anything: nothing here reaches anyone, and it goes back to how it started when you come back later.</span></p>
+    <span class="sample-actions"><button class="btn small primary" data-sample-own="${next}">${cta}</button><button class="btn small ghost" data-reset-sample title="Put the sample back to how it started">Reset</button><a class="btn small ghost" href="/app" data-link>Exit sample</a></span>`;
 }
 
 // Unread count for the Inbox badge (sidebar) and the bell (phones). Kept live by a realtime channel.

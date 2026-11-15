@@ -85,6 +85,37 @@ async function removeSample(projectId) {
   return true;
 }
 
+// Back to how it started (migration 063): a fresh sample replaces this one; the page moves to the same place in it.
+// onlyIfChanged: the automatic reset when someone comes back, which leaves an untouched sample alone.
+const SAMPLE_SEEN = 'looproom:sample-seen';
+export const markSampleSeen = () => { try { localStorage.setItem(SAMPLE_SEEN, String(Date.now())); } catch {} };
+export async function resetSample({ onlyIfChanged = false, quiet = false } = {}) {
+  const { data, error } = await sb.rpc('reset_sample', { p_lang: isKo ? 'ko' : 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_only_if_changed: onlyIfChanged });
+  if (error) { if (!quiet) toast(friendlyError(error), 'error'); return null; }
+  if (data?.status !== 'done') return null;
+  markSampleSeen();
+  track('sample_reset', { auto: onlyIfChanged });
+  await ctx.refreshNav();
+  const path = location.pathname.includes(data.previous) ? location.pathname.replace(data.previous, data.project) : `/app/p/${data.project}`;
+  ctx.navigate(path, { replace: true });
+  toast(isKo ? '샘플이 처음 상태로 돌아갔어요.' : 'The sample is back to how it started.');
+  return data.project;
+}
+// Coming back to the sample after a while (30 minutes without it open): if anything was changed, start fresh.
+const SAMPLE_FRESH_MS = 30 * 60e3;
+export async function sampleOnReturn(projectId) {
+  let last = 0;
+  try { last = Number(localStorage.getItem(SAMPLE_SEEN) || 0); } catch {}
+  markSampleSeen();
+  if (!last || Date.now() - last < SAMPLE_FRESH_MS) return false;
+  return Boolean(await resetSample({ onlyIfChanged: true, quiet: true }));
+}
+
+async function resetSampleAsk() {
+  const sure = await dialog({ title: 'Reset the sample?', body: 'Everything you changed in it goes back to how it started. Your own projects aren’t touched.', confirm: 'Reset sample' });
+  if (sure) resetSample();
+}
+
 async function deleteSample(projectId) {
   const sure = await dialog({ title: 'Delete the sample project?', body: 'Its videos, notes, and sample members go away. You can open a fresh one any time from Projects.', confirm: 'Delete sample', danger: true });
   if (sure && await removeSample(projectId)) ctx.navigate(ctx.state.projects.length ? '/app/projects' : '/app');
@@ -152,6 +183,7 @@ window.addEventListener('take-uploaded', (event) => {
 });
 
 document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-reset-sample]')) return resetSampleAsk();
   const el = event.target.closest('[data-open-sample], [data-delete-sample], [data-sample-own]');
   if (!el) return;
   if (el.matches('[data-open-sample]')) return openSample({ from: el.dataset.openSample || 'link' });
