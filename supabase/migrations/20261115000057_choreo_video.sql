@@ -2,7 +2,7 @@
 -- Either one of the project's own videos, or a YouTube video (most teams learn from an official dance practice
 -- video on YouTube, so they shouldn't have to download and re-upload it). At most one of the two.
 alter table public.projects
-  add column if not exists choreo_video_id uuid references public.videos (id) on delete set null,
+  add column if not exists choreo_video_id uuid, -- no foreign key: a second projects↔videos key makes API embeds ambiguous (058)
   add column if not exists choreo_youtube text check (choreo_youtube is null or choreo_youtube ~ '^[A-Za-z0-9_-]{11}$'),
   add column if not exists choreo_title text check (choreo_title is null or char_length(choreo_title) <= 120);
 
