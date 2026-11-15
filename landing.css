@@ -781,8 +781,8 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 
 /* The choreo video's own title card, as a YouTube thumbnail would have it. Text, not an image: no names, no logos. */
 .prac-frame::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(10, 12, 16, 0.42), rgba(10, 12, 16, 0.12)); pointer-events: none; }
-.prac-thumb { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 1; display: grid; justify-items: center; gap: 6px; color: #fff; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35); pointer-events: none; }
-.prac-thumb b { font-family: "Didot", "Bodoni 72", "Bodoni MT", Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(30px, 6.4vw, 64px); line-height: 1; letter-spacing: 0.04em; }
+.prac-thumb { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 1; display: grid; justify-items: center; gap: 8px; color: #fff; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.prac-thumb b { font-family: Anton, "Impact", "Arial Narrow", sans-serif; font-weight: 400; font-size: clamp(46px, 10vw, 104px); line-height: 0.9; letter-spacing: 0.01em; color: #ff3d3d; text-shadow: 0 2px 22px rgba(255, 40, 40, 0.35), 0 1px 0 rgba(0, 0, 0, 0.25); }
 .prac-thumb small { display: flex; align-items: center; gap: 12px; width: 62%; font-size: clamp(8px, 1.2vw, 12px); font-weight: 500; letter-spacing: 0.42em; white-space: nowrap; }
 .prac-thumb small::before, .prac-thumb small::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.75); }
 .prac-badge, .prac-count { z-index: 2; }
