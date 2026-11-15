@@ -159,6 +159,7 @@ a {
 .avatar {
   display: inline-grid;
   place-items: center;
+  line-height: 1;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -8369,22 +8370,20 @@ body.is-onboarding .tabbar {
   height: 100%;
 }
 .focus-bar .open { background: var(--cat); }
-.focus-bar .fixed { background: var(--ok); opacity: 0.55; }
+.focus-bar .fixed { background: color-mix(in srgb, var(--cat) 32%, transparent); }
 .focus-num {
   font-size: 12px;
   color: var(--muted, #6b7280);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.key.focus-open { background: #8f98a8; }
-.key.focus-fixed { background: var(--ok); opacity: 0.55; }
+.key.focus-open { background: var(--muted); }
+.key.focus-fixed { background: color-mix(in srgb, var(--muted) 32%, transparent); }
 @media (max-width: 600px) {
   .focus-row { grid-template-columns: 1fr auto; row-gap: 6px; }
   .focus-row .focus-bar { grid-column: 1 / -1; order: 3; }
 }
 @media (max-width: 600px) {
-  /* The row numbers already say open and fixed; on a phone the legend only crowds the heading. */
-  .focus-panel .legend { display: none; }
 }
 
 /* Choice sheets with colored options (focus areas): soft Notion-style chips, a quiet hover, a check on the current one. */
@@ -10295,4 +10294,17 @@ body.is-guest .tabbar {
 @media (pointer: coarse) {
   .note-actions .mini, .note-actions .note-more > summary.mini { position: relative; min-height: 32px; }
   .note-actions .mini::after { content: ""; position: absolute; inset: -6px -2px; }
+}
+
+/* Focus areas: each bar is its category's color; solid is open now, the light part is fixed in this range. */
+.focus-legend { flex: none; }
+@media (max-width: 600px) { .focus-panel .panel-head { flex-wrap: wrap; row-gap: 10px; } .focus-panel .focus-legend { flex-basis: 100%; } }
+/* Project cards: the sample's label sits above its title, as an eyebrow. */
+.card .card-eyebrow { display: table; margin: 16px 0 0; }
+.card .card-eyebrow + h3 { margin-top: 6px; }
+
+/* Touch: tabs that grew to 44px keep their label in the middle. */
+@media (pointer: coarse) {
+  .take-tabs a, .take-tabs button, .seg a { display: inline-flex; align-items: center; justify-content: center; }
+  .settings-nav a, .tabs-more-menu a, .tabs-more-menu button { display: flex; align-items: center; }
 }

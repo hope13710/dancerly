@@ -789,3 +789,6 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 
 /* Take 1 reads as the past: faded, a little darker. Take 2 keeps its color. Landing only: the app shows both in color. */
 .tk-pair figure:first-child img { filter: saturate(0.25) brightness(0.88); }
+
+/* The title card's artist line, small and widely spaced above the title. */
+.prac-thumb em { font-style: normal; font-size: clamp(9px, 1.4vw, 14px); font-weight: 500; letter-spacing: 0.5em; margin-right: -0.5em; }

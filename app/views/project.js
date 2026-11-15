@@ -25,7 +25,8 @@ export async function renderProjects() {
   // Your projects, then the sample on its own row so it never reads as one of them.
   const card = (p) => `<a class="card project-card" href="/app/p/${p.id}" data-link>
         ${projectMark(p)}
-        <h3>${esc(p.title)}${p.is_sample ? ' <span class="tag sample-tag">Sample</span>' : ''}</h3>
+        ${p.is_sample ? '<span class="tag sample-tag card-eyebrow">Sample</span>' : ''}
+        <h3>${esc(p.title)}</h3>
         <p class="muted">${plural(p.videos[0]?.count ?? 0, 'video')} · ${plural(p.project_members[0]?.count ?? 1, 'member')}</p>
       </a>`;
   const real = projects.filter((p) => !p.is_sample);

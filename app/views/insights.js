@@ -293,7 +293,8 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     </section>` : ''}
 
     ${areas.length ? `<section class="panel focus-panel">
-      <div class="panel-head"><div><h2>Focus areas</h2><p class="muted">Open now and fixed in this range. Tap one to see its notes.</p></div></div>
+      <div class="panel-head"><div><h2>Focus areas</h2><p class="muted">Open now and fixed in this range. Tap one to see its notes.</p></div>
+        <div class="legend focus-legend"><span><i class="key focus-open"></i>Open</span><span><i class="key focus-fixed"></i>Fixed</span></div></div>
       <div class="focus-list">${areas.map((a) => `<button type="button" class="focus-row" data-sheet="area:${a.key}" style="--cat:${catColor(a.key)}">
         ${catChip(a.key)}
         <span class="focus-bar" role="img" aria-label="${catLabel(a.key)}: ${a.open} open, ${a.fixed} fixed"><i class="open" style="width:${(a.open / areaMax) * 100}%"></i><i class="fixed" style="width:${(a.fixed / areaMax) * 100}%"></i></span>

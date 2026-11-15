@@ -91,6 +91,17 @@
   </head>
   <body>
     <div class="boot" data-boot aria-hidden="true"><img src="/logo.svg" alt="" width="120" height="120" /></div>
+    <script>
+      // The launch image centers the icon on the whole screen, but this page starts below the status bar.
+      // Lift the icon by half the status bar so it doesn't drop when this screen takes over from the launch image.
+      (function () {
+        var b = document.querySelector('[data-boot]');
+        if (!b || !matchMedia('(display-mode: standalone)').matches) return;
+        var full = innerWidth > innerHeight ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+        var bar = full - innerHeight;
+        if (bar > 0 && bar < 80) b.style.paddingBottom = bar + 'px';
+      })();
+    </script>
     <aside class="sidebar" data-sidebar hidden aria-label="Main">
       <div class="side-top">
         <a class="brand" href="/app" data-link aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a>
