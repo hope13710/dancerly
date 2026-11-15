@@ -9624,67 +9624,50 @@ textarea,
   max-width: 960px;
   margin: 0 auto;
 }
-.practice-head {
+/* Practice uses the video screen's surfaces (.review, .review-layout, .player-col, .timeline, .controls, .notes-col). */
+.practice-eyebrow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 13px;
 }
-.practice-title {
-  flex: 1;
-  min-width: 0;
-}
-.practice-title h1 {
-  font-size: 22px;
+.practice-eyebrow .choreo-badge {
   margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.practice-stage {
-  position: relative;
+.practice .player {
   aspect-ratio: 16 / 9;
-  max-height: 68vh;
-  margin: 0 auto;
-  background: #0d0f13;
-  border-radius: 12px;
-  overflow: hidden;
 }
-.practice-media,
-.practice-yt,
-.practice-media iframe,
+.practice-media {
+  position: absolute;
+  inset: 0;
+}
 .practice-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.practice-yt,
+.practice-yt iframe {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
 }
-.practice-video {
-  object-fit: contain;
-  background: #0d0f13;
-}
-/* Mirror: flip the picture, not the page around it. */
-.practice-stage.mirrored .practice-media {
+.practice .player.mirrored .practice-yt {
   transform: scaleX(-1);
 }
-.practice-tap {
-  position: absolute;
-  inset: 0;
-  background: transparent;
-  border: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-.practice-tap:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: -3px;
+.practice .player .big-play {
+  z-index: 2;
 }
 .practice-flag {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 4;
   background: rgba(13, 15, 19, 0.75);
   color: #fff;
   font-weight: 700;
@@ -9703,133 +9686,210 @@ textarea,
   padding: 24px;
   text-align: center;
   color: #e3e6ed;
+  font-size: 14px;
 }
-.practice-stage.mirrored .practice-error {
-  transform: scaleX(-1);
+/* Sections on the timeline: a soft band per section, a line where each starts. */
+.t-bands {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  pointer-events: none;
 }
-.practice-sections {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 14px 2px 4px;
-  scrollbar-width: none;
+.t-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0.55;
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.85);
 }
-.practice-sections::-webkit-scrollbar {
-  display: none;
+.practice .t-fill {
+  opacity: 0.85;
 }
-.sec-chip {
-  flex: none;
+.b0 { background: #8b8cff; }
+.b1 { background: #4fd59c; }
+.b2 { background: #feaf75; }
+.b3 { background: #64d2ff; }
+.b4 { background: #f78fb3; }
+.b5 { background: #ffd60a; }
+.bw { background: #aab1bd; }
+.practice-controls .pc-speed {
+  padding: 3px;
+}
+.practice-controls .pc-speed button {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+/* The side panel: the song's sections. */
+.practice-side {
+  gap: 10px;
+}
+.side-head {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--ink);
+  gap: 8px;
 }
-.sec-chip small {
-  font-weight: 500;
-  color: var(--muted);
-  font-size: 12px;
-}
-.sec-chip[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
+.side-head h2 {
+  margin: 0;
+  font-size: 15px;
   color: #fff;
 }
-.sec-chip[aria-pressed="true"] small {
-  color: rgba(255, 255, 255, 0.8);
+.sec-list {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
 }
-.practice-hint {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 6px 2px 0;
-}
-.practice-controls {
+.sec-row {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 14px;
+  border-radius: 10px;
 }
-.pc-btn {
+.sec-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.sec-row.on {
+  background: rgba(91, 92, 226, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(139, 140, 255, 0.55);
+}
+.sec-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: #e3e6ed;
+  text-align: left;
+  border-radius: 10px;
+}
+.sec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.sec-text {
+  flex: 1;
+  min-width: 0;
+}
+.sec-text b {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sec-text small {
+  display: block;
+  font-size: 12px;
+  color: #8f98a8;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.sec-state {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7383;
+}
+.sec-row.on .sec-state {
+  color: #c9caff;
+}
+.sec-more {
+  color: #8f98a8;
+  margin-right: 4px;
+}
+.sec-more:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sec-empty {
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #14171d;
+  border: 1px solid #2b3039;
+  font-size: 13px;
+  color: #aab1bd;
+}
+.sec-empty b {
+  color: #fff;
+}
+.sec-empty p {
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.sec-add {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-width: 48px;
-  height: 48px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed #3b4048;
+  background: none;
+  color: #c9ced9;
   font-weight: 600;
   font-size: 14px;
 }
-.pc-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.pc-btn .ic {
-  width: 20px;
-  height: 20px;
-}
-.pc-play {
-  min-width: 64px;
-  background: var(--accent);
+.sec-add:hover {
   border-color: var(--accent);
   color: #fff;
+  background: rgba(91, 92, 226, 0.12);
 }
-.pc-time {
+.sec-add b {
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  font-size: 13px;
-  min-width: 92px;
 }
-.pc-speed {
-  width: auto;
-  margin-left: auto;
+/* Suggestion chips under a dialog field (section names). */
+.field-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
-.pc-speed button {
-  min-width: 52px;
-  min-height: 40px;
-}
-.pc-speed button[aria-pressed="true"] {
+.field-chip {
+  border: 1px solid var(--line);
   background: var(--surface);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ink);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-.pc-mirror[aria-pressed="true"] {
+.field-chip:hover {
+  border-color: var(--accent);
   color: var(--accent-dark);
-  background: var(--accent-soft);
-  border-color: transparent;
+}
+@media (max-width: 900px) {
+  .practice-side {
+    padding-bottom: 24px;
+  }
+  .sec-list {
+    overflow: visible;
+  }
 }
 @media (max-width: 600px) {
-  .practice-title h1 {
-    font-size: 18px;
+  .practice-controls {
+    gap: 4px;
   }
-  .practice-stage {
-    margin: 0 -16px;
-    border-radius: 0;
+  .practice-controls > button {
+    min-width: 40px;
+    min-height: 40px;
   }
-  .practice-head {
-    margin-bottom: 10px;
-  }
-  .pc-time {
-    min-width: 0;
-    flex: 1;
-    text-align: right;
-  }
-  .pc-speed {
-    margin-left: 0;
-    flex: 1;
-  }
-  .pc-mirror span {
-    display: none;
+  .practice-controls .pc-speed button {
+    padding: 7px 8px;
   }
 }
 .sec-practice {
@@ -9839,4 +9899,12 @@ textarea,
 }
 .review-practice .ic {
   margin-right: 4px;
+}
+.practice-layout {
+  min-height: 0;
+}
+@media (max-width: 600px) {
+  .practice-controls .wide-only {
+    display: none;
+  }
 }

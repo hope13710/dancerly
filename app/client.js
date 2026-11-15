@@ -222,7 +222,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
         ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
         : f.type === 'file'
         ? `<input name="${f.name}" type="file" accept="${f.accept || ''}" ${f.required ? 'required' : ''} />`
-        : `<input name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" maxlength="${f.max || 120}" ${f.required ? 'required' : ''} />`}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`).join('')}
+        : `<input name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" maxlength="${f.max || 120}" ${f.required ? 'required' : ''} />`}${f.chips ? `<span class="field-chips">${f.chips.map((c) => `<button type="button" class="field-chip" data-chip="${esc(c)}" data-for="${f.name}">${esc(c)}</button>`).join('')}</span>` : ''}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`).join('')}
       <!-- The side action comes last in the markup (CSS shows it on the left) so Enter and first focus never pick it. -->
       <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">${esc(cancel)}</button><button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button>${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}</div>
     </form>`;
@@ -237,6 +237,15 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
       const v = el.returnValue;
       // Buttons in the body can carry their own value (e.g. value="goal"): resolved as { action }.
       resolve(v === 'extra' ? { extra: true } : ok ? values : v && v !== 'cancel' ? { action: v } : null);
+    });
+    // Suggestion chips fill their field (e.g. a section name: Intro, Verse, Chorus…).
+    el.addEventListener('click', (event) => {
+      const chip = event.target.closest('[data-chip]');
+      if (!chip) return;
+      event.preventDefault();
+      const input = el.querySelector(`[name="${chip.dataset.for}"]`);
+      input.value = chip.dataset.chip;
+      input.focus();
     });
     // A link in the body goes somewhere else in the app: close the dialog on the way.
     el.addEventListener('click', (event) => { if (event.target.closest('a[data-link]')) el.close('cancel'); });

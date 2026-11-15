@@ -7,6 +7,7 @@ import { loadProject } from './project.js';
 import { track } from '../onboarding.js';
 import { ic } from '../icons.js';
 import { isKo } from '../i18n.js';
+import { countAt, countLabel } from '../counts.js';
 
 const SPEEDS = [0.5, 0.75, 1];
 const SPEED_KEY = 'looproom:practice-speed';
@@ -35,7 +36,7 @@ export async function loadChoreo(project) {
   if (project.choreo_youtube) return { kind: 'youtube', id: project.choreo_youtube, title: project.choreo_title || '' };
   if (!project.choreo_video_id) return null;
   // A trashed video is hidden by row-level security: then there's no choreo video.
-  const { data: video } = await sb.from('videos').select('id, title, takes(id, number, storage_path, thumb_path)').eq('id', project.choreo_video_id).maybeSingle();
+  const { data: video } = await sb.from('videos').select('id, title, bpm, takes(id, number, storage_path, thumb_path, count_start)').eq('id', project.choreo_video_id).maybeSingle();
   const take = video?.takes?.length ? [...video.takes].sort((a, b) => b.number - a.number)[0] : null;
   return take ? { kind: 'file', video, take } : null;
 }
@@ -140,7 +141,7 @@ function youtubePlayer(host, id, onError) {
       videoId: id,
       width: '100%',
       height: '100%',
-      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, fs: 0, iv_load_policy: 3 },
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, fs: 0, iv_load_policy: 3, controls: 0, disablekb: 1 },
       events: {
         onReady: () => resolve(),
         onStateChange: (e) => { state = e.data; emit(); },
@@ -165,6 +166,12 @@ function youtubePlayer(host, id, onError) {
 }
 
 // ---------- The page ----------
+// Same surfaces as the video screen (dark player, timeline, controls row, side panel), so practicing and giving
+// feedback feel like one product. The side panel is the song's sections: tap one to loop it, add one where the
+// video is now. Sections are the count sheet's rows, so they're the team's, shared with Overview.
+const SECTION_NAMES = isKo ? ['인트로', '벌스', '프리코러스', '코러스', '댄스 브레이크', '브릿지', '아웃트로'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
+const BANDS = 6;
+
 export async function renderPractice(projectId) {
   const { view, setCrumbs } = ctx;
   const p = await loadProject(projectId);
@@ -183,43 +190,60 @@ export async function renderPractice(projectId) {
     return null;
   }
 
-  // Sections from the count sheet: the ones with a start time on this video (a YouTube choreo has no video row,
-  // so its sections are the ones with a time and no video).
-  const { data: rows } = await sb.from('count_sheet_rows').select('id, position, section, counts, video_id, t_start').eq('project_id', projectId).order('position');
-  const mine = (rows || []).filter((r) => r.t_start !== null && (choreo.kind === 'file' ? r.video_id === choreo.video.id : !r.video_id));
-  const sections = [...mine].sort((a, b) => Number(a.t_start) - Number(b.t_start));
+  const videoId = choreo.kind === 'file' ? choreo.video.id : null;
+  // A YouTube choreo video has no video row: its sections are the rows with a start time and no video.
+  const belongs = (r) => r.t_start !== null && (videoId ? r.video_id === videoId : !r.video_id);
+  let sections = [];
+  const loadSections = async () => {
+    const { data } = await sb.from('count_sheet_rows').select('id, position, section, counts, video_id, t_start').eq('project_id', projectId).order('position');
+    sections = (data || []).filter(belongs).sort((a, b) => Number(a.t_start) - Number(b.t_start));
+  };
+  await loadSections();
 
   const params = new URLSearchParams(location.search);
   let speed = Number(read(SPEED_KEY, '1'));
   if (!SPEEDS.includes(speed)) speed = 1;
   let mirror = read(MIRROR_KEY, '1') === '1';
   let current = -1; // -1: the whole song
-  const startAt = params.get('section') ? sections.findIndex((s) => s.id === params.get('section')) : -1;
-
+  let looping = false; // a section loops only once someone picks it
+  const wanted = params.get('section');
   const title = choreoTitle(choreo);
-  const feedbackLink = choreo.kind === 'file' ? `<a class="btn ghost small" href="${base}/v/${choreo.video.id}" data-link>${ic('note')}Feedback</a>` : '';
-  view.innerHTML = `<section class="page practice-page">
-    <header class="practice-head">
-      <div class="practice-title"><span class="choreo-badge">Choreo</span><h1 data-practice-title>${esc(title)}</h1>${choreo.kind === 'youtube' ? '<small class="muted">YouTube</small>' : ''}</div>
-      ${feedbackLink}
+  const counts = choreo.kind === 'file' && choreo.video.bpm && choreo.take.count_start !== null && choreo.take.count_start !== undefined
+    ? { bpm: Number(choreo.video.bpm), start: Number(choreo.take.count_start) } : null;
+
+  view.innerHTML = `<section class="review practice">
+    <header class="review-head">
+      <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted">${esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
+      ${choreo.kind === 'file' ? `<a class="btn small" href="${base}/v/${choreo.video.id}" data-link>${ic('note')}Give feedback</a>` : ''}
     </header>
-    <div class="practice-stage${mirror ? ' mirrored' : ''}" data-stage>
-      <div class="practice-media" data-media></div>
-      ${choreo.kind === 'file' ? '<button type="button" class="practice-tap" data-tap aria-label="Play or pause"></button>' : ''}
-      <span class="practice-flag" data-flag hidden></span>
-    </div>
-    <div class="practice-sections" role="group" aria-label="Sections">
-      <button type="button" class="sec-chip" data-sec="-1" aria-pressed="true">Whole song</button>
-      ${sections.map((s, i) => `<button type="button" class="sec-chip" data-sec="${i}" aria-pressed="false" data-no-i18n>${esc(s.section || `Section ${i + 1}`)}${s.counts ? `<small>${esc(s.counts)}</small>` : ''}</button>`).join('')}
-    </div>
-    ${sections.length ? '' : `<p class="practice-hint">Add sections with start times in the count sheet to loop each part. <a href="${base}/counts" data-link>Add sections</a></p>`}
-    <div class="practice-controls">
-      <button type="button" class="pc-btn" data-prev aria-label="Previous section" ${sections.length ? '' : 'disabled'}>${ic('back', 'solo')}</button>
-      <button type="button" class="pc-btn pc-play" data-play aria-label="Play">${ic('play', 'solo')}</button>
-      <button type="button" class="pc-btn" data-next aria-label="Next section" ${sections.length ? '' : 'disabled'}>${ic('right', 'solo')}</button>
-      <span class="pc-time" data-time>00:00</span>
-      <div class="seg pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-pressed="${s === speed}">${s}×</button>`).join('')}</div>
-      <button type="button" class="pc-btn pc-mirror" data-mirror aria-pressed="${mirror}" aria-label="Mirror" title="Mirror (M)">${ic('mirror', 'solo')}<span>Mirror</span></button>
+    <div class="review-layout practice-layout">
+      <div class="player-col" data-col>
+        <div class="player-pair" data-pair>
+          <div class="player${mirror ? ' mirrored' : ''}" data-player>
+            <div class="practice-media" data-media></div>
+            ${choreo.kind === 'file' ? `<button class="big-play" data-big-play aria-label="Play or pause (Space)">${ic('play', 'solo')}</button>` : ''}
+            <span class="count-badge" data-count hidden></span>
+            <span class="player-badge"><b class="mirror-badge">${ic('mirror')}Mirrored</b></span>
+            <span class="practice-flag" data-flag hidden></span>
+          </div>
+        </div>
+        <div class="timeline"><span data-cur>00:00</span><div class="track" data-track role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0"><span class="t-bands" data-bands></span><span class="t-loop" data-tloop hidden></span><span class="t-fill" data-tfill></span><span class="t-head" data-thead></span></div><span data-dur>--:--</span></div>
+        <div class="controls practice-controls">
+          <button data-play aria-label="Play (Space)">${ic('play', 'solo')}</button>
+          <button data-prev aria-label="Previous section (←)" title="Previous section (←)">${ic('back', 'solo')}</button>
+          <button data-next aria-label="Next section (→)" title="Next section (→)">${ic('right', 'solo')}</button>
+          <div class="seg dark pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-selected="${s === speed}" title="Speed ([ and ])">${s}×</button>`).join('')}</div>
+          <span class="loop-chip" data-loopchip></span>
+          <span class="spacer"></span>
+          <button class="toggle-btn" data-mirror aria-pressed="${mirror}" title="Mirror (M)">${ic('mirror')}<span class="wide-only">Mirror</span></button>
+          <button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button>
+        </div>
+      </div>
+      <aside class="notes-col practice-side">
+        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
+        <div class="sec-list" data-secs></div>
+        <button type="button" class="sec-add" data-add-sec>${ic('plus', 'solo')}<span>Add a section at <b data-at>00:00</b></span></button>
+      </aside>
     </div>
   </section>`;
 
@@ -227,7 +251,7 @@ export async function renderPractice(projectId) {
   const flag = $('[data-flag]');
   const showError = (code) => {
     const blocked = code === 101 || code === 150;
-    media.innerHTML = `<div class="practice-error"><p>${blocked ? 'This video can’t be played outside YouTube: its owner turned that off.' : 'This YouTube video isn’t available.'}</p>${blocked ? `<a class="btn" href="https://www.youtube.com/watch?v=${esc(choreo.id)}" target="_blank" rel="noopener">Open on YouTube</a>` : ''}${p.isOwner ? `<a class="btn ghost" href="${base}" data-link>Change choreo video</a>` : ''}</div>`;
+    media.innerHTML = `<div class="practice-error"><p>${code === -1 ? 'YouTube didn’t load. Check your connection and try again.' : blocked ? 'This video can’t be played outside YouTube: its owner turned that off.' : 'This YouTube video isn’t available.'}</p>${choreo.kind === 'youtube' ? `<a class="btn small" href="https://www.youtube.com/watch?v=${esc(choreo.id)}" target="_blank" rel="noopener">Open on YouTube</a>` : ''}</div>`;
   };
   let player;
   try {
@@ -237,29 +261,95 @@ export async function renderPractice(projectId) {
     return null;
   }
 
-  // The loop: inside a section, coming to its end jumps back to its start. The whole song loops at the end too.
-  const bounds = () => {
-    if (current < 0) return [0, player.duration || Infinity];
-    const s = Number(sections[current].t_start);
-    const next = sections.slice(current + 1).find((x) => Number(x.t_start) > s);
-    return [s, next ? Number(next.t_start) : player.duration || Infinity];
+  // ---------- Sections: where each starts and ends ----------
+  const bounds = (i = current) => {
+    const end = player.duration || Infinity;
+    if (i < 0) return [0, end];
+    const s = Number(sections[i].t_start);
+    const next = sections.slice(i + 1).find((x) => Number(x.t_start) > s);
+    return [s, next ? Number(next.t_start) : end];
   };
+  const pct = (t) => `${player.duration ? Math.min(100, Math.max(0, (t / player.duration) * 100)) : 0}%`;
+  const sectionAt = (t) => { let k = -1; sections.forEach((s, i) => { if (Number(s.t_start) <= t + 0.05) k = i; }); return k; };
+
+  const paintSections = () => {
+    $('[data-sec-count]').textContent = sections.length ? `${sections.length}` : '';
+    const row = (i, name, meta) => {
+      const on = looping && i === current;
+      return `<div class="sec-row${on ? ' on' : ''}" data-row="${i}">
+        <button type="button" class="sec-main" data-loop="${i}" aria-pressed="${on}">
+          <span class="sec-dot b${i < 0 ? 'w' : i % BANDS}" aria-hidden="true"></span>
+          <span class="sec-text"><b ${i >= 0 ? 'data-no-i18n' : ''}>${name}</b><small>${meta}</small></span>
+          <span class="sec-state">${on ? `${ic('loop')}<span>Looping</span>` : ic('loop', 'solo')}</span>
+        </button>
+        ${i >= 0 ? `<button type="button" class="icon-btn sec-more" data-sec-more="${i}" aria-label="Options for ${esc(sections[i].section || '')}">${ic('more', 'solo')}</button>` : ''}
+      </div>`;
+    };
+    const time = (i) => { const [a, b] = bounds(i); return `${fmt(a)}–${Number.isFinite(b) ? fmt(b) : '…'}`; };
+    $('[data-secs]').innerHTML = row(-1, isKo ? '전체' : 'Whole song', player.duration ? `${fmt(0)}–${fmt(player.duration)}` : '')
+      + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span data-no-i18n>${esc(s.counts)}</span>` : ''}`)).join('')
+      + (sections.length ? '' : `<div class="sec-empty"><b>Mark the parts of the song</b><p>Play to where a part starts (the intro, a verse, the chorus), then tap “Add a section”. Tap a section to loop it.</p></div>`);
+    $('[data-bands]').innerHTML = sections.map((s, i) => { const [a, b] = bounds(i); return `<i class="t-band b${i % BANDS}" style="left:${pct(a)};width:calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})" title="${esc(s.section || '')}"></i>`; }).join('');
+    $$('[data-prev], [data-next]').forEach((b) => { b.disabled = !sections.length; });
+    $$('[data-loop]').forEach((b) => b.addEventListener('click', () => pick(Number(b.dataset.loop), { from: 'list' })));
+    $$('[data-sec-more]').forEach((b) => b.addEventListener('click', () => sectionMenu(Number(b.dataset.secMore), b)));
+    paintLoop();
+  };
+  const paintLoop = () => {
+    const box = $('[data-tloop]');
+    const chip = $('[data-loopchip]');
+    if (looping && current >= 0) {
+      const [a, b] = bounds();
+      box.hidden = false;
+      box.style.left = pct(a);
+      box.style.width = `calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})`;
+      chip.innerHTML = `${ic('loop')}<span data-no-i18n>${esc(sections[current].section || '')}</span><button type="button" data-unloop aria-label="Stop looping">${ic('x', 'solo')}</button>`;
+      chip.querySelector('[data-unloop]').addEventListener('click', () => { looping = false; current = -1; paintSections(); });
+    } else { box.hidden = true; chip.innerHTML = ''; }
+  };
+
+  // ---------- Playback ----------
   let tick = 0;
-  let played = 0; // seconds of practice, for the "practice_minutes" event
+  let played = 0;
   let last = performance.now();
+  let countKey = '';
+  const paintTime = () => {
+    const t = player.time;
+    $('[data-cur]').textContent = fmt(t);
+    $('[data-at]').textContent = fmt(t);
+    if (player.duration) $('[data-dur]').textContent = fmt(player.duration);
+    $('[data-tfill]').style.width = pct(t);
+    $('[data-thead]').style.left = pct(t);
+    const track = $('[data-track]');
+    track.setAttribute('aria-valuemax', String(Math.round(player.duration || 0)));
+    track.setAttribute('aria-valuenow', String(Math.round(t)));
+    track.setAttribute('aria-valuetext', fmt(t));
+    if (counts) {
+      const c = countAt(t, counts.bpm, counts.start);
+      const key = c ? countLabel(c) : '';
+      if (key !== countKey) {
+        countKey = key;
+        const badge = $('[data-count]');
+        badge.hidden = !c;
+        if (c) badge.innerHTML = `<small>${isKo ? `${c.eight}번째 에잇` : `Eight ${c.eight}`}</small><b>${c.count}</b>`;
+      }
+    }
+  };
   const loop = () => {
     const now = performance.now();
     if (!player.paused) played += (now - last) / 1000;
     last = now;
-    const [a, b] = bounds();
-    const t = player.time;
-    if (!player.paused && (t >= b - 0.08 || t < a - 0.5)) player.seek(a);
-    $('[data-time]').textContent = `${fmt(t)}${player.duration ? ` / ${fmt(player.duration)}` : ''}`;
+    if (!player.paused) {
+      const [a, b] = bounds(looping ? current : -1);
+      const t = player.time;
+      if (t >= b - 0.08) player.seek(a);
+      else if (looping && t < a - 0.5) player.seek(a);
+    }
+    paintTime();
   };
-  const startTick = () => { if (!tick) { last = performance.now(); tick = setInterval(loop, 100); } };
+  const startTick = () => { if (!tick) { last = performance.now(); tick = setInterval(loop, 50); } };
   const stopTick = () => { clearInterval(tick); tick = 0; loop(); };
 
-  // The screen stays on while it plays (a phone propped up across the room shouldn't go dark mid-section).
   let lock = null;
   const keepAwake = async (on) => {
     try {
@@ -267,34 +357,40 @@ export async function renderPractice(projectId) {
       if (!on && lock) { await lock.release(); lock = null; }
     } catch {}
   };
-
-  const paint = () => {
+  const paintPlay = () => {
     const playing = !player.paused;
     const btn = $('[data-play]');
     btn.innerHTML = ic(playing ? 'pause' : 'play', 'solo');
-    btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    $$('[data-sec]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.sec) === current)));
+    btn.setAttribute('aria-label', playing ? 'Pause (Space)' : 'Play (Space)');
+    $('[data-player]').classList.toggle('playing', playing);
     if (playing) startTick(); else stopTick();
     keepAwake(playing);
-    // The whole song plays to the end and starts over.
-    if (player.ended) { player.seek(bounds()[0]); player.play(); }
+    if (player.ended) { player.seek(bounds(looping ? current : -1)[0]); player.play(); }
   };
-  player.on(paint);
+  player.on(paintPlay);
 
-  const pick = (i, { from = 'chip' } = {}) => {
+  const pick = (i, { from = 'list' } = {}) => {
     current = Math.max(-1, Math.min(sections.length - 1, i));
+    looping = current >= 0;
     player.seek(bounds()[0]);
     player.play();
-    paint();
-    $(`[data-sec="${current}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-    if (current >= 0) track('practice_section_loop', { from });
+    paintSections();
+    paintTime();
+    $(`[data-row="${current}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (looping) track('practice_section_loop', { from });
+  };
+  const step = (d) => {
+    if (!sections.length) return;
+    const from = looping ? current : sectionAt(player.time);
+    pick(from + d < 0 ? sections.length - 1 : from + d >= sections.length ? 0 : from + d, { from: d < 0 ? 'prev' : 'next' });
   };
   const toggle = () => { if (player.paused) player.play(); else player.pause(); };
-  const setSpeed = (s) => {
+  const setSpeed = (s, { quiet = false } = {}) => {
     speed = s;
     save(SPEED_KEY, String(s));
     player.rate(s);
-    $$('[data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === s)));
+    $$('[data-speed]').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.speed) === s)));
+    if (quiet) return;
     flag.textContent = `${s}×`;
     flag.hidden = false;
     clearTimeout(flag.timer);
@@ -304,48 +400,180 @@ export async function renderPractice(projectId) {
   const setMirror = (on) => {
     mirror = on;
     save(MIRROR_KEY, on ? '1' : '0');
-    $('[data-stage]').classList.toggle('mirrored', on);
+    $('[data-player]').classList.toggle('mirrored', on);
     $('[data-mirror]').setAttribute('aria-pressed', String(on));
   };
 
+  // Scrub: tap or drag on the timeline. Arrow keys on it move 5 seconds.
+  const trackEl = $('[data-track]');
+  const timeAtX = (x) => { const box = trackEl.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - box.left) / box.width)) * (player.duration || 0); };
+  trackEl.addEventListener('pointerdown', (e) => {
+    if (!player.duration) return;
+    trackEl.setPointerCapture(e.pointerId);
+    const move = (ev) => { player.seek(timeAtX(ev.clientX)); paintTime(); };
+    move(e);
+    const up = (ev) => { move(ev); const t = timeAtX(ev.clientX); if (looping && (t < bounds()[0] || t >= bounds()[1])) { looping = false; current = -1; paintSections(); } trackEl.removeEventListener('pointermove', move); trackEl.removeEventListener('pointerup', up); };
+    trackEl.addEventListener('pointermove', move);
+    trackEl.addEventListener('pointerup', up);
+  });
+  trackEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    e.stopPropagation();
+    player.seek(Math.max(0, player.time + (e.key === 'ArrowRight' ? 5 : -5)));
+    paintTime();
+  });
+
+  // ---------- Sections: add, rename, move, delete (anyone in the project, like the count sheet) ----------
+  const nameFields = (s = {}) => [
+    { name: 'section', label: 'Section name', value: s.section || '', placeholder: 'Chorus', required: true, max: 80, chips: SECTION_NAMES },
+    { name: 'counts', label: 'Counts (optional)', value: s.counts || '', placeholder: '1–8 ×4', max: 80 }
+  ];
+  const addSection = async () => {
+    const t = Math.round(player.time * 10) / 10;
+    player.pause();
+    if (sections.some((s) => Math.abs(Number(s.t_start) - t) < 0.5)) return toast('A section already starts here. Play a little further, or edit that section.', 'error');
+    const got = await dialog({ title: `${isKo ? '파트 추가' : 'Add a section'} · ${fmt(t)}`, body: 'It starts here and runs until the next section.', fields: nameFields(), confirm: 'Add section' });
+    if (!got?.section) return;
+    const position = sections.length ? Math.max(...sections.map((s) => Number(s.position) || 0)) + 1 : 0;
+    const row = { project_id: projectId, section: got.section, counts: got.counts || null, t_start: t, video_id: videoId, position, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    const { error } = await sb.from('count_sheet_rows').insert(row);
+    if (error) return toast(friendlyError(error), 'error');
+    track('practice_section_added', { kind: choreo.kind, count: sections.length + 1 });
+    await loadSections();
+    paintSections();
+    toast(`“${got.section}” added. Tap it to loop.`);
+  };
+  const sectionMenu = async (i, anchor) => {
+    const s = sections[i];
+    const t = Math.round(player.time * 10) / 10;
+    const choice = await actionSheet({ title: s.section || 'Section', anchor, actions: [
+      { value: 'rename', icon: 'pen', label: 'Rename' },
+      { value: 'move', icon: 'at', label: `${isKo ? '시작을 여기로' : 'Start here'} · ${fmt(t)}`, hint: 'Move this section’s start to where the video is now' },
+      { value: 'delete', icon: 'x', label: 'Delete section', danger: true }
+    ] });
+    let patch = null;
+    if (choice === 'rename') {
+      const got = await dialog({ title: 'Rename section', fields: nameFields(s), confirm: 'Save' });
+      if (got?.section) patch = { section: got.section, counts: got.counts || null };
+    }
+    if (choice === 'move') {
+      if (sections.some((x, k) => k !== i && Math.abs(Number(x.t_start) - t) < 0.5)) return toast('Another section already starts here.', 'error');
+      patch = { t_start: t, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    }
+    if (choice === 'delete') {
+      if (!(await dialog({ title: `Delete “${s.section}”?`, body: 'It’s removed from the count sheet too. The video isn’t changed.', confirm: 'Delete', danger: true }))) return;
+      const { error } = await sb.from('count_sheet_rows').delete().eq('id', s.id);
+      if (error) return toast(friendlyError(error), 'error');
+      if (current === i) { looping = false; current = -1; }
+    }
+    if (patch) {
+      const { error } = await sb.from('count_sheet_rows').update(patch).eq('id', s.id);
+      if (error) return toast(friendlyError(error), 'error');
+    }
+    if (choice) {
+      const keep = current >= 0 ? sections[current]?.id : null;
+      await loadSections();
+      current = keep ? sections.findIndex((x) => x.id === keep) : -1;
+      if (current < 0) looping = false;
+      paintSections();
+    }
+  };
+
+  // ---------- Full screen: the whole player column, like the video screen (iPhone: fills the window) ----------
+  const col = $('[data-col]');
+  const fullBtn = $('[data-full]');
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const fit = () => {
+    const pl = $('[data-player]');
+    if (!col.classList.contains('is-full')) { pl.style.width = ''; pl.style.height = ''; return; }
+    const box = $('[data-pair]').getBoundingClientRect();
+    const v = media.querySelector('video');
+    const ar = v?.videoWidth ? v.videoWidth / v.videoHeight : 16 / 9;
+    const w = Math.max(0, Math.min(box.width, box.height * ar));
+    pl.style.width = `${Math.floor(w)}px`;
+    pl.style.height = `${Math.floor(w / ar)}px`;
+  };
+  const setFull = (on) => {
+    col.classList.toggle('is-full', on);
+    document.body.classList.toggle('player-full', on);
+    fullBtn.setAttribute('aria-pressed', String(on));
+    fullBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+    fullBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
+    fullBtn.innerHTML = ic(on ? 'shrink' : 'expand', 'solo');
+    requestAnimationFrame(fit);
+  };
+  const toggleFull = async () => {
+    if (!col.classList.contains('is-full')) {
+      const req = col.requestFullscreen || col.webkitRequestFullscreen;
+      if (req) { try { await req.call(col); await screen.orientation?.lock?.('landscape').catch(() => {}); } catch {} }
+      setFull(true);
+      track('practice_full_screen');
+    } else {
+      if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+      try { screen.orientation?.unlock?.(); } catch {}
+      setFull(false);
+    }
+  };
+  const onFs = () => { if (!fsElement() && col.classList.contains('is-full')) setFull(false); };
+  document.addEventListener('fullscreenchange', onFs);
+  document.addEventListener('webkitfullscreenchange', onFs);
+  const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
+  resize?.observe($('[data-pair]'));
+
+  // ---------- Wiring ----------
   $('[data-play]').addEventListener('click', toggle);
-  $('[data-tap]')?.addEventListener('click', toggle);
-  $('[data-prev]').addEventListener('click', () => pick(current <= 0 ? sections.length - 1 : current - 1, { from: 'prev' }));
-  $('[data-next]').addEventListener('click', () => pick(current >= sections.length - 1 ? 0 : current + 1, { from: 'next' }));
-  $$('[data-sec]').forEach((b) => b.addEventListener('click', () => pick(Number(b.dataset.sec))));
+  $('[data-big-play]')?.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  if (choreo.kind === 'file') $('[data-player]').addEventListener('click', toggle);
+  $('[data-prev]').addEventListener('click', () => step(-1));
+  $('[data-next]').addEventListener('click', () => step(1));
   $$('[data-speed]').forEach((b) => b.addEventListener('click', () => setSpeed(Number(b.dataset.speed))));
   $('[data-mirror]').addEventListener('click', () => setMirror(!mirror));
+  fullBtn.addEventListener('click', toggleFull);
+  $('[data-add-sec]').addEventListener('click', addSection);
 
   const onKey = (e) => {
-    if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === ' ') { e.preventDefault(); toggle(); }
-    else if (e.key === 'ArrowLeft' && sections.length) { e.preventDefault(); $('[data-prev]').click(); }
-    else if (e.key === 'ArrowRight' && sections.length) { e.preventDefault(); $('[data-next]').click(); }
-    else if (e.key === '[' || e.key === ']') { const i = SPEEDS.indexOf(speed) + (e.key === ']' ? 1 : -1); if (SPEEDS[i]) setSpeed(SPEEDS[i]); }
-    else if (e.key === 'm' || e.key === 'M') setMirror(!mirror);
+    if (e.target.closest?.('input, textarea, select, [contenteditable], dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ') { e.preventDefault(); toggle(); }
+    else if (k === 'arrowleft') { e.preventDefault(); step(-1); }
+    else if (k === 'arrowright') { e.preventDefault(); step(1); }
+    else if (k === '[' || k === ']') { const i = SPEEDS.indexOf(speed) + (k === ']' ? 1 : -1); if (SPEEDS[i]) setSpeed(SPEEDS[i]); }
+    else if (k === 'm') setMirror(!mirror);
+    else if (k === 'f') toggleFull();
+    else if (k === 's') addSection();
+    else if (k === 'escape' && col.classList.contains('is-full') && !fsElement()) toggleFull();
+    else if (k === 'escape' && looping) { looping = false; current = -1; paintSections(); }
   };
   document.addEventListener('keydown', onKey);
   const onVisible = () => { if (document.visibilityState === 'visible' && !player.paused) keepAwake(true); };
   document.addEventListener('visibilitychange', onVisible);
 
+  paintSections();
   track('practice_open', { kind: choreo.kind, from: params.get('from') || 'direct', sections: sections.length });
   player.ready.then(() => {
-    player.rate(speed);
-    // A phone video is usually upright: give it an upright stage instead of a letterboxed one.
+    setSpeed(speed, { quiet: true });
     const v = media.querySelector('video');
-    if (v?.videoWidth && v.videoHeight) $('[data-stage]').style.aspectRatio = `${v.videoWidth} / ${v.videoHeight}`;
+    // The player takes the video's shape (an upright phone video gets an upright player).
+    $('[data-player]').style.aspectRatio = v?.videoWidth ? `${v.videoWidth} / ${v.videoHeight}` : '16 / 9';
     if (choreo.kind === 'youtube' && !choreo.title && player.title) {
       $('[data-practice-title]').textContent = player.title;
-      // Remember YouTube's title, so the card on Videos says what the video is.
       if (p.isOwner) sb.from('projects').update({ choreo_title: player.title.slice(0, 120) }).eq('id', projectId).then(() => {});
     }
-    if (startAt >= 0) { current = startAt; player.seek(bounds()[0]); }
-    paint();
+    const at = wanted ? sections.findIndex((s) => s.id === wanted) : -1;
+    if (at >= 0) { current = at; looping = true; player.seek(bounds()[0]); }
+    paintSections();
+    paintTime();
+    paintPlay();
   }).catch(() => showError(-1));
 
   return () => {
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('visibilitychange', onVisible);
+    document.removeEventListener('fullscreenchange', onFs);
+    document.removeEventListener('webkitfullscreenchange', onFs);
+    document.body.classList.remove('player-full');
+    resize?.disconnect();
     clearInterval(tick);
     keepAwake(false);
     if (played >= 5) track('practice_minutes', { minutes: Math.round(played / 6) / 10, kind: choreo.kind });
