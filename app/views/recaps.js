@@ -291,7 +291,7 @@ export async function renderProjectRecaps(projectId) {
   for (const g of rest) { const k = weekLabel(g.latest.created_at); if (!byWeek.has(k)) byWeek.set(k, []); byWeek.get(k).push(g); }
   const base = `/app/p/${projectId}/recaps`;
   view.innerHTML = `<section class="page">
-    ${projectHead(p, 'recaps', `<button class="btn primary" data-my-recap>My recap</button><button class="icon-btn" data-recap-more aria-label="More" title="More">${ic('more', 'solo')}</button>`)}
+    ${projectHead(p, 'recaps', `<button class="btn" data-custom-recap title="Pick the period, the video, and whose notes">Custom recap</button><button class="btn primary" data-my-recap>My recap</button>`)}
     <div class="filters"><div class="seg small" role="group" aria-label="Filter">${[['all', 'All'], ['team', 'Team'], ['mine', 'Mine'], ['pinned', 'Pinned']].map(([k, l]) => `<a href="${base}${k === 'all' ? '' : `?show=${k}`}" data-link aria-selected="${k === show}">${l}</a>`).join('')}</div></div>
     ${groups.length ? `
       ${pinned.length ? `<h2 class="group-title">${ic('pin')}Pinned</h2><div class="list">${pinned.map((g) => recapRow(g, names)).join('')}</div>` : ''}
@@ -300,13 +300,10 @@ export async function renderProjectRecaps(projectId) {
     ${autoLine(p)}
   </section>`;
   $$('[data-my-recap]').forEach((b) => b.addEventListener('click', () => myRecap(projectId)));
-  $('[data-recap-more]')?.addEventListener('click', async (e) => {
-    const choice = await actionSheet({ title: 'Recaps', anchor: e.currentTarget, actions: [{ value: 'custom', label: 'Custom recap…', hint: 'Pick the period, the video, and whose notes', icon: 'calendar' }] });
-    if (choice === 'custom') newRecap({ projectId });
-  });
+  $('[data-custom-recap]')?.addEventListener('click', () => newRecap({ projectId }));
   $('[data-auto-recap]')?.addEventListener('click', async () => {
     const on = p.project.auto_recap === false;
-    if (!on && !(await dialog({ title: 'Turn off team recaps?', body: 'dancerly stops writing the team recap before practice. Anyone can still make one from More › Custom recap.', confirm: 'Turn off' }))) return;
+    if (!on && !(await dialog({ title: 'Turn off team recaps?', body: 'dancerly stops writing the team recap before practice. Anyone can still make one with Custom recap.', confirm: 'Turn off' }))) return;
     const { error: e } = await sb.from('projects').update({ auto_recap: on }).eq('id', projectId);
     if (e) return toast(friendlyError(e), 'error');
     toast(on ? 'Team recaps are on.' : 'Team recaps are off for this project.');

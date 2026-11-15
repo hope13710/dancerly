@@ -10311,3 +10311,7 @@ body.is-guest .tabbar {
 /* Theater mode is for computers: on phones and tablets the video is already full width with notes below.
    (Keeps the centering rule above from showing it there.) */
 @media (max-width: 900px) { .controls .theater-btn { display: none; } }
+
+/* "I'm on it" beside Reply on a note addressed to you: the one pill that's filled in, so it reads as the next step. */
+.note-actions .mini.on-it { border-color: transparent; background: var(--accent); color: #fff; }
+.note-actions .mini.on-it:hover { background: var(--accent-dark, var(--accent)); color: #fff; }

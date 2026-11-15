@@ -11,7 +11,7 @@ import { offsetByMusic, follow } from './compare.js';
 
 import { nextInQueue } from './views/queue.js';
 import { shareVideo } from './views/share.js';
-import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash } from './views/project.js';
+import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash, renameVideo } from './views/project.js';
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
@@ -177,7 +177,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Notes ----------
   async function loadNotes() {
     const { data, error } = await sb.from('notes')
-      .select(cols('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, category, note_reactions(user_id), note_replies(id, author_id, body, created_at)'))
+      .select(cols('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, category, note_reactions(user_id), note_replies(id, author_id, body, created_at), note_mentions(user_id)'))
       .eq('video_id', videoId).order('t_start');
     if (error) return toast(friendlyError(error), 'error');
     r.notes = data.map((n) => {
@@ -228,6 +228,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const agrees = n.note_reactions.length;
       const iAgree = n.note_reactions.some((x) => x.user_id === me.id);
       const looping = r.loop?.id === n.id;
+      // Addressed to me (mentioned, or private to me) and still open: "I'm on it" sits beside Reply, so saying
+      // you'll fix it is one tap. Everywhere else it stays in ⋯.
+      const forMe = n.status === 'open' && n.author_id !== me.id && (n.private_to === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
       const carried = n.take_id !== take.id;
       const from = carried ? `<span class="from" ${n.unaligned ? 'title="Time may be off: this take isn’t lined up with the earlier one yet"' : ''}>from Take ${takeNo[n.take_id]}${n.unaligned ? ' ≈' : ''}</span>` : '';
       // Watching a new take is when fixes get noticed: ask right on the note.
@@ -257,9 +260,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <button class="mini ${open ? 'on' : ''} ${replies.length ? '' : 'quiet'}" data-thread="${n.id}" aria-expanded="${open}">${ic('reply')}${replies.length ? `${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}` : 'Reply'}</button>
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''} ${agrees ? '' : 'quiet'}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
           ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
+          ${forMe ? `<button class="mini on-it" data-status="practicing" data-id="${n.id}" title="Tell the team you’re working on this">${ic('check')}I’m on it</button>` : ''}
           <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
             ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
-            ${n.status === 'open' ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
+            ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
+            <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
+            ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
             ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Practicing”</button>` : ''}
             ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>
@@ -819,9 +825,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     // Picking from a note's ⋯ menu closes it.
     const menuItem = e.target.closest('.note-more [role=menuitem]');
     if (menuItem) menuItem.closest('details').open = false;
-    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-thread],[data-delete-reply],[data-note]');
+    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-edit-note],[data-copy-note],[data-thread],[data-delete-reply],[data-note]');
     if (!el || !view.contains(el)) return;
-    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.thread || el.dataset.note;
+    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.editNote || el.dataset.copyNote || el.dataset.thread || el.dataset.note;
     const note = r.notes.find((n) => n.id === id);
     if (!note) return;
     if (el.dataset.thread) {
@@ -845,6 +851,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       return;
     }
     if (el.dataset.loop) return setLoop(note);
+    if (el.dataset.editNote || el.dataset.copyNote) el.closest('details')?.removeAttribute('open');
+    if (el.dataset.editNote) {
+      const got = await dialog({ title: 'Edit note', fields: [{ name: 'body', label: 'Note', type: 'textarea', value: note.body, required: true, max: 2000 }], confirm: 'Save' });
+      if (!got || got.body === note.body) return;
+      const { error } = await sb.from('notes').update({ body: got.body }).eq('id', id);
+      if (error) return toast(friendlyError(error), 'error');
+      toast('Note updated.');
+      return loadNotes();
+    }
+    if (el.dataset.copyNote) {
+      // Opens this video at this note, for anyone in the project (the page already handles ?note=).
+      const n = takes.find((t) => t.id === note.take_id)?.number;
+      const url = `${location.origin}/app/p/${projectId}/v/${videoId}?${n ? `take=${n}&` : ''}note=${id}`;
+      try { await navigator.clipboard.writeText(url); toast('Link copied. Anyone in the project can open it.'); }
+      catch { await dialog({ title: 'Copy this link', fields: [{ name: 'url', label: 'Link', value: url, max: 400 }], confirm: 'Done' }); }
+      return;
+    }
     if (el.dataset.agree) {
       const mine = note.note_reactions.some((x) => x.user_id === me.id);
       const { error } = mine
@@ -1227,12 +1250,21 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const choice = await actionSheet({ title: video.title, anchor: event?.currentTarget, actions: [
       ...(narrow ? [{ value: 'compare', label: r.compare.on ? 'Stop comparing' : 'Compare', hint: 'Play another take or video side by side' }] : []),
       ...(narrow ? [{ value: 'share', label: 'Share', hint: 'A progress card for Instagram, or a read-only link' }] : []),
+      ...(canManageVideo ? [{ value: 'rename', label: 'Rename video' }] : []),
       ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: schema.trash ? 'Moves to Trash for 30 days' : 'Just this take and the notes left on it', danger: true }] : []),
       ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: schema.trash ? `${takes.length > 1 ? `All ${takes.length} takes` : 'The video'} and its notes · Trash keeps it 30 days` : takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
     if (choice === 'compare') return toggleCompare();
     if (choice === 'share') return openShare();
+    if (choice === 'rename') {
+      const title = await renameVideo(video);
+      if (!title) return;
+      video.title = title;
+      const h = view.querySelector('.review-head h1'); if (h) h.textContent = title;
+      setCrumbs([['Projects', '/app/projects'], [project.title, `/app/p/${projectId}`], [title]]);
+      return;
+    }
     if (choice === 'merge') return mergeInto();
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();

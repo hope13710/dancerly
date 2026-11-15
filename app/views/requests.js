@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, loadMembers, avatar, enterConfirms } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -183,7 +183,7 @@ export async function renderRequest(projectId, requestId) {
     </div>
     <div class="head-actions">
       ${mine && r.status === 'active' ? `<button class="btn primary" data-submit>${mine.video ? `Upload Take ${(mine.latest?.number || 0) + 1}` : 'Submit your video'}</button>` : ''}
-      ${canManage ? `<button class="btn ghost icon" data-manage aria-label="Assignment settings">${ic('more', 'solo')}</button>` : ''}
+      ${canManage ? `<button class="btn ghost icon" data-manage aria-label="Assignment options" title="Assignment options">${ic('more', 'solo')}</button>` : ''}
     </div></header>
     ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
     ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
@@ -211,7 +211,20 @@ export async function renderRequest(projectId, requestId) {
     toast(sent ? `Reminded ${sent} ${sent === 1 ? 'person' : 'people'}.` : 'Nobody to remind — or they turned these off.');
     renderRequest(projectId, requestId);
   });
-  $('[data-manage]')?.addEventListener('click', async () => {
+  // ⋯ on an assignment: a menu, so closing it is its own choice and not a side button of the edit form.
+  $('[data-manage]')?.addEventListener('click', async (e) => {
+    const choice = await actionSheet({ title: r.title, anchor: e.currentTarget, actions: [
+      { value: 'edit', icon: 'pen', label: 'Edit title and due date' },
+      r.status === 'active'
+        ? { value: 'close', icon: 'check', label: 'Close assignment', hint: 'Submissions stay in Videos' }
+        : { value: 'reopen', icon: 'loop', label: 'Reopen assignment' }
+    ] });
+    if (choice === 'close') {
+      if (r.repeat_weekly) await sb.from('requests').update({ repeat_weekly: false }).eq('id', r.id);
+      return setStatus('closed');
+    }
+    if (choice === 'reopen') return setStatus('active');
+    if (choice !== 'edit') return;
     const local = r.due_at ? new Date(new Date(r.due_at).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
     const values = await dialog({
       title: 'Edit assignment',
@@ -219,14 +232,9 @@ export async function renderRequest(projectId, requestId) {
         { name: 'title', label: 'Title', value: r.title, required: true },
         { name: 'due', label: 'Due', type: 'datetime-local', value: local, hint: 'Leave empty for no due date' }
       ],
-      confirm: 'Save',
-      extra: r.status === 'active' ? 'Close assignment' : 'Reopen assignment'
+      confirm: 'Save'
     });
     if (!values) return;
-    if (values.extra) {
-      if (r.repeat_weekly && r.status === 'active') await sb.from('requests').update({ repeat_weekly: false }).eq('id', r.id);
-      return setStatus(r.status === 'active' ? 'closed' : 'active');
-    }
     const { error } = await sb.from('requests').update({ title: values.title, due_at: values.due ? new Date(values.due).toISOString() : null }).eq('id', r.id);
     if (error) return toast(friendlyError(error), 'error');
     renderRequest(projectId, requestId);

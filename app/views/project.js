@@ -15,6 +15,16 @@ import { loadChoreo, chooseChoreo, removeChoreo, choreoCard, choreoTitle } from 
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
 
 const plural = (n, one) => `${n} ${n === 1 ? one : `${one}s`}`;
+// Rename a video (its creator or the project owner, as the database allows). Returns the new title, or null.
+export async function renameVideo(video) {
+  const got = await dialog({ title: 'Rename video', fields: [{ name: 'title', label: 'Name', value: video.title, required: true, max: 120 }], confirm: 'Save' });
+  if (!got || !got.title || got.title === video.title) return null;
+  const { error } = await sb.from('videos').update({ title: got.title }).eq('id', video.id);
+  if (error) { toast(friendlyError(error), 'error'); return null; }
+  toast('Video renamed.');
+  return got.title;
+}
+
 export async function renderProjects() {
   const { view, setCrumbs } = ctx;
   setCrumbs([['Projects']]);
@@ -171,7 +181,9 @@ export async function renderProject(projectId) {
   $$('[data-new-video]').forEach((b) => b.addEventListener('click', () => createVideo(projectId)));
   $$('[data-row-more]').forEach((b) => b.addEventListener('click', async () => {
     const v = videos.find((x) => x.id === b.dataset.rowMore);
-    const choice = await actionSheet({ title: v.title, anchor: b, actions: [{ value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
+    const canRename = p.isOwner || v.created_by === p.me;
+    const choice = await actionSheet({ title: v.title, anchor: b, actions: [...(canRename ? [{ value: 'rename', icon: 'pen', label: 'Rename' }] : []), { value: 'delete', label: 'Delete video', hint: `${v.takes.length > 1 ? `All ${v.takes.length} takes` : 'The video'} and its notes${schema.trash ? ' · Trash keeps it 30 days' : ''}`, danger: true }] });
+    if (choice === 'rename') { if (await renameVideo(v)) renderProject(projectId); return; }
     if (choice !== 'delete') return;
     if (await confirmDeleteVideo({ projectId, projectTitle: p.project.title, video: v, takes: v.takes, afterUndo: () => renderProject(projectId) })) renderProject(projectId);
   }));
@@ -290,9 +302,15 @@ export async function renderProjectPeople(projectId) {
   wireGroups(projectId, p, groups, () => renderProjectPeople(projectId));
   $$('[data-member]').forEach((b) => b.addEventListener('click', async () => {
     const m = p.members.find((x) => x.user_id === b.dataset.member);
-    const choice = await dialog({ title: m.name, body: `Make <b>${esc(m.name)}</b> the owner of ${esc(p.project.title)}? You’ll stay on as a member.`, confirm: 'Make owner', extra: 'Remove from project' });
-    if (!choice) return;
-    if (choice.extra) {
+    // ⋯ on a person: a menu first, then a confirmation that says what happens. Handing over the project is never
+    // the default button of the first thing that opens.
+    const pick = await actionSheet({ title: m.name, anchor: b, actions: [
+      { value: 'owner', icon: 'people', label: 'Make owner', hint: 'You stay on as a member' },
+      { value: 'remove', icon: 'x', label: 'Remove from project', hint: 'Their notes stay', danger: true }
+    ] });
+    if (!pick) return;
+    if (pick === 'owner' && !(await dialog({ title: `Make ${m.name} the owner?`, body: `<b>${esc(m.name)}</b> becomes the owner of ${esc(p.project.title)}. You’ll stay on as a member and can’t undo this yourself.`, confirm: 'Make owner' }))) return;
+    if (pick === 'remove') {
       const sure = await dialog({ title: `Remove ${m.name}?`, body: 'They lose access to this project’s videos and notes. Their notes stay.', confirm: 'Remove', danger: true });
       if (!sure) return;
       const { error } = await sb.from('project_members').delete().eq('project_id', projectId).eq('user_id', m.user_id);
