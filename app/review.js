@@ -146,7 +146,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         <div class="take-summary" data-summary></div>
         <div class="note-list" data-list></div>
         <form class="composer" data-composer>
-          <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">${ic('plus', 'solo')}</span><span>Add a note</span><span class="co-at">${ic('at')}<span data-at2>00:00.0</span></span></button>
+          <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">${ic('plus', 'solo')}</span><span class="co-label" data-co-label>Add a note</span><span class="co-at">${ic('at')}<span data-at2>00:00.0</span></span></button>
           <div class="composer-body">
           <div class="seg dark" role="tablist"><button type="button" role="tab" data-mode="point">${ic('at')}At <span data-at>00:00.0</span></button><button type="button" role="tab" data-mode="range">${ic('range')}Range</button></div>
           <div class="range-row" data-range hidden><button type="button" data-mark="start">Start <b data-rs>—</b></button><span>${ic('right', 'solo')}</span><button type="button" data-mark="end">End <b data-re>—</b></button><small>or press [ and ]</small><button type="button" class="mini" data-loop-range hidden>${ic('loop')}Loop</button></div>
@@ -307,9 +307,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     // With a single take there is nothing to compare yet, so keep it to the open count.
     // No notes at all: the empty state below says it better than "0 open notes".
     $('[data-summary]').hidden = !visibleNotes().length && takes.length === 1;
+    // The first of several takes has nothing earlier to have fixed: just its own open notes.
+    const first = !takes.some((t) => t.number < take.number);
     $('[data-summary]').innerHTML = takes.length === 1
       ? `<span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
-      : `<b>Take ${take.number}</b> · <span class="ok">${ic('check')}${earlierResolved} fixed from earlier takes</span> · <span class="open">${open} still open</span>`;
+      : first
+        ? `<b>Take ${take.number}</b> · <span class="open">${open} open ${open === 1 ? 'note' : 'notes'}</span>`
+        : `<b>Take ${take.number}</b> · <span class="ok">${ic('check')}${earlierResolved} fixed from earlier takes</span> · <span class="open">${open} still open</span>`;
   }
 
   function paintMarkers(notes) {
@@ -953,6 +957,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
 
   // ---------- Composer: a moment or a range, @mentions, no labels ----------
   const input = $('[data-input]');
+  // A note being written survives leaving the page (a back swipe, a notification) until it's posted.
+  const DRAFT_KEY = `dancerly:draft:${videoId}`;
+  // Folded (phones), the bar shows the unfinished note instead of "Add a note", so it isn't forgotten.
+  const paintFold = () => { const lbl = $('[data-co-label]'); if (!lbl) return; const v = input.value.trim(); lbl.textContent = v || 'Add a note'; lbl.classList.toggle('is-draft', Boolean(v)); };
+  try { const saved = sessionStorage.getItem(DRAFT_KEY); if (saved && !input.value) input.value = saved; } catch {}
+  paintFold();
+  input.addEventListener('input', () => { paintFold(); try { if (input.value.trim()) sessionStorage.setItem(DRAFT_KEY, input.value); else sessionStorage.removeItem(DRAFT_KEY); } catch {} });
   function setMode(mode) {
     r.mode = mode;
     if (mode === 'range' && r.rangeStart === null) { r.rangeStart = videoEl.currentTime || 0; r.rangeEnd = null; }
@@ -1125,6 +1136,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (mentioned.length) await sb.from('note_mentions').insert(mentioned.map((m) => ({ note_id: note.id, user_id: m.user_id })));
     r.starter = null;
     input.value = '';
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+    paintFold();
     input.blur();
     // On phones the form folds back into the "Add a note" bar, so the notes and the video are in view again.
     if (composer.contains(document.activeElement)) document.activeElement.blur();

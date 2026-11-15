@@ -10323,3 +10323,7 @@ body.is-guest .tabbar {
 .note-actions .mini.on-it:hover { background: var(--accent-dark, var(--accent)); color: #fff; }
 /* Practice header: Share and the choreo ⋯ side by side, like the video page's actions. */
 .practice-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+
+/* The folded composer bar showing an unfinished note: one line, in ink, cut with an ellipsis. */
+.composer-open .co-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-open .co-label.is-draft { color: #fff; font-weight: 500; }

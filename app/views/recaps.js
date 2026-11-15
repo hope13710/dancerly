@@ -349,7 +349,7 @@ export async function renderRecap(recapId) {
     view.innerHTML = `<section class="page narrow-wide">${empty('recap', 'This recap isn’t available to you', 'It belongs to a project you’re not in, or it was deleted. If your team shared it, ask them for the project’s invite link.', '<a class="btn" href="/app" data-link>Go to Home</a>')}</section>`;
     return;
   }
-  setCrumbs([['Projects', '/app/projects'], [r.projects?.title || 'Project', `/app/p/${r.project_id}`], ['Recaps', `/app/p/${r.project_id}/recaps`], [r.content?.headline ? 'Recap' : 'Recap']]);
+  setCrumbs([['Projects', '/app/projects'], [r.projects?.title || 'Project', `/app/p/${r.project_id}`], ['Recaps', `/app/p/${r.project_id}/recaps`], [r.content?.headline ? (r.content.headline.length > 48 ? `${r.content.headline.slice(0, 47)}…` : r.content.headline) : 'Recap']]);
   const names = await namesFor([r.created_by]);
   const mine = r.created_by === me && !r.team;
   // New feedback since: for a team recap, only what it could include (team-visible, the same video).

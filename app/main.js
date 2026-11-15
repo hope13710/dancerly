@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
-import { startTranslating, isKo, lang } from './i18n.js';
+import { startTranslating, isKo, lang, t } from './i18n.js';
 import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
@@ -235,11 +235,19 @@ function backContext(parentHref) {
   return [s.fromLabel, s.from];
 }
 function setCrumbs(items) {
+  // The browser tab says where you are ("Chorus run · dancerly"), so tabs, history, and bookmarks can tell pages apart.
+  // A project's tabs add the project ("Notes · Spring Showcase"), so they don't read like the app-wide pages.
+  const here = items.length ? items[items.length - 1][0] : '';
+  const inProject = items.length >= 3 && PROJECT_TAB.test(location.pathname) ? ` · ${items[items.length - 2][0]}` : '';
+  document.title = here ? `${t(here)}${inProject} · dancerly` : 'dancerly';
   $('[data-crumbs]').innerHTML = items.map(([label, href]) => href ? `<a href="${href}" data-link>${esc(label)}</a>` : `<b>${esc(label)}</b>`).join('<i>/</i>');
   // On phones the breadcrumb is hidden; a back link to the nearest parent takes its place.
   let parent = [...items].reverse().find(([, href]) => href);
   // A project's tabs (Notes, People, Overview…) sit beside Videos, not under it: back leaves the project.
   if (parent && PROJECT_TAB.test(location.pathname) && !/^\/app\/p\/[0-9a-f-]{36}\/?$/.test(location.pathname)) parent = ['Projects', '/app/projects'];
+  // Settings' sections are tabs side by side (and the first one is /app/settings itself): back leaves Settings,
+  // to Me, where phones open it from.
+  if (parent && /^\/app\/settings(?:\/[a-z]+)?\/?$/.test(location.pathname)) parent = ['Me', '/app/me'];
   // Opened from somewhere else (Inbox, Feedback, an assignment, a video…): back returns there, not to the parent.
   const target = (parent && backContext(parent[1])) || parent;
   const back = $('[data-back]');
