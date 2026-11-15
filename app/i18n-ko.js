@@ -470,6 +470,7 @@ export const KO = {
   'Notes left': '작성한 피드백',
   'New notes': '새 피드백',
   'Practice': '연습하기',
+  'A YouTube link or a video file to practice from': '연습할 YouTube 링크나 영상 파일',
   'Latest takes': '최근 테이크',
   'Members can share with a link': '멤버도 링크로 공유할 수 있어요',
   'Anyone on the project can turn a take’s or the Practice page’s link on, change it, or turn it off. Turn this off to keep that to you.': '멤버 누구나 테이크와 연습 화면의 링크를 켜고, 바꾸고, 끌 수 있어요. 끄면 나만 할 수 있어요.',

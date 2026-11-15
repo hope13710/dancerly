@@ -10153,3 +10153,107 @@ body.is-guest .tabbar {
   white-space: normal;
   overflow: visible;
 }
+
+/* ---------- Touch screens: one-handed use ----------
+   Every control takes at least a 44px tap (Apple's 44pt and Material's 48dp minimums; WCAG 2.5.8 asks 24px).
+   Small-looking controls get an invisible tap area around them, so layouts keep their size and density.
+   Only for fingers (pointer: coarse): with a mouse, nothing here applies. */
+@media (pointer: coarse) {
+  /* Top bar, menus, tabs */
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .back-link {
+    min-height: 44px;
+  }
+  .tabs a,
+  .tabs-more summary,
+  .tabs-gear,
+  .settings-nav a,
+  .tabs-more-menu a,
+  .tabs-more-menu button,
+  .take-tabs a {
+    min-height: 44px;
+  }
+  .seg button,
+  .seg a {
+    min-height: 36px; /* inside the segment's 4px padding: a 44px row */
+  }
+  .tabs-gear {
+    min-width: 44px;
+    justify-content: center;
+  }
+  .list .row,
+  details > summary {
+    min-height: 44px;
+  }
+  /* Buttons */
+  .btn {
+    min-height: 44px;
+  }
+  .btn.small {
+    min-height: 40px;
+  }
+  select {
+    min-height: 44px;
+  }
+  /* The video player: the row you use most while practicing */
+  .controls button,
+  .controls .speed-wrap > button,
+  .practice-controls > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .practice-controls .pc-speed button {
+    min-height: 38px;
+  }
+  /* Small inline targets: an invisible tap area, centered on them */
+  .time-chip,
+  .cat-btn,
+  .panel-head .link,
+  .uploader,
+  .project-head .members {
+    position: relative;
+  }
+  .time-chip::after,
+  .cat-btn::after,
+  .panel-head .link::after,
+  .uploader::after,
+  .project-head .members::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+  /* Note pins on the timeline: big enough to hit, small enough to leave the track for scrubbing */
+  .t-pin::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    transform: translate(-50%, -50%);
+  }
+  .track::before {
+    inset: -16px 0;
+  }
+}
+
+/* Phones: the video screen's header takes less height, so the player, its controls and the first notes fit on one screen. */
+@media (max-width: 600px) {
+  .review-head {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .review-head h1 {
+    font-size: 20px;
+  }
+  .queue-nav small {
+    flex: 1;
+  }
+}

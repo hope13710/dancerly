@@ -1,4 +1,4 @@
-import { cols, detectSchema } from './client.js';
+import { cols, detectSchema, schema } from './client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, GOOGLE_G, avatar, projectMark, rememberPhotos } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
@@ -25,7 +25,7 @@ import { openSearch } from './views/search.js';
 import { renderShared } from './views/share.js';
 import { renderProjectPages, renderPage } from './views/pages.js';
 import { renderProjectOverview, renderCountSheet } from './views/overview.js';
-import { renderPractice } from './views/practice.js';
+import { renderPractice, chooseChoreo } from './views/practice.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
 import { ic } from './icons.js';
@@ -304,7 +304,7 @@ async function startAction(kind, anchor = null) {
 // The project list behind the sidebar and the New menu.
 async function refreshNav() {
   if (!state.session) return;
-  const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by, created_at')).order('created_at', { ascending: false });
+  const { data } = await sb.from('projects').select(cols('id, title, image_url, is_sample, created_by, created_at, choreo_video_id, choreo_youtube')).order('created_at', { ascending: false });
   if (!data) return;
   state.projects = data;
   if (state.profile) { paintNav(); paintNavDots(); }
@@ -365,11 +365,15 @@ async function openNew(event) {
     { value: 'request', icon: 'assignment', label: 'New assignment', hint: project ? `A video for people in ${project.title} to send by a date` : 'Ask people to send a video by a date' },
     { value: 'event', icon: 'calendar', label: 'Add to calendar', hint: 'A rehearsal or a show' },
     ...(project && !project.is_sample ? [{ value: 'invite', icon: 'people', label: 'Invite people', hint: `To ${project.title}` }] : []),
+    // Practice: the project's choreo video, from the same + button (its owner, while there's none yet).
+    ...(project && !project.is_sample && schema.choreo && project.created_by === state.session?.user.id && !project.choreo_video_id && !project.choreo_youtube
+      ? [{ value: 'choreo', icon: 'loop', label: 'Add a choreo video', hint: 'A YouTube link or a video file to practice from' }] : []),
     { value: 'project', icon: 'folder', label: 'New project', hint: 'A showcase, competition, or weekly practice' }
   ];
   const choice = await actionSheet({ title: 'Create', actions, anchor });
   if (choice === 'project') return createProject();
   if (choice === 'invite') return showInvite(project.id, project.title);
+  if (choice === 'choreo') { if (await chooseChoreo({ projectId: project.id, anchor })) { await refreshNav(); navigate(`/app/p/${project.id}/practice?from=new`); } return; }
   if (choice === 'event') return editEvent({ projectId: project?.id || null });
   if (choice === 'request') {
     const target = project || (real.length === 1 ? real[0] : null);
