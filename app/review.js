@@ -15,7 +15,7 @@ import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash } fro
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 import { isKo } from './i18n.js';
-import { personLink } from './views/shared.js';
+import { personLink, empty } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
 import { CATEGORIES, catLabel, catChip, catHint, catColor, starterKeys } from './categories.js';
 
@@ -33,6 +33,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     sb.from('takes').select(cols('id, number, storage_path, thumb_path, created_at, uploaded_by, count_start, align')).eq('video_id', videoId).order('number'),
     loadMembers(projectId)
   ]);
+  // A video (or project) that's gone: deleted, or an old link to a sample that has since been reset. Say so, with a
+  // way back, instead of an error page. Supabase answers PGRST116 when a .single() finds no row.
+  if (pErr?.code === 'PGRST116' || vErr?.code === 'PGRST116') {
+    const toProject = !pErr;
+    setCrumbs([['Projects', '/app/projects'], ...(toProject ? [[project.title, `/app/p/${projectId}`]] : [])]);
+    view.innerHTML = `<section class="page">${empty('video', 'This video isn’t available', toProject ? 'It may have been deleted, or the sample was reset since this link was opened.' : 'This project may have been deleted, or you’re no longer in it.', `<a class="btn" href="${toProject ? `/app/p/${projectId}` : '/app/projects'}" data-link>${toProject ? 'Back to the project' : 'Back to Projects'}</a>`)}</section>`;
+    return null;
+  }
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
   // The choreo video is practiced, not reviewed (migration 059): its link opens Practice.
   if (video.kind === 'choreo') { navigate(`/app/p/${projectId}/practice`, { replace: true }); return null; }
@@ -554,8 +562,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const tapper = tapTempo();
   const countsPanel = $('[data-counts-panel]');
   function paintEights() {
+    const layer = $('[data-eights]');
+    if (!layer) return; // the page was left while counts were saving
     const starts = r.showCounts ? eightStarts(duration(), r.counts.bpm, r.counts.start) : [];
-    $('[data-eights]').innerHTML = starts.map((x, i) => `<i class="t-eight ${i % 4 === 0 ? 'major' : ''}" style="left:${pct(x)}"></i>`).join('');
+    layer.innerHTML = starts.map((x, i) => `<i class="t-eight ${i % 4 === 0 ? 'major' : ''}" style="left:${pct(x)}"></i>`).join('');
   }
   function paintCounts(t) {
     const c = r.showCounts ? countAt(t, r.counts.bpm, r.counts.start) : null;
@@ -610,6 +620,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   async function saveCounts(bpm, start) {
     const { error } = await sb.rpc('set_counts', { p_take: take.id, p_bpm: bpm, p_count_start: start });
     if (error) return toast(friendlyError(error), 'error');
+    if (!videoEl.isConnected) return; // saved, but the page was left while it saved: nothing on screen to update
     r.counts = { bpm, start };
     take.count_start = start;
     r.countKey = '-';
