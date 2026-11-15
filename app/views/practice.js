@@ -226,7 +226,7 @@ function youtubePlayer(host, id, onError) {
 // Same surfaces as the video screen (dark player, timeline, controls row, side panel), so practicing and giving
 // feedback feel like one product. The side panel is the song's sections: tap one to loop it, add one where the
 // video is now. Sections are the count sheet's rows, so they're the team's, shared with Overview.
-const SECTION_NAMES = isKo ? ['인트로', '벌스', '프리코러스', '코러스', '댄스 브레이크', '브릿지', '아웃트로'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
+const SECTION_NAMES = isKo ? ['인트로', '1절', '프리코러스', '후렴', '댄브', '브릿지', '엔딩'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
 const BANDS = 6;
 
 // guest: what a Practice share link (/app/s/:token) shows, from the shared-video function: the same screen,
