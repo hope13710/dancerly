@@ -1,5 +1,5 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, toast, friendlyError, notChoreo } from '../client.js';
+import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, dialog, toast, friendlyError, notChoreo } from '../client.js';
 import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
@@ -119,12 +119,16 @@ export async function renderPerson(userId) {
 
   // Your projects this person isn't in yet: add them straight in, as from the invite box (migration 051).
   const addable = self || sampleOnly ? [] : state.projects.filter((p) => !p.is_sample && !person.projects.some((x) => x.id === p.id));
+  // And the projects you own that they're in: remove them from one or several at once (owners only, as on a
+  // project's People tab; an owner can't be removed, they hand the project over first).
+  const owned = new Set((people.find((x) => x.id === me)?.projects || []).filter((x) => x.role === 'owner').map((x) => x.id));
+  const removable = self || sampleOnly ? [] : person.projects.filter((x) => owned.has(x.id) && x.role !== 'owner');
   view.innerHTML = `<section class="page narrow-wide">
     <div class="me-card">
       ${avatar(person.name, person.id, 'xl')}
       <div><h1>${esc(person.name)}${userId === me ? ' <span class="tag">You</span>' : ''}${sampleOnly ? ' <span class="tag sample-tag">Sample member</span>' : ''}</h1>
         <p class="chips">${person.projects.map((x) => `<a class="chip" href="/app/p/${x.id}" data-link>${esc(x.title)}${x.role === 'owner' ? ' · Owner' : ''}</a>`).join('')}</p></div>
-      ${addable.length ? `<button class="btn small push-right" data-add-to-project>${ic('plus')}Add to project</button>` : ''}
+      ${addable.length || removable.length ? `<div class="person-actions push-right">${addable.length ? `<button class="btn small" data-add-to-project>${ic('plus')}Add to project</button>` : ''}${removable.length ? `<button class="btn small ghost icon" data-person-more aria-label="More actions" title="More actions">${ic('more', 'solo')}</button>` : ''}</div>` : ''}
     </div>
     <div class="stats">
       <div class="stat"><small>Notes given</small><b>${given?.length ?? 0}</b></div>
@@ -166,6 +170,32 @@ export async function renderPerson(userId) {
     const { error } = await sb.rpc('add_project_member', { p_project: id, p_user: userId });
     if (error) return toast(friendlyError(error), 'error');
     toast(isKo ? `${person.name}님을 ${project.title}에 추가했어요.` : `Added ${person.name} to ${project.title}.`);
+    ctx.route();
+  });
+  view.querySelector('[data-person-more]')?.addEventListener('click', async (e) => {
+    const choice = await actionSheet({ title: person.name, anchor: e.currentTarget, actions: [
+      { value: 'remove', icon: 'x', label: 'Remove from projects…', hint: 'Pick one or more · their notes stay', danger: true }
+    ] });
+    if (choice !== 'remove') return;
+    const got = await dialog({
+      title: isKo ? `${person.name}님을 프로젝트에서 내보낼까요?` : `Remove ${person.name} from projects?`,
+      body: 'They lose access to the videos and notes in the projects you pick. Their notes stay.',
+      fields: [{ name: 'projects', label: 'Projects', type: 'pick', options: removable.map((x) => ({ value: x.id, label: x.title })), values: removable.length === 1 ? [removable[0].id] : [] }],
+      confirm: isKo ? '내보내기' : 'Remove',
+      danger: true
+    });
+    if (!got) return;
+    if (!got.projects.length) return toast('Pick at least one project.', 'error');
+    const results = await Promise.all(got.projects.map((id) => sb.from('project_members').delete().eq('project_id', id).eq('user_id', userId)));
+    const failed = results.find((r) => r.error);
+    const done = got.projects.length - results.filter((r) => r.error).length;
+    if (done) {
+      const titles = got.projects.filter((id, i) => !results[i].error).map((id) => removable.find((x) => x.id === id)?.title || '');
+      toast(isKo
+        ? (done === 1 ? `${person.name}님을 ${titles[0]}에서 내보냈어요.` : `${person.name}님을 프로젝트 ${done}개에서 내보냈어요.`)
+        : (done === 1 ? `Removed ${person.name} from ${titles[0]}.` : `Removed ${person.name} from ${done} projects.`));
+    }
+    if (failed) toast(friendlyError(failed.error), 'error');
     ctx.route();
   });
   if (sampleOnly) ctx.sampleBar(state.projects.find((p) => p.is_sample) || null);

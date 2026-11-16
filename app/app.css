@@ -10562,3 +10562,15 @@ article.note[data-note] .reply-form {
 @media (pointer: coarse) {
   .music .music-edit { width: 36px; height: 36px; }
 }
+
+/* A person's page: Add to project, and ⋯ (Remove from projects) next to it. */
+.person-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+@media (max-width: 600px) {
+  .me-card { flex-wrap: wrap; }
+  .me-card > div:not(.person-actions) { flex: 1; min-width: 0; }
+  .me-card .person-actions { width: 100%; margin-left: 0; }
+  .me-card .person-actions [data-add-to-project] { flex: 1; justify-content: center; }
+}
+@media (min-width: 601px) {
+  .me-card .person-actions { margin-left: auto; }
+}
