@@ -10804,3 +10804,40 @@ article.note[data-note] .reply-form {
   .inbox-act { position: relative; width: 36px; height: 36px; }
   .inbox-act::after { content: ""; position: absolute; inset: -4px; }
 }
+
+/* People: search and a project filter on top, a ⋯ per person, invites not accepted yet below. */
+.people-filters { align-items: stretch; }
+.people-filters .people-search { flex: 1 1 240px; max-width: 360px; margin: 0; }
+.people-table .row-act { width: 44px; text-align: right; padding-right: 8px; }
+.people-table .row-act .icon-btn { width: 32px; height: 32px; }
+.people-table tr[hidden] { display: none; }
+.people-table .chip.on { background: var(--accent-soft); color: var(--accent-dark); }
+.pending-invites { margin-top: 28px; }
+.pending-invites .section-label { margin: 0 0 8px; }
+.pending-row[hidden] { display: none; }
+.pending-row .invite-avatar { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-2, #f1f2f5); color: var(--muted); }
+.pending-row .invite-avatar .ic { width: 14px; height: 14px; }
+.small-note { font-size: 12px; }
+@media (pointer: coarse) {
+  .people-table .row-act .icon-btn { width: 40px; height: 40px; }
+}
+
+/* A person's projects: role and when they joined, with Remove for the projects you own. */
+.person-projects { margin: 0 0 20px; }
+.person-projects .project-dot { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--bg-2, #f1f2f5); color: var(--muted); }
+.person-projects .project-dot .ic { width: 14px; height: 14px; }
+.person-projects .row-title { color: var(--ink); text-decoration: none; font-weight: 600; }
+.person-projects .row-title:hover { text-decoration: underline; }
+
+/* Invite box: the project in the title switches to another one. */
+.invite-project { display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 2px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.invite-project:hover, .invite-project[aria-expanded="true"] { background: var(--bg-2, #f1f2f5); }
+.invite-project .ic { width: 16px; height: 16px; opacity: 0.6; }
+.invite-project:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.people-table .person { display: inline-flex; align-items: center; gap: 10px; }
+.people-table .person-name { display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-width: 0; }
+.people-table .person-name small { flex-basis: 100%; color: var(--muted); font-size: 12px; font-weight: 400; }
+.people-table .show-sm { display: none; }
+@media (max-width: 600px) {
+  .people-table .show-sm { display: block; }
+}

@@ -617,10 +617,12 @@ export async function showInvite(projectId, title, { heading = null, body = null
   try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
   const { link } = invite;
   const until = new Date(invite.expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  // Inviting to a different project is a switch in the title, as in Notion's Share box: no step before the box.
+  const others = (ctx.state.projects || []).filter((p) => !p.is_sample && p.id !== projectId);
   const el = document.createElement('dialog');
   el.className = 'dialog invite-dialog';
   el.innerHTML = `<div class="dialog-card">
-    ${heading ? `<h2>${esc(heading)}</h2>` : `<h2>${`Invite people to <b>${esc(title)}</b>`}</h2>`}
+    ${heading ? `<h2>${esc(heading)}</h2>` : `<h2>Invite people to ${others.length ? `<button type="button" class="invite-project" data-switch-project aria-haspopup="menu" title="Invite to another project"><b>${esc(title)}</b>${ic('down', 'solo')}</button>` : `<b>${esc(title)}</b>`}</h2>`}
     ${body ? `<p>${body}</p>` : ''}
     <div class="invite-add">
       <label class="known-field">${ic('search')}<input type="text" class="known-search" data-invite-input placeholder="Email address" aria-label="Email address" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" /><button type="button" class="known-clear" data-known-clear hidden aria-label="Clear" title="Clear">${ic('x', 'solo')}</button></label>
@@ -641,6 +643,10 @@ export async function showInvite(projectId, title, { heading = null, body = null
     <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
   el.showModal();
+  // The dialog focuses its first control, the project switch: start in the field on computers, nowhere on phones
+  // (no keyboard over the box; most people came to share the link).
+  const field = el.querySelector('[data-invite-input]');
+  if (matchMedia('(pointer: coarse)').matches) document.activeElement?.blur(); else field.focus();
   const added = wireInviteBox(el, projectId, title);
   el.querySelector('[data-copy]').addEventListener('click', async () => {
     track('invite_link_shared', { via: 'copy', from });
@@ -655,6 +661,14 @@ export async function showInvite(projectId, title, { heading = null, body = null
     showInviteQr(link, title, invite.expires_at);
   });
   el.querySelector('[data-close]').addEventListener('click', () => el.close());
+  el.querySelector('[data-switch-project]')?.addEventListener('click', async (e) => {
+    const all = (ctx.state.projects || []).filter((p) => !p.is_sample);
+    const id = await actionSheet({ title: 'Invite to', anchor: e.currentTarget, actions: all.map((p) => ({ value: p.id, label: p.title, icon: 'folder', checked: p.id === projectId })) });
+    if (!id || id === projectId) return;
+    el.close();
+    const next = all.find((p) => p.id === id);
+    showInvite(next.id, next.title, { from, later });
+  });
   el.addEventListener('close', () => {
     el.remove();
     // Someone was added: the page behind (members, avatars) should show them.

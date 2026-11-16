@@ -363,14 +363,8 @@ async function startAction(kind, anchor = null) {
   if (kind === 'invite') {
     const real = state.projects.filter((p) => !p.is_sample);
     if (!real.length) { toast('Invites are per project. Create one first.'); return createProject(); }
-    // Inside a project, that project. Elsewhere with more than one, ask which: an invite link is per project.
-    let project = real.find((p) => p.id === currentProjectId());
-    if (!project && real.length > 1) {
-      const id = await actionSheet({ title: 'Invite to which project?', anchor, actions: real.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
-      if (!id) return;
-      project = real.find((p) => p.id === id);
-    }
-    project ||= real[0];
+    // Inside a project, that project; elsewhere the most recent one. The box itself switches projects.
+    const project = real.find((p) => p.id === currentProjectId()) || real[0];
     return showInvite(project.id, project.title);
   }
 }
