@@ -5884,26 +5884,11 @@ body.in-sample .review-layout .composer-field textarea {
   color: inherit;
   text-decoration: none;
 }
-.inbox-delete {
-  flex: none;
-  opacity: 0;
-  color: var(--muted);
-}
-.inbox-row:hover .inbox-delete,
-.inbox-row:focus-within .inbox-delete {
-  opacity: 1;
-}
-.inbox-delete:hover {
-  color: var(--danger, #c94b66);
-}
 @media (max-width: 600px) {
   .projects-sample {
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
-  }
-  .inbox-delete {
-    opacity: 1;
   }
 }
 .sample-peek {
@@ -10797,4 +10782,25 @@ article.note[data-note] .reply-form {
   .starter-chips .mini {
     min-height: 36px;
   }
+}
+
+/* Inbox rows: the unread dot leads (its place kept when read, so rows line up); Mark as read / unread and Dismiss
+   sit at the end, shown when you point at or tab to a row on computers, always there with touch. */
+.inbox-group + .inbox-group { margin-top: 20px; }
+.inbox-group .section-label { margin: 0 0 8px; }
+.inbox-row .dot { visibility: hidden; }
+.inbox-row.unread .dot { visibility: visible; }
+.inbox-actions { display: flex; gap: 2px; flex: none; }
+.inbox-act { width: 32px; height: 32px; color: var(--muted); }
+.inbox-act .ic { width: 16px; height: 16px; }
+.inbox-act:hover { background: var(--bg-2, #f1f2f5); color: var(--ink); }
+.inbox-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) {
+  .inbox-actions { opacity: 0; transition: opacity 0.12s ease; }
+  .inbox-row:hover .inbox-actions,
+  .inbox-row:focus-within .inbox-actions { opacity: 1; }
+}
+@media (pointer: coarse) {
+  .inbox-act { position: relative; width: 36px; height: 36px; }
+  .inbox-act::after { content: ""; position: absolute; inset: -4px; }
 }

@@ -1,5 +1,5 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
-import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema, dialog } from '../client.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema, dialog, actionSheet } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
@@ -50,6 +50,19 @@ function hrefFor(item) {
   return `/app/p/${item.project_id}`;
 }
 
+// Today / Yesterday / This week / Earlier, as Linear and GitHub group their inboxes.
+function dayGroup(iso) {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const t = new Date(iso).getTime();
+  if (t >= start.getTime()) return 'Today';
+  if (t >= start.getTime() - 864e5) return 'Yesterday';
+  if (t >= start.getTime() - 6 * 864e5) return 'This week';
+  return 'Earlier';
+}
+
+// Dismissed items wait out their Undo before they're deleted (the toast's 8 seconds); leaving the page doesn't cancel it.
+const pendingDismiss = new Map();
+
 export async function renderInbox() {
   const { state, view, setCrumbs } = ctx;
   setCrumbs([['Inbox']]);
@@ -58,58 +71,152 @@ export async function renderInbox() {
   let query = noSample(sb.from('notifications').select(select())).order('created_at', { ascending: false }).limit(100);
   if (filter === 'unread') query = query.is('read_at', null);
   if (filter === 'mentions') query = query.eq('kind', 'mention');
-  const [{ data: items, error }, { count: unread }] = await Promise.all([
+  const [{ data: items, error }, { count: unreadCount }] = await Promise.all([
     query,
     noSample(sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null))
   ]);
   if (error) throw error;
-  // A note or take deleted since then leaves nothing to open.
-  const live = items.filter((i) => i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.kind === 'ownership_transferred' || i.notes || i.takes || i.recaps || i.requests);
+  // A note or take deleted since then leaves nothing to open; one being dismissed right now is already gone.
+  const live = items.filter((i) => !pendingDismiss.has(i.id) && (i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.kind === 'ownership_transferred' || i.notes || i.takes || i.recaps || i.requests));
   const names = await namesFor(live.map((i) => i.actor_id));
+  let unread = Math.max(0, (unreadCount || 0) - items.filter((i) => pendingDismiss.has(i.id) && !i.read_at).length);
 
-  view.innerHTML = `<section class="page narrow-wide">
-    ${pageHead('Inbox', { actions: `${unread ? '<button class="btn" data-read-all>Mark all as read</button>' : ''}${live.length ? '<button class="btn ghost" data-clear-all>Clear all</button>' : ''}` })}
-    ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue']], filter)}
-      ${live.length ? `<div class="list">${live.map((item) => `<div class="row inbox-row ${item.read_at ? '' : 'unread'}" data-item="${item.id}">
+  const row = (item) => `<div class="row inbox-row ${item.read_at ? '' : 'unread'}" data-item="${item.id}">
         <a class="inbox-row-link" href="${hrefFor(item)}" data-link>
+        <span class="dot" aria-hidden="true"></span>
         ${item.actor_id ? avatar(names[item.actor_id] || '?', item.actor_id, 'sm') : '<span class="avatar sm app-avatar" aria-hidden="true"><img src="/favicon.svg" alt="" width="28" height="28" /></span>'}
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
           ${item.recaps ? `<span class="row-quote">${ic('recap')}${esc(item.recaps.content?.headline || 'Recap')}</span>` : ''}
-          <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}</span>
+          <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}<span class="sr-only">${item.read_at ? '' : ' · Unread'}</span></span>
         </span>
-        ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}
         </a>
-        <button type="button" class="icon-btn inbox-delete" data-delete-item="${item.id}" aria-label="Remove notification" title="Remove notification">${ic('trash', 'solo')}</button>
-      </div>`).join('')}</div>`
-      : empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
+        <div class="inbox-actions">
+          <button type="button" class="icon-btn inbox-act" data-toggle-read aria-label="${item.read_at ? 'Mark as unread' : 'Mark as read'}" title="${item.read_at ? 'Mark as unread' : 'Mark as read'}">${ic(item.read_at ? 'circle' : 'check', 'solo')}</button>
+          <button type="button" class="icon-btn inbox-act" data-dismiss aria-label="Dismiss" title="Dismiss">${ic('x', 'solo')}</button>
+        </div>
+      </div>`;
+  const groups = [];
+  for (const item of live) {
+    const g = dayGroup(item.created_at);
+    if (groups[groups.length - 1]?.label !== g) groups.push({ label: g, items: [] });
+    groups[groups.length - 1].items.push(item);
+  }
+
+  view.innerHTML = `<section class="page narrow-wide">
+    ${pageHead('Inbox', { actions: `<span data-inbox-head>${unread ? '<button class="btn" data-read-all>Mark all as read</button>' : ''}</span>${live.length ? `<button class="btn ghost icon" data-inbox-more aria-label="More inbox actions" title="More">${ic('more', 'solo')}</button>` : ''}` })}
+    ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue']], filter)}
+      ${live.length ? groups.map((g) => `<section class="inbox-group" data-group><h2 class="section-label">${g.label}</h2><div class="list">${g.items.map(row).join('')}</div></section>`).join('')
+      : emptyState(filter)}
   </section>`;
 
-  $$('[data-item]').forEach((a) => a.addEventListener('click', () => {
-    if (!a.classList.contains('unread')) return;
-    sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', a.dataset.item).then(() => ctx.refreshUnread());
-  }));
-  $('[data-read-all]')?.addEventListener('click', async () => {
+  const byId = Object.fromEntries(live.map((i) => [i.id, i]));
+  // Small changes happen in place (no reload, so the list doesn't jump); the badge and the counts follow.
+  const paintCounts = () => {
+    ctx.refreshUnread();
+    const tabLink = view.querySelector('.tabs a[href="/app/inbox?show=unread"]');
+    let tab = tabLink?.querySelector('.count');
+    if (!tab && tabLink && unread) { tab = document.createElement('span'); tab.className = 'count'; tabLink.append(tab); }
+    if (tab) { tab.textContent = unread || ''; tab.hidden = !unread; }
+    const head = view.querySelector('[data-inbox-head]');
+    if (head) head.innerHTML = unread ? '<button class="btn" data-read-all>Mark all as read</button>' : '';
+    head?.querySelector('[data-read-all]')?.addEventListener('click', readAll);
+  };
+  const setRead = async (el, read) => {
+    const item = byId[el.dataset.item];
+    if (!item || Boolean(item.read_at) === read) return;
+    const at = read ? new Date().toISOString() : null;
+    const { error: e } = await sb.from('notifications').update({ read_at: at }).eq('id', item.id);
+    if (e) return toast(friendlyError(e), 'error');
+    item.read_at = at;
+    unread += read ? -1 : 1;
+    if (filter === 'unread' && read) el.remove(); else el.outerHTML = row(item);
+    tidy();
+    paintCounts();
+  };
+  // Empty groups go; with nothing left, the empty state shows.
+  const tidy = () => {
+    view.querySelectorAll('[data-group]').forEach((g) => { if (!g.querySelector('[data-item]')) g.remove(); });
+    if (!view.querySelector('[data-item]') && !view.querySelector('.empty')) {
+      view.querySelector('[data-inbox-more]')?.remove();
+      view.querySelector('.page').insertAdjacentHTML('beforeend', emptyState(filter));
+    }
+  };
+  const dismiss = (el) => {
+    const item = byId[el.dataset.item];
+    if (!item) return;
+    const parent = el.parentElement, next = el.nextElementSibling, group = el.closest('[data-group]'), groupNext = group?.nextElementSibling;
+    el.remove();
+    if (!item.read_at) { unread -= 1; paintCounts(); }
+    const timer = setTimeout(async () => {
+      pendingDismiss.delete(item.id);
+      const { error: e } = await sb.from('notifications').delete().eq('id', item.id);
+      if (e) toast(friendlyError(e), 'error');
+      ctx.refreshUnread();
+    }, 8000);
+    pendingDismiss.set(item.id, timer);
+    const groupGone = group && !group.querySelector('[data-item]');
+    if (groupGone) group.remove();
+    tidy();
+    toast('Notification dismissed.', 'info', { label: 'Undo', run: () => {
+      clearTimeout(pendingDismiss.get(item.id));
+      pendingDismiss.delete(item.id);
+      if (!view.isConnected || !parent.isConnected && !groupGone) return renderInbox();
+      view.querySelector('.page > .empty, .page > .empty-state')?.remove();
+      if (groupGone) { const holder = groupNext?.isConnected ? groupNext : null; if (holder) holder.before(group); else view.querySelector('.page').append(group); }
+      if (next?.isConnected) next.before(el); else parent.append(el);
+      if (!item.read_at) { unread += 1; paintCounts(); }
+    } });
+  };
+  const bindRow = (el) => {
+    el.querySelector('[data-toggle-read]')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); setRead(el, !byId[el.dataset.item]?.read_at); });
+    el.querySelector('[data-dismiss]')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); dismiss(el); });
+    // Opening an item reads it.
+    el.querySelector('.inbox-row-link')?.addEventListener('click', () => {
+      const item = byId[el.dataset.item];
+      if (!item || item.read_at) return;
+      item.read_at = new Date().toISOString();
+      sb.from('notifications').update({ read_at: item.read_at }).eq('id', item.id).then(() => ctx.refreshUnread());
+    });
+  };
+  // A row that changes is replaced in place; the new one is wired as it's added.
+  view.querySelectorAll('[data-item]').forEach(bindRow);
+  const observer = new MutationObserver((records) => records.forEach((r) => r.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.matches?.('[data-item]') && !n.dataset.wired) { n.dataset.wired = '1'; bindRow(n); } })));
+  view.querySelectorAll('[data-item]').forEach((n) => { n.dataset.wired = '1'; });
+  view.querySelectorAll('.list').forEach((l) => observer.observe(l, { childList: true }));
+
+  async function readAll() {
     const { error: readErr } = await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', state.session.user.id).is('read_at', null);
     if (readErr) return toast(friendlyError(readErr), 'error');
     ctx.refreshUnread();
     renderInbox();
+  }
+  view.querySelector('[data-read-all]')?.addEventListener('click', readAll);
+  view.querySelector('[data-inbox-more]')?.addEventListener('click', async (e) => {
+    const anyRead = live.some((i) => i.read_at);
+    const choice = await actionSheet({ title: 'Inbox', anchor: e.currentTarget, actions: [
+      ...(anyRead ? [{ value: 'clear-read', icon: 'x', label: 'Clear read notifications', hint: 'Unread ones stay' }] : []),
+      { value: 'clear', icon: 'trash', label: 'Clear all', hint: 'The notes and videos they link to stay', danger: true }
+    ] });
+    if (choice === 'read') return readAll();
+    if (choice === 'clear-read') {
+      const { error: e2 } = await sb.from('notifications').delete().eq('user_id', state.session.user.id).not('read_at', 'is', null);
+      if (e2) return toast(friendlyError(e2), 'error');
+      toast('Read notifications cleared.');
+      return renderInbox();
+    }
+    if (choice === 'clear') {
+      const ok = await dialog({ title: 'Clear your Inbox?', body: 'This removes all of your notifications. It won’t delete the notes, videos, or projects they link to.', confirm: 'Clear all', danger: true });
+      if (!ok) return;
+      const { error: clearErr } = await sb.from('notifications').delete().eq('user_id', state.session.user.id);
+      if (clearErr) return toast(friendlyError(clearErr), 'error');
+      ctx.refreshUnread();
+      renderInbox();
+    }
   });
-  $('[data-clear-all]')?.addEventListener('click', async () => {
-    const ok = await dialog({ title: 'Clear your Inbox?', body: 'This removes all of your notifications. It won’t delete the notes, videos, or projects they link to.', confirm: 'Clear all', danger: true });
-    if (!ok) return;
-    const { error: clearErr } = await sb.from('notifications').delete().eq('user_id', state.session.user.id);
-    if (clearErr) return toast(friendlyError(clearErr), 'error');
-    ctx.refreshUnread();
-    renderInbox();
-  });
-  $$('[data-delete-item]').forEach((b) => b.addEventListener('click', async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const { error: deleteErr } = await sb.from('notifications').delete().eq('id', b.dataset.deleteItem);
-    if (deleteErr) return toast(friendlyError(deleteErr), 'error');
-    ctx.refreshUnread();
-    renderInbox();
-  }));
+}
+
+function emptyState(filter) {
+  return empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '');
 }
