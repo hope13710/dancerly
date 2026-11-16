@@ -10368,3 +10368,13 @@ body.is-guest .tabbar {
 @media (max-width: 600px) { .row-practice { padding: 6px 10px; } }
 .practice-focus .btn:not(.primary) { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); color: #e3e6ed; }
 .practice-focus .btn:not(.primary):hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.pf-len { padding: 3px; }
+.pf-len button { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+/* On a note's moment: the note and ⋯ on top, then how much to loop and the way back. */
+.practice-focus.is-on { display: grid; gap: 8px; }
+.pf-top { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.pf-top .icon-btn { margin: -4px -6px 0 0; color: #aab1bd; }
+.pf-top .icon-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.pf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pf-row .spacer { flex: 1; }
+.practice-focus.is-on .pf-actions { width: auto; }

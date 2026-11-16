@@ -55,14 +55,16 @@ export async function shiftByMusic(takeUrl, choreoUrl, onStage) {
   }
 }
 
-// What to loop in the choreo video: the note's moment or range, a count (or a second) either side, and at least
-// three seconds so a move can be caught in full.
-export function focusRange(start, end, beat, duration) {
-  const pad = beat || 1;
-  let a = start - pad;
-  let b = (end ?? start) + pad;
-  if (b - a < 3) { const mid = (a + b) / 2; a = mid - 1.5; b = mid + 1.5; }
-  a = Math.max(0, a);
+// What to loop in the choreo video around a note's moment (or range).
+//   short:  just the move, a second either side.
+//   normal: room to get into it and out of it: 4 counts before (a "5, 6, 7, 8"), 2 after, never under 2 s each.
+// Counts come from the choreo video when it has them; otherwise seconds.
+export const LOOP_LENGTHS = ['short', 'normal', 'section'];
+export function focusRange(start, end, beat, duration, length = 'normal') {
+  const before = length === 'short' ? 1 : Math.max(2, beat ? 4 * beat : 0);
+  const after = length === 'short' ? 1 : Math.max(2, beat ? 2 * beat : 0);
+  const a = Math.max(0, start - before);
+  let b = (end ?? start) + after;
   if (duration) b = Math.min(duration, b);
   return [a, b];
 }

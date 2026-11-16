@@ -12,7 +12,7 @@ import { ic, ytIcon } from '../icons.js';
 import { isKo } from '../i18n.js';
 import { countAt, countLabel } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
-import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange } from '../choreo-align.js';
+import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange, LOOP_LENGTHS } from '../choreo-align.js';
 
 const SPEEDS = [0.5, 0.75, 1];
 const SPEED_KEY = 'looproom:practice-speed';
@@ -782,9 +782,18 @@ export async function renderPractice(projectId, guest = null) {
       const mid = (focus.a + focus.b) / 2;
       const k = sectionAt(mid);
       const where = k >= 0 ? (sections[k].section || '') : '';
-      box.innerHTML = `<div class="pf-main">${noteLine()}<span class="pf-where" data-no-i18n>${ic('loop')}${isKo ? `원본 ${fmt(focus.a)}–${fmt(focus.b)}` : `Original ${fmt(focus.a)}–${fmt(focus.b)}`}${where ? ` · ${esc(where)}` : ''}</span></div>
-        <div class="pf-actions">${looping && current === FOCUS ? '' : `<button type="button" class="btn small" data-pf-loop>${ic('loop')}Loop it again</button>`}<button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button><button type="button" class="icon-btn" data-pf-more aria-label="More" title="More">${ic('more', 'solo')}</button></div>`;
+      const lengths = [['short', 'Short'], ['normal', 'Normal'], ...(holder() >= 0 ? [['section', 'Whole section']] : [])];
+      if (length === 'section' && holder() < 0) length = 'normal';
+      box.innerHTML = `<div class="pf-top"><div class="pf-main">${noteLine()}<span class="pf-where" data-no-i18n>${ic('loop')}${isKo ? `원본 ${fmt(focus.a)}–${fmt(focus.b)}` : `Original ${fmt(focus.a)}–${fmt(focus.b)}`}${where ? ` · ${esc(where)}` : ''}</span></div><button type="button" class="icon-btn" data-pf-more aria-label="More" title="More">${ic('more', 'solo')}</button></div>
+        <div class="pf-row"><div class="seg dark pf-len" role="group" aria-label="How much to loop">${lengths.map(([k, label]) => `<button type="button" data-pf-len="${k}" aria-pressed="${k === length}" aria-selected="${k === length}" title="${k === 'short' ? 'Just the move, a second either side' : k === 'normal' ? '4 counts before, 2 after (at least 2 seconds each)' : 'The whole section this moment is in'}">${label}</button>`).join('')}</div><span class="spacer"></span><div class="pf-actions">${looping && current === FOCUS ? '' : `<button type="button" class="btn small" data-pf-loop>${ic('loop')}Loop it again</button>`}<button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button></div></div>`;
       box.querySelector('[data-pf-loop]')?.addEventListener('click', () => loopFocus());
+      box.querySelectorAll('[data-pf-len]').forEach((b) => b.addEventListener('click', () => {
+        length = b.dataset.pfLen;
+        save(LENGTH_KEY, length);
+        placeFocus();
+        loopFocus();
+        track('note_practice_length', { length });
+      }));
       box.querySelector('[data-pf-back]').addEventListener('click', backToNote);
       box.querySelector('[data-pf-more]').addEventListener('click', async (e) => {
         const choice = await actionSheet({ anchor: e.currentTarget, actions: [{ value: 'again', icon: 'target', label: 'Find it again in the original', hint: 'If the loop isn’t on the right move' }] });
@@ -812,12 +821,25 @@ export async function renderPractice(projectId, guest = null) {
     paintTime();
     paintFocus('on');
   };
+  // How much around the note's moment loops: Short, Normal (the default), or the whole section it's in.
+  // The last choice is remembered for the next note.
+  const LENGTH_KEY = 'looproom:note-loop';
+  let length = read(LENGTH_KEY, 'normal');
+  if (!LOOP_LENGTHS.includes(length)) length = 'normal';
+  const holder = () => sectionAt(from.a0 + 0.05);
+  const placeFocus = () => {
+    const k = length === 'section' ? holder() : -1;
+    const [a, b] = k >= 0 ? bounds(k) : focusRange(from.a0, from.a1, counts ? 60 / counts.bpm : null, player.duration || 0, length === 'section' ? 'normal' : length);
+    focus = { a, b: Number.isFinite(b) ? b : player.duration || b };
+  };
   const applyShift = (shift) => {
     const dur = player.duration || 0;
     const a0 = from.t0 + shift;
     const a1 = from.t1 === null ? null : from.t1 + shift;
     if (dur && (a0 >= dur || (a1 ?? a0) <= 0)) { paintFocus('outside'); return; }
-    focus = (([a, b]) => ({ a, b }))(focusRange(a0, a1, counts ? 60 / counts.bpm : null, dur));
+    from.a0 = Math.max(0, a0);
+    from.a1 = a1;
+    placeFocus();
     setSpeed(0.75, { quiet: true, remember: false });
     loopFocus();
   };
