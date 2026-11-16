@@ -12,7 +12,7 @@ const SECTIONS = [
   ['plan', 'Plan']
 ];
 const KINDS = [
-  ['mention', 'Someone @mentions you', 'In a note on any video.'],
+  ['mention', 'Someone @mentions you', 'In a note on a video, or on a page.'],
   ['note_on_your_video', 'Notes on your videos', 'On a video you added or a take you uploaded.'],
   ['reply', 'Replies', 'When someone replies to a note you wrote or a thread you’re in.'],
   ['new_take', 'New takes', 'When someone uploads to one of your projects.'],

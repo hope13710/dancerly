@@ -25,7 +25,7 @@ const QUIET_TO = 7;
 
 // Notification kind -> settings group, and each group's default.
 const GROUP: Record<string, string> = {
-  mention: "mention", private_note: "private_note", reply: "reply",
+  mention: "mention", page_mention: "mention", private_note: "private_note", reply: "reply",
   request_new: "request", request_reminder: "request", request_due: "request",
   note_on_your_video: "note_on_your_video", new_take: "new_take", note_resolved: "note_resolved",
   joined: "joined", recap_shared: "recap_shared",
@@ -116,6 +116,7 @@ const itemRow = (line: string, href: string, extra = "") => `<div style="padding
 type Ctx = {
   names: Map<string, string>; notes: Map<string, any>; takes: Map<string, any>; videos: Map<string, any>;
   projects: Map<string, any>; requests: Map<string, any>; recaps: Map<string, any>; joins: Map<string, any>;
+  pages: Map<string, any>;
 };
 
 // One notification -> { subject line, html line, link, quoted text }.
@@ -134,6 +135,8 @@ function describe(n: any, c: Ctx, zone: string) {
   const reqHref = req ? `${SITE}/app/p/${n.project_id}/requests/${req.id}?${ref}` : `${SITE}/app?${ref}`;
   switch (n.kind) {
     case "mention": return { subject: `${who} mentioned you on “${vtitle}”`, line: `<b>${esc(who)}</b> mentioned you on <b>${esc(vtitle)}</b> at ${at}`, href: noteHref, cta: `Open at ${at}`, text: showText ? note.body : null };
+    // On a page (migration 075): the line they were mentioned on, e.g. "☐ @Jin bring the speaker".
+    case "page_mention": { const pg = c.pages.get(n.page_id); const ptitle = pg?.title || "a page"; return { subject: `${who} mentioned you in “${ptitle}”`, line: `<b>${esc(who)}</b> mentioned you in <b>${esc(ptitle)}</b> in ${esc(project?.title ?? "your project")}`, href: `${SITE}/app/p/${n.project_id}/pages/${n.page_id}?${ref}`, cta: "Open the page", text: n.detail ?? null }; }
     case "private_note": return { subject: `${who} sent you a private note`, line: `<b>${esc(who)}</b> sent you a private note on <b>${esc(vtitle)}</b>. Only the two of you can see it.`, href: noteHref, cta: "Open in dancerly", text: null };
     case "reply": return { subject: `${who} replied on “${vtitle}”`, line: `<b>${esc(who)}</b> replied to a note on <b>${esc(vtitle)}</b> at ${at}`, href: noteHref, cta: "See the reply", text: showText ? note.body : null };
     case "note_on_your_video": return { subject: `${who} left a note on “${vtitle}”`, line: `<b>${esc(who)}</b> left a note on <b>${esc(vtitle)}</b> at ${at}`, href: noteHref, cta: `Open at ${at}`, text: showText ? note.body : null };
@@ -170,11 +173,12 @@ async function loadContext(rows: any[]): Promise<Ctx> {
     ids("actor_id").length ? admin.from("profiles").select("id, display_name").in("id", ids("actor_id")) : { data: [] },
   ]);
   const { data: joins } = ids("join_request_id").length ? await admin.from("join_requests").select("id, body, t_start").in("id", ids("join_request_id")) : { data: [] };
+  const { data: pages } = ids("page_id").length ? await admin.from("project_pages").select("id, title").in("id", ids("page_id")) : { data: [] };
   return {
     names: new Map((people ?? []).map((p: any) => [p.id, p.display_name])),
     notes: map(notes), takes: map(takes), videos: map(videos), projects: map(projects), requests: map(requests),
     recaps: new Map((recaps ?? []).map((r: any) => [r.id, { headline: r.content?.headline }])),
-    joins: map(joins),
+    joins: map(joins), pages: map(pages),
   };
 }
 
@@ -205,7 +209,7 @@ const footerFor = (why: string, unsub: string, label: string) =>
 async function followUp(key: string) {
   const now = Date.now();
   const { data: rows } = await admin.from("notifications")
-    .select("id, user_id, kind, actor_id, project_id, take_id, note_id, recap_id, request_id, join_request_id, created_at, read_at")
+    .select("id, user_id, kind, actor_id, project_id, take_id, note_id, recap_id, request_id, join_request_id, page_id, detail, created_at, read_at")
     .is("emailed_at", null).gte("created_at", new Date(now - 3 * 864e5).toISOString()).order("created_at").limit(1000);
   if (!rows?.length) return { instant: 0, digest: 0 };
 

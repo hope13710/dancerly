@@ -17,6 +17,7 @@ import { shiftBetween, alignTake } from './align.js';
 import { practiceHref } from './choreo-align.js';
 import { personLink, empty } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
+import { addToPage } from './views/pages.js';
 import { CATEGORIES, catLabel, catChip, catHint, catColor, starterKeys } from './categories.js';
 
 // Slow is for learning a move; 1.25–1.5× is for skimming a long run-through. Picked from a menu, or < and >.
@@ -386,6 +387,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
             ${withChoreo && !practiceMine ? `<button type="button" role="menuitem" data-practice-note="${n.id}">${ic('play')}Practice with the original</button>` : ''}
             ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
             <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
+            ${n.private_to ? '' : `<button type="button" role="menuitem" data-page-note="${n.id}">${ic('file')}Add to a page…</button>`}
             ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
             ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
             ${canManageNote(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
@@ -965,9 +967,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     // Picking from a note's ⋯ menu closes it.
     const menuItem = e.target.closest('.note-more [role=menuitem]');
     if (menuItem) menuItem.closest('details').open = false;
-    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-edit-note],[data-copy-note],[data-thread],[data-delete-reply],[data-note],[data-practice-note]');
+    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-edit-note],[data-copy-note],[data-page-note],[data-thread],[data-delete-reply],[data-note],[data-practice-note]');
     if (!el || !view.contains(el)) return;
-    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.editNote || el.dataset.copyNote || el.dataset.thread || el.dataset.note || el.dataset.practiceNote;
+    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.editNote || el.dataset.copyNote || el.dataset.pageNote || el.dataset.thread || el.dataset.note || el.dataset.practiceNote;
     const note = r.notes.find((n) => n.id === id);
     if (!note) return;
     if (el.dataset.thread) {
@@ -1005,6 +1007,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       if (error) return toast(friendlyError(error), 'error');
       toast('Note updated.');
       return loadNotes();
+    }
+    if (el.dataset.pageNote) {
+      el.closest('details')?.removeAttribute('open');
+      const n = takes.find((t) => t.id === note.take_id)?.number;
+      const t = Math.floor(Number(note.t_start));
+      return addToPage(projectId, { ref: `video/${videoId}?${n ? `take=${n}&` : ''}t=${t}`, text: [video.title, n && `Take ${n}`, fmt(t)].filter(Boolean).join(' · '), body: note.body, anchor: el.closest('.note-more')?.querySelector('summary') });
     }
     if (el.dataset.copyNote) {
       // Opens this video at this note, for anyone in the project (the page already handles ?note=).

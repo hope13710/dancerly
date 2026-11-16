@@ -7,7 +7,8 @@ import { ic } from '../icons.js';
 
 const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 // Requests to join (migration 040) carry the requester's name: owners can't read a non-member's profile.
-const select = () => (schema.joinRequests ? `${BASE_SELECT}, join_request_id, join_requests(requester_name, status)` : BASE_SELECT);
+// @mentions on a page (migration 075) carry the page and the line they're on.
+const select = () => `${BASE_SELECT}${schema.joinRequests ? ', join_request_id, join_requests(requester_name, status)' : ''}${schema.pageMentions ? ', page_id, detail, project_pages(title)' : ''}`;
 
 const VERB = {
   mention: 'mentioned you',
@@ -36,6 +37,7 @@ function describe(item, names) {
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
   if (item.kind === 'private_note') return `${ic('lock')}${who} left you a private note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   if (item.kind === 'reply') return `${who} replied to a note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
+  if (item.kind === 'page_mention') return `${who} mentioned you in <b>${esc(item.project_pages?.title || 'a page')}</b>`;
   if (item.kind === 'mention') return `${who} mentioned you on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   return `${who} ${VERB[item.kind]} <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
 }
@@ -43,6 +45,7 @@ function describe(item, names) {
 function hrefFor(item) {
   if (item.kind === 'joined' || item.kind === 'join_request' || item.kind === 'ownership_transferred') return `/app/p/${item.project_id}/people`;
   if (item.kind === 'recap_shared') return `/app/recaps/${item.recap_id}`;
+  if (item.kind === 'page_mention') return `/app/p/${item.project_id}/pages/${item.page_id}`;
   if (item.request_id) return `/app/p/${item.project_id}/requests/${item.request_id}`;
   if (item.notes) return `/app/p/${item.project_id}/v/${item.notes.video_id}?take=${item.notes.takes?.number ?? ''}&note=${item.note_id}`;
   if (item.takes) return `/app/p/${item.project_id}/v/${item.takes.video_id}?take=${item.takes.number}`;
@@ -69,14 +72,14 @@ export async function renderInbox() {
   const filter = new URLSearchParams(location.search).get('show') || 'all';
   let query = noSample(sb.from('notifications').select(select())).order('created_at', { ascending: false }).limit(100);
   if (filter === 'unread') query = query.is('read_at', null);
-  if (filter === 'mentions') query = query.eq('kind', 'mention');
+  if (filter === 'mentions') query = schema.pageMentions ? query.in('kind', ['mention', 'page_mention']) : query.eq('kind', 'mention');
   const [{ data: items, error }, { count: unreadCount }] = await Promise.all([
     query,
     noSample(sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null))
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open; one being dismissed right now is already gone.
-  const live = items.filter((i) => !pendingDismiss.has(i.id) && (i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.kind === 'ownership_transferred' || i.notes || i.takes || i.recaps || i.requests));
+  const live = items.filter((i) => !pendingDismiss.has(i.id) && (i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.kind === 'ownership_transferred' || i.notes || i.takes || i.recaps || i.requests || i.project_pages));
   const names = await namesFor(live.map((i) => i.actor_id));
   let unread = Math.max(0, (unreadCount || 0) - items.filter((i) => pendingDismiss.has(i.id) && !i.read_at).length);
 
@@ -87,6 +90,7 @@ export async function renderInbox() {
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
           ${item.notes ? `<span class="row-quote"><span class="time-tag">${noteTime(item.notes)}</span> ${esc(item.notes.body)}</span>` : ''}
+          ${item.kind === 'page_mention' && item.detail ? `<span class="row-quote">${ic('file')}${esc(item.detail)}</span>` : ''}
           ${item.recaps ? `<span class="row-quote">${ic('recap')}${esc(item.recaps.content?.headline || 'Recap')}</span>` : ''}
           <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}<span class="sr-only">${item.read_at ? '' : ' · Unread'}</span></span>
         </span>
@@ -217,5 +221,5 @@ export async function renderInbox() {
 }
 
 function emptyState(filter) {
-  return empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '');
+  return empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note or on a page, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '');
 }
