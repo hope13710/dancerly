@@ -12,6 +12,7 @@ import { ic, ytIcon } from '../icons.js';
 import { isKo } from '../i18n.js';
 import { countAt, countLabel } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
+import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange } from '../choreo-align.js';
 
 const SPEEDS = [0.5, 0.75, 1];
 const SPEED_KEY = 'looproom:practice-speed';
@@ -299,7 +300,10 @@ export async function renderPractice(projectId, guest = null) {
   let speed = Number(read(SPEED_KEY, '1'));
   if (!SPEEDS.includes(speed)) speed = 1;
   let mirror = read(MIRROR_KEY, '1') === '1';
-  let current = -1; // -1: the whole song
+  let current = -1; // -1: the whole song; FOCUS: a note's moment (opened from a note)
+  const FOCUS = -2;
+  let focus = null; // { a, b } in the choreo video, while practicing a note's moment
+  let onLoopChange = null; // repaints the note's bar when its loop stops or starts
   let looping = false; // a section loops only once someone picks it
   const wanted = params.get('section');
   const title = choreoTitle(choreo);
@@ -315,6 +319,7 @@ export async function renderPractice(projectId, guest = null) {
     </header>
     <div class="review-layout practice-layout">
       <div class="player-col" data-col>
+        <div class="practice-focus" data-focus hidden></div>
         <div class="player-pair" data-pair>
           <div class="player${mirror ? ' mirrored' : ''}" data-player>
             <div class="practice-media" data-media></div>
@@ -366,6 +371,7 @@ export async function renderPractice(projectId, guest = null) {
   // ---------- Sections: where each starts and ends ----------
   const bounds = (i = current) => {
     const end = player.duration || Infinity;
+    if (i === FOCUS && focus) return [focus.a, Math.min(focus.b, end)];
     if (i < 0) return [0, end];
     const s = Number(sections[i].t_start);
     if (sections[i].t_end !== null && sections[i].t_end !== undefined) return [s, Math.min(Number(sections[i].t_end), end)];
@@ -401,14 +407,15 @@ export async function renderPractice(projectId, guest = null) {
   const paintLoop = () => {
     const box = $('[data-tloop]');
     const chip = $('[data-loopchip]');
-    if (looping && current >= 0) {
+    if (looping && (current >= 0 || (current === FOCUS && focus))) {
       const [a, b] = bounds();
       box.hidden = false;
       box.style.left = pct(a);
       box.style.width = `calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})`;
-      chip.innerHTML = `${ic('loop')}<span data-no-i18n>${esc(sections[current].section || '')}</span><button type="button" data-unloop aria-label="Stop looping">${ic('x', 'solo')}</button>`;
+      chip.innerHTML = `${ic('loop')}<span data-no-i18n>${current === FOCUS ? (isKo ? '피드백' : 'Note') : esc(sections[current].section || '')}</span><button type="button" data-unloop aria-label="Stop looping">${ic('x', 'solo')}</button>`;
       chip.querySelector('[data-unloop]').addEventListener('click', () => { looping = false; current = -1; paintSections(); });
     } else { box.hidden = true; chip.innerHTML = ''; }
+    onLoopChange?.();
   };
 
   // ---------- Playback ----------
@@ -517,9 +524,9 @@ export async function renderPractice(projectId, guest = null) {
     pick(from + d < 0 ? sections.length - 1 : from + d >= sections.length ? 0 : from + d, { from: d < 0 ? 'prev' : 'next' });
   };
   const toggle = () => { if (player.paused) player.play(); else player.pause(); };
-  const setSpeed = (s, { quiet = false } = {}) => {
+  const setSpeed = (s, { quiet = false, remember = true } = {}) => {
     speed = s;
-    save(SPEED_KEY, String(s));
+    if (remember) save(SPEED_KEY, String(s));
     player.rate(s);
     $$('[data-speed]').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.speed) === s)));
     if (quiet) return;
@@ -656,8 +663,10 @@ export async function renderPractice(projectId, guest = null) {
     if (choice) {
       const keep = current >= 0 ? sections[current]?.id : null;
       await loadSections();
-      current = keep ? sections.findIndex((x) => x.id === keep) : -1;
-      if (current < 0) looping = false;
+      if (current !== FOCUS) {
+        current = keep ? sections.findIndex((x) => x.id === keep) : -1;
+        if (current < 0) looping = false;
+      }
       paintSections();
     }
   };
@@ -744,6 +753,124 @@ export async function renderPractice(projectId, guest = null) {
   const onVisible = () => { if (document.visibilityState === 'visible' && !player.paused) keepAwake(true); };
   document.addEventListener('visibilitychange', onVisible);
 
+  // ---------- From a note: its moment in the original, looped at 0.75× ----------
+  // The note's time is on a take; the take lines up with the choreo video once (by the music for a video file,
+  // by someone tapping Here on YouTube), and then every note on that video finds its spot (choreo-align.js).
+  const box = $('[data-focus]');
+  const key = choreoKey(p.project);
+  let from = null; // { take, t0, t1, note, author }
+  const backToNote = () => {
+    if (history.state?.from) history.back();
+    else if (from.note) ctx.navigate(`/app/p/${projectId}/v/${from.note.video_id}?take=${from.take.number}&note=${from.note.id}`);
+    else ctx.navigate(base);
+  };
+  const noteLine = () => {
+    if (!from.note) return '';
+    const text = from.note.body.length > 70 ? `${from.note.body.slice(0, 70).trim()}…` : from.note.body;
+    return `<span class="pf-note" data-no-i18n><b>${esc(from.author ? (isKo ? `${from.author}님의 피드백` : `${from.author}’s note`) : (isKo ? '피드백' : 'Note'))}</b> “${esc(text)}”</span>`;
+  };
+  let wasLooping = null;
+  const paintFocus = (state = 'on') => {
+    box.hidden = false;
+    box.className = `practice-focus is-${state}`;
+    if (state === 'matching') {
+      box.innerHTML = `<div class="pf-main">${noteLine()}<span class="pf-status"><span class="spinner"></span><span data-pf-stage>Matching the music…</span></span></div>`;
+      return;
+    }
+    if (state === 'on') {
+      wasLooping = looping && current === FOCUS;
+      const mid = (focus.a + focus.b) / 2;
+      const k = sectionAt(mid);
+      const where = k >= 0 ? (sections[k].section || '') : '';
+      box.innerHTML = `<div class="pf-main">${noteLine()}<span class="pf-where" data-no-i18n>${ic('loop')}${isKo ? `원본 ${fmt(focus.a)}–${fmt(focus.b)}` : `Original ${fmt(focus.a)}–${fmt(focus.b)}`}${where ? ` · ${esc(where)}` : ''}</span></div>
+        <div class="pf-actions">${looping && current === FOCUS ? '' : `<button type="button" class="btn small" data-pf-loop>${ic('loop')}Loop it again</button>`}<button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button><button type="button" class="icon-btn" data-pf-more aria-label="More" title="More">${ic('more', 'solo')}</button></div>`;
+      box.querySelector('[data-pf-loop]')?.addEventListener('click', () => loopFocus());
+      box.querySelector('[data-pf-back]').addEventListener('click', backToNote);
+      box.querySelector('[data-pf-more]').addEventListener('click', async (e) => {
+        const choice = await actionSheet({ anchor: e.currentTarget, actions: [{ value: 'again', icon: 'target', label: 'Find it again in the original', hint: 'If the loop isn’t on the right move' }] });
+        if (choice === 'again') findByHand();
+      });
+      return;
+    }
+    if (state === 'outside') {
+      box.innerHTML = `<div class="pf-main">${noteLine()}<span class="pf-status">This moment falls outside the choreo video. Find it by hand.</span></div>
+        <div class="pf-actions"><button type="button" class="btn small primary" data-pf-find>Find it</button><button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button></div>`;
+      box.querySelector('[data-pf-find]').addEventListener('click', findByHand);
+      box.querySelector('[data-pf-back]').addEventListener('click', backToNote);
+    }
+  };
+  onLoopChange = () => {
+    const now = looping && current === FOCUS;
+    if (focus && from && box.classList.contains('is-on') && now !== wasLooping) { wasLooping = now; paintFocus('on'); }
+  };
+  const loopFocus = () => {
+    current = FOCUS;
+    looping = true;
+    player.seek(focus.a);
+    player.play();
+    paintSections();
+    paintTime();
+    paintFocus('on');
+  };
+  const applyShift = (shift) => {
+    const dur = player.duration || 0;
+    const a0 = from.t0 + shift;
+    const a1 = from.t1 === null ? null : from.t1 + shift;
+    if (dur && (a0 >= dur || (a1 ?? a0) <= 0)) { paintFocus('outside'); return; }
+    focus = (([a, b]) => ({ a, b }))(focusRange(a0, a1, counts ? 60 / counts.bpm : null, dur));
+    setSpeed(0.75, { quiet: true, remember: false });
+    loopFocus();
+  };
+  // By hand: the take's moment plays on a small loop next to the instructions; move the original there, tap Here.
+  const findByHand = async () => {
+    if (looping) { looping = false; current = -1; paintSections(); }
+    box.hidden = false;
+    box.className = 'practice-focus is-find';
+    let ref = '';
+    try { ref = `${await takeUrl(from.take.storage_path)}#t=${Math.max(0, from.t0 - 1).toFixed(2)}`; } catch {}
+    box.innerHTML = `${ref ? `<video class="pf-ref" src="${esc(ref)}" muted playsinline autoplay loop preload="auto" aria-label="The moment in the take"></video>` : ''}
+      <div class="pf-main">${noteLine()}<b class="pf-title">Find this move in the original</b><p class="pf-help">Go to where it happens in the choreo video, then tap Here. Once is enough: the other notes on this video find their spot too.</p>
+        <div class="pf-actions"><button type="button" class="btn small primary" data-pf-here>${ic('target')}Here</button><button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button></div></div>`;
+    const v = box.querySelector('.pf-ref');
+    if (v) {
+      const [ra, rb] = focusRange(from.t0, from.t1, null, 0);
+      v.addEventListener('timeupdate', () => { if (v.currentTime >= rb || v.currentTime < ra - 0.5) v.currentTime = ra; });
+      v.play().catch(() => {});
+    }
+    box.querySelector('[data-pf-back]').addEventListener('click', backToNote);
+    box.querySelector('[data-pf-here]').addEventListener('click', async (e) => {
+      const shift = player.time - from.t0;
+      e.currentTarget.disabled = true;
+      const ok = await saveTakeShift(from.take.id, key, shift, 'manual');
+      if (!ok) toast('Couldn’t save it for the team. It works for you now.', 'error');
+      track('note_practice_align', { source: 'manual' });
+      applyShift(shift);
+    });
+  };
+  const fromNote = async () => {
+    const noteId = params.get('note');
+    const [{ take, shift }, got] = await Promise.all([
+      loadTakeShift(params.get('take'), key),
+      noteId ? sb.from('notes').select('id, body, author_id, video_id').eq('id', noteId).maybeSingle() : Promise.resolve({ data: null })
+    ]);
+    if (!take) return toast('That take isn’t available anymore.');
+    const note = got.data || null;
+    from = { take, t0: Number(params.get('t')), t1: params.has('end') ? Number(params.get('end')) : null, note, author: note ? (p.members.find((m) => m.user_id === note.author_id)?.name || '') : '' };
+    track('note_practice_open', { aligned: shift !== null, kind: choreo.kind });
+    if (shift !== null) return applyShift(shift);
+    if (choreo.kind === 'file') {
+      paintFocus('matching');
+      const stage = (text) => { const el = box.querySelector('[data-pf-stage]'); if (el) el.textContent = text; };
+      const found = await shiftByMusic(await takeUrl(take.storage_path), await takeUrl(choreo.take.storage_path), stage);
+      if (found !== null) {
+        saveTakeShift(take.id, key, found, 'music');
+        track('note_practice_align', { source: 'music' });
+        return applyShift(found);
+      }
+    }
+    findByHand();
+  };
+
   paintSections();
   track(guest ? 'practice_share_open' : 'practice_open', { kind: choreo.kind, from: params.get('from') || (guest ? 'share' : 'direct'), sections: sections.length });
   player.ready.then(() => {
@@ -760,6 +887,7 @@ export async function renderPractice(projectId, guest = null) {
     paintSections();
     paintTime();
     paintPlay();
+    if (!guest && schema.choreoAlign && params.get('take') && params.has('t')) fromNote().catch(() => { box.hidden = true; });
   }).catch(() => showError(-1));
 
   return () => {

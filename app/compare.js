@@ -3,9 +3,12 @@
 
 // Finds how far apart two recordings of the same music are, from the rhythm of their sound (onset envelopes).
 // Returns seconds to add to the first video's time to land on the same moment in the second, or null if unsure.
-export async function offsetByMusic(urlA, urlB, onStage = () => {}) {
+// Two takes are searched ±30 s over their first 2 minutes; a take against the whole choreo video passes a wider
+// window (a chorus take can start well into the song).
+export async function offsetByMusic(urlA, urlB, onStage = () => {}, { lagFrom = -30, lagTo = 30, seconds = 120 } = {}) {
   const RATE = 50; // envelope frames per second
-  const MAX_LAG = 30 * RATE;
+  const LO = Math.round(lagFrom * RATE);
+  const HI = Math.round(lagTo * RATE);
   const envelope = async (url, label) => {
     onStage(label);
     const buf = await (await fetch(url)).arrayBuffer();
@@ -14,7 +17,7 @@ export async function offsetByMusic(urlA, urlB, onStage = () => {}) {
     try { audio = await ctx.decodeAudioData(buf); } finally { ctx.close?.(); }
     const data = audio.getChannelData(0);
     const hop = Math.floor(audio.sampleRate / RATE);
-    const frames = Math.min(Math.floor(data.length / hop), 120 * RATE);
+    const frames = Math.min(Math.floor(data.length / hop), seconds * RATE);
     const energy = new Float32Array(frames);
     for (let f = 0; f < frames; f += 1) {
       let sum = 0;
@@ -36,12 +39,12 @@ export async function offsetByMusic(urlA, urlB, onStage = () => {}) {
   const a = await envelope(urlA, 'Listening to this take…');
   const b = await envelope(urlB, 'Listening to the other video…');
   onStage('Matching the music…');
-  const scores = new Float32Array(MAX_LAG * 2 + 1);
-  for (let lag = -MAX_LAG; lag <= MAX_LAG; lag += 1) {
+  const scores = new Float32Array(HI - LO + 1);
+  for (let lag = LO; lag <= HI; lag += 1) {
     let s = 0;
     let n = 0;
     for (let i = Math.max(0, -lag), end = Math.min(a.length, b.length - lag); i < end; i += 1) { s += a[i] * b[i + lag]; n += 1; }
-    scores[lag + MAX_LAG] = n > RATE * 5 ? s / n : 0;
+    scores[lag - LO] = n > RATE * 5 ? s / n : 0;
   }
   let best = 0;
   for (let i = 1; i < scores.length; i += 1) if (scores[i] > scores[best]) best = i;
@@ -52,7 +55,7 @@ export async function offsetByMusic(urlA, urlB, onStage = () => {}) {
   for (const v of scores) sd += (v - mean) ** 2;
   sd = Math.sqrt(sd / scores.length) || 1;
   if ((scores[best] - mean) / sd < 5) return null; // no clear match
-  return (best - MAX_LAG) / RATE;
+  return (best + LO) / RATE;
 }
 
 // Keeps the second video on the first one's clock. Call every frame.

@@ -140,6 +140,16 @@ const openPerson = (event) => {
   return true;
 };
 document.addEventListener('click', openPerson, true);
+// The same for any other link inside a row link (Practice it on a note row).
+const openInner = (event) => {
+  const el = event.target.closest('[data-inner-href]');
+  if (!el) return;
+  event.preventDefault();
+  event.stopPropagation();
+  navigate(el.dataset.innerHref);
+};
+document.addEventListener('click', openInner, true);
+document.addEventListener('keydown', (event) => { if ((event.key === 'Enter' || event.key === ' ') && event.target.matches?.('[data-inner-href]')) openInner(event); }, true);
 document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.target.matches?.('[data-person]')) openPerson(event); }, true);
 document.addEventListener('click', (event) => {
   const link = event.target.closest('a[data-link]');

@@ -3,6 +3,7 @@ import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos, notChoreo } fr
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
 import { ic } from '../icons.js';
+import { practiceHref } from '../choreo-align.js';
 
 // The sample project is a sandbox: it shows up only inside itself (and Insights' demo), never in the
 // screens that gather work across projects — Home, Feedback, Inbox, Calendar, People, Queue, Search, Recaps.
@@ -40,7 +41,8 @@ export function personLink(name, id, { photo = true } = {}) {
 // "by Maya" / "Maya님", with Maya linked.
 export const byPerson = (name, id) => `<span data-no-i18n>${isKo ? `${personLink(name, id)}님` : `by ${personLink(name, id).replace('class="person-link"', 'class="person-link after-text"')}`}</span>`;
 
-export function noteRow(n, names, { showAuthor = true, showProject = true } = {}) {
+// practice: also offer the note's moment in the project's choreo video (Feedback › For me).
+export function noteRow(n, names, { showAuthor = true, showProject = true, practice = false } = {}) {
   const author = names[n.author_id] || 'Former member';
   const agrees = n.note_reactions?.length || 0;
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
@@ -49,7 +51,7 @@ export function noteRow(n, names, { showAuthor = true, showProject = true } = {}
       <span class="row-title">${n.private_to ? `<span class="lock" title="Private: only the two of you" data-i18n-attrs>${ic('lock', 'solo')}</span> ` : ''}${esc(n.body)}</span>
       <span class="row-meta">${showAuthor ? `<b>${names[n.author_id] ? personLink(author, n.author_id, { photo: false }) : esc(author)}</b> · ` : ''}<span class="time-tag">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
     </span>
-    <span class="row-side">${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">${ic('reply')}${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">${ic('agree')}${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>
+    <span class="row-side">${practice ? `<span class="row-practice" role="link" tabindex="0" data-inner-href="${practiceHref(n.project_id, { take: n.take_id, t: n.t_start, end: n.t_end, note: n.id })}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</span>` : ''}${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">${ic('reply')}${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">${ic('agree')}${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>
   </a>`;
 }
 

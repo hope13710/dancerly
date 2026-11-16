@@ -1,6 +1,7 @@
 // Feedback: every note, from three angles — for me, by me, and everyone's.
 import { sb, $, esc } from '../client.js';
 import { ctx } from '../ctx.js';
+import { hasChoreo } from '../choreo-align.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, tabs, empty, previewEmpty, hasRealVideo, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
 
@@ -59,7 +60,7 @@ export async function renderFeedback() {
       <div class="seg small" role="group" aria-label="Status">${STATUSES.map(([k, label]) => `<a href="${url({ status: k })}" data-link aria-selected="${k === status}">${label} <span>${counts[k]}</span></a>`).join('')}</div>
       ${realProjects().length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
-    ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project })).join('')}</div>`
+    ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showAuthor: which !== 'by-me', showProject: !project, practice: which === 'for-me' && n.status !== 'resolved' && n.author_id !== state.session.user.id && hasChoreo(state.projects.find((x) => x.id === n.project_id)) })).join('')}</div>`
       : notes.length && status !== 'all' ? empty('check_circle', status === 'todo' ? 'All caught up' : 'Nothing resolved yet', status === 'todo' ? 'Every note here is resolved. Nice work.' : 'Notes marked fixed show up here.')
       : previewEmpty('notes', emptyCopy[0], emptyCopy[1], `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('feedback')}`, noVideo ? 'feedback' : '')}
   </section>`;

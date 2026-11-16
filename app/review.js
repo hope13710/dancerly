@@ -14,6 +14,7 @@ import { shareVideo } from './views/share.js';
 import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash, renameVideo } from './views/project.js';
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
+import { practiceHref } from './choreo-align.js';
 import { isKo } from './i18n.js';
 import { personLink, empty } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
@@ -44,6 +45,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   if (pErr || vErr || tErr) throw pErr || vErr || tErr;
   // The choreo video is practiced, not reviewed (migration 059): its link opens Practice.
   if (video.kind === 'choreo') { navigate(`/app/p/${projectId}/practice`, { replace: true }); return null; }
+  // Notes can open their moment in the choreo video once the project has one (and migration 067 is in).
+  const withChoreo = Boolean(schema.choreoAlign && (project.choreo_video_id || project.choreo_youtube));
   setCrumbs([['Projects', '/app/projects'], [project.title, `/app/p/${projectId}`], [video.title]]);
   const base = `/app/p/${projectId}/v/${videoId}`;
   // Remembered so a later upload from the project page can offer to stack onto this video.
@@ -231,6 +234,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       // Addressed to me (mentioned, or private to me) and still open: "I'm on it" sits beside Reply, so saying
       // you'll fix it is one tap. Everywhere else it stays in ⋯.
       const forMe = n.status === 'open' && n.author_id !== me.id && (n.private_to === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
+      // Practice it: the note's moment in the choreo video. Beside the note when it's for me and not fixed yet; in ⋯ otherwise.
+      const practiceMine = withChoreo && n.status !== 'resolved' && n.author_id !== me.id && (n.private_to === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
       const carried = n.take_id !== take.id;
       const from = carried ? `<span class="from" ${n.unaligned ? 'title="Time may be off: this take isn’t lined up with the earlier one yet"' : ''}>from Take ${takeNo[n.take_id]}${n.unaligned ? ' ≈' : ''}</span>` : '';
       // Watching a new take is when fixes get noticed: ask right on the note.
@@ -261,8 +266,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           ${n.author_id !== me.id ? `<button class="mini ${iAgree ? 'on' : ''} ${agrees ? '' : 'quiet'}" data-agree="${n.id}" aria-pressed="${iAgree}" aria-label="Agree">${ic('agree', agrees ? '' : 'solo')}${agrees || ''}</button>` : agrees ? `<span class="agrees">${ic('agree')}${agrees}</span>` : ''}
           ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
           ${forMe ? `<button class="mini on-it" data-status="practicing" data-id="${n.id}" title="Tell the team you’re working on this">${ic('check')}I’m on it</button>` : ''}
+          ${practiceMine ? `<button class="mini practice-it" data-practice-note="${n.id}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</button>` : ''}
           <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
             ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
+            ${withChoreo && !practiceMine ? `<button type="button" role="menuitem" data-practice-note="${n.id}">${ic('play')}Practice with the original</button>` : ''}
             ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
             <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
             ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
@@ -829,9 +836,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     // Picking from a note's ⋯ menu closes it.
     const menuItem = e.target.closest('.note-more [role=menuitem]');
     if (menuItem) menuItem.closest('details').open = false;
-    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-edit-note],[data-copy-note],[data-thread],[data-delete-reply],[data-note]');
+    const el = e.target.closest('[data-seek],[data-loop],[data-agree],[data-status],[data-delete],[data-edit-note],[data-copy-note],[data-thread],[data-delete-reply],[data-note],[data-practice-note]');
     if (!el || !view.contains(el)) return;
-    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.editNote || el.dataset.copyNote || el.dataset.thread || el.dataset.note;
+    const id = el.dataset.seek || el.dataset.loop || el.dataset.agree || el.dataset.id || el.dataset.delete || el.dataset.editNote || el.dataset.copyNote || el.dataset.thread || el.dataset.note || el.dataset.practiceNote;
     const note = r.notes.find((n) => n.id === id);
     if (!note) return;
     if (el.dataset.thread) {
@@ -855,6 +862,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       return;
     }
     if (el.dataset.loop) return setLoop(note);
+    if (el.dataset.practiceNote) {
+      el.closest('details')?.removeAttribute('open');
+      play(false);
+      logEvent('note_practice_tap', { mine: el.classList.contains('practice-it') });
+      return navigate(practiceHref(projectId, { take: take.id, t: note.t_start, end: note.t_end, note: note.id }));
+    }
     if (el.dataset.editNote || el.dataset.copyNote) el.closest('details')?.removeAttribute('open');
     if (el.dataset.editNote) {
       const got = await dialog({ title: 'Edit note', fields: [{ name: 'body', label: 'Note', type: 'textarea', value: note.body, required: true, max: 2000 }], confirm: 'Save' });
