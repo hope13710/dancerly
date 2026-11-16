@@ -1,6 +1,7 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo } from '../client.js';
+import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -47,7 +48,7 @@ export function submissionsFor(request, members, videos) {
 
 async function loadRequests(projectId) {
   const [{ data: requests, error }, { data: videos, error: vErr }] = await Promise.all([
-    sb.from('requests').select('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, audience, repeat_weekly, request_assignees(user_id)').eq('project_id', projectId).order('created_at', { ascending: false }),
+    sb.from('requests').select('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, reference_take_id, audience, repeat_weekly, request_assignees(user_id)'.replace(schema.requestTake ? '' : ' reference_take_id,', '')).eq('project_id', projectId).order('created_at', { ascending: false }),
     sb.from('videos').select('id, title, created_by, request_id, takes(id, number, created_at), notes(status, author_id)').eq('project_id', projectId).not('request_id', 'is', null)
   ]);
   if (error || vErr) throw error || vErr;
@@ -90,9 +91,16 @@ export async function newRequest(projectId) {
   const [members, groups, { data: videos }] = await Promise.all([
     loadMembers(projectId),
     loadGroups(projectId),
-    sb.from('videos').select('id, title').eq('project_id', projectId).order('created_at', { ascending: false })
+    notChoreo(sb.from('videos').select(schema.requestTake ? 'id, title, takes(id, number)' : 'id, title')).eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   const me = ctx.state.session.user.id;
+  // A reference can be one take ("Take 2: fix these and film it again"). A video with several takes lists them under
+  // its name; picking the video itself means its latest take, as before.
+  const refOptions = (videos || []).map((v) => {
+    const ts = [...(v.takes || [])].sort((a, b) => a.number - b.number);
+    if (ts.length < 2) return `<option value="${v.id}">${esc(v.title)}</option>`;
+    return `<optgroup label="${esc(v.title)}"><option value="${v.id}">${esc(v.title)} · ${isKo ? '최신 테이크' : 'Latest take'}</option>${ts.map((t) => `<option value="${v.id}:${t.id}">${esc(v.title)} · ${isKo ? `테이크 ${t.number}` : `Take ${t.number}`}</option>`).join('')}</optgroup>`;
+  }).join('');
   const el = document.createElement('dialog');
   el.className = 'dialog';
   const nextFri = new Date(); nextFri.setDate(nextFri.getDate() + ((5 - nextFri.getDay() + 7) % 7 || 7));
@@ -114,7 +122,7 @@ export async function newRequest(projectId) {
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
     <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Nobody else has joined yet. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>'}</div>
     ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” assignments too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
-    ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${videos.map((v) => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select></label>` : ''}
+    ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference" data-no-i18n><option value="">${isKo ? '없음' : 'None'}</option>${refOptions}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Assign</button></div>
   </form>`;
   document.body.append(el);
@@ -152,9 +160,11 @@ export async function newRequest(projectId) {
   const { data: rid, error } = await sb.rpc('create_request_v2', {
     p_project: projectId, p_title: values.title, p_brief: values.brief, p_due: due,
     p_assignees: values.who === 'some' ? values.people : [], p_groups: values.who === 'groups' ? values.groups : [],
-    p_reference: values.reference, p_repeat_weekly: values.weekly
+    p_reference: values.reference?.split(':')[0] || null, p_repeat_weekly: values.weekly
   });
   if (error) return toast(friendlyError(error), 'error');
+  const refTake = values.reference?.split(':')[1];
+  if (refTake && schema.requestTake) await sb.from('requests').update({ reference_take_id: refTake }).eq('id', rid);
   toast('Assignment sent.');
   ctx.navigate(`/app/p/${projectId}/requests/${rid}`);
 }
@@ -175,6 +185,12 @@ export async function renderRequest(projectId, requestId) {
   const ready = r.status === 'active' && subs.length && subs.every((s) => s.state === 'fixed');
   const author = p.members.find((m) => m.user_id === r.created_by)?.name || 'A former member';
   const reference = r.reference_video_id ? (await sb.from('videos').select('id, title').eq('id', r.reference_video_id).maybeSingle()).data : null;
+  // A reference take: open it on that take, with how much of its feedback is still open.
+  const [refTake, refOpen] = reference && r.reference_take_id ? await Promise.all([
+    sb.from('takes').select('number').eq('id', r.reference_take_id).maybeSingle().then((x) => x.data),
+    sb.from('notes').select('id', { count: 'exact', head: true }).eq('take_id', r.reference_take_id).neq('status', 'resolved').then((x) => x.count || 0)
+  ]) : [null, 0];
+  const refHref = reference ? `/app/p/${projectId}/v/${reference.id}${refTake ? `?take=${refTake.number}` : ''}` : '';
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div>
       <p class="eyebrow">Assignment${r.status === 'closed' ? ' · Closed' : ''}</p>
@@ -188,7 +204,8 @@ export async function renderRequest(projectId, requestId) {
     ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
     ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
       ${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ''}
-      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="/app/p/${projectId}/v/${reference.id}" data-link>${ic('play')}${esc(reference.title)}</a></p>` : ''}
+      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="${refHref}" data-link>${ic('play')}<span data-no-i18n>${esc(reference.title)}${refTake ? ` · ${isKo ? `테이크 ${refTake.number}` : `Take ${refTake.number}`}` : ''}</span></a></p>` : ''}
+      ${refTake && refOpen ? `<p class="brief-ref muted" data-no-i18n>${isKo ? `이 테이크의 미해결 피드백 ${refOpen}개` : `${refOpen} open ${refOpen === 1 ? 'note' : 'notes'} on this take`} · <a class="link" href="${refHref}" data-link>${isKo ? '보기' : 'View'}</a></p>` : ''}
     </section>` : ''}
     <section class="panel">
       <div class="panel-head"><div><h2>Submissions</h2><p class="muted">${submitted} of ${subs.length} submitted${missing && r.status === 'active' ? ` · ${missing} still to go` : ''}</p></div>

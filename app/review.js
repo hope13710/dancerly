@@ -181,7 +181,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // ---------- Notes ----------
   async function loadNotes() {
     const { data, error } = await sb.from('notes')
-      .select(cols('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, resolved_at, sketch, category, note_reactions(user_id), note_replies(id, author_id, body, created_at), note_mentions(user_id)'))
+      .select(cols('id, take_id, t_start, t_end, body, status, author_id, private_to, created_at, edited_at, resolved_at, sketch, category, note_reactions(user_id), note_replies(id, author_id, body, created_at), note_mentions(user_id)'))
       .eq('video_id', videoId).order('t_start');
     if (error) return toast(friendlyError(error), 'error');
     r.notes = data.map((n) => {
@@ -324,6 +324,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const noteTime = (n) => (n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`);
   // "3·5" next to the time when the video has counts (each take keeps its own count 1).
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
+  // When a note's words last changed, for its "edited" mark (on hover, focus or long press).
+  const editedAt = (at) => { const d = new Date(at).toLocaleString(isKo ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }); return isKo ? `${d}에 수정됨` : `Edited ${d}`; };
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
   // A note's or reply's author, opening their profile (someone who left the project stays plain text).
   const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
@@ -374,7 +376,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         : canResolve(n) ? `<button class="note-check" data-status="resolved" data-id="${n.id}" title="Mark as fixed" aria-label="Mark as fixed">${ic('check', 'solo')}</button>` : '';
       return `<article class="note ${n.status === 'resolved' ? 'is-resolved' : ''} ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}</span>${check}</div>
+        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">${isKo ? '· 수정됨' : '· edited'}</span>` : ''}</span>${check}</div>
         <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" data-i18n-attrs title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" data-i18n-attrs role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> ${withMentions(n.body)}</p>
         ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
@@ -525,10 +527,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     play(false);
     setLoop(null);
     if (!r.sketch) r.sketchAt = videoEl.currentTime || 0;
+    // On phones the open keyboard shrinks the screen and moves the page under the finger: close it first, then bring
+    // the frame into view once the screen has settled.
+    const typing = document.activeElement?.matches?.('textarea, input');
+    if (typing) document.activeElement.blur();
     placeLayer(layer, videoEl);
     $('[data-player]').classList.add('drawing');
-    // On phones the composer sits below the video; bring the frame into view to draw on it.
     $('[data-player]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (typing) setTimeout(() => { if (r.drawing) { placeSketchLayer(); paintSketches(layer, [{ strokes: r.drawing.strokes }]); $('[data-player]').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }, 350);
     $('[data-sketch-bar]').hidden = false;
     $('[data-draw]').setAttribute('aria-pressed', 'true');
     r.drawing = startDrawing(layer, { tool: () => r.tool, color: () => r.color, mirrored: () => r.mirror });
@@ -972,13 +978,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       if (error) return toast(friendlyError(error), 'error');
       return loadNotes();
     }
-    if (el.dataset.seek) {
+    const goTo = () => {
       r.selected = id;
       // A sketch note stops on its frame so the drawing can be read; others play from just before.
       if (note.sketch) { play(false); seek(note.t_start); } else seek(note.t_end === null ? Math.max(0, note.t_start - 1) : note.t_start, { start: true });
       paintNotes();
-      return;
-    }
+    };
+    if (el.dataset.seek) return goTo();
     if (el.dataset.loop) return setLoop(note);
     if (el.dataset.practiceNote) {
       el.closest('details')?.removeAttribute('open');
@@ -1039,7 +1045,14 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       if (error) return toast(friendlyError(error), 'error');
       return loadNotes();
     }
-    if (!e.target.closest('button, summary, details')) { r.selected = id; paintNotes(); }
+    // Anywhere else on a note goes to its moment, as in Frame.io: not its controls, names, the reply box, or while
+    // selecting its text to copy. The time chip stays the keyboard way in.
+    // "Edited" tells when on tap too (phones have no hover).
+    const edited = e.target.closest('.edited');
+    if (edited) return toast(edited.title);
+    if (e.target.closest('button, a, summary, details, input, textarea, select, form, [data-person], .fixed-ask')) return;
+    if (String(getSelection?.() || '').trim()) return;
+    goTo();
   }
   view.addEventListener('click', onClick);
   // A note's ⋯ menu opens next to its button, above the scrolling list (which would cut it off), and upward
@@ -1395,7 +1408,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       ...(narrow ? [{ value: 'compare', label: r.compare.on ? 'Stop comparing' : 'Compare', hint: 'Play another take or video side by side' }] : []),
       ...(narrow ? [{ value: 'share', label: 'Share', hint: 'A progress card for Instagram, or a read-only link' }] : []),
       ...(canManageVideo ? [{ value: 'rename', label: 'Rename video' }] : []),
-      ...(canManageVideo ? [{ value: 'merge', label: 'Merge into…', hint: 'Uploaded this as a separate video by mistake?' }] : []),
       ...(canDeleteTake ? [{ value: 'take', label: `Delete Take ${take.number}`, hint: schema.trash ? 'Moves to Trash for 30 days' : 'Just this take and the notes left on it', danger: true }] : []),
       ...(canDeleteVideo ? [{ value: 'video', label: 'Delete video', hint: schema.trash ? `${takes.length > 1 ? `All ${takes.length} takes` : 'The video'} and its notes · Trash keeps it 30 days` : takes.length > 1 ? `All ${takes.length} takes and their notes` : 'The video and its notes', danger: true }] : [])
     ] });
@@ -1409,7 +1421,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       setCrumbs([['Projects', '/app/projects'], [project.title, `/app/p/${projectId}`], [title]]);
       return;
     }
-    if (choice === 'merge') return mergeInto();
     if (choice === 'take') return deleteTake();
     if (choice === 'video') return deleteVideo();
   }
@@ -1443,24 +1454,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
 
 
-  async function mergeInto() {
-    const { data: others, error } = await notChoreo(sb.from('videos').select('id, title, takes(count)')).eq('project_id', projectId).neq('id', videoId).order('created_at', { ascending: false });
-    if (error) return toast(friendlyError(error), 'error');
-    if (!others.length) return toast('There’s no other video in this project to merge into.');
-    const values = await dialog({
-      title: `Merge “${video.title}” into another video`,
-      body: `Its ${takes.length === 1 ? 'take' : `${takes.length} takes`} will become the next takes of the video you pick, and every note comes along. “${esc(video.title)}” then disappears from the list.`,
-      fields: [{ name: 'target', label: 'Add these takes to', type: 'select', required: true, options: others.map((o) => ({ value: o.id, label: `${o.title} · ${o.takes[0]?.count ?? 0} ${(o.takes[0]?.count ?? 0) === 1 ? 'take' : 'takes'}` })) }],
-      confirm: 'Merge'
-    });
-    if (!values?.target) return;
-    const target = others.find((o) => o.id === values.target);
-    const { error: mergeErr } = await sb.rpc('merge_video', { p_source: videoId, p_target: target.id });
-    if (mergeErr) return toast(friendlyError(mergeErr), 'error');
-    const first = (target.takes[0]?.count ?? 0) + 1;
-    toast(`Merged. They’re now ${takes.length === 1 ? `Take ${first}` : `Takes ${first}–${first + takes.length - 1}`} of “${target.title}”.`);
-    navigate(`/app/p/${projectId}/v/${target.id}?take=${first + takes.length - 1}`);
-  }
 
   function wireUpload() {
     const fileInput = $('[data-file]');

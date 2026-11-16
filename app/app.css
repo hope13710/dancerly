@@ -4517,6 +4517,14 @@ td.ref .play {
 .player.drawing .big-play {
   display: none;
 }
+/* While drawing, a finger on the player draws: no scrolling, zooming or page bounce (WebKit ignores touch-action on SVG). */
+.player.drawing {
+  touch-action: none;
+}
+html.is-drawing,
+html.is-drawing body {
+  overscroll-behavior: none;
+}
 .player-badge {
   z-index: 3;
 }
@@ -10526,3 +10534,16 @@ body.is-guest .tabbar {
 .dialog-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
 .dialog-check b { display: block; font-size: 14px; }
 .dialog-check small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+/* A note card goes to its moment when tapped (its controls and the reply box work as before). */
+article.note[data-note] {
+  cursor: pointer;
+}
+article.note[data-note] .reply-form {
+  cursor: auto;
+}
+.note-head .edited {
+  color: var(--muted);
+  cursor: help;
+  white-space: nowrap;
+}

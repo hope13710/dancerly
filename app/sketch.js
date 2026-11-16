@@ -82,15 +82,25 @@ export function startDrawing(svg, { tool, color, mirrored, onChange }) {
     return [round(Math.min(1, Math.max(0, x))), round(Math.min(1, Math.max(0, y)))];
   };
   const repaint = () => { paintSketches(svg, [{ strokes: current ? [...strokes, current] : strokes }]); onChange?.(strokes); };
+  // On phones (Safari and Chrome on iOS both run WebKit) a finger on the frame could still scroll the page, which
+  // cancels the stroke halfway. While drawing, the whole player refuses touch gestures and the page can't scroll
+  // or bounce; the touch handlers must not be passive for preventDefault to count.
+  const host = svg.closest('.player') || svg.parentElement;
+  const hold = (e) => { if (e.cancelable && !e.target.closest?.('[data-sketch-bar]')) e.preventDefault(); };
+  host.addEventListener('touchmove', hold, { passive: false });
+  svg.addEventListener('touchstart', hold, { passive: false });
+  document.documentElement.classList.add('is-drawing');
+  let pointer = null;
   const down = (e) => {
-    if (e.button > 0) return;
+    if (e.button > 0 || current) return; // a second finger doesn't start another stroke
     e.preventDefault();
-    svg.setPointerCapture?.(e.pointerId);
+    pointer = e.pointerId;
+    try { svg.setPointerCapture?.(e.pointerId); } catch { /* the pointer is already gone; draw without capture */ }
     current = { tool: tool(), color: color(), w: 0.006, pts: [point(e)] };
     repaint();
   };
   const move = (e) => {
-    if (!current) return;
+    if (!current || e.pointerId !== pointer) return;
     const p = point(e);
     if (current.tool === 'pen') {
       const [lx, ly] = current.pts[current.pts.length - 1];
@@ -99,18 +109,24 @@ export function startDrawing(svg, { tool, color, mirrored, onChange }) {
     } else current.pts = [current.pts[0], p];
     repaint();
   };
-  const up = () => {
-    if (!current) return;
+  const up = (e) => {
+    if (!current || e.pointerId !== pointer) return;
     const [a, b] = [current.pts[0], current.pts[current.pts.length - 1]];
     // A tap with the arrow or circle tool draws nothing.
     if (current.tool === 'pen' || Math.hypot(b[0] - a[0], b[1] - a[1]) > 0.01) strokes.push(current);
     current = null;
     repaint();
   };
+  // The browser took the touch over (a call, a system gesture): drop the half-drawn stroke instead of keeping a cut one.
+  const cancel = (e) => {
+    if (!current || e.pointerId !== pointer) return;
+    current = null;
+    repaint();
+  };
   svg.addEventListener('pointerdown', down);
   svg.addEventListener('pointermove', move);
   svg.addEventListener('pointerup', up);
-  svg.addEventListener('pointercancel', up);
+  svg.addEventListener('pointercancel', cancel);
   return {
     strokes,
     undo() { strokes.pop(); repaint(); },
@@ -119,7 +135,10 @@ export function startDrawing(svg, { tool, color, mirrored, onChange }) {
       svg.removeEventListener('pointerdown', down);
       svg.removeEventListener('pointermove', move);
       svg.removeEventListener('pointerup', up);
-      svg.removeEventListener('pointercancel', up);
+      svg.removeEventListener('pointercancel', cancel);
+      host.removeEventListener('touchmove', hold);
+      svg.removeEventListener('touchstart', hold);
+      document.documentElement.classList.remove('is-drawing');
     }
   };
 }
