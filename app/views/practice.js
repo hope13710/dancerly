@@ -380,7 +380,7 @@ export async function renderPractice(projectId, guest = null) {
       </div>
       <aside class="notes-col practice-side">
         ${guest ? '<div class="guest-join" data-guest-join></div>' : ''}
-        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${guest ? '' : '<div class="seg small dark sec-filter" role="group" aria-label="Which sections" data-sec-filter hidden></div>'}${guest ? '' : `<a class="side-link" href="/app/p/${projectId}/counts" data-link>${ic('file')}Table</a>`}</div>
+        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${guest ? '' : '<div class="seg small dark sec-filter" role="group" aria-label="Which sections" data-sec-filter hidden></div>'}</div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
         ${guest ? '' : `<div class="sec-mark" data-mark-box hidden></div>
@@ -418,7 +418,9 @@ export async function renderPractice(projectId, guest = null) {
   const sectionAt = (t) => { let k = -1; sections.forEach((s, i) => { if (Number(s.t_start) <= t + 0.05) k = i; }); return k; };
 
   const paintSections = () => {
-    $('[data-sec-count]').textContent = sections.length ? `${sections.length}` : '';
+    // How many are clean, for the whole team (the same number Overview shows).
+    const cleanCount = sections.filter((s) => s.status === 'clean').length;
+    $('[data-sec-count]').textContent = !sections.length ? '' : guest ? `${sections.length}` : isKo ? `${cleanCount}/${sections.length} 완성` : `${cleanCount}/${sections.length} clean`;
     const filter = $('[data-sec-filter]');
     if (filter) {
       filter.hidden = !sections.some(isMine);

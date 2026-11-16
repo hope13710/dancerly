@@ -23,7 +23,7 @@ import { renderCalendar, editEvent } from './views/calendar.js';
 import { openSearch } from './views/search.js';
 import { renderShared } from './views/share.js';
 import { renderProjectPages, renderPage } from './views/pages.js';
-import { renderProjectOverview, renderCountSheet } from './views/overview.js';
+import { renderProjectOverview } from './views/overview.js';
 import { renderPractice, chooseChoreo } from './views/practice.js';
 import { newRecap } from './views/recaps.js';
 import { renderProjects, createProject, renderProject, renderProjectNotes, renderProjectPeople, renderProjectSettings, createVideo, showInvite } from './views/project.js';
@@ -64,7 +64,8 @@ const routes = [
   { re: /^\/app\/p\/([0-9a-f-]{36})\/people\/?$/, render: renderProjectPeople },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/recaps\/?$/, render: renderProjectRecaps },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/overview\/?$/, render: renderProjectOverview },
-  { re: /^\/app\/p\/([0-9a-f-]{36})\/counts\/?$/, render: renderCountSheet },
+  // The count sheet is gone: its sections live in Practice.
+  { re: /^\/app\/p\/([0-9a-f-]{36})\/counts\/?$/, render: (id) => navigate(`/app/p/${id}/practice`, { replace: true }) },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/practice\/?$/, render: renderPractice },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/?$/, render: renderProjectPages },
   { re: /^\/app\/p\/([0-9a-f-]{36})\/pages\/([0-9a-f-]{36})\/?$/, render: renderPage },

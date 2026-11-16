@@ -1,16 +1,13 @@
-// Project › Overview (goal, music, what's next, how it's going) and › Count sheet (the piece, section by section).
-import { sb, $, $$, esc, initials, fmt, timeAgo, toast, friendlyError, dialog, schema, isEnter, notChoreo } from '../client.js';
-import { track } from '../onboarding.js';
+// Project › Overview: goal, music, what's next, and how it's going. (Sections live in Practice.)
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, schema, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { isKo } from '../i18n.js';
-import { kindClass, daysUntil, daysLabel, pageHead } from './shared.js';
+import { kindClass, daysUntil, daysLabel } from './shared.js';
 import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
 import { ic } from '../icons.js';
 import { renderInsights } from './insights.js';
 import { loadChoreo, chooseChoreo, choreoTitle } from './practice.js';
-
-const STATUS = [['learning', 'Learning'], ['practicing', 'Practicing'], ['clean', 'Clean']];
 
 export async function renderProjectOverview(projectId) {
   const { view, setCrumbs } = ctx;
@@ -52,7 +49,7 @@ export async function renderProjectOverview(projectId) {
       </section>
     </div>
     <div class="stats">
-      <a class="stat link-stat" href="${choreo ? practiceHref : `/app/p/${projectId}/counts`}" data-link><small>Sections clean</small><b>${rows?.length ? `${clean}/${rows.length}` : '—'}</b><span>${rows?.length ? 'on the count sheet' : 'start a count sheet'}</span></a>
+      <a class="stat link-stat" href="${practiceHref}" data-link><small>Sections clean</small><b>${choreo && rows?.length ? `${clean}/${rows.length}` : '—'}</b><span>${!choreo ? 'Add the choreo video first' : rows?.length ? 'in Practice' : 'Mark them in Practice'}</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/notes" data-link><small>Open notes</small><b>${openNotes ?? 0}</b><span>to practice</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/requests" data-link><small>Open assignments</small><b>${requests?.length ?? 0}</b><span>${requests?.[0]?.due_at ? `Next due ${new Date(requests[0].due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'videos asked for'}</span></a>
       <a class="stat link-stat" href="/app/p/${projectId}/people" data-link><small>People</small><b>${p.members.length}</b><span>on this project</span></a>
@@ -90,130 +87,4 @@ export async function renderProjectOverview(projectId) {
     if (error) return toast(/music_url/.test(error.message) ? 'The music link must start with http:// or https://' : friendlyError(error), 'error');
     renderProjectOverview(projectId);
   });
-}
-
-// ---------- Count sheet ----------
-const parseTime = (text) => {
-  const m = String(text || '').trim().match(/^(\d{1,2}):(\d{2})$/);
-  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-};
-
-export async function renderCountSheet(projectId) {
-  const { view, setCrumbs } = ctx;
-  const [p, { data: rows, error }, { data: videos }, { data: groups }] = await Promise.all([
-    loadProject(projectId),
-    sb.from('count_sheet_rows').select(`id, position, section, counts, focus, video_id, t_start, status, updated_by, updated_at${schema.sheetTake ? ', take_id' : ''}${schema.sectionEnd ? ', t_end' : ''}${schema.sectionPeople ? ', assignees, assigned_groups' : ''}`).eq('project_id', projectId).order('position').order('created_at'),
-    sb.from('videos').select('id, title, takes(id, number)').eq('project_id', projectId).order('created_at', { ascending: false }),
-    schema.sectionPeople ? sb.from('project_groups').select('id, name').eq('project_id', projectId) : Promise.resolve({ data: [] })
-  ]);
-  if (error) throw error;
-  // Who dances each section, set in Practice: groups by name, then people; nobody means everyone.
-  const nameOf = Object.fromEntries((p.members || []).map((m) => [m.user_id, m.name]));
-  const who = (r) => {
-    const list = [...(groups || []).filter((g) => (r.assigned_groups || []).includes(g.id)).map((g) => g.name), ...(r.assignees || []).filter((id) => nameOf[id]).map((id) => nameOf[id])];
-    return list.length ? `<span data-no-i18n>${esc(list.join(', '))}</span>` : '<span class="muted">Everyone</span>';
-  };
-  // The sections live in Practice; this is them as a table (with Overview as home when there's no choreo video).
-  const fromPractice = Boolean(p.project.choreo_video_id || p.project.choreo_youtube);
-  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], fromPractice ? ['Practice', `/app/p/${projectId}/practice`] : ['Overview', `/app/p/${projectId}/overview`], ['Count sheet']]);
-  // Kept, but out of the tab bar until we see teams using it.
-  track('count_sheet_opened', { rows: rows.length });
-  // A reference time belongs to the take that was newest when it was set; opening it later lands on the same moment.
-  const latestTake = (videoId) => (videos || []).find((v) => v.id === videoId)?.takes.reduce((a, t) => (!a || t.number > a.number ? t : a), null) || null;
-  const clean = rows.filter((r) => r.status === 'clean').length;
-  const choreoId = p.project.choreo_video_id || null;
-  const ytChoreo = Boolean(p.project.choreo_youtube);
-  // A YouTube choreo video has no video row: its sections are the ones with a time and no video ("Choreo (YouTube)").
-  const videoOptions = (selected) => `<option value="">${ytChoreo ? 'Choreo (YouTube)' : '—'}</option>${(videos || []).map((v) => `<option value="${v.id}" ${v.id === selected ? 'selected' : ''}>${esc(v.title)}${v.id === choreoId ? ' · Choreo' : ''}</option>`).join('')}`;
-  const onChoreo = (r) => r.t_start !== null && (choreoId ? r.video_id === choreoId : ytChoreo && !r.video_id);
-  view.innerHTML = `<section class="page">
-    ${fromPractice
-      ? pageHead('Count sheet', { eyebrow: p.project.title, sub: 'The sections from Practice, as a table.', actions: '<button class="btn primary" data-add-row>+ Add section</button>' })
-      : projectHead(p, 'overview', '<button class="btn primary" data-add-row>+ Add section</button>')}
-    ${rows.length ? `<div class="sheet-summary"><div class="progress"><i style="width:${(clean / rows.length) * 100}%"></i></div><span>${clean} of ${rows.length} sections clean</span></div>
-    <div class="table-wrap"><table class="table sheet">
-      <thead><tr><th class="grip"></th><th>Section</th><th>Counts</th>${schema.sectionPeople ? '<th>Who</th>' : ''}<th>Status</th><th>Focus</th><th>Reference</th><th></th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr data-row="${r.id}">
-        <td class="grip"><button class="icon-btn" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ic('up', 'solo')}</button><button class="icon-btn" data-move="1" ${i === rows.length - 1 ? 'disabled' : ''} aria-label="Move down">${ic('down', 'solo')}</button></td>
-        <td><input class="cell" data-field="section" value="${esc(r.section)}" maxlength="80" aria-label="Section" /></td>
-        <td><input class="cell narrow" data-field="counts" value="${esc(r.counts || '')}" maxlength="80" placeholder="1–8 ×2" aria-label="Counts" /></td>
-        ${schema.sectionPeople ? `<td class="who-cell">${who(r)}</td>` : ''}
-        <td><select class="cell status s-${r.status}" data-field="status" aria-label="Status">${STATUS.map(([k, l]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-        <td><input class="cell wide" data-field="focus" value="${esc(r.focus || '')}" maxlength="500" placeholder="What to watch for" aria-label="Focus" /></td>
-        <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select>${onChoreo(r) ? `<a class="icon-btn sec-practice" href="/app/p/${projectId}/practice?section=${r.id}&from=counts" data-link aria-label="Practice this section" title="Practice this section">${ic('play', 'solo')}</a>` : ''}<input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Start time" />${schema.sectionEnd ? `<span class="time-dash" aria-hidden="true">–</span><input class="cell time" data-field="t_end" value="${r.t_end === null || r.t_end === undefined ? '' : fmt(Number(r.t_end))}" placeholder="0:00" aria-label="End time" />` : ''}${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
-        <td><button class="icon-btn" data-delete-row aria-label="Delete section">${ic('x', 'solo')}</button></td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-    <p class="fine left">Everyone on the project can edit. Changes save as you type.</p>`
-      : `<div class="empty"><div class="empty-icon">#</div><h2>Break the piece into sections</h2><p>One row per section — intro, verse, chorus, ending — with its counts, what to focus on, and a reference moment. Mark each one Clean when it’s ready.</p><button class="btn primary" data-add-row>+ Add the first section</button></div>`}
-  </section>`;
-
-  const timers = {};
-  let edited = false;
-  const save = async (id, patch) => {
-    if (!edited) { edited = true; track('count_sheet_edited', { field: Object.keys(patch)[0] }); }
-    if (schema.sheetTake && ('t_start' in patch || 'video_id' in patch)) {
-      const row = rows.find((r) => r.id === id);
-      patch.take_id = latestTake('video_id' in patch ? patch.video_id : row?.video_id)?.id || null;
-    }
-    const { error: e } = await sb.from('count_sheet_rows').update(patch).eq('id', id);
-    if (e) toast(friendlyError(e), 'error');
-  };
-  $$('[data-row]').forEach((tr) => {
-    const id = tr.dataset.row;
-    tr.querySelectorAll('[data-field]').forEach((input) => {
-      const field = input.dataset.field;
-      const commit = () => {
-        let value = input.value.trim();
-        if (field === 'section' && !value) return toast('A section needs a name.', 'error');
-        if (field === 't_start' || field === 't_end') { value = value ? parseTime(value) : null; if (input.value.trim() && value === null) return toast('Use minutes:seconds, like 1:05.', 'error'); }
-        if (field === 't_start' || field === 't_end') {
-          const row = rows.find((x) => x.id === id);
-          const start = field === 't_start' ? value : row?.t_start;
-          const end = field === 't_end' ? value : row?.t_end;
-          if (start !== null && start !== undefined && end !== null && end !== undefined && Number(end) <= Number(start)) return toast('The end has to come after the start.', 'error');
-          if (row) row[field] = value;
-        }
-        if (field === 'status') input.className = `cell status s-${value}`;
-        save(id, { [field]: value === '' ? null : value });
-        if (field === 'status' || field === 'video_id') setTimeout(() => renderCountSheet(projectId), 150);
-      };
-      if (input.tagName === 'SELECT') input.addEventListener('change', commit);
-      else {
-        input.addEventListener('input', () => { clearTimeout(timers[id + field]); timers[id + field] = setTimeout(commit, 600); });
-        // Enter saves now and moves down a row, like a spreadsheet.
-        input.addEventListener('keydown', (e) => {
-          if (!isEnter(e)) return;
-          e.preventDefault();
-          if (timers[id + field]) { clearTimeout(timers[id + field]); timers[id + field] = null; commit(); }
-          const below = tr.nextElementSibling?.querySelector(`[data-field="${field}"]`);
-          if (below) below.focus(); else input.blur();
-        });
-      }
-    });
-    tr.querySelector('[data-delete-row]').addEventListener('click', async () => {
-      const ok = await dialog({ title: 'Delete this section?', confirm: 'Delete', danger: true });
-      if (!ok) return;
-      const { error: e } = await sb.from('count_sheet_rows').delete().eq('id', id);
-      if (e) return toast(friendlyError(e), 'error');
-      renderCountSheet(projectId);
-    });
-    tr.querySelectorAll('[data-move]').forEach((b) => b.addEventListener('click', async () => {
-      const i = rows.findIndex((r) => r.id === id);
-      const j = i + Number(b.dataset.move);
-      const order = rows.map((r) => r.id);
-      [order[i], order[j]] = [order[j], order[i]];
-      await Promise.all(order.map((rid, pos) => sb.from('count_sheet_rows').update({ position: pos }).eq('id', rid)));
-      renderCountSheet(projectId);
-    }));
-  });
-  $$('[data-add-row]').forEach((b) => b.addEventListener('click', async () => {
-    const values = await dialog({ title: 'Add section', fields: [{ name: 'section', label: 'Section', placeholder: 'Chorus', required: true, max: 80 }, { name: 'counts', label: 'Counts (optional)', placeholder: '1–8 ×4', max: 80 }], confirm: 'Add' });
-    if (!values?.section) return;
-    // New sections point at the choreo video, so their start times are practice loops right away.
-    const ref = choreoId ? { video_id: choreoId, ...(schema.sheetTake ? { take_id: latestTake(choreoId)?.id || null } : {}) } : {};
-    const { error: e } = await sb.from('count_sheet_rows').insert({ project_id: projectId, section: values.section, counts: values.counts || null, position: rows.length, ...ref });
-    if (e) return toast(friendlyError(e), 'error');
-    renderCountSheet(projectId);
-  }));
 }
