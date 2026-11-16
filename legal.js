@@ -1,26 +1,14 @@
-// Shared by /terms and /privacy: who runs dancerly and how to reach them, plus the English/Korean switch.
+// Shared by /terms and /privacy: who runs dancerly and how to reach them.
 // Change these two lines when the operator details change; every mention on both pages updates.
 const LEGAL = {
-  operator: { en: 'The dancerly team (individual operator)', ko: 'dancerly 운영팀 (개인 운영)' }, // the person (or, later, the company) that runs dancerly
+  operator: 'The dancerly team (individual operator)', // the person (or, later, the company) that runs dancerly
   email: 'help@dancerly.app' // the dedicated contact address for legal and privacy requests
 };
 
-const KEY = 'looproom:lang';
-const pick = () => { try { return localStorage.getItem(KEY) === 'ko' ? 'ko' : 'en'; } catch { return 'en'; } };
-function setLang(lang) {
-  document.documentElement.dataset.lang = lang;
-  document.documentElement.lang = lang;
-  document.querySelectorAll('[data-set-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.setLang === lang)));
-  const title = document.querySelector(`meta[name="title-${lang}"]`)?.content;
-  if (title) document.title = title;
-  try { localStorage.setItem(KEY, lang); } catch {}
-}
-setLang(new URLSearchParams(location.search).get('lang') === 'ko' ? 'ko' : new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : pick());
-document.querySelectorAll('[data-set-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.setLang)));
+document.documentElement.lang = 'en';
 
 document.querySelectorAll('[data-operator]').forEach((el) => {
-  const lang = el.closest('[lang]')?.getAttribute('lang') === 'ko' ? 'ko' : 'en';
-  el.textContent = LEGAL.operator[lang] || LEGAL.operator.en || el.textContent;
+  el.textContent = LEGAL.operator || el.textContent;
 });
 document.querySelectorAll('[data-email]').forEach((el) => {
   if (!LEGAL.email) return;

@@ -29,6 +29,7 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 - [x] Inbox supports clearing all notifications and removing an individual notification without affecting its linked work.
 - [x] Feedback's project filter uses a quieter, smaller control while retaining the existing filter design language.
 - [x] Transferring project ownership creates an Inbox notification for the new owner and links them to project People.
+- [x] Make dancerly English-only across the landing page, app, legal pages, sample flows, recap generation, and invite emails; preserve user-entered content and legally meaningful Korean-law references.
 
 ## Prototype alignment with the planning docs
 - [ ] Coach sidebar: Home · Inbox · Review queue · Projects · People · Insights · Settings (`docs/01-menu-structure.md`).
@@ -41,7 +42,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Supabase auth: email + password, one-time email confirmation (code or link), forgot/reset password, Google button behind a flag, profile on first visit.
 - [x] App shell: left sidebar on wide screens (＋ New, All projects, project list, account menu, hide toggle); bottom tab bar on phones (Projects · ＋ · Me) with the same actions. Review screen hides the tab bar.
 - [x] Workspace menus (docs/01): Home (checklist, For you, recent activity), Inbox (notifications table + triggers, unread badge, realtime), Feedback (For me / By me / Team × To do / Resolved), People (+ profile), Insights (stats, left-vs-fixed chart, by video / by person), Settings (account, notification prefs, projects, plan), project tabs Videos · Notes · People · Settings (invite links, transfer ownership, remove, delete/leave). Deep links `?note=` open the review at that moment. Phones: Home · Feedback · ＋ · Projects · Me, bell → Inbox.
-- [x] AI recaps: `generate-recap` Edge Function (RLS-scoped notes, cited items only, cache when nothing changed), Project › Recaps (All/Shared/Mine/Pinned, by week, earlier versions folded), recap page (citations → play the moment, pin, share → Inbox, regenerate, to-dos → Practicing), Me › My recaps, Home card. Needs `ANTHROPIC_API_KEY` secret. Not yet: streaming, weekly auto-recap, translation, per-sentence feedback, plan limits.
+- [x] AI recaps: `generate-recap` Edge Function (RLS-scoped notes, cited items only, cache when nothing changed), Project › Recaps (All/Shared/Mine/Pinned, by week, earlier versions folded), recap page (citations → play the moment, pin, share → Inbox, regenerate, to-dos → Practicing), Me › My recaps, Home card. Needs `ANTHROPIC_API_KEY` secret. Not yet: streaming, weekly auto-recap, per-sentence feedback, plan limits.
 - [x] Requests: `create_request` / `remind_request` RPCs, Project › Requests (active/closed, submission rate), request page (brief, reference video, per-person status Not submitted/Overdue/Submitted/Reviewed/All fixed, remind once an hour, close/reopen/delete), submit or re-submit as the next take, Inbox kinds.
 - [x] Review queue: `video_views` marks what you watched; Needs review / Re-submitted / Overdue, project filter, Start reviewing, Next video → (Shift+N) in the review.
 - [x] Calendar: `project_events`; global and per-project, month grid and agenda, request due dates included, add/edit/delete, .ics export. Home shows Due from you / To review / Coming up.
@@ -55,7 +56,7 @@ Setup notes: `docs/07-backend-setup.md`. Schema: `supabase/migrations/`.
 - [x] Sketch on the frame: ✎ Draw in the composer (pen, arrow, circle, 4 colors, undo, clear; D / Esc / Ctrl+Z). Saved as normalized vectors on the note (`notes.sketch`), shown over the video at the note's moment (2 s) or across its range, correct in mirror mode, also on guest links.
 - [x] Dance tools: counts (tap tempo or BPM + count 1 → eight·count badge, eight marks on the timeline, count on every note), compare mode (another take or another video side by side, synced; lines up by count 1, by music, or by hand). Guest share page: Try it with your team CTA (signup_source=share), counts shown to guests.
 - [ ] Needs the owner's setup: email/push delivery (SMTP, VAPID keys), billing, leaked-password protection (Auth settings).
-- [ ] Later: weekly auto-recap, recap translation, request announcement notes, per-sentence recap feedback.
+- [ ] Later: weekly auto-recap, request announcement notes, per-sentence recap feedback.
 - [x] Projects with Owner/Member, invite links (`/app/join/:code`), member list, leave/remove, rename/delete.
 - [x] Videos and takes (auto-numbered), private `takes` bucket, signed playback URLs.
 - [x] Review: notes on a moment or range, @mentions of project members, 👍 agree, practicing/resolve rules, loop, mirror, take summary, live updates.
@@ -83,7 +84,7 @@ See `docs/product-plan.md` for the full spec.
 - [ ] Recap Video filter (optional) on top of project × period.
 - [ ] Dancer self-serve "My recap": period × coach/project × category, private by default, share with coach, checklist → note status Practicing.
 - [ ] Class / weekly / monthly reports built only from coach notes, with source-note citations validated server-side.
-- [ ] Coach review before send; weekly digest email; auto-translation into each dancer's language.
+- [ ] Coach review before send; weekly digest email; English-only recap delivery.
 - [ ] Coach briefing before class (top recurring issues, stalled dancers).
 
 ## Phase 3.5 — motion signals (opt-in beta)

@@ -4803,8 +4803,6 @@ html.is-drawing body {
   transition: none;
 }
 
-/* Korean: break lines between words, not inside them */
-:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 
 /* ---------- Compare: two videos side by side ---------- */
 .player-pair {
@@ -5393,12 +5391,6 @@ body.is-guest .topbar {
     width: 100%;
   }
 }
-:lang(ko) .welcome-card,
-:lang(ko) .welcome-dialog,
-:lang(ko) .coach,
-:lang(ko) .sample-banner {
-  word-break: keep-all;
-}
 
 /* Review: "Fixed in this take?" on notes carried from an earlier take */
 /* Asked on a carried note when the next take is open: one line, two text buttons. */
@@ -5774,9 +5766,6 @@ body.is-guest .topbar {
   gap: 8px;
   flex: none;
 }
-:lang(ko) .sample-bar {
-  word-break: keep-all;
-}
 @media (max-width: 600px) {
   .sample-bar {
     flex-wrap: wrap;
@@ -5977,9 +5966,6 @@ body.is-guest .topbar {
 }
 .invite-strip .icon-btn {
   flex: none;
-}
-:lang(ko) .invite-strip {
-  word-break: keep-all;
 }
 @media (max-width: 600px) {
   .invite-strip {

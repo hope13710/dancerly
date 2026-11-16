@@ -2,7 +2,6 @@
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
 import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, actionSheet, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
-import { getLang } from '../i18n.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
 import { loadProject, projectHead, inviteLink } from './project.js';
 import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './shared.js';
@@ -25,14 +24,7 @@ const FRESH_KEY = 'looproom:fresh-recap';
 const SELECT = () => cols('id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, has_private, team, cycle, auto, created_at, projects(title), videos(title), recap_pins(user_id)');
 
 // A team recap read in another language shows its saved translation (made once, when someone asks).
-let showOriginal = false;
-function localize(r) {
-  const t = r?.content?.translations?.[getLang()];
-  if (!r || !t || showOriginal || (r.content.lang || 'en') === getLang()) return r;
-  const content = { ...r.content, headline: t.headline || r.content.headline };
-  for (const [k] of SECTIONS) content[k] = (r.content[k] || []).map((it, i) => ({ ...it, text: t[k]?.[i] || it.text }));
-  return { ...r, content };
-}
+function localize(r) { return r; }
 
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const periodLabel = (r) => (r.period === 'custom' ? `${day(r.period_start)} – ${day(r.period_end)}` : PERIODS[r.period]);
@@ -69,7 +61,7 @@ async function invokeErrorMessage(error) {
 }
 
 export async function generateRecap(params) {
-  const { data, error } = await sb.functions.invoke('generate-recap', { body: { ...params, lang: getLang() } });
+  const { data, error } = await sb.functions.invoke('generate-recap', { body: { ...params, lang: 'en' } });
   if (error) throw new Error(await invokeErrorMessage(error));
   return data;
 }
@@ -157,7 +149,7 @@ async function runGeneration(params) {
 
 // The group-chat version of a recap: headline, the top three to-dos, and links. In the app's language.
 function chatMessage(r, link, invite, pulse = null) {
-  const ko = getLang() === 'ko';
+  const ko = false;
   const next = (r.content?.next || []).slice(0, 3).map((it) => `• ${it.text}`).join('\n');
   return [
     `${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
@@ -186,7 +178,7 @@ async function teamPulse(r) {
   return { fixed, open: open.length, top: top && top[1] >= 2 ? top[0] : null, since };
 }
 function pulseText(p) {
-  const ko = getLang() === 'ko';
+  const ko = false;
   const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
   const parts = ko
     ? [`해결 ${p.fixed}개`, `남은 피드백 ${p.open}개`, p.top ? `가장 많은 분야: ${catLabel(p.top)}` : '']
@@ -194,7 +186,7 @@ function pulseText(p) {
   return `${lead}: ${parts.filter(Boolean).join(' · ')}`;
 }
 function pulseHtml(p) {
-  const ko = getLang() === 'ko';
+  const ko = false;
   const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
   return `<p class="recap-pulse" data-no-i18n><span class="pulse-lead">${lead}</span>
     <span class="pulse-num ok">${ic('check')}${ko ? `해결 <b>${p.fixed}</b>개` : `<b>${p.fixed}</b> fixed`}</span>
@@ -363,9 +355,6 @@ export async function renderRecap(recapId) {
   const isOwner = role?.role === 'owner';
   const canRedo = mine || r.team;
   const pulse = r.team ? await teamPulse(r).catch(() => null) : null;
-  // Written in another language: the saved translation, or a button that makes one.
-  const otherLang = (raw.content?.lang || 'en') !== getLang();
-  const translated = otherLang && raw.content?.translations?.[getLang()];
   const pinned = isPinned(r);
   const { data: myFeedback } = await sb.from('recap_feedback').select('helpful').eq('recap_id', r.id).eq('user_id', me).maybeSingle();
   const cited = (r.sources || []).map((src, i) => ({ ...src, n: i + 1 }));
@@ -381,7 +370,6 @@ export async function renderRecap(recapId) {
         <h1 class="recap-headline">${esc(r.content?.headline || 'Recap')}</h1>
         <div class="recap-meta">${recapMeta(r, names)}</div>
         ${pulse ? pulseHtml(pulse) : ''}
-        ${otherLang && !sampleProject ? `<p class="recap-lang">${translated ? `<span>${showOriginal ? 'Original' : 'Translated by AI'}</span> · <button class="text-btn link" data-original>${showOriginal ? 'Show translation' : 'Show original'}</button>` : `<button class="btn small ghost" data-translate>${getLang() === 'ko' ? 'Show in Korean' : 'Show in English'}</button>`}</p>` : ''}
       </header>
       ${newer ? `<div class="recap-stale"><span>${newer} new ${newer === 1 ? 'note' : 'notes'} since this recap</span>${canRedo ? `<button class="btn small primary" data-regenerate>${r.team ? 'Update' : 'Regenerate'}</button>` : ''}</div>` : ''}
       <div class="recap-body" data-body>${recapBody(r, { interactive: true })}</div>
@@ -410,13 +398,6 @@ export async function renderRecap(recapId) {
 
   const params = r.team ? { update_of: r.id } : { project_id: r.project_id, scope: r.scope, period: r.period, video_id: r.video_id, ...(r.period === 'custom' ? { from: r.period_start.slice(0, 10), to: r.period_end.slice(0, 10) } : {}) };
   $$('[data-regenerate]').forEach((b) => b.addEventListener('click', () => runGeneration(params)));
-  $('[data-original]')?.addEventListener('click', () => { showOriginal = !showOriginal; renderRecap(recapId); });
-  $('[data-translate]')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    try { await generateRecap({ translate: r.id }); showOriginal = false; renderRecap(recapId); }
-    catch (err) { btn.disabled = false; toast(err.message, 'error'); }
-  });
   $$('[data-feedback]').forEach((b) => b.addEventListener('click', async () => {
     const helpful = b.dataset.feedback === 'up';
     const undo = myFeedback?.helpful === helpful;

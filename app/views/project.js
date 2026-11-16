@@ -733,7 +733,7 @@ function wireInviteBox(el, projectId, title) {
   // Email invites (send-invite function, migration 052).
   const send = async (emails, button, fromInput = false) => {
     button.disabled = true;
-    const { data, error } = await sb.functions.invoke('send-invite', { body: { project_id: projectId, emails, lang: isKo ? 'ko' : 'en' } });
+    const { data, error } = await sb.functions.invoke('send-invite', { body: { project_id: projectId, emails, lang: 'en' } });
     button.disabled = false;
     if (error) {
       let msg = 'Couldn’t send the invite. Try again, or share the link.';

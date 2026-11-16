@@ -159,7 +159,7 @@ async function build(o: { notes: Note[]; db: SupabaseClient; scope: "me" | "proj
   const audience = scope === "me"
     ? `Personal recap for ${nameOf[o.me ?? ""] ?? "this dancer"}: notes they wrote, notes on their takes or videos, and notes that @mention them. Address them as "you".`
     : `Whole-project recap for everyone on "${o.projectTitle}". Address the team.`;
-  const language = lang === "ko" ? "\nWrite every headline and item in natural, friendly Korean (해요체). Keep counts, names, and dance terms as the notes wrote them." : "";
+  const language = "";
   const user = `${audience}${language}\nPeriod: ${o.start.toISOString().slice(0, 10)} to ${o.end.toISOString().slice(0, 10)}.\n\nNotes (${sources.length}):\n\n${lines.join("\n\n")}`;
   const { parsed, model } = await ask(SYSTEM, user, SCHEMA);
 
@@ -233,7 +233,7 @@ async function runSchedule() {
     if (generated >= MAX_PER_RUN) break;
     const rehearsals = (events ?? []).filter((e: { project_id: string }) => e.project_id === p.id);
     const setting = settingOf[p.created_by] ?? {};
-    const lang = setting.lang === "ko" ? "ko" : "en";
+    const lang = "en";
     let cycle: string | null = null;
     let start: Date | null = null;
     // Before a rehearsal: the next one starting within 3 hours, covering feedback since the one before it.
@@ -280,7 +280,7 @@ async function translate(asUser: SupabaseClient, recapId: string, lang: string) 
   if (!r) throw new Fail("This recap isn’t available.", 404);
   if (r.model === "sample" || r.content?.lang === lang || r.content?.translations?.[lang]) return r;
   const source = { headline: r.content?.headline ?? "", ...Object.fromEntries(SECTIONS.map((k) => [k, (r.content?.[k] ?? []).map((it: { text: string }) => it.text)])) };
-  const target = lang === "ko" ? "Korean" : "English";
+  const target = "English";
   const { parsed } = await ask(TRANSLATE_SYSTEM, `Translate into ${target}:\n${JSON.stringify(source)}`, TRANSLATION_SCHEMA);
   const t: Record<string, unknown> = { headline: String(parsed.headline ?? "").slice(0, 300) };
   for (const k of SECTIONS) {
@@ -315,10 +315,10 @@ Deno.serve(async (req) => {
   let body: { project_id?: string; scope?: string; period?: string; from?: string; to?: string; video_id?: string | null; lang?: string; usage_only?: boolean;
     exclude_private?: boolean; range?: { from?: string; to?: string }; update_of?: string; translate?: string };
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
-  const lang = body.lang === "ko" ? "ko" : "en";
+  const lang = "en";
 
   try {
-    if (body.translate) return json({ recap: await translate(asUser, body.translate, lang) });
+    if (body.translate) return json({ error: "Recap translation is not available; recaps are generated in English." }, 400);
 
     // ---------- This month's free recaps (counted from the product_events log, which people can't edit) ----------
     const now0 = new Date();

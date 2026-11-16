@@ -593,7 +593,6 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 }
 
 /* Korean: break lines between words, not inside them */
-:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .sketch-bar b { white-space: nowrap; }
 
 /* Wordmark logo (nav and footer) */
@@ -838,7 +837,3 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 /* Language: a quiet choice in the footer, as on global SaaS sites; the browser's language already picks it. */
 .footer-base { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 22px; }
 .footer-base .copyright { margin-top: 0; }
-.footer-lang { display: inline-flex; gap: 4px; }
-.footer-lang button { border: 0; background: none; font: inherit; font-size: 12px; color: var(--muted); padding: 6px 8px; border-radius: 6px; cursor: pointer; min-height: 32px; }
-.footer-lang button:hover { color: var(--ink); }
-.footer-lang button[aria-pressed="true"] { color: var(--ink); font-weight: 600; }

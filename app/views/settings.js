@@ -2,7 +2,6 @@
 import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
 import { cols, schema } from '../client.js';
 import { ctx } from '../ctx.js';
-import { LANGS, getLang, setLang } from '../i18n.js';
 import { openHelp } from '../help.js';
 import { ic } from '../icons.js';
 
@@ -74,10 +73,6 @@ export async function renderSettings(section = 'account') {
         </form>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2>Language</h2><p class="muted">Shown throughout dancerly on this device.</p></div>
-          <div class="seg small" role="group" aria-label="Language" data-no-i18n data-i18n-attrs>${LANGS.map(([k, l]) => `<button type="button" data-lang="${k}" aria-selected="${getLang() === k}">${l}</button>`).join('')}</div></div>
-      </section>
-      <section class="panel">
         <div class="panel-head"><div><h2>Sign-in</h2></div></div>
         <div class="list flush">
           <div class="row"><span class="row-main"><span class="row-title">Email</span><span class="row-meta">${esc(state.session.user.email || '')}</span></span></div>
@@ -102,11 +97,6 @@ export async function renderSettings(section = 'account') {
           ctx.route();
         });
         $('[data-signout-here]').addEventListener('click', () => ctx.signOut());
-        $$('[data-lang]').forEach((b) => b.addEventListener('click', () => {
-          if (b.dataset.lang === getLang()) return;
-          setLang(b.dataset.lang);
-          location.reload();
-        }));
         wireImagePicker({
           folder: `users/${state.session.user.id}`,
           save: (url) => sb.from('profiles').update({ avatar_url: url }).eq('id', state.session.user.id),
@@ -182,7 +172,7 @@ export async function renderSettings(section = 'account') {
   }
 
   async function plan() {
-    const ko = getLang() === 'ko';
+    const ko = false;
     // Your allowance (migration 044), with the per-project breakdown (migration 028). Older databases: 5 GB, unenforced.
     const [{ data: mine, error: mineErr }, { data: storage }] = await Promise.all([sb.rpc('my_storage'), sb.rpc('my_storage_usage')]);
     const perProject = (storage || []).filter((r) => Number(r.bytes));

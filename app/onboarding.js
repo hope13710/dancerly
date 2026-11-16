@@ -2,7 +2,6 @@
 // and one-time tips. Progress lives on the profile (profiles.onboarding) so it follows people across devices.
 import { sb, $, $$, esc, toast, friendlyError, dialog, schema, projectMark, notChoreo } from './client.js';
 import { ctx } from './ctx.js';
-import { getLang, isKo } from './i18n.js';
 import { createVideo } from './views/project.js';
 import { chooseChoreo } from './views/practice.js';
 import { myOpenRequests } from './views/requests.js';
@@ -59,7 +58,7 @@ const SAMPLE_SPOTS = { feedback: '/notes', inbox: '/notes', notes: '/notes', cal
 
 export async function openSample({ from = 'unknown' } = {}) {
   if (!schema.firstRun) return toast('The sample project isn’t available yet. Try again soon.');
-  const { data: projectId, error } = await sb.rpc('create_sample_project', { p_lang: getLang(), p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
+  const { data: projectId, error } = await sb.rpc('create_sample_project', { p_lang: 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
   if (error) return toast(friendlyError(error), 'error');
   track('sample_opened', { from });
   await ctx.refreshNav();
@@ -90,7 +89,7 @@ async function removeSample(projectId) {
 const SAMPLE_SEEN = 'looproom:sample-seen';
 export const markSampleSeen = () => { try { localStorage.setItem(SAMPLE_SEEN, String(Date.now())); } catch {} };
 export async function resetSample({ onlyIfChanged = false, quiet = false } = {}) {
-  const { data, error } = await sb.rpc('reset_sample', { p_lang: isKo ? 'ko' : 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_only_if_changed: onlyIfChanged });
+  const { data, error } = await sb.rpc('reset_sample', { p_lang: 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_only_if_changed: onlyIfChanged });
   if (error) { if (!quiet) toast(friendlyError(error), 'error'); return null; }
   if (data?.status !== 'done') return null;
   markSampleSeen();
@@ -98,7 +97,7 @@ export async function resetSample({ onlyIfChanged = false, quiet = false } = {})
   await ctx.refreshNav();
   const path = location.pathname.includes(data.previous) ? location.pathname.replace(data.previous, data.project) : `/app/p/${data.project}`;
   ctx.navigate(path, { replace: true });
-  toast(isKo ? '샘플이 처음 상태로 돌아갔어요.' : 'The sample is back to how it started.');
+  toast('The sample is back to how it started.');
   return data.project;
 }
 // Coming back to the sample after a while (30 minutes without it open): if anything was changed, start fresh.
@@ -241,8 +240,8 @@ export async function renderWelcome() {
   const invitesHtml = () => !pending.length ? '' : `<div class="welcome-invites">
       <p class="welcome-label">You’ve been invited</p>
       <div class="list">${pending.map((i) => `<div class="row welcome-invite">${projectMark({ id: i.project_id, title: i.project_title })}
-        <span class="row-main" data-no-i18n><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${isKo ? `${esc(i.invited_by_name)}님이 초대했어요` : `${esc(i.invited_by_name)} invited you`}</span></span>
-        ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta" data-no-i18n>${isKo ? '링크가 만료됐어요' : 'Link expired'}</span>`}</div>`).join('')}</div>
+        <span class="row-main" data-no-i18n><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${`${esc(i.invited_by_name)} invited you`}</span></span>
+        ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta" data-no-i18n>${'Link expired'}</span>`}</div>`).join('')}</div>
       <p class="welcome-or"><span>Or start your own team</span></p>
     </div>`;
 
@@ -271,7 +270,7 @@ export async function renderWelcome() {
     }
     if (step === 1) {
       const pick = TEAMS.find((x) => x[0] === team) || TEAMS[0];
-      const suggest = (isKo ? pick[3] : pick[2]).replace('{year}', year);
+      const suggest = pick[2].replace('{year}', year);
       view.innerHTML = frame(`${invitesHtml()}<h1>Who do you practice with?</h1>
         <p class="muted">One project per goal. Its videos, feedback, and schedule live inside it.</p>
         <div class="chips" role="group" aria-label="Who you practice with">${TEAMS.map(([k, label]) => `<button type="button" class="chip" data-team="${k}" aria-pressed="${k === (team || TEAMS[0][0])}">${label}</button>`).join('')}</div>

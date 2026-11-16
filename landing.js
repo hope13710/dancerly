@@ -1,5 +1,4 @@
-// Landing page: nav, signed-in state, English/Korean switch, and the small product animations.
-import { LANDING_KO } from './landing-ko.js';
+// Landing page: nav, signed-in state, and the small product animations.
 import { rememberSource } from '/app/source.js';
 rememberSource(); // ?ref=ig_dm etc., so a signup days later is still credited
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -27,44 +26,8 @@ if (signedIn()) {
   if (footerApp) { footerApp.textContent = 'Open dancerly'; footerApp.href = '/app'; }
 }
 
-// ---------- English / Korean (English by default; the choice is shared with the app) ----------
-const LANG_KEY = 'looproom:lang';
-// A saved choice wins; on a first visit, the browser's language (a Korean phone opens in Korean).
-let lang = /^ko\b/i.test((navigator.languages && navigator.languages[0]) || navigator.language || '') ? 'ko' : 'en';
-try { const saved = localStorage.getItem(LANG_KEY); if (saved === 'ko' || saved === 'en') lang = saved; } catch {}
-const originalText = new WeakMap();
-const ATTRS = ['aria-label', 'placeholder'];
-function applyLang() {
-  document.documentElement.lang = lang;
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (node.parentElement.closest('script, style, [data-hero-typed]')) continue;
-    if (!originalText.has(node)) originalText.set(node, node.nodeValue);
-    const en = originalText.get(node);
-    const key = en.replace(/\s+/g, ' ').trim();
-    const ko = lang === 'ko' ? LANDING_KO[key] : undefined;
-    // Korean honorifics attach to the name before them: "Maya" + " 님이…" → "Maya님이…".
-    node.nodeValue = ko === undefined ? en : ko.startsWith('님') ? en.replace(key, ko).trimStart() : en.replace(key, ko);
-  }
-  for (const el of document.querySelectorAll(ATTRS.map((a) => `[${a}]`).join(','))) {
-    for (const name of ATTRS) {
-      if (!el.hasAttribute(name)) continue;
-      const stash = `data-en-${name}`;
-      if (!el.hasAttribute(stash)) el.setAttribute(stash, el.getAttribute(name));
-      const en = el.getAttribute(stash);
-      el.setAttribute(name, lang === 'ko' ? LANDING_KO[en] ?? en : en);
-    }
-  }
-  $$('[data-set-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.setLang === lang)));
-}
-$$('[data-set-lang]').forEach((b) => b.addEventListener('click', () => {
-  if (b.dataset.setLang === lang) return;
-  lang = b.dataset.setLang;
-  try { localStorage.setItem(LANG_KEY, lang); } catch {}
-  track('language_switch', { lang });
-  applyLang();
-  show(step);
-}));
+// ---------- English-only page ----------
+document.documentElement.lang = 'en';
 
 // ---------- Nav ----------
 const nav = $('[data-nav]');
@@ -104,7 +67,7 @@ applyLang();
 // ---------- Hero: pin → sketch → loop → fixed, on a gentle loop while visible ----------
 const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
-const NOTE = { en: '@Maya reach all the way out on the arm hit…', ko: '@Maya 팔을 뻗는 동작에서 끝까지 뻗어 주세요…' };
+const NOTE = '@Maya reach all the way out on the arm hit…';
 let step = 0;
 let typing = 0;
 let visible = true;
@@ -184,7 +147,7 @@ function show(next) {
     pickTool('circle', 'y');
     toolTimer = setTimeout(() => pickTool('arrow', 'r'), 1550);
     let i = 0;
-    typing = setInterval(() => { const note = NOTE[lang]; typed.textContent = note.slice(0, (i += 1)); if (i >= note.length) clearInterval(typing); }, 45);
+    typing = setInterval(() => { const note = NOTE; typed.textContent = note.slice(0, (i += 1)); if (i >= note.length) clearInterval(typing); }, 45);
   }
 }
 if (reducedMotion) show(3);
@@ -196,13 +159,12 @@ else {
   let timer = 0;
   const DURATIONS = [3400, 2200, 3400, 3000];
   const pauseBtn = $('[data-hero-pause]');
-  const LABEL = { pause: { en: 'Pause demo', ko: '데모 일시정지' }, play: { en: 'Play demo', ko: '데모 재생' } };
+  const LABEL = { pause: 'Pause demo', play: 'Play demo' };
   const paintPause = () => {
     const label = LABEL[auto ? 'pause' : 'play'];
     pauseBtn.setAttribute('aria-pressed', String(!auto));
     if (!auto) chips.forEach((c) => c.classList.remove('run')); // the bar only runs while the demo does
-    pauseBtn.setAttribute('data-en-aria-label', label.en); // what the language switch restores
-    pauseBtn.setAttribute('aria-label', label[lang]);
+    pauseBtn.setAttribute('aria-label', label);
   };
   const chips = $$('[data-hero-step]');
   const runChip = () => {

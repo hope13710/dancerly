@@ -27,13 +27,11 @@ const first = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0] || "
 const url = Deno.env.get("SUPABASE_URL")!;
 const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-// Korean endings that depend on the last sound of a name (Fall Battle에 / 봄 공연에 are fine; 이/가 isn't needed here).
 type Copy = { subject: string; heading: string; body: string; cta: string; fine: string; text: string };
-function copy(o: { lang: string; who: string; project: string; others: string[]; count: number; until: string; reminder: boolean; link: string }): Copy {
+function copy(o: { lang: "en"; who: string; project: string; others: string[]; count: number; until: string; reminder: boolean; link: string }): Copy {
   const { who, project, count } = o;
   const named = o.others.slice(0, 2);
-  if (o.lang === "ko") {
-    const crowd = count <= 1 ? "" : named.length ? `${named.join(", ")}님${count - named.length > 0 ? ` 외 ${count - named.length}명` : ""}이 이미 함께하고 있어요.` : `이미 ${count}명이 함께하고 있어요.`;
+  const crowd = count <= 1 ? "" : named.length ? `${named.join(", ")}님${count - named.length > 0 ? ` 외 ${count - named.length}명` : ""}이 이미 함께하고 있어요.` : `이미 ${count}명이 함께하고 있어요.`;
     return {
       subject: o.reminder ? `${who}님이 ${project}에서 기다리고 있어요` : `${who}님이 ${project}에 초대했어요`,
       heading: o.reminder ? `${esc(project)}에 아직 참여하지 않으셨어요` : `${esc(who)}님이 ${esc(project)}에 초대했어요`,
@@ -103,7 +101,7 @@ async function context(projectId: string, inviter: string) {
 }
 const joinLink = (code: string, email: string, reminder: boolean) =>
   `${SITE}/app/join/${code}?email=${encodeURIComponent(email)}&ref=${reminder ? "email_invite_reminder" : "email_invite"}`;
-const untilLabel = (iso: string, lang: string) => new Date(iso).toLocaleDateString(lang === "ko" ? "ko-KR" : "en-US", { month: "long", day: "numeric" });
+const untilLabel = (iso: string, lang: string) => new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
 // ---------- Reminders (hourly) ----------
 async function reminders() {
@@ -141,7 +139,7 @@ Deno.serve(async (req) => {
   let body: { project_id?: string; emails?: unknown; lang?: string };
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const projectId = String(body.project_id ?? "");
-  const lang = body.lang === "ko" ? "ko" : "en";
+  const lang = "en";
   if (!/^[0-9a-f-]{36}$/.test(projectId)) return json({ error: "Pick a project first." }, 400);
   const emails = [...new Set((Array.isArray(body.emails) ? body.emails : []).map((e) => String(e).trim().toLowerCase()).filter(Boolean))];
   if (!emails.length) return json({ error: "Enter an email address." }, 400);

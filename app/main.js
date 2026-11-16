@@ -3,7 +3,7 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
-import { startTranslating, isKo, lang, t } from './i18n.js';
+import { startTranslating } from './i18n.js';
 import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
@@ -383,23 +383,9 @@ async function refreshNav() {
   if (!data) return;
   state.projects = data;
   if (state.profile) { paintNav(); paintNavDots(); }
-  matchSampleLanguage();
 }
 
-// The sample project is written in the language chosen when it was opened. If the app is now in the other
-// language, swap it for one in this language (your notes, replies and 👍 in it come along; migration 037).
-let sampleLanguageChecked = false;
-async function matchSampleLanguage() {
-  const sample = state.projects.find((p) => p.is_sample && p.created_by === state.session?.user.id);
-  if (!sample || sampleLanguageChecked || /^샘플/.test(sample.title) === isKo) return;
-  sampleLanguageChecked = true;
-  const { data, error } = await sb.rpc('relocalize_sample', { p_lang: isKo ? 'ko' : 'en', p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' });
-  if (error || data?.status !== 'done') return; // not set up yet, or kept because there's work of yours in it
-  await refreshNav();
-  if (location.pathname.includes(sample.id)) navigate(`/app/p/${data.project}`, { replace: true });
-  else route();
-}
-
+// The sample project is always created and reset in English; user-entered content is preserved.
 // A dot on a sidebar place someone saw while it was empty, once something has landed there.
 // Opening the place clears it for good. Checked at most once a minute.
 const NAV_DOTS = {
@@ -510,9 +496,7 @@ async function renameMe() {
 const TERMS_VERSION = '2026-10-25';
 // Google's own "G" mark (their branding rules ask for it on sign-in buttons).
 // Signing up (with email or Google) is the agreement: this line sits under every way in.
-const legalLine = () => isKo
-  ? '계속하면 만 14세 이상이며 <a href="/terms" target="_blank" rel="noopener">이용약관</a>과 <a href="/privacy" target="_blank" rel="noopener">개인정보 처리방침</a>에 동의하게 돼요.'
-  : 'By continuing, you confirm you’re 14 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.';
+const legalLine = () => 'By continuing, you confirm you’re 14 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.';
 // Only ever send people back inside the app after signing in.
 const safeNext = (next) => (next && /^\/app(\/|$|\?)/.test(next) && !next.startsWith('//') ? next : '/app');
 
@@ -867,7 +851,7 @@ async function loadProfile() {
   if (data) saveTimezone(user.id);
 }
 
-// Email follow-ups keep quiet hours in each person's own time zone, and will follow their app language
+// Email follow-ups keep quiet hours in each person's own time zone
 // (migration 048). Each is saved once per browser and account, and again when it changes.
 function saveTimezone(userId) {
   const save = (key, value, row) => {
@@ -877,7 +861,6 @@ function saveTimezone(userId) {
   };
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   save(`looproom:tz:${userId}`, tz, { timezone: tz });
-  save(`looproom:lang-saved:${userId}`, lang, { lang });
 }
 
 // What the ⌘K palette can do besides searching.
