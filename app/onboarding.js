@@ -126,7 +126,7 @@ export const teamNote = () => '';
 
 // Right after someone tries the core thing in the sample, the bar on top turns into the next step — once per moment.
 const MOMENTS = {
-  note: ['That’s the whole loop.', 'Pause, pin it, fix it in the next take. You can do this on your own videos, and so can anyone you invite.'],
+  note: ['That’s the whole loop.', 'Pause, note it, fix it in the next take. You can do this on your own videos, and so can anyone you invite.'],
   recap: ['dancerly writes the team recap before each practice.', 'Everyone on the project sees the same one. My recap is just your part.'],
   insights: ['This is Insights for the sample project.', 'Where people keep getting stuck, what got fixed, what’s waiting — yours fills in as notes come in.']
 };
@@ -385,7 +385,7 @@ export function reviewTips({ isOwner }) {
       ['[data-ab]', 'Loop the hard part', 'Tap A–B at the start and the end. Slow it down with the speed button.']
     ]
     : [
-      ['[data-list]', 'Your feedback, at its moment', 'Tap a note to jump there. Tap “I’m on it” while you work on it, then ✓ when it’s clean.'],
+      ['[data-list]', 'Your feedback, at its moment', 'Tap a note to jump there. Tap “I’m on it” while you work on it, then ✓ when it’s fixed.'],
       ['[data-ab]', 'Loop the part you’re drilling', 'Tap A–B at the start and the end. Slow it down with the speed button.'],
       ['[data-mirror]', 'Flip it to match the mirror', 'Mirror mode shows the video the way you see yourself in the studio.']
     ];

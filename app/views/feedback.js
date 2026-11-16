@@ -49,7 +49,7 @@ export async function renderFeedback() {
 
   const emptyCopy = {
     'for-me': ['Nothing waiting on you', 'Notes on videos you added, takes you uploaded, and @mentions of you collect here.'],
-    'by-me': ['You haven’t left notes yet', 'Open a video, pause on a moment, and pin what you see. Your notes collect here so you can follow up.'],
+    'by-me': ['You haven’t left notes yet', 'Open a video, pause on a moment, and leave a note. Your notes collect here so you can follow up.'],
     team: ['No notes yet', 'Notes everyone leaves across your projects show up here.']
   }[which];
 

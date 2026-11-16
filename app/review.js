@@ -905,7 +905,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         toast(to === 'resolved' ? 'Note reopened.' : '“Working on it” cleared.');
         loadNotes();
       } } : null;
-      toast(to === 'resolved' ? `Correction landed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as working on it.' : from === 'practicing' ? 'Practicing cleared.' : 'Note reopened.', 'info', undo);
+      toast(to === 'resolved' ? `Marked fixed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as working on it.' : from === 'practicing' ? '“Working on it” cleared.' : 'Note reopened.', 'info', undo);
       await loadNotes();
       // The last open note on this video just got fixed: offer a progress card, once, after Undo has had its
       // moment (8 seconds), and only if it's still fixed.

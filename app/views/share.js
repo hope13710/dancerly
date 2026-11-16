@@ -165,11 +165,11 @@ export async function renderShared(token) {
       ${data.allow_requests ? '<div data-guest-ask></div>' : ''}
       </div>
       ${data.notes.length ? `<aside class="panel guest-notes"><div class="panel-head"><div><h2>Notes</h2><p class="muted">Tap a time to jump there.</p></div></div>
-        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${ic(n.t_end === null ? 'at' : 'range')}${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · resolved' : ''}${n.sketch ? ' · sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
+        <ul>${data.notes.map((n) => `<li><button class="time-chip light" data-seek="${n.t_start}">${ic(n.t_end === null ? 'at' : 'range')}${n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`}</button><div><p>${esc(n.body)}</p><small>${esc(n.author)}${n.status === 'resolved' ? ' · fixed' : ''}${n.sketch ? ' · sketch' : ''}</small></div></li>`).join('')}</ul></aside>` : ''}
     </div>
     ${signedIn ? '' : `<aside class="guest-cta">
-      <div><p class="eyebrow">Made with dancerly</p><h2>Give your team feedback like this.</h2><p>Every dancer deserves to see their progress. Pin notes to the exact count, sketch on the frame, and watch each fix land in the next take.</p></div>
-      <div class="guest-cta-side"><div class="guest-cta-actions"><a class="btn primary" href="${ctaHref}" data-guest-cta="card">Start free</a><a class="btn ghost" href="/?ref=share" data-guest-cta="learn">See how it works</a></div><p class="guest-free">Free for your first team.</p></div>
+      <div><p class="eyebrow">Made with dancerly</p><h2>Give your team feedback like this.</h2><p>Leave notes on the exact count, sketch on the frame, and watch each fix land in the next take.</p></div>
+      <div class="guest-cta-side"><div class="guest-cta-actions"><a class="btn primary" href="${ctaHref}" data-guest-cta="card">Start free</a><a class="btn ghost" href="/?ref=share" data-guest-cta="learn">See how it works</a></div><p class="guest-free">Free for your whole team.</p></div>
     </aside>`}
     <p class="fine guest-foot">Shared with <a href="/?ref=share">dancerly</a> · dancerly.app</p>
   </section>`;
@@ -338,7 +338,7 @@ async function wireAsk(token, data, video) {
   const member = access.status === 'member';
   const hint = member ? 'You’re in this project. Your note posts right away.'
     : signedIn ? `Your note goes to ${esc(owner)} with a request to join.`
-    : 'Sign in to send. Your note is saved.';
+    : 'Log in to send. Your note is saved.';
   host.innerHTML = `<form class="guest-ask" data-ask-form>
     <div class="guest-ask-field"><span class="guest-ask-at" data-ask-at>${ic('at')}00:00.0</span><textarea data-ask-input rows="2" maxlength="2000" placeholder="Leave a note at this moment…" aria-label="Your note"></textarea></div>
     <div class="guest-ask-foot"><span class="guest-ask-hint">${hint}</span><button class="btn primary small" type="submit" data-ask-send>Send</button></div>

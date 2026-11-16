@@ -46,7 +46,7 @@ export async function renderProjects() {
     ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
       ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
         : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
-    : empty('folder', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start pinning notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
+    : empty('folder', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start leaving notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
 }
@@ -242,7 +242,7 @@ export async function renderProjectNotes(projectId) {
     ${projectHead(p, 'notes')}
     <div class="filters"><div class="seg small" role="group" aria-label="Status">${[['todo', 'To do'], ['resolved', 'Fixed'], ['all', 'All']].map(([k, l]) => `<a href="${base}?status=${k}" data-link aria-selected="${k === status}">${l} <span>${counts[k]}</span></a>`).join('')}</div></div>
     ${shown.length ? `<div class="list">${shown.map((n) => noteRow(n, names, { showProject: false })).join('')}</div>`
-      : notes.length ? empty('check_circle', 'All caught up', 'Nothing in this view.') : empty('note', 'No notes yet', 'Open a video, pause on a moment, and pin what you see.', samplePeek('notes'))}
+      : notes.length ? empty('check_circle', 'All caught up', 'Nothing in this view.') : empty('note', 'No notes yet', 'Open a video, pause on a moment, and leave a note.', samplePeek('notes'))}
   </section>`;
 }
 
@@ -538,7 +538,7 @@ export async function createVideo(projectId, { request = null, name = null } = {
   if (error) return toast(friendlyError(error), 'error');
   try {
     await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
-    toast('Uploaded. Pause on a moment and pin your first note.');
+    toast('Uploaded. Pause on a moment and add your first note.');
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
     inviteAfterFirstVideo(projectId);
   } catch (err) {

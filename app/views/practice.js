@@ -162,7 +162,7 @@ export async function renameChoreo(projectId, choreo) {
 export async function removeChoreo(projectId, choreo) {
   const ok = await dialog({
     title: 'Remove the choreo video?',
-    body: choreo.kind === 'file' ? 'The uploaded file is deleted. Sections stay in the count sheet.' : 'Practice turns off until you add another. Sections stay in the count sheet.',
+    body: choreo.kind === 'file' ? 'The uploaded file is deleted. Your sections stay.' : 'Practice turns off until you add another. Your sections stay.',
     confirm: 'Remove',
     danger: true
   });
@@ -698,7 +698,7 @@ export async function renderPractice(projectId, guest = null) {
       patch = { t_end: t };
     }
     if (choice === 'delete') {
-      if (!(await dialog({ title: `Delete “${s.section}”?`, body: 'It’s removed from the count sheet too. The video isn’t changed.', confirm: 'Delete', danger: true }))) return;
+      if (!(await dialog({ title: `Delete “${s.section}”?`, body: 'It’s removed for everyone on the project. The video isn’t changed.', confirm: 'Delete', danger: true }))) return;
       const { error } = await sb.from('count_sheet_rows').delete().eq('id', s.id);
       if (error) return toast(friendlyError(error), 'error');
       if (current === i) { looping = false; current = -1; }

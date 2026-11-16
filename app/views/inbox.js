@@ -14,7 +14,7 @@ const VERB = {
   mention: 'mentioned you',
   note_on_your_video: 'left a note on',
   new_take: 'uploaded',
-  note_resolved: 'resolved your note on',
+  note_resolved: 'marked your note fixed on',
   joined: 'joined'
 };
 
