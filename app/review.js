@@ -369,7 +369,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       // starting at its moment, one quiet line of context, and the rest of the actions when you point at it.
       const count = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
       const meta = [
-        n.category ? (canManageNote(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : '',
+        n.category ? (canManageNote(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area" aria-haspopup="menu">${catChip(n.category)}${ic('down', 'solo')}</button>` : catChip(n.category)) : '',
         from,
         n.status === 'practicing' ? '<span class="status s-practicing">Working on it</span>' : '',
       ].filter(Boolean);

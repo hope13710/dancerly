@@ -10734,3 +10734,67 @@ article.note[data-note] .reply-form {
     min-height: 0;
   }
 }
+
+/* A note's focus area is a button you can see and hit: a pill with ▾ (as editable properties are in Linear and
+   Notion), 28px tall, 32px with touch (and a 44px tap area). It was an 11px label. */
+.note-meta .cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 8px 0 9px;
+  border: 1px solid #3e4757;
+  border-radius: 999px;
+  color: #c4c9d6;
+}
+.note-meta .cat-btn .cat-chip {
+  font-size: 12px;
+  color: inherit;
+}
+.note-meta .cat-btn > .ic {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+}
+.note-meta .cat-btn:hover,
+.note-meta .cat-btn:focus-visible {
+  border-color: var(--cat, #566176);
+  background: rgba(255, 255, 255, 0.04);
+}
+.note-meta .cat-btn:hover .cat-chip,
+.note-meta .cat-btn:focus-visible .cat-chip {
+  box-shadow: none;
+}
+@media (pointer: coarse) {
+  .note-meta .cat-btn { min-height: 32px; padding: 0 10px 0 11px; }
+}
+
+/* The other places you pick a focus area: the filter pills (Who, Status, Focus) and the topic chips that start a
+   note. Same size as the focus-area pill on a note: 28px, 32px with touch plus a taller invisible tap area. */
+.nf-pill {
+  min-height: 28px;
+}
+.starter-chips .mini {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+}
+.starter-chips .mini .cat-chip {
+  font-size: 12px;
+}
+@media (pointer: coarse) {
+  .nf-pill {
+    position: relative;
+    min-height: 32px;
+    padding: 0 10px;
+  }
+  .nf-pill::after {
+    content: "";
+    position: absolute;
+    inset: -6px 0;
+  }
+  .starter-chips .mini {
+    min-height: 36px;
+  }
+}
