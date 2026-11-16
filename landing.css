@@ -815,3 +815,29 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 @media (max-width: 600px) { .pc-label { display: none; } .pr-controls .chip.on .ic { margin-right: 0; } }
 /* As on a phone in the app: the loop chip drops to its own row under the controls. */
 @media (max-width: 600px) { .pr-controls { row-gap: 8px; } .pr-controls .pr-loop-chip { order: 99; } }
+
+/* Practice mockup, as in the app: one speed button, Counts, and sections with eights, who dances them, and status. */
+.pr-controls .speed-on { padding: 4px 9px; }
+.pr-sec small { white-space: nowrap; }
+.pr-people { display: inline-flex; flex: none; }
+.pr-people .av { width: 20px; height: 20px; font-size: 8px; box-shadow: 0 0 0 2px #1b1f27; }
+.pr-people .av + .av { margin-left: -6px; }
+.pr-status { flex: none; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; background: rgba(255, 255, 255, 0.08); color: #aab1bd; white-space: nowrap; }
+.pr-status.s-practicing { background: rgba(100, 210, 255, 0.14); color: #8fdcff; }
+.pr-status.s-clean { background: rgba(79, 213, 156, 0.16); color: #4fd59c; }
+.pr-sec.mine .pr-sec-name::after, .pr-sec.mine > span > b::after { content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 5px; border-radius: 50%; background: #8b8cff; vertical-align: middle; }
+.pr-sec > span:first-of-type { flex-wrap: wrap; row-gap: 0; }
+@media (max-width: 600px) { .pr-controls .pr-counts .pc-label { display: none; } .pr-sec em span { display: none; } .pr-sec small { font-size: 10px; } }
+/* Section rows: only the name block grows; the people and the status keep their size. */
+.pr-sec > .pr-people, .pr-sec > .pr-status { flex: none; display: inline-flex; }
+/* Nothing in the Practice card may push it wider than a small phone. */
+.prac-stack, .prac-win, .prac-add, .pa-row { min-width: 0; max-width: 100%; }
+.pa-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.prac-src { min-width: 0; gap: 8px; }
+.prac-src b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prac-src span { flex: none; }
+@media (max-width: 600px) {
+  .pr-sec small { white-space: normal; }
+  .pr-sec > span:first-of-type { display: grid; gap: 1px; }
+}
+@media (max-width: 380px) { .pa-file { padding: 6px 8px; font-size: 11px; } }
