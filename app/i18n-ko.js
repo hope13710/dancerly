@@ -471,6 +471,8 @@ export const KO = {
   'New notes': '새 피드백',
   'Practice': '연습하기',
   'Practice it': '원본으로 연습',
+  'Dance counts from the tempo (T to tap)': '템포로 카운트 표시 (T로 박자 탭)',
+  'Counts saved. Everyone practicing sees them.': '카운트를 저장했어요. 연습하는 모두에게 보여요.',
   'Short': '짧게',
   'Whole section': '파트 전체',
   'How much to loop': '반복 길이',

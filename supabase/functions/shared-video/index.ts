@@ -78,12 +78,12 @@ Deno.serve(async (req) => {
 async function practiceLink(ps: any) {
   if (ps.revoked) return json({ error: "This link was turned off." }, 404);
   if (ps.expires_at && new Date(ps.expires_at) < new Date()) return json({ error: "This link has expired. Ask for a new one." }, 410);
-  const { data: project } = await admin.from("projects").select("id, title, deleted_at, is_sample, choreo_video_id, choreo_youtube, choreo_title").eq("id", ps.project_id).maybeSingle();
+  const { data: project } = await admin.from("projects").select("id, title, deleted_at, is_sample, choreo_video_id, choreo_youtube, choreo_title, choreo_bpm, choreo_count_start").eq("id", ps.project_id).maybeSingle();
   if (!project || project.deleted_at || project.is_sample) return json({ error: "This page isn’t available." }, 404);
   let choreo: Record<string, unknown> | null = null;
   let title = project.choreo_title ?? "";
   if (project.choreo_youtube) {
-    choreo = { kind: "youtube", id: project.choreo_youtube, title: project.choreo_title ?? "" };
+    choreo = { kind: "youtube", id: project.choreo_youtube, title: project.choreo_title ?? "", bpm: project.choreo_bpm ?? null, count_start: project.choreo_count_start ?? null };
   } else if (project.choreo_video_id) {
     const { data: video } = await admin.from("videos").select("id, title, bpm").eq("id", project.choreo_video_id).is("deleted_at", null).maybeSingle();
     const { data: take } = video ? await admin.from("takes").select("storage_path, count_start").eq("video_id", video.id).is("deleted_at", null).order("number", { ascending: false }).limit(1).maybeSingle() : { data: null };

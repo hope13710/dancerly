@@ -10378,3 +10378,7 @@ body.is-guest .tabbar {
 .pf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .pf-row .spacer { flex: 1; }
 .practice-focus.is-on .pf-actions { width: auto; }
+.sec-counts { white-space: nowrap; }
+.side-head .spacer { flex: 1; }
+.counts-btn { align-self: center; color: #c9cdd8; border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); font-variant-numeric: tabular-nums; }
+.counts-btn:hover, .counts-btn[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.12); }

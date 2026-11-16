@@ -1,7 +1,7 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
+import { sb, $, $$, esc, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { volumeControl, wireVolume } from '../volume.js';
@@ -10,7 +10,7 @@ import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
 import { ic, ytIcon } from '../icons.js';
 import { isKo } from '../i18n.js';
-import { countAt, countLabel } from '../counts.js';
+import { countAt, countLabel, tapTempo } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
 import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange, LOOP_LENGTHS } from '../choreo-align.js';
 
@@ -304,11 +304,19 @@ export async function renderPractice(projectId, guest = null) {
   const FOCUS = -2;
   let focus = null; // { a, b } in the choreo video, while practicing a note's moment
   let onLoopChange = null; // repaints the note's bar when its loop stops or starts
+  let countsUi = null; // the counts panel (set up below, once the player exists)
   let looping = false; // a section loops only once someone picks it
   const wanted = params.get('section');
   const title = choreoTitle(choreo);
-  const counts = choreo.kind === 'file' && choreo.video.bpm && choreo.take.count_start !== null && choreo.take.count_start !== undefined
-    ? { bpm: Number(choreo.video.bpm), start: Number(choreo.take.count_start) } : null;
+  // Counts: the tempo and where count 1 falls. A choreo video file keeps them on its video and take; a YouTube one on
+  // the project (migration 068). Anyone in the project sets them here, like sections.
+  const has = (v) => v !== null && v !== undefined;
+  const ytBpm = guest ? guest.choreo.bpm : p.project.choreo_bpm;
+  const ytStart = guest ? guest.choreo.count_start : p.project.choreo_count_start;
+  let counts = choreo.kind === 'file'
+    ? (choreo.video.bpm && has(choreo.take.count_start) ? { bpm: Number(choreo.video.bpm), start: Number(choreo.take.count_start) } : null)
+    : (ytBpm && has(ytStart) ? { bpm: Number(ytBpm), start: Number(ytStart) } : null);
+  const canCount = !guest && (choreo.kind === 'file' ? Boolean(choreo.take.id) : schema.choreoCounts);
 
   const signedIn = Boolean(ctx.state.session);
   view.innerHTML = `${guest ? `<div class="guest-bar practice-guest-bar"><a class="guest-brand" href="/?ref=practice-share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small ghost" href="${signedIn ? '/app' : '/?ref=practice-share'}">${signedIn ? 'Open dancerly' : 'What’s dancerly?'}</a></div>` : ''}
@@ -341,10 +349,19 @@ export async function renderPractice(projectId, guest = null) {
           <button class="toggle-btn" data-mirror aria-pressed="${mirror}" title="Mirror (M)">${ic('mirror')}<span class="wide-only">Mirror</span></button>
           <button class="toggle-btn full-btn" data-full aria-pressed="false" title="Full screen (F)" aria-label="Full screen">${ic('expand', 'solo')}</button>
         </div>
+        ${canCount ? `<div class="counts-panel" data-counts-panel hidden>
+          <div class="counts-row">
+            <button type="button" class="tap-btn" data-tap>Tap the beat <small>(T)</small></button>
+            <label class="bpm-field"><input type="number" min="40" max="240" step="0.1" inputmode="decimal" data-bpm placeholder="120" aria-label="Tempo in BPM" /><span>BPM</span></label>
+            <button type="button" class="btn small" data-count-one>Count 1 is here · <b data-count-one-at>00:00.0</b></button>
+          </div>
+          <p class="counts-hint" data-counts-hint></p>
+          <div class="counts-actions"><span class="spacer"></span><button type="button" class="mini ghost" data-counts-clear>Clear</button><button type="button" class="btn small primary" data-counts-save>Save counts</button></div>
+        </div>` : ''}
       </div>
       <aside class="notes-col practice-side">
         ${guest ? '<div class="guest-join" data-guest-join></div>' : ''}
-        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
+        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${canCount ? `<span class="spacer"></span><button type="button" class="mini counts-btn" data-counts-toggle aria-pressed="false" title="Dance counts from the tempo (T to tap)"></button>` : ''}</div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
         ${guest ? '' : `<div class="sec-mark" data-mark-box hidden></div>
@@ -395,8 +412,16 @@ export async function renderPractice(projectId, guest = null) {
       </div>`;
     };
     const time = (i) => { const [a, b] = bounds(i); return `${fmt(a)}–${Number.isFinite(b) ? fmt(b) : '…'}`; };
+    // With counts and no counts typed in: where the section starts and ends, in eights (2·1–4·8).
+    const countRange = (i) => {
+      if (!counts) return '';
+      const [a, b] = bounds(i);
+      const c1 = countAt(a + 0.03, counts.bpm, counts.start);
+      const c2 = Number.isFinite(b) ? countAt(b - 0.08, counts.bpm, counts.start) : null;
+      return c1 ? ` · <span class="sec-counts" data-no-i18n>${countLabel(c1)}${c2 ? `–${countLabel(c2)}` : ''}</span>` : '';
+    };
     $('[data-secs]').innerHTML = row(-1, isKo ? '전체' : 'Whole song', player.duration ? `${fmt(0)}–${fmt(player.duration)}` : '')
-      + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span data-no-i18n>${esc(s.counts)}</span>` : ''}`)).join('')
+      + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span data-no-i18n>${esc(s.counts)}</span>` : countRange(i)}`)).join('')
       + (sections.length || guest ? '' : `<div class="sec-empty"><b>Mark the parts of the song</b><p>Play to where a part starts (the intro, a verse, the chorus), then tap “Add a section”. Tap a section to loop it.</p></div>`);
     $('[data-bands]').innerHTML = sections.map((s, i) => { const [a, b] = bounds(i); return `<i class="t-band b${i % BANDS}" style="left:${pct(a)};width:calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})" title="${esc(s.section || '')}"></i>`; }).join('');
     $$('[data-prev], [data-next]').forEach((b) => { b.disabled = !sections.length; });
@@ -435,6 +460,7 @@ export async function renderPractice(projectId, guest = null) {
     track.setAttribute('aria-valuemax', String(Math.round(player.duration || 0)));
     track.setAttribute('aria-valuenow', String(Math.round(t)));
     track.setAttribute('aria-valuetext', fmt(t));
+    countsUi?.paint();
     if (counts) {
       const c = countAt(t, counts.bpm, counts.start);
       const key = c ? countLabel(c) : '';
@@ -743,6 +769,7 @@ export async function renderPractice(projectId, guest = null) {
     else if (k === '[') { e.preventDefault(); markAt('start'); }
     else if (k === ']') { e.preventDefault(); markAt('end'); }
     else if (k === 'm') setMirror(!mirror);
+    else if (k === 't' && canCount) countsUi.tap();
     else if (k === 'f') toggleFull();
     else if (k === 's') startMark();
     else if (k === 'escape' && col.classList.contains('is-full') && !fsElement()) toggleFull();
@@ -752,6 +779,60 @@ export async function renderPractice(projectId, guest = null) {
   document.addEventListener('keydown', onKey);
   const onVisible = () => { if (document.visibilityState === 'visible' && !player.paused) keepAwake(true); };
   document.addEventListener('visibilitychange', onVisible);
+
+  // ---------- Counts: tap the beat or type the BPM, pause on count 1, save for the team ----------
+  countsUi = (() => {
+    const panel = $('[data-counts-panel]');
+    if (!panel) return { tap: () => {}, paint: () => {} };
+    const tapper = tapTempo();
+    let draft = null;
+    const hint = () => {
+      $('[data-counts-hint]').textContent = !draft.bpm ? 'Play the music and tap along, or type the BPM. Then pause on count 1 of the first eight.'
+        : draft.start === null ? `${draft.bpm} BPM. Now pause on count 1 of the first eight and tap “Count 1 is here”.`
+        : `${draft.bpm} BPM · count 1 at ${fmtFine(draft.start)}. Save to show counts for everyone.`;
+    };
+    const open = (on = panel.hidden) => {
+      panel.hidden = !on;
+      $('[data-counts-toggle]').setAttribute('aria-pressed', String(on));
+      if (on) { draft = { bpm: counts?.bpm ?? null, start: counts?.start ?? null }; $('[data-bpm]').value = draft.bpm ?? ''; hint(); paint(); panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    };
+    const paint = () => { if (!panel.hidden) $('[data-count-one-at]').textContent = fmtFine(draft?.start ?? player.time); };
+    const label = () => { $('[data-counts-toggle]').innerHTML = `${ic('music')}<span data-no-i18n>${counts ? `${counts.bpm} BPM` : (isKo ? '카운트 설정' : 'Set counts')}</span>`; };
+    label();
+    const tap = () => {
+      if (panel.hidden) open(true);
+      const bpm = tapper.tap();
+      const btn = $('[data-tap]');
+      btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+      if (bpm && bpm >= 40 && bpm <= 240) { draft.bpm = bpm; $('[data-bpm]').value = bpm; hint(); }
+    };
+    const store = async (bpm, start) => {
+      const { error } = choreo.kind === 'file'
+        ? await sb.rpc('set_counts', { p_take: choreo.take.id, p_bpm: bpm, p_count_start: start })
+        : await sb.rpc('set_choreo_counts', { p_project: projectId, p_bpm: bpm, p_count_start: start });
+      if (error) { toast(friendlyError(error), 'error'); return false; }
+      if (choreo.kind === 'file') { choreo.video.bpm = bpm; choreo.take.count_start = start; } else { p.project.choreo_bpm = bpm; p.project.choreo_count_start = start; }
+      counts = bpm && start !== null ? { bpm, start } : null;
+      countKey = '-';
+      label();
+      if (!counts) $('[data-count]').hidden = true;
+      paintSections();
+      paintTime();
+      track('practice_counts', { kind: choreo.kind, set: Boolean(counts) });
+      return true;
+    };
+    $('[data-counts-toggle]').addEventListener('click', () => open());
+    $('[data-tap]').addEventListener('click', tap);
+    $('[data-bpm]').addEventListener('input', (e) => { const v = Number(e.target.value); draft.bpm = v >= 40 && v <= 240 ? Math.round(v * 10) / 10 : null; hint(); });
+    $('[data-count-one]').addEventListener('click', () => { player.pause(); draft.start = Math.round(player.time * 1000) / 1000; hint(); paint(); });
+    $('[data-counts-save]').addEventListener('click', async () => {
+      if (!draft.bpm) return toast('Set the tempo first — tap along or type the BPM.');
+      if (draft.start === null) return toast('Pause on count 1 and tap “Count 1 is here”.');
+      if (await store(draft.bpm, draft.start)) { open(false); toast('Counts saved. Everyone practicing sees them.'); }
+    });
+    $('[data-counts-clear]').addEventListener('click', async () => { if (await store(null, null)) { open(false); toast('Counts cleared.'); } });
+    return { tap, paint };
+  })();
 
   // ---------- From a note: its moment in the original, looped at 0.75× ----------
   // The note's time is on a take; the take lines up with the choreo video once (by the music for a video file,
