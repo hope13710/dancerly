@@ -284,11 +284,12 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const short = (names) => (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
     const allWord = isKo ? '전체' : 'All';
     const pill = (key, label, value, on) => `<button type="button" class="nf-pill${on ? ' on' : ''}" data-nf-pill="${key}" aria-haspopup="menu" aria-expanded="false" data-no-i18n><span class="nf-pill-k">${label}</span><span class="nf-pill-v">${esc(value)}</span>${ic('down', 'solo')}</button>`;
-    bar.innerHTML = `<div class="nf-row">
+    bar.innerHTML = `<div class="nf-row"><div class="nf-pills">
       ${pill('who', isKo ? '대상' : 'Who', nf.who === 'mine' ? (isKo ? '나에게 온 피드백' : 'For you') : allWord, nf.who !== 'all')}
       ${pill('status', isKo ? '상태' : 'Status', nf.statuses.length ? short(STATUSES.filter(([k]) => nf.statuses.includes(k)).map(([, l]) => l)) : allWord, nf.statuses.length > 0)}
       ${catKeys.length > 1 ? pill('cat', isKo ? '항목' : 'Focus', nf.cats.length ? short(nf.cats.map((k) => catLabel(k))) : allWord, nf.cats.length > 0) : ''}
-      ${filtering() ? `<button type="button" class="link-btn nf-reset" data-nf-reset data-no-i18n>${isKo ? '초기화' : 'Reset'}</button>` : ''}
+</div>
+      ${filtering() ? `<button type="button" class="nf-pill nf-reset" data-nf-reset aria-label="${isKo ? '필터 초기화' : 'Clear filters'}" title="${isKo ? '필터 초기화' : 'Clear filters'}" data-no-i18n>${ic('x', 'solo')}</button>` : ''}
       <button type="button" class="nf-pill nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('sort', 'solo')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button>
     </div>`;
     const count = (swap) => (n) => passes(n, { ...nf, ...swap });
