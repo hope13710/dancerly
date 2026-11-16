@@ -156,6 +156,9 @@ document.addEventListener('click', (event) => {
   const link = event.target.closest('a[data-link]');
   if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
   event.preventDefault();
+  // The phone back link, pointing at the page this one was opened from, goes back like the browser's Back:
+  // opening that page anew would make it think it was opened from here, and the two would point at each other.
+  if (link.hasAttribute('data-back') && link.dataset.returns === '1' && history.state?.from === link.getAttribute('href')) { history.back(); return; }
   // data-replace: tabs inside one screen (Take 1, Take 2) switch in place, so Back leaves the screen.
   navigate(link.getAttribute('href'), { replace: link.hasAttribute('data-replace') });
 });
@@ -260,8 +263,10 @@ function setCrumbs(items) {
   // to Me, where phones open it from.
   if (parent && /^\/app\/settings(?:\/[a-z]+)?\/?$/.test(location.pathname)) parent = ['Me', '/app/me'];
   // Opened from somewhere else (Inbox, Feedback, an assignment, a video…): back returns there, not to the parent.
-  const target = (parent && backContext(parent[1])) || parent;
+  const opener = parent && backContext(parent[1]);
+  const target = opener || parent;
   const back = $('[data-back]');
+  back.dataset.returns = opener ? '1' : '';
   back.hidden = !target;
   document.body.classList.toggle('has-back', Boolean(target));
   if (target) { back.href = target[1]; back.innerHTML = `${ic('back')}${esc(target[0])}`; }
