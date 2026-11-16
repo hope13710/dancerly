@@ -277,7 +277,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const bar = $('[data-note-filters]');
     if (!bar) return;
     const all = visibleNotes();
-    bar.hidden = all.length < 4 && !filtering();
+    // A handful of notes doesn't need filters; but once the row is up it stays while you're on the page, so fixing a
+    // note (which takes a note from an earlier take out of the list) doesn't pull the row away mid-task.
+    r.filtersShown ||= all.length >= 4 || filtering();
+    bar.hidden = !r.filtersShown;
     if (bar.hidden) return;
     const catKeys = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
     const short = (names) => (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
