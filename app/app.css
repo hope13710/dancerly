@@ -10547,3 +10547,18 @@ article.note[data-note] .reply-form {
   cursor: help;
   white-space: nowrap;
 }
+
+/* Change the music: a quiet pencil after the song, for anyone in the project. */
+.music .music-edit {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--muted);
+}
+.music .music-edit:hover {
+  color: var(--ink);
+}
+@media (pointer: coarse) {
+  .music .music-edit { width: 36px; height: 36px; }
+}

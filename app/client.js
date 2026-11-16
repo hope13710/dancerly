@@ -21,7 +21,7 @@ export const GOOGLE_G = '<svg class="g" viewBox="0 0 48 48" width="18" height="1
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, u, w, x, y, z] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, u, w, x, y, z, mu] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
@@ -43,7 +43,8 @@ export async function detectSchema() {
     sb.from('notes').select('edited_at').limit(1),
     sb.from('requests').select('reference_take_id').limit(1),
     // A function that exists answers "not found" for a made-up id; a missing one is PGRST202.
-    sb.rpc('delete_choreo_video', { p_video: '00000000-0000-0000-0000-000000000000' })
+    sb.rpc('delete_choreo_video', { p_video: '00000000-0000-0000-0000-000000000000' }),
+    sb.rpc('set_project_music', { p_project: '00000000-0000-0000-0000-000000000000', p_title: null, p_url: null })
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
@@ -66,6 +67,7 @@ export async function detectSchema() {
   schema.noteEdited = !missing(x.error); // migration 070
   schema.requestTake = !missing(y.error); // migration 070
   schema.choreoMembers = !/PGRST202|Could not find the function/i.test(`${z.error?.code} ${z.error?.message}`); // migration 071
+  schema.musicMembers = !/PGRST202|Could not find the function/i.test(`${mu.error?.code} ${mu.error?.message}`); // migration 072
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id']), ...(schema.shareCards ? [] : ['allow_share_cards']), ...(schema.noteCategories ? [] : ['category']), ...(schema.teamRecaps ? [] : ['team', 'cycle', 'auto', 'auto_recap']), ...(schema.choreo ? [] : ['choreo_video_id', 'choreo_youtube', 'choreo_title']), ...(schema.shareLinks ? [] : ['members_share_practice']), ...(schema.teamLinks ? [] : ['members_share_links']), ...(schema.choreoCounts ? [] : ['choreo_bpm', 'choreo_count_start']), ...(schema.noteEdited ? [] : ['edited_at']), ...(schema.requestTake ? [] : ['reference_take_id'])];

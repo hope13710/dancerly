@@ -30,6 +30,8 @@ export async function renderProjectOverview(projectId) {
   const choreoLine = choreo
     ? `<p class="music choreo-line">${ic('loop')}<span class="muted">${isKo ? '원본 안무' : 'Choreo'} · </span><a class="link" href="${practiceHref}" data-link data-no-i18n>${esc(choreoTitle(choreo))}${ic('right', 'after')}</a>${parts ? `<span class="muted" data-no-i18n> · ${isKo ? `파트 ${parts}개` : `${parts} ${parts === 1 ? 'part' : 'parts'}`}</span>` : ''}</p>`
     : canChoreo(p) && schema.choreo && !p.project.is_sample ? `<p class="music choreo-line">${ic('loop')}<button type="button" class="text-btn link" data-add-choreo>Add a choreo video</button></p>` : '';
+  // The music is the team's (migration 072): anyone adds or changes it. The goal stays the owner's.
+  const canMusic = p.isOwner || schema.musicMembers;
   const goal = p.goal; // picked by the owner, else the next show
   const next = (events || [])[0];
   const clean = (rows || []).filter((r) => r.status === 'clean').length;
@@ -40,7 +42,8 @@ export async function renderProjectOverview(projectId) {
       <section class="panel">
         <div class="panel-head"><div><h2>Goal</h2></div>${p.isOwner ? '<button class="btn ghost small" data-edit-goal>Edit</button>' : ''}</div>
         ${extra?.goal ? `<p class="brief">${esc(extra.goal)}</p>` : `<p class="panel-empty">${p.isOwner ? 'What is this project for? “Clean, confident chorus for the spring showcase.”' : 'The owner hasn’t written a goal yet.'}</p>`}
-        ${extra?.music_title || extra?.music_url ? `<p class="music">${ic('music')}${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)}${ic('arrow', 'after')}</a>` : esc(extra.music_title)}</p>` : ''}
+        ${extra?.music_title || extra?.music_url ? `<p class="music">${ic('music')}${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)}${ic('arrow', 'after')}</a>` : esc(extra.music_title)}${canMusic ? `<button type="button" class="icon-btn music-edit" data-edit-music aria-label="Change the music" title="Change the music">${ic('pen', 'solo')}</button>` : ''}</p>`
+          : canMusic && !p.project.is_sample ? `<p class="music">${ic('music')}<button type="button" class="text-btn link" data-edit-music>Add the music</button></p>` : ''}
         ${choreoLine}
       </section>
       <section class="panel countdown">
@@ -73,6 +76,23 @@ export async function renderProjectOverview(projectId) {
   const byId = Object.fromEntries([...(events || []), ...(goal ? [goal] : [])].map((e) => [e.id, e]));
   $$('[data-event]').forEach((b) => b.addEventListener('click', () => showEvent(byId[b.dataset.event], () => renderProjectOverview(projectId), projectId)));
   $('[data-add-choreo]')?.addEventListener('click', async (e) => { if (await chooseChoreo({ projectId, anchor: e.currentTarget })) ctx.navigate(practiceHref); });
+  $('[data-edit-music]')?.addEventListener('click', async () => {
+    const values = await dialog({
+      title: 'Music',
+      body: 'The song the team dances to. Everyone in the project sees it here.',
+      fields: [
+        { name: 'music_title', label: 'Music', value: extra?.music_title || '', max: 200, placeholder: 'Song — Artist' },
+        { name: 'music_url', label: 'Music link (optional)', type: 'url', value: extra?.music_url || '', max: 500, placeholder: 'https://…' }
+      ],
+      confirm: 'Save'
+    });
+    if (!values) return;
+    const { error } = schema.musicMembers
+      ? await sb.rpc('set_project_music', { p_project: projectId, p_title: values.music_title || null, p_url: values.music_url || null })
+      : await sb.from('projects').update({ music_title: values.music_title || null, music_url: values.music_url || null }).eq('id', projectId);
+    if (error) return toast(/music_url/.test(error.message) ? 'The music link must start with http:// or https://' : friendlyError(error), 'error');
+    renderProjectOverview(projectId);
+  });
   $('[data-edit-goal]')?.addEventListener('click', async () => {
     const values = await dialog({
       title: 'Goal and music',
