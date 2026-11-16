@@ -315,7 +315,7 @@ function dropMenu({ title, actions, anchor, label }) {
     menu.className = 'drop-menu';
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', title);
-    menu.innerHTML = actions.map((a) => `<button type="button" role="menuitem" data-value="${esc(a.value)}" class="sheet-action${a.icon || a.iconHtml ? ' has-icon' : ''}${a.danger ? ' danger' : ''}">${label(a)}</button>`).join('');
+    menu.innerHTML = actions.map((a) => `<button type="button" role="menuitem" data-value="${esc(a.value)}" class="sheet-action${a.icon || a.iconHtml ? ' has-icon' : ''}${a.danger ? ' danger' : ''}${a.checked ? ' checked' : ''}"${a.checked ? ' aria-current="true"' : ''}>${label(a)}</button>`).join('');
     document.body.append(menu);
     const r = anchor.getBoundingClientRect();
     const w = Math.max(r.width, 300);

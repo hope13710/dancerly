@@ -260,7 +260,14 @@ function youtubePlayer(host, id, onError) {
 const SECTION_NAMES = isKo ? ['인트로', '1절', '프리코러스', '후렴', '댄브', '브릿지', '엔딩'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
 const BANDS = 6;
 // A section's status, as on the count sheet.
-const STATUS_LABEL = { learning: 'Learning', practicing: 'Practicing', clean: 'Clean' };
+const STATUS_LABEL = { learning: 'Learning', practicing: 'Cleaning', clean: 'Clean' };
+// What each stage means, shown in the menu (the value stays 'practicing' in the database).
+const STATUS_HINT = {
+  learning: 'Still learning the moves and their order',
+  practicing: 'Moves are down; matching angles, timing, and sync',
+  clean: 'Ready for the stage'
+};
+const STATUS_COLOR = { learning: '#8e96a3', practicing: '#64d2ff', clean: '#4fd59c' };
 
 // guest: what a Practice share link (/app/s/:token) shows, from the shared-video function: the same screen,
 // read-only (no adding or changing sections), with a way to ask to join the project.
@@ -444,7 +451,7 @@ export async function renderPractice(projectId, guest = null) {
           ${who.length ? `<span class="sec-people" title="${esc(who.map((x) => x.name).join(', '))}" aria-label="${esc(who.map((x) => x.name).join(', '))}" data-no-i18n>${who.slice(0, 3).map((x) => avatar(x.name, guest ? null : x.id, 'xs')).join('')}${who.length > 3 ? `<i>+${who.length - 3}</i>` : ''}</span>` : ''}
           <span class="sec-state">${on ? `${ic('loop')}<span>Looping</span>` : ic('loop', 'solo')}</span>
         </button>
-        ${i >= 0 && !guest && sections[i].status ? `<button type="button" class="sec-status s-${sections[i].status}" data-sec-status="${i}" title="Tap for the next step: Learning → Practicing → Clean">${STATUS_LABEL[sections[i].status] || ''}</button>` : ''}
+        ${i >= 0 && !guest && sections[i].status ? `<button type="button" class="sec-status s-${sections[i].status}" data-sec-status="${i}" title="Change status" aria-haspopup="menu">${STATUS_LABEL[sections[i].status] || ''}</button>` : ''}
         ${i >= 0 && !guest ? `<button type="button" class="icon-btn sec-more" data-sec-more="${i}" aria-label="Options for ${esc(sections[i].section || '')}">${ic('more', 'solo')}</button>` : ''}
       </div>`;
     };
@@ -464,7 +471,7 @@ export async function renderPractice(projectId, guest = null) {
     $$('[data-prev], [data-next]').forEach((b) => { b.disabled = !sections.length; });
     $$('[data-loop]').forEach((b) => b.addEventListener('click', () => pick(Number(b.dataset.loop), { from: 'list' })));
     $$('[data-sec-more]').forEach((b) => b.addEventListener('click', () => sectionMenu(Number(b.dataset.secMore), b)));
-    $$('[data-sec-status]').forEach((b) => b.addEventListener('click', () => nextStatus(Number(b.dataset.secStatus))));
+    $$('[data-sec-status]').forEach((b) => b.addEventListener('click', () => pickStatus(Number(b.dataset.secStatus), b)));
     paintLoop();
   };
   const paintLoop = () => {
@@ -720,10 +727,11 @@ export async function renderPractice(projectId, guest = null) {
     toast(`“${got.section}” added. Tap it to loop.`);
   }
   // How far along a section is, for the whole team (Overview counts the clean ones): Learning → Practicing → Clean.
-  const nextStatus = async (i) => {
+  // A section's stage, for the whole team: pick it from a menu that says what each one means (like a note's focus area).
+  const pickStatus = async (i, anchor) => {
     const s = sections[i];
-    const order = STATUS_LABEL ? Object.keys(STATUS_LABEL) : [];
-    const to = order[(order.indexOf(s.status) + 1) % order.length];
+    const to = await actionSheet({ title: s.section || 'Section', anchor, actions: Object.keys(STATUS_LABEL).map((k) => ({ value: k, label: STATUS_LABEL[k], hint: STATUS_HINT[k], color: STATUS_COLOR[k], checked: k === s.status })) });
+    if (!to || to === s.status) return;
     const before = s.status;
     s.status = to;
     paintSections();
