@@ -231,7 +231,8 @@ function filePlayer(host, src) {
     rate(r) { v.playbackRate = r; },
     sound({ muted, volume }) { v.muted = muted; v.volume = volume; },
     on(f) { listeners.add(f); },
-    destroy() { v.pause(); v.removeAttribute('src'); v.load(); }
+    // Listeners go first: pausing on the way out fires 'pause', and the page it would repaint is already gone.
+    destroy() { listeners.clear(); v.pause(); v.removeAttribute('src'); v.load(); }
   };
 }
 
@@ -282,7 +283,7 @@ function youtubePlayer(host, id, onError) {
     rate(r) { p?.setPlaybackRate?.(r); },
     sound({ muted, volume }) { ready.then(() => { if (muted) p?.mute?.(); else p?.unMute?.(); p?.setVolume?.(Math.round(volume * 100)); }); },
     on(f) { listeners.add(f); },
-    destroy() { try { p?.destroy?.(); } catch {} }
+    destroy() { listeners.clear(); try { p?.destroy?.(); } catch {} }
   };
 }
 
@@ -600,8 +601,9 @@ export async function renderPractice(projectId, guest = null) {
     } catch {}
   };
   const paintPlay = () => {
-    const playing = !player.paused;
     const btn = $('[data-play]');
+    if (!btn) return; // the page is gone (a late player event)
+    const playing = !player.paused;
     btn.innerHTML = ic(playing ? 'pause' : 'play', 'solo');
     btn.setAttribute('aria-label', playing ? 'Pause (Space)' : 'Play (Space)');
     $('[data-player]').classList.toggle('playing', playing);
@@ -821,6 +823,7 @@ export async function renderPractice(projectId, guest = null) {
   const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
   const fit = () => {
     const pl = $('[data-player]');
+    if (!pl || !col.isConnected) return; // the page is gone (a late resize or animation frame)
     if (!col.classList.contains('is-full')) { pl.style.width = ''; pl.style.height = ''; return; }
     const box = $('[data-pair]').getBoundingClientRect();
     const v = media.querySelector('video');

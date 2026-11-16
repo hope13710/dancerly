@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo } from '../client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo, Unavailable } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -174,7 +174,7 @@ export async function renderRequest(projectId, requestId) {
   const me = ctx.state.session.user.id;
   const [p, { requests, videos }] = await Promise.all([loadProject(projectId), loadRequests(projectId)]);
   const r = requests.find((x) => x.id === requestId);
-  if (!r) throw new Error('This assignment was deleted or isn’t in this project.');
+  if (!r) throw new Unavailable('This assignment isn’t available', 'It may have been deleted, or it isn’t in this project.', [`/app/p/${projectId}/requests`, 'Back to Assignments']);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Assignments', `/app/p/${projectId}/requests`], [r.title]]);
   const subs = submissionsFor(r, p.members, videos);
   const mine = subs.find((s) => s.member.user_id === me);

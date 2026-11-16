@@ -1,6 +1,6 @@
 // Project › Pages: the team's notices and lists — this week's rehearsal, what to bring, spacing, the show-day run
 // sheet. Written and read in the same view (app/editor.js), ticked with a tap, saved as you go.
-import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, isEnter } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, isEnter, Unavailable } from '../client.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor } from './shared.js';
@@ -97,7 +97,7 @@ export async function renderPage(projectId, pageId) {
     sb.from('project_pages').select('id, title, body, pinned, created_by, updated_by, updated_at').eq('id', pageId).eq('project_id', projectId).maybeSingle()
   ]);
   if (error) throw error;
-  if (!page) throw new Error('This page was deleted.');
+  if (!page) throw new Unavailable('This page isn’t available', 'Someone on the project may have deleted it.', [`/app/p/${projectId}/pages`, 'Back to Pages']);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Pages', `/app/p/${projectId}/pages`], [page.title || 'Untitled']]);
   const names = await namesFor([page.updated_by]);
   const params = new URLSearchParams(location.search);

@@ -1,5 +1,5 @@
 import { cols, detectSchema, schema } from './client.js';
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, GOOGLE_G, avatar, projectMark, rememberPhotos } from './client.js';
+import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, GOOGLE_G, avatar, projectMark, rememberPhotos, Unavailable, isMissingRow } from './client.js';
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
@@ -222,6 +222,15 @@ async function route({ restoreScroll = false } = {}) {
     requestAnimationFrame(() => window.scrollTo(0, y || 0));
   } catch (error) {
     if (ticket !== routeTicket) return; // an old page failing doesn't get to cover the new one
+    // Something that isn't there anymore (an old link, a deleted page, a project you left) isn't a failure: say so,
+    // with the way back, and refresh the sidebar in case a project in it is gone.
+    if (error instanceof Unavailable || isMissingRow(error)) {
+      const u = error instanceof Unavailable ? error : new Unavailable('This isn’t available anymore', 'It may have been deleted, or you no longer have access to it.');
+      view.innerHTML = `<section class="page"><div class="empty"><h2>${esc(u.message)}</h2><p>${esc(u.body)}</p><div class="empty-actions"><a class="btn primary" href="${u.back[0]}" data-link>${esc(u.back[1])}</a></div></div></section>`;
+      setCrumbs([[u.back[1].replace(/^(Back to|Go to) /, ''), u.back[0]], ['Not available']]);
+      refreshNav();
+      return;
+    }
     // Pages that fail to load are reported, so we hear about it before anyone has to tell us.
     reportFailure('page', error, { step: path.replace(/[0-9a-f-]{36}/g, ':id') });
     view.innerHTML = `<div class="empty"><h2>Couldn’t load this page</h2><p>${esc(friendlyError(error))}</p><div class="empty-actions"><button class="btn primary" type="button" data-retry>Try again</button><a class="btn" href="/app" data-link>Back to Home</a></div></div>`;
@@ -347,6 +356,8 @@ async function refreshUnread() {
   // The sample project's notifications never show in the Inbox, so they don't count either.
   await state.projectsReady;
   const { count } = await noSample(sb.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null));
+  // The session ended (signed out, or it expired) while this was loading: nothing to count or listen for.
+  if (!state.session) return;
   $$('[data-unread]').forEach((b) => { b.hidden = !count; b.textContent = count > 99 ? '99+' : String(count || ''); });
   if (!inboxChannel) {
     const uid = state.session.user.id;

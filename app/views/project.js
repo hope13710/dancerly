@@ -1,7 +1,7 @@
 // Projects: the list, and each project's tabs — Videos, Notes, People, Settings.
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
-import { cols, schema, fmtFine, notChoreo, canShareLinks } from '../client.js';
+import { cols, schema, fmtFine, notChoreo, canShareLinks, Unavailable, isMissingRow } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel, nameMatches } from './shared.js';
@@ -108,6 +108,7 @@ export async function loadProject(projectId) {
     sb.from('projects').select(cols('id, title, image_url, is_sample, created_at, created_by, target_event_id, allow_share_cards, auto_recap, choreo_video_id, choreo_youtube, choreo_title, choreo_bpm, choreo_count_start, members_share_practice, members_share_links')).eq('id', projectId).single(),
     loadMembers(projectId)
   ]);
+  if (isMissingRow(error)) throw new Unavailable('This project isn’t available', 'It may have been deleted or moved to the Trash, or you’re no longer in it.', ['/app/projects', 'Go to Projects']);
   if (error) throw error;
   const goal = await projectGoal(project);
   const me = ctx.state.session.user.id;

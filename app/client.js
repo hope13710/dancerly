@@ -206,6 +206,18 @@ export function toast(message, kind = 'info', action = null) {
 }
 
 // Supabase errors are often technical; keep the useful part and say what to do.
+// Something that isn't there to open (deleted, in the Trash, or you're no longer in its project): a page says so,
+// with a way back, and it isn't reported as an error. Supabase answers PGRST116 when a .single() finds no row.
+export class Unavailable extends Error {
+  constructor(title, body, back = ['/app', 'Go to Home']) {
+    super(title);
+    this.name = 'Unavailable';
+    this.body = body;
+    this.back = back;
+  }
+}
+export const isMissingRow = (error) => error?.code === 'PGRST116';
+
 export function friendlyError(error) {
   const msg = error?.message || String(error || 'Something went wrong.');
   const wait = msg.match(/after (\d+) seconds/i);
