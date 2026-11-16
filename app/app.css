@@ -10379,9 +10379,6 @@ body.is-guest .tabbar {
 .pf-row .spacer { flex: 1; }
 .practice-focus.is-on .pf-actions { width: auto; }
 .sec-counts { white-space: nowrap; }
-.side-head .spacer { flex: 1; }
-.counts-btn { align-self: center; color: #c9cdd8; border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); font-variant-numeric: tabular-nums; }
-.counts-btn:hover, .counts-btn[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.12); }
 /* Overview › How it's going: cards only one person sees sit apart from the team picture everyone shares. */
 .only-you { display: inline-flex; align-items: center; gap: 4px; }
 .only-you .ic { width: 12px; height: 12px; }

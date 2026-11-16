@@ -14,7 +14,7 @@ import { countAt, countLabel, tapTempo } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
 import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange, LOOP_LENGTHS } from '../choreo-align.js';
 
-const SPEEDS = [0.5, 0.75, 1];
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5]; // the same speeds as a take's player
 const SPEED_KEY = 'looproom:practice-speed';
 const MIRROR_KEY = 'looproom:practice-mirror';
 const read = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
@@ -343,7 +343,8 @@ export async function renderPractice(projectId, guest = null) {
           ${volumeControl()}
           <button data-prev aria-label="Previous section (←)" title="Previous section (←)">${ic('back', 'solo')}</button>
           <button data-next aria-label="Next section (→)" title="Next section (→)">${ic('right', 'solo')}</button>
-          <div class="seg dark pc-speed" role="group" aria-label="Speed">${SPEEDS.map((s) => `<button type="button" data-speed="${s}" aria-selected="${s === speed}" title="Speed (&lt; and &gt;)">${s}×</button>`).join('')}</div>
+          <span class="speed-wrap"><button data-speed title="Playback speed (&lt; &gt;)" aria-haspopup="menu" aria-expanded="false">${speed}×</button><div class="speed-menu" role="menu" aria-label="Playback speed" data-speed-menu hidden>${[...SPEEDS].reverse().map((x) => `<button type="button" role="menuitemradio" aria-checked="${x === speed}" data-set-speed="${x}">${x === 1 ? 'Normal' : `${x}×`}</button>`).join('')}</div></span>
+          ${canCount ? `<button class="toggle-btn" data-counts-toggle aria-pressed="false" title="Show dance counts from the tempo (T to tap)" aria-label="Counts">${ic('music')}<span class="ctl-label">Counts</span></button>` : ''}
           <span class="loop-chip" data-loopchip></span>
           <span class="spacer"></span>
           <button class="toggle-btn" data-mirror aria-pressed="${mirror}" title="Mirror (M)">${ic('mirror')}<span class="wide-only">Mirror</span></button>
@@ -361,7 +362,7 @@ export async function renderPractice(projectId, guest = null) {
       </div>
       <aside class="notes-col practice-side">
         ${guest ? '<div class="guest-join" data-guest-join></div>' : ''}
-        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${canCount ? `<span class="spacer"></span><button type="button" class="mini counts-btn" data-counts-toggle aria-pressed="false" title="Dance counts from the tempo (T to tap)"></button>` : ''}</div>
+        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span></div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
         ${guest ? '' : `<div class="sec-mark" data-mark-box hidden></div>
@@ -554,7 +555,10 @@ export async function renderPractice(projectId, guest = null) {
     speed = s;
     if (remember) save(SPEED_KEY, String(s));
     player.rate(s);
-    $$('[data-speed]').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.speed) === s)));
+    const btn = $('[data-speed]');
+    btn.textContent = `${s}×`;
+    btn.classList.toggle('on', s !== 1);
+    $$('[data-set-speed]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.setSpeed) === s)));
     if (quiet) return;
     flag.textContent = `${s}×`;
     flag.hidden = false;
@@ -746,7 +750,29 @@ export async function renderPractice(projectId, guest = null) {
   if (choreo.kind === 'file') $('[data-player]').addEventListener('click', toggle);
   $('[data-prev]').addEventListener('click', () => step(-1));
   $('[data-next]').addEventListener('click', () => step(1));
-  $$('[data-speed]').forEach((b) => b.addEventListener('click', () => setSpeed(Number(b.dataset.speed))));
+  // Speed: a small menu, as on a take (a bottom sheet on a phone).
+  const speedBtn = $('[data-speed]');
+  const speedMenu = $('[data-speed-menu]');
+  const closeSpeed = (refocus) => { if (speedMenu.hidden) return; speedMenu.hidden = true; speedBtn.setAttribute('aria-expanded', 'false'); if (refocus) speedBtn.focus(); };
+  speedBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!speedMenu.hidden) return closeSpeed(false);
+    speedMenu.hidden = false;
+    speedBtn.setAttribute('aria-expanded', 'true');
+    speedMenu.querySelector('[aria-checked="true"]')?.focus();
+  });
+  speedMenu.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-set-speed]'); if (b) { setSpeed(Number(b.dataset.setSpeed)); closeSpeed(true); } });
+  speedMenu.addEventListener('keydown', (e) => {
+    const items = $$('[data-set-speed]', speedMenu);
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+    else if (e.key === 'Escape' || e.key === 'Tab') closeSpeed(e.key === 'Escape');
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  const outsideSpeed = (e) => { if (!e.target.closest('.speed-wrap')) closeSpeed(false); };
+  document.addEventListener('click', outsideSpeed);
   $('[data-mirror]').addEventListener('click', () => setMirror(!mirror));
   fullBtn.addEventListener('click', toggleFull);
   $('[data-add-sec]')?.addEventListener('click', startMark);
@@ -797,8 +823,6 @@ export async function renderPractice(projectId, guest = null) {
       if (on) { draft = { bpm: counts?.bpm ?? null, start: counts?.start ?? null }; $('[data-bpm]').value = draft.bpm ?? ''; hint(); paint(); panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     };
     const paint = () => { if (!panel.hidden) $('[data-count-one-at]').textContent = fmtFine(draft?.start ?? player.time); };
-    const label = () => { $('[data-counts-toggle]').innerHTML = `${ic('music')}<span data-no-i18n>${counts ? `${counts.bpm} BPM` : (isKo ? '카운트 설정' : 'Set counts')}</span>`; };
-    label();
     const tap = () => {
       if (panel.hidden) open(true);
       const bpm = tapper.tap();
@@ -814,7 +838,6 @@ export async function renderPractice(projectId, guest = null) {
       if (choreo.kind === 'file') { choreo.video.bpm = bpm; choreo.take.count_start = start; } else { p.project.choreo_bpm = bpm; p.project.choreo_count_start = start; }
       counts = bpm && start !== null ? { bpm, start } : null;
       countKey = '-';
-      label();
       if (!counts) $('[data-count]').hidden = true;
       paintSections();
       paintTime();
@@ -995,6 +1018,7 @@ export async function renderPractice(projectId, guest = null) {
 
   return () => {
     document.removeEventListener('keydown', onKey);
+    document.removeEventListener('click', outsideSpeed);
     document.removeEventListener('visibilitychange', onVisible);
     document.removeEventListener('fullscreenchange', onFs);
     document.removeEventListener('webkitfullscreenchange', onFs);
