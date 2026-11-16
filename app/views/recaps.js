@@ -508,7 +508,7 @@ export async function renderRecap(recapId) {
       const refs = r.content.next[i].cites;
       const open = (r.sources || []).filter((s) => refs.includes(s.ref) && s.status === 'open');
       await Promise.all(open.map((s) => sb.rpc('set_note_status', { p_note: s.note_id, p_status: 'practicing' })));
-      if (open.length) toast(`Marked ${open.length} ${open.length === 1 ? 'note' : 'notes'} as Practicing.`);
+      if (open.length) toast(`Marked ${open.length} ${open.length === 1 ? 'note' : 'notes'} as working on it.`);
     }
   }));
   wireCitations(r);

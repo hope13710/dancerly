@@ -250,7 +250,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const meta = [
         n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : '',
         from,
-        n.status === 'practicing' ? '<span class="status s-practicing">Practicing</span>' : '',
+        n.status === 'practicing' ? '<span class="status s-practicing">Working on it</span>' : '',
       ].filter(Boolean);
       const check = n.status === 'resolved'
         ? `<button class="note-check on" ${canResolve(n) ? `data-status="open" data-id="${n.id}" title="Fixed · Reopen"` : 'disabled title="Fixed"'} aria-label="Fixed. Reopen">${ic('check', 'solo')}</button>`
@@ -273,7 +273,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
             ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
             <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
             ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
-            ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Practicing”</button>` : ''}
+            ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
             ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>
         </div>
@@ -902,10 +902,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       const undo = to === 'resolved' || to === 'practicing' ? { label: 'Undo', run: async () => {
         const { error: again } = await sb.rpc('set_note_status', { p_note: id, p_status: from });
         if (again) return toast(friendlyError(again), 'error');
-        toast(to === 'resolved' ? 'Note reopened.' : 'Practicing cleared.');
+        toast(to === 'resolved' ? 'Note reopened.' : '“Working on it” cleared.');
         loadNotes();
       } } : null;
-      toast(to === 'resolved' ? `Correction landed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as practicing.' : from === 'practicing' ? 'Practicing cleared.' : 'Note reopened.', 'info', undo);
+      toast(to === 'resolved' ? `Correction landed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as working on it.' : from === 'practicing' ? 'Practicing cleared.' : 'Note reopened.', 'info', undo);
       await loadNotes();
       // The last open note on this video just got fixed: offer a progress card, once, after Undo has had its
       // moment (8 seconds), and only if it's still fixed.

@@ -106,7 +106,9 @@ export async function renderCountSheet(projectId) {
     sb.from('videos').select('id, title, takes(id, number)').eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   if (error) throw error;
-  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Overview', `/app/p/${projectId}/overview`], ['Count sheet']]);
+  // The sections live in Practice; this is them as a table (with Overview as home when there's no choreo video).
+  const fromPractice = Boolean(p.project.choreo_video_id || p.project.choreo_youtube);
+  setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], fromPractice ? ['Practice', `/app/p/${projectId}/practice`] : ['Overview', `/app/p/${projectId}/overview`], ['Count sheet']]);
   // Kept, but out of the tab bar until we see teams using it.
   track('count_sheet_opened', { rows: rows.length });
   // A reference time belongs to the take that was newest when it was set; opening it later lands on the same moment.

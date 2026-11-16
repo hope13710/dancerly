@@ -6,8 +6,8 @@ import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, tabs, empty, previewEmpty, hasRealVideo, pageHead, namesFor, notesForMe, noSample, realProjects } from './shared.js';
 
 const VIEWS = [
-  ['for-me', 'For me'],
-  ['by-me', 'By me'],
+  ['for-me', 'For you'],
+  ['by-me', 'By you'],
   ['team', 'Everyone']
 ];
 const STATUSES = [

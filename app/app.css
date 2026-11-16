@@ -10385,3 +10385,14 @@ body.is-guest .tabbar {
 .mine-panel { border-color: var(--accent-soft, #e7e7fb); box-shadow: inset 3px 0 0 var(--accent); }
 .mine-panel .row-title b { font-weight: 600; }
 .mine-panel .li-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-dark); flex: none; }
+/* Practice sections: what to watch for under the name, the team's status beside it, and the same list as a table. */
+.sec-focus { color: #aab1bd !important; white-space: normal; overflow-wrap: anywhere; }
+.sec-status { flex: none; border: 1px solid transparent; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, 0.08); color: #aab1bd; white-space: nowrap; }
+.sec-status.s-practicing { background: rgba(100, 210, 255, 0.14); color: #8fdcff; }
+.sec-status.s-clean { background: rgba(79, 213, 156, 0.16); color: #4fd59c; }
+.sec-status:hover { border-color: rgba(255, 255, 255, 0.22); }
+.sec-status:focus-visible { outline: 2px solid #8b8cff; outline-offset: 2px; }
+.side-link { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #aab1bd; text-decoration: none; }
+.side-link:hover { color: #fff; }
+.side-link .ic { width: 14px; height: 14px; }
+@media (max-width: 600px) { .sec-row .sec-state span { display: none; } }

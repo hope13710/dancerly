@@ -89,7 +89,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   ]);
   if (error || tErr) throw error || tErr;
   // The team picture is the same for everyone in the project, so it can be talked through together: private notes
-  // (which only two people see) stay out of it. They show in "For you to fix", for the person they're for.
+  // (which only two people see) stay out of it. They show in "For you", for the person they're for.
   const notes = allNotes.filter((n) => !n.private_to);
 
   // No data of your own yet: show what this page does, using the sample project.
@@ -213,14 +213,14 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     ? `<b>${catLabel(topArea.key)}</b> 피드백이 가장 많이 남아 있어요 (${topArea.open}개)`
     : `<b>${catLabel(topArea.key)}</b> has the most open notes (${topArea.open})`, cta: 'See notes', sheet: `area:${topArea.key}` });
 
-  // ---------- For you to fix: only you see it. Notes for you here that aren't fixed, and assignments you owe ----------
+  // ---------- For you: only you see it. Notes for you here that aren't fixed, and assignments you owe ----------
   const forMe = embedded ? allNotes.filter((n) => n.status !== 'resolved' && n.author_id !== me && (n.private_to === me || n.takes?.uploaded_by === me || (n.note_mentions || []).some((x) => x.user_id === me)))
     .sort((a, b) => b.created_at.localeCompare(a.created_at)) : [];
   const owed = embedded ? waiting.filter((w) => w.missing.includes(me)) : [];
   const projectRow = state.projects.find((x) => x.id === project);
   const canPractice = hasChoreo(projectRow);
   const mineCard = forMe.length || owed.length ? `<section class="panel mine-panel">
-      <div class="panel-head"><div><h2>For you to fix</h2><p class="muted only-you">${ic('lock')}Only you see this</p></div><a class="link" href="/app/feedback?view=for-me&project=${project}" data-link>All your notes${ic('right', 'after')}</a></div>
+      <div class="panel-head"><div><h2>For you</h2><p class="muted only-you">${ic('lock')}Only you see this</p></div><a class="link" href="/app/feedback?view=for-me&project=${project}" data-link>All your notes${ic('right', 'after')}</a></div>
       <div class="list flush">
         ${owed.map((w) => `<a class="row" href="/app/p/${w.project_id}/requests/${w.id}" data-link><span class="li-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span class="row-main"><span class="row-title" data-no-i18n>${isKo ? `<b>${esc(w.title)}</b> 영상을 아직 안 보냈어요` : `Send <b>${esc(w.title)}</b>`}</span><span class="row-meta" data-no-i18n>${esc(isKo ? t(dueLabel(w.due_at)) : dueLabel(w.due_at))}</span></span></a>`).join('')}
         ${forMe.slice(0, 4).map((n) => `<a class="row note-row" href="/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}" data-link>
