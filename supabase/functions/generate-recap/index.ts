@@ -60,7 +60,6 @@ const SCHEMA = {
   required: ["headline", "worked_on", "next", "landed", "recurring"],
   additionalProperties: false,
 };
-const strings = { type: "array", items: { type: "string" } };
 const SYSTEM = `You write rehearsal recaps for a dance team. The input is the timestamped feedback notes teammates left on rehearsal videos during one period.
 
 Write a recap a dancer can read in under a minute before the next rehearsal:
