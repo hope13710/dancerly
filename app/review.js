@@ -206,15 +206,22 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
   const visibleNotes = () => r.notes.filter((n) => takeNo[n.take_id] <= take.number && (n.take_id === take.id || n.status !== 'resolved'));
-  // Filter and sort, like Frame.io's comments: All / Open / For you, one focus area, video order or newest.
+  // Filter and sort, like Frame.io's comments: All / Open / For you, any focus areas (a note in any of them shows),
+  // video order or newest.
   // The timeline markers follow the same filter. Remembered on this device.
   const FILTER_KEY = 'dancerly:note-filter';
-  const nf = (() => { try { return { show: 'all', cat: null, sort: 'time', ...JSON.parse(localStorage.getItem(FILTER_KEY) || '{}') }; } catch { return { show: 'all', cat: null, sort: 'time' }; } })();
+  const nf = (() => {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}'); } catch {}
+    // An older saved filter had one focus area ('cat'); it becomes a list.
+    const cats = Array.isArray(saved.cats) ? saved.cats : saved.cat ? [saved.cat] : [];
+    return { show: ['all', 'open', 'mine'].includes(saved.show) ? saved.show : 'all', cats, sort: saved.sort === 'new' ? 'new' : 'time' };
+  })();
   const saveFilter = () => { try { localStorage.setItem(FILTER_KEY, JSON.stringify(nf)); } catch {} };
   const uploaderOf = Object.fromEntries(takes.map((t) => [t.id, t.uploaded_by]));
   const forMeNote = (n) => n.author_id !== me.id && (n.private_to === me.id || uploaderOf[n.take_id] === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
-  const passes = (n, show = nf.show, cat = nf.cat) => (show === 'open' ? n.status !== 'resolved' : show === 'mine' ? forMeNote(n) : true) && (!cat || n.category === cat);
-  const filtering = () => nf.show !== 'all' || Boolean(nf.cat);
+  const passes = (n, show = nf.show, cats = nf.cats) => (show === 'open' ? n.status !== 'resolved' : show === 'mine' ? forMeNote(n) : true) && (!cats.length || cats.includes(n.category));
+  const filtering = () => nf.show !== 'all' || nf.cats.length > 0;
   const shownNotes = () => {
     const list = visibleNotes().filter((n) => passes(n));
     return nf.sort === 'new' ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)) : list;
@@ -225,13 +232,20 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const all = visibleNotes();
     bar.hidden = all.length < 4 && !filtering();
     if (bar.hidden) return;
-    const count = (show) => all.filter((n) => passes(n, show, nf.cat)).length;
+    const count = (show) => all.filter((n) => passes(n, show, nf.cats)).length;
     const cats = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
     bar.innerHTML = `<div class="nf-row"><div class="seg small dark" role="group" aria-label="Show">${[['all', isKo ? '전체' : 'All'], ['open', isKo ? '미해결' : 'Open'], ['mine', isKo ? '나에게 온 피드백' : 'For you']].map(([k, label]) => `<button type="button" data-nf-show="${k}" aria-selected="${nf.show === k}" data-no-i18n>${label} <span>${count(k)}</span></button>`).join('')}</div>
       <button type="button" class="mini ghost nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('down', 'after')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button></div>
-      ${cats.length > 1 ? `<div class="nf-cats" role="group" aria-label="Focus area">${cats.map((k) => `<button type="button" class="cat-btn" data-nf-cat="${k}" aria-pressed="${nf.cat === k}">${catChip(k)}</button>`).join('')}</div>` : ''}`;
+      ${cats.length > 1 ? `<div class="nf-cats" role="group" aria-label="Focus area">${cats.map((k) => `<button type="button" class="cat-btn" data-nf-cat="${k}" aria-pressed="${nf.cats.includes(k)}">${catChip(k)}</button>`).join('')}${nf.cats.length ? `<button type="button" class="link-btn nf-cats-clear" data-nf-cats-clear>${isKo ? '선택 해제' : 'Clear'}</button>` : ''}</div>` : ''}`;
     bar.querySelectorAll('[data-nf-show]').forEach((b) => b.addEventListener('click', () => { nf.show = b.dataset.nfShow; saveFilter(); paintNotes(); logEvent('note_filter', { show: nf.show }); }));
-    bar.querySelectorAll('[data-nf-cat]').forEach((b) => b.addEventListener('click', () => { nf.cat = nf.cat === b.dataset.nfCat ? null : b.dataset.nfCat; saveFilter(); paintNotes(); logEvent('note_filter', { cat: nf.cat }); }));
+    bar.querySelectorAll('[data-nf-cat]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.nfCat;
+      nf.cats = nf.cats.includes(k) ? nf.cats.filter((x) => x !== k) : [...nf.cats, k];
+      saveFilter();
+      paintNotes();
+      logEvent('note_filter', { cats: nf.cats.length });
+    }));
+    bar.querySelector('[data-nf-cats-clear]')?.addEventListener('click', () => { nf.cats = []; saveFilter(); paintNotes(); });
     bar.querySelector('[data-nf-sort]').addEventListener('click', async (e) => {
       const to = await actionSheet({ title: 'Sort', anchor: e.currentTarget, actions: [
         { value: 'time', label: 'Video order', hint: 'As they appear in the video', checked: nf.sort === 'time' },
@@ -324,7 +338,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       </article>`;
     }).join('') : filtering() && visibleNotes().length ? `<div class="notes-empty"><p><b>No notes match.</b> Try another filter.</p><button type="button" class="btn small" data-nf-clear>Show all notes</button></div>` : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
       <div class="starter-chips" role="group" aria-label="Start a note">${starterKeys(members.length <= 1).map((k) => `<button type="button" class="mini" data-starter="${k}">${catChip(k)}</button>`).join('')}</div></div>`;
-    list.querySelector('[data-nf-clear]')?.addEventListener('click', () => { nf.show = 'all'; nf.cat = null; saveFilter(); paintNotes(); });
+    list.querySelector('[data-nf-clear]')?.addEventListener('click', () => { nf.show = 'all'; nf.cats = []; saveFilter(); paintNotes(); });
     paintMarkers(notes);
     paintSummary();
   }
