@@ -9,7 +9,7 @@ import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, da
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
 import { ic } from '../icons.js';
-import { loadChoreo, chooseChoreo, choreoMenu, choreoCard, choreoTitle } from './practice.js';
+import { loadChoreo, chooseChoreo, choreoMenu, choreoCard, choreoTitle, canChoreo } from './practice.js';
 
 // Under every file picker: what makes a rehearsal video easy to give feedback on.
 const FILE_HINT = 'Tip: film from the front, whole body in frame, with the music, start to finish · MP4, MOV, or WebM';
@@ -161,8 +161,8 @@ export async function renderProject(projectId) {
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'videos', `<button class="btn" data-invite>Invite</button><button class="btn primary" data-new-video>${ic('upload')}Upload video</button>`)}
     ${zones ? `<div class="panel-head video-zone-head"><div><h2>Choreo</h2><p class="muted">The original you learn from. Loop a section, slow it down, mirror it.</p></div></div>
-    ${choreo ? choreoCard({ projectId, choreo, isOwner: p.isOwner })
-      : `<div class="choreo-hint"><span>${ic('loop')}<span>${p.isOwner ? 'Add the video your team learns from: a YouTube link or a video file.' : 'No choreo video yet. The project owner can add one.'}</span></span>${p.isOwner ? '<button class="btn small" data-add-choreo>Add a choreo video</button>' : ''}</div>`}
+    ${choreo ? choreoCard({ projectId, choreo, canEdit: canChoreo(p) })
+      : `<div class="choreo-hint"><span>${ic('loop')}<span>${canChoreo(p) ? 'Add the video your team learns from: a YouTube link or a video file.' : 'No choreo video yet. The project owner can add one.'}</span></span>${canChoreo(p) ? '<button class="btn small" data-add-choreo>Add a choreo video</button>' : ''}</div>`}
     <div class="panel-head video-zone-head"><div><h2>Takes</h2><p class="muted">Videos your team films. Pause on any moment and leave feedback.</p></div></div>` : ''}
     ${videos.length ? `<div class="video-list">${videos.map((v) => {
       const takes = [...v.takes].sort((a, b) => b.number - a.number);

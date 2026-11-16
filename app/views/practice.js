@@ -48,7 +48,7 @@ export async function loadChoreo(project) {
 export const choreoTitle = (choreo) => (choreo?.kind === 'file' ? choreo.video.title : choreo?.title) || (isKo ? '원본 안무 영상' : 'Choreo video');
 export const youtubeThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 
-// Owners add the choreo video: a YouTube link (nothing uploaded), or a video file uploaded as the choreo video.
+// Anyone in the project adds the choreo video (migration 071): a YouTube link (nothing uploaded), or a video file uploaded as the choreo video.
 // It's never one of the team's takes (migration 059). Changing it keeps the sections and removes the old file.
 // Returns where to go next ('practice') or false.
 export async function chooseChoreo({ projectId, current = null, anchor = null, title = null }) {
@@ -143,7 +143,7 @@ async function retireChoreo(projectId, old, next = null, keep = true) {
     if (next && (old.kind === 'file' || next.videoId)) await mine(sb.from('count_sheet_rows').update(to));
   }
   if (old.kind === 'file') {
-    const { error } = await sb.from('videos').delete().eq('id', old.video.id);
+    const { error } = await choreoRpc('delete_choreo_video', { p_video: old.video.id }, () => sb.from('videos').delete().eq('id', old.video.id));
     if (!error) {
       const paths = [old.take.storage_path, old.take.thumb_path].filter((x) => x && !String(x).startsWith('public:'));
       if (paths.length) sb.storage.from(TAKE_BUCKET).remove(paths).then(() => {}, () => {});
@@ -151,7 +151,7 @@ async function retireChoreo(projectId, old, next = null, keep = true) {
   }
 }
 
-// ⋯ on the choreo video, the same from the project's Videos tab and from Practice (owners only): what a choreo
+// ⋯ on the choreo video, the same from the project's Videos tab and from Practice (anyone in the project once migration 071 has run): what a choreo
 // video needs and nothing a take has (no takes, merge, or notes). Returns 'renamed', 'changed', 'removed' or null.
 export async function choreoMenu({ projectId, choreo, anchor }) {
   const choice = await actionSheet({ title: choreoTitle(choreo), anchor, actions: [
@@ -168,14 +168,14 @@ export async function choreoMenu({ projectId, choreo, anchor }) {
 }
 
 // Rename the choreo video without uploading it again: a file's name lives on its video, a YouTube link's on the
-// project (choreo_title). Owners only, like the rest of the choreo menu. Returns true when it changed.
+// project (choreo_title). Anyone in the project, like the rest of the choreo menu. Returns true when it changed.
 export async function renameChoreo(projectId, choreo) {
   const now = choreoTitle(choreo);
   const got = await dialog({ title: 'Rename choreo video', fields: [{ name: 'title', label: 'Name', value: now, required: true, max: 120, placeholder: 'e.g. Chorus by the choreographer' }], confirm: 'Save' });
   if (!got || !got.title || got.title === now) return false;
-  const { error } = choreo.kind === 'file'
-    ? await sb.from('videos').update({ title: got.title }).eq('id', choreo.video.id)
-    : await sb.from('projects').update({ choreo_title: got.title }).eq('id', projectId);
+  const { error } = await choreoRpc('rename_project_choreo', { p_project: projectId, p_title: got.title }, () => (choreo.kind === 'file'
+    ? sb.from('videos').update({ title: got.title }).eq('id', choreo.video.id)
+    : sb.from('projects').update({ choreo_title: got.title }).eq('id', projectId)));
   if (error) { toast(friendlyError(error), 'error'); return false; }
   toast('Choreo video renamed.');
   return true;
@@ -193,8 +193,20 @@ export async function removeChoreo(projectId, choreo) {
   return true;
 }
 
+// Who can add, change, rename or remove the choreo video: anyone in the project once migration 071 has run.
+export const canChoreo = (p) => Boolean(p?.isOwner || schema.choreoMembers);
+
+// The choreo is the team's (migration 071): it changes through functions that let anyone in the project do it.
+// Before 071 runs they don't exist, and the owner-only way still works.
+async function choreoRpc(name, args, before071) {
+  const res = await sb.rpc(name, args);
+  if (res.error && /PGRST202|Could not find the function/i.test(`${res.error.code} ${res.error.message}`)) return before071();
+  return res;
+}
+
 export async function setChoreo(projectId, { videoId = null, youtube = null, title = null } = {}) {
-  const { error } = await sb.from('projects').update({ choreo_video_id: videoId, choreo_youtube: youtube, choreo_title: youtube ? title : null }).eq('id', projectId);
+  const { error } = await choreoRpc('set_project_choreo', { p_project: projectId, p_video: videoId, p_youtube: youtube, p_title: youtube ? title : null },
+    () => sb.from('projects').update({ choreo_video_id: videoId, choreo_youtube: youtube, choreo_title: youtube ? title : null }).eq('id', projectId));
   if (error) { toast(friendlyError(error), 'error'); return false; }
   if (videoId || youtube) track('choreo_set', { kind: youtube ? 'youtube' : 'file' });
   toast(videoId || youtube ? 'Choreo video added. Everyone in the project can practice it, section by section.' : 'Choreo video removed.');
@@ -308,8 +320,8 @@ export async function renderPractice(projectId, guest = null) {
   if (!choreo) {
     view.innerHTML = `<section class="page practice-page"><div class="empty"><div class="empty-icon">${ic('play', 'solo')}</div>
       <h2>No choreo video yet</h2>
-      <p>${p.isOwner ? 'Add the video your team learns from, and everyone can practice it here, section by section.' : 'When the project owner adds the choreo video, you can practice it here, section by section.'}</p>
-      <div class="empty-actions">${p.isOwner && schema.choreo ? '<button class="btn primary" data-add-choreo>Add a choreo video</button>' : ''}<a class="btn" href="${base}" data-link>Back to videos</a></div></div></section>`;
+      <p>${canChoreo(p) ? 'Add the video your team learns from, and everyone can practice it here, section by section.' : 'When the project owner adds the choreo video, you can practice it here, section by section.'}</p>
+      <div class="empty-actions">${canChoreo(p) && schema.choreo ? '<button class="btn primary" data-add-choreo>Add a choreo video</button>' : ''}<a class="btn" href="${base}" data-link>Back to videos</a></div></div></section>`;
     $('[data-add-choreo]')?.addEventListener('click', async (e) => {
       if (await chooseChoreo({ projectId, anchor: e.currentTarget })) ctx.route();
     });
@@ -370,7 +382,7 @@ export async function renderPractice(projectId, guest = null) {
   <section class="review practice${guest ? ' is-guest-practice' : ''}">
     <header class="review-head">
       <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted" data-no-i18n>${guest ? (isKo ? `공유됨 · ${esc(p.project.title)}` : `Shared with you · ${esc(p.project.title)}`) : esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
-      ${canShare || (p.isOwner && !guest) ? `<div class="practice-actions">${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}${p.isOwner && !guest ? `<button type="button" class="icon-btn more-btn" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}</div>` : ''}
+      ${canShare || (canChoreo(p) && !guest) ? `<div class="practice-actions">${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}${canChoreo(p) && !guest ? `<button type="button" class="icon-btn more-btn" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}</div>` : ''}
     </header>
     <div class="review-layout practice-layout">
       <div class="player-col" data-col>
@@ -1109,7 +1121,7 @@ export async function renderPractice(projectId, guest = null) {
     $('[data-player]').style.aspectRatio = v?.videoWidth ? `${v.videoWidth} / ${v.videoHeight}` : '16 / 9';
     if (choreo.kind === 'youtube' && !choreo.title && player.title) {
       $('[data-practice-title]').textContent = player.title;
-      if (p.isOwner && !guest) sb.from('projects').update({ choreo_title: player.title.slice(0, 120) }).eq('id', projectId).then(() => {});
+      if (!guest && canChoreo(p)) choreoRpc('rename_project_choreo', { p_project: projectId, p_title: player.title.slice(0, 120) }, () => (p.isOwner ? sb.from('projects').update({ choreo_title: player.title.slice(0, 120) }).eq('id', projectId) : { error: null })).then(() => {});
     }
     const at = wanted ? sections.findIndex((s) => s.id === wanted) : -1;
     if (at >= 0) { current = at; looping = true; player.seek(bounds()[0]); }
@@ -1136,19 +1148,19 @@ export async function renderPractice(projectId, guest = null) {
 }
 
 // The choreo card at the top of a project's videos: practice is one tap away.
-export function choreoCard({ projectId, choreo, isOwner }) {
+export function choreoCard({ projectId, choreo, canEdit }) {
   // The same row as a take (thumbnail, name, one line about it, chevron, ⋯): the zone heading says what it is,
   // and the whole row opens Practice.
   const title = choreoTitle(choreo);
   const thumb = choreo.kind === 'youtube' ? `<img src="${youtubeThumb(choreo.id)}" alt="" loading="lazy" />` : '';
   const meta = choreo.kind === 'youtube' ? `<span class="yt-src">${ytIcon()}YouTube</span>` : choreo.take.created_at ? `Uploaded ${timeAgo(choreo.take.created_at)}` : '';
-  return `<div class="video-list choreo-list"><div class="video-item${isOwner ? ' has-more' : ''}">
+  return `<div class="video-list choreo-list"><div class="video-item${canEdit ? ' has-more' : ''}">
     <a class="video-row" href="/app/p/${projectId}/practice?from=videos" data-link aria-label="Practice ${esc(title)}">
       <span class="video-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>
       <span class="video-copy"><b data-no-i18n title="${esc(title)}">${esc(title)}</b><small>${meta}</small></span>
       <span class="chev">${ic('right', 'solo')}</span>
     </a>
-    ${isOwner ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}
+    ${canEdit ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}
   </div></div>`;
 }
 

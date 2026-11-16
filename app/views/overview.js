@@ -7,7 +7,7 @@ import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
 import { ic } from '../icons.js';
 import { renderInsights } from './insights.js';
-import { loadChoreo, chooseChoreo, choreoTitle } from './practice.js';
+import { loadChoreo, chooseChoreo, choreoTitle, canChoreo } from './practice.js';
 
 export async function renderProjectOverview(projectId) {
   const { view, setCrumbs } = ctx;
@@ -29,7 +29,7 @@ export async function renderProjectOverview(projectId) {
   const practiceHref = `/app/p/${projectId}/practice?from=overview`;
   const choreoLine = choreo
     ? `<p class="music choreo-line">${ic('loop')}<span class="muted">${isKo ? '원본 안무' : 'Choreo'} · </span><a class="link" href="${practiceHref}" data-link data-no-i18n>${esc(choreoTitle(choreo))}${ic('right', 'after')}</a>${parts ? `<span class="muted" data-no-i18n> · ${isKo ? `파트 ${parts}개` : `${parts} ${parts === 1 ? 'part' : 'parts'}`}</span>` : ''}</p>`
-    : p.isOwner && schema.choreo && !p.project.is_sample ? `<p class="music choreo-line">${ic('loop')}<button type="button" class="text-btn link" data-add-choreo>Add a choreo video</button></p>` : '';
+    : canChoreo(p) && schema.choreo && !p.project.is_sample ? `<p class="music choreo-line">${ic('loop')}<button type="button" class="text-btn link" data-add-choreo>Add a choreo video</button></p>` : '';
   const goal = p.goal; // picked by the owner, else the next show
   const next = (events || [])[0];
   const clean = (rows || []).filter((r) => r.status === 'clean').length;
