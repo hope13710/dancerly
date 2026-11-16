@@ -100,12 +100,19 @@ const parseTime = (text) => {
 
 export async function renderCountSheet(projectId) {
   const { view, setCrumbs } = ctx;
-  const [p, { data: rows, error }, { data: videos }] = await Promise.all([
+  const [p, { data: rows, error }, { data: videos }, { data: groups }] = await Promise.all([
     loadProject(projectId),
-    sb.from('count_sheet_rows').select(`id, position, section, counts, focus, video_id, t_start, status, updated_by, updated_at${schema.sheetTake ? ', take_id' : ''}${schema.sectionEnd ? ', t_end' : ''}`).eq('project_id', projectId).order('position').order('created_at'),
-    sb.from('videos').select('id, title, takes(id, number)').eq('project_id', projectId).order('created_at', { ascending: false })
+    sb.from('count_sheet_rows').select(`id, position, section, counts, focus, video_id, t_start, status, updated_by, updated_at${schema.sheetTake ? ', take_id' : ''}${schema.sectionEnd ? ', t_end' : ''}${schema.sectionPeople ? ', assignees, assigned_groups' : ''}`).eq('project_id', projectId).order('position').order('created_at'),
+    sb.from('videos').select('id, title, takes(id, number)').eq('project_id', projectId).order('created_at', { ascending: false }),
+    schema.sectionPeople ? sb.from('project_groups').select('id, name').eq('project_id', projectId) : Promise.resolve({ data: [] })
   ]);
   if (error) throw error;
+  // Who dances each section, set in Practice: groups by name, then people; nobody means everyone.
+  const nameOf = Object.fromEntries((p.members || []).map((m) => [m.user_id, m.name]));
+  const who = (r) => {
+    const list = [...(groups || []).filter((g) => (r.assigned_groups || []).includes(g.id)).map((g) => g.name), ...(r.assignees || []).filter((id) => nameOf[id]).map((id) => nameOf[id])];
+    return list.length ? `<span data-no-i18n>${esc(list.join(', '))}</span>` : '<span class="muted">Everyone</span>';
+  };
   // The sections live in Practice; this is them as a table (with Overview as home when there's no choreo video).
   const fromPractice = Boolean(p.project.choreo_video_id || p.project.choreo_youtube);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], fromPractice ? ['Practice', `/app/p/${projectId}/practice`] : ['Overview', `/app/p/${projectId}/overview`], ['Count sheet']]);
@@ -123,11 +130,12 @@ export async function renderCountSheet(projectId) {
     ${projectHead(p, 'overview', '<button class="btn primary" data-add-row>+ Add section</button>')}
     ${rows.length ? `<div class="sheet-summary"><div class="progress"><i style="width:${(clean / rows.length) * 100}%"></i></div><span>${clean} of ${rows.length} sections clean</span></div>
     <div class="table-wrap"><table class="table sheet">
-      <thead><tr><th class="grip"></th><th>Section</th><th>Counts</th><th>Focus</th><th>Reference</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th class="grip"></th><th>Section</th><th>Counts</th>${schema.sectionPeople ? '<th>Who</th>' : ''}<th>Focus</th><th>Reference</th><th>Status</th><th></th></tr></thead>
       <tbody>${rows.map((r, i) => `<tr data-row="${r.id}">
         <td class="grip"><button class="icon-btn" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ic('up', 'solo')}</button><button class="icon-btn" data-move="1" ${i === rows.length - 1 ? 'disabled' : ''} aria-label="Move down">${ic('down', 'solo')}</button></td>
         <td><input class="cell" data-field="section" value="${esc(r.section)}" maxlength="80" aria-label="Section" /></td>
         <td><input class="cell narrow" data-field="counts" value="${esc(r.counts || '')}" maxlength="80" placeholder="1–8 ×2" aria-label="Counts" /></td>
+        ${schema.sectionPeople ? `<td class="who-cell">${who(r)}</td>` : ''}
         <td><input class="cell wide" data-field="focus" value="${esc(r.focus || '')}" maxlength="500" placeholder="What to watch for" aria-label="Focus" /></td>
         <td class="ref"><select class="cell" data-field="video_id" aria-label="Reference video">${videoOptions(r.video_id)}</select>${onChoreo(r) ? `<a class="icon-btn sec-practice" href="/app/p/${projectId}/practice?section=${r.id}&from=counts" data-link aria-label="Practice this section" title="Practice this section">${ic('play', 'solo')}</a>` : ''}<input class="cell time" data-field="t_start" value="${r.t_start === null ? '' : fmt(Number(r.t_start))}" placeholder="0:00" aria-label="Start time" />${schema.sectionEnd ? `<span class="time-dash" aria-hidden="true">–</span><input class="cell time" data-field="t_end" value="${r.t_end === null || r.t_end === undefined ? '' : fmt(Number(r.t_end))}" placeholder="0:00" aria-label="End time" />` : ''}${r.video_id ? `<a class="link play" href="/app/p/${projectId}/v/${r.video_id}${r.t_start !== null ? `?t=${Number(r.t_start)}${r.take_id ? `&from=${r.take_id}` : ''}` : ''}" data-link aria-label="Play reference">${ic('play', 'solo')}</a>` : ''}</td>
         <td><select class="cell status s-${r.status}" data-field="status" aria-label="Status">${STATUS.map(([k, l]) => `<option value="${k}" ${k === r.status ? 'selected' : ''}>${l}</option>`).join('')}</select></td>

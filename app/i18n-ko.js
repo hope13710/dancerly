@@ -471,6 +471,11 @@ export const KO = {
   'New notes': '새 피드백',
   'Practice': '연습하기',
   'Practice it': '원본으로 연습',
+  'Who': '담당',
+  'Who dances it (optional)': '누가 추나요? (선택)',
+  'Leave it empty if everyone does. People who join later with the invite link can be added here.': '모두 추는 파트라면 비워 두세요. 나중에 초대 링크로 들어온 멤버도 여기서 추가할 수 있어요.',
+  'Name, counts, who dances it': '이름, 카운트, 담당 멤버',
+  'Which sections': '표시할 파트',
   'Table': '표로 보기',
   'Edit section': '파트 편집',
   'Name, counts, what to watch for': '이름, 카운트, 체크할 포인트',
@@ -1643,6 +1648,7 @@ export const KO = {
 // 을/를 after a number, read the Korean way (1 일 → 을, 2 이 → 를 …).
 const eul = (n) => ('2459'.includes(String(n).slice(-1)) ? '를' : '을');
 export const KO_RULES = [
+  [/^(.+) \(you\)$/, '$1 (나)'],
   [/^More actions for (.+)$/, '$1 더보기'],
   [/^Make (.+) the owner\?$/, '$1님을 관리자로 지정할까요?'],
   [/^\s*becomes the owner of (.+)\. You’ll stay on as a member and can’t undo this yourself\.$/, '님이 $1의 관리자가 돼요. 나는 멤버로 남고, 직접 되돌릴 수는 없어요.'],

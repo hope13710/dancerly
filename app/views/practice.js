@@ -1,7 +1,7 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
+import { sb, $, $$, esc, fmt, fmtFine, timeAgo, avatar, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { volumeControl, wireVolume } from '../volume.js';
@@ -293,9 +293,25 @@ export async function renderPractice(projectId, guest = null) {
   let sections = [];
   const loadSections = async () => {
     if (guest) { sections = (guest.sections || []).filter((r) => r.t_start !== null).sort((a, b) => Number(a.t_start) - Number(b.t_start)); return; }
-    const { data } = await sb.from('count_sheet_rows').select(`id, position, section, counts, focus, status, video_id, t_start${schema.sectionEnd ? ', t_end' : ''}`).eq('project_id', projectId).order('position');
+    const { data } = await sb.from('count_sheet_rows').select(`id, position, section, counts, focus, status, video_id, t_start${schema.sectionEnd ? ', t_end' : ''}${schema.sectionPeople ? ', assignees, assigned_groups' : ''}`).eq('project_id', projectId).order('position');
     sections = (data || []).filter(belongs).sort((a, b) => Number(a.t_start) - Number(b.t_start));
   };
+  // Who dances each section (migration 069): members and groups; nobody picked means everyone.
+  // A guest gets the names from the shared link; people who left and deleted groups just don't show.
+  const groups = !guest && schema.sectionPeople ? ((await sb.from('project_groups').select('id, name, project_group_members(user_id)').eq('project_id', projectId).order('name')).data || []) : [];
+  const memberName = Object.fromEntries((p.members || []).map((m) => [m.user_id, m.name]));
+  const peopleOf = (s) => {
+    if (guest) return (s.people || []).map((x) => ({ id: x.id, name: x.name }));
+    const ids = new Set(s.assignees || []);
+    for (const g of groups) if ((s.assigned_groups || []).includes(g.id)) g.project_group_members.forEach((m) => ids.add(m.user_id));
+    return [...ids].filter((id) => memberName[id]).map((id) => ({ id, name: memberName[id] }));
+  };
+  const me = ctx.state.session?.user?.id;
+  const isMine = (s) => peopleOf(s).some((x) => x.id === me);
+  // My sections: mine plus the ones everyone dances. Offered once something is assigned to me; remembered per project.
+  const ONLY_KEY = `looproom:my-sections:${projectId}`;
+  let onlyMine = !guest && read(ONLY_KEY, '0') === '1';
+  const shown = (i) => i < 0 || !onlyMine || !sections.some(isMine) || isMine(sections[i]) || !peopleOf(sections[i]).length;
   await loadSections();
 
   const params = new URLSearchParams(location.search);
@@ -364,7 +380,7 @@ export async function renderPractice(projectId, guest = null) {
       </div>
       <aside class="notes-col practice-side">
         ${guest ? '<div class="guest-join" data-guest-join></div>' : ''}
-        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${guest ? '' : `<a class="side-link" href="/app/p/${projectId}/counts" data-link>${ic('file')}Table</a>`}</div>
+        <div class="side-head"><h2>Sections</h2><span class="muted" data-sec-count></span>${guest ? '' : '<div class="seg small dark sec-filter" role="group" aria-label="Which sections" data-sec-filter hidden></div>'}${guest ? '' : `<a class="side-link" href="/app/p/${projectId}/counts" data-link>${ic('file')}Table</a>`}</div>
         <div class="practice-next" data-next-step hidden></div>
         <div class="sec-list" data-secs></div>
         ${guest ? '' : `<div class="sec-mark" data-mark-box hidden></div>
@@ -403,12 +419,27 @@ export async function renderPractice(projectId, guest = null) {
 
   const paintSections = () => {
     $('[data-sec-count]').textContent = sections.length ? `${sections.length}` : '';
+    const filter = $('[data-sec-filter]');
+    if (filter) {
+      filter.hidden = !sections.some(isMine);
+      filter.innerHTML = `<button type="button" data-only="0" aria-selected="${!onlyMine}">All</button><button type="button" data-only="1" aria-selected="${onlyMine}" data-no-i18n>${isKo ? '내 파트' : 'Mine'}</button>`;
+      filter.querySelectorAll('[data-only]').forEach((b) => b.addEventListener('click', () => {
+        onlyMine = b.dataset.only === '1';
+        save(ONLY_KEY, onlyMine ? '1' : '0');
+        if (onlyMine && current >= 0 && !shown(current)) { looping = false; current = -1; }
+        paintSections();
+        track('practice_my_sections', { on: onlyMine });
+      }));
+    }
     const row = (i, name, meta) => {
       const on = looping && i === current;
-      return `<div class="sec-row${on ? ' on' : ''}" data-row="${i}">
+      if (!shown(i)) return '';
+      const who = i >= 0 ? peopleOf(sections[i]) : [];
+      return `<div class="sec-row${on ? ' on' : ''}${i >= 0 && who.some((x) => x.id === me) ? ' mine' : ''}" data-row="${i}">
         <button type="button" class="sec-main" data-loop="${i}" aria-pressed="${on}">
           <span class="sec-dot b${i < 0 ? 'w' : i % BANDS}" aria-hidden="true"></span>
           <span class="sec-text"><b ${i >= 0 ? 'data-no-i18n' : ''}>${name}</b><small>${meta}</small>${i >= 0 && sections[i].focus ? `<small class="sec-focus" data-no-i18n>${esc(sections[i].focus)}</small>` : ''}</span>
+          ${who.length ? `<span class="sec-people" title="${esc(who.map((x) => x.name).join(', '))}" aria-label="${esc(who.map((x) => x.name).join(', '))}" data-no-i18n>${who.slice(0, 3).map((x) => avatar(x.name, guest ? null : x.id, 'xs')).join('')}${who.length > 3 ? `<i>+${who.length - 3}</i>` : ''}</span>` : ''}
           <span class="sec-state">${on ? `${ic('loop')}<span>Looping</span>` : ic('loop', 'solo')}</span>
         </button>
         ${i >= 0 && !guest && sections[i].status ? `<button type="button" class="sec-status s-${sections[i].status}" data-sec-status="${i}" title="Tap for the next step: Learning → Practicing → Clean">${STATUS_LABEL[sections[i].status] || ''}</button>` : ''}
@@ -550,9 +581,16 @@ export async function renderPractice(projectId, guest = null) {
     if (looping) track('practice_section_loop', { from });
   };
   const step = (d) => {
-    if (!sections.length) return;
+    const list = sections.map((_, i) => i).filter((i) => shown(i));
+    if (!list.length) return;
     const from = looping ? current : sectionAt(player.time);
-    pick(from + d < 0 ? sections.length - 1 : from + d >= sections.length ? 0 : from + d, { from: d < 0 ? 'prev' : 'next' });
+    let k = list.indexOf(from);
+    if (k < 0) {
+      const j = list.findIndex((i) => (d > 0 ? i > from : i >= from));
+      k = (j < 0 ? list.length : j) - (d > 0 ? 1 : 0);
+    }
+    const next = list[((k + d) % list.length + list.length) % list.length];
+    pick(next, { from: d < 0 ? 'prev' : 'next' });
   };
   const toggle = () => { if (player.paused) player.play(); else player.pause(); };
   const setSpeed = (s, { quiet = false, remember = true } = {}) => {
@@ -601,8 +639,21 @@ export async function renderPractice(projectId, guest = null) {
   const nameFields = (s = {}) => [
     { name: 'section', label: 'Section name', value: s.section || '', placeholder: 'Chorus', required: true, max: 80, chips: SECTION_NAMES },
     { name: 'counts', label: 'Counts (optional)', value: s.counts || '', placeholder: '1–8 ×4', max: 80 },
-    { name: 'focus', label: 'What to watch for (optional)', value: s.focus || '', placeholder: 'Arms stay sharp on 5–6', max: 500 }
+    { name: 'focus', label: 'What to watch for (optional)', value: s.focus || '', placeholder: 'Arms stay sharp on 5–6', max: 500 },
+    ...(schema.sectionPeople && (groups.length || (p.members || []).length > 1) ? [{
+      name: 'who', type: 'pick', label: 'Who dances it (optional)',
+      hint: 'Leave it empty if everyone does. People who join later with the invite link can be added here.',
+      values: [...(s.assigned_groups || []).map((g) => `g:${g}`), ...(s.assignees || []).map((u) => `u:${u}`)],
+      options: [
+        ...groups.map((g) => ({ value: `g:${g.id}`, label: g.name, html: `<span class="pick-group">${ic('people', 'solo')}</span>` })),
+        ...(p.members || []).map((m) => ({ value: `u:${m.user_id}`, label: m.user_id === me ? `${m.name} (you)` : m.name, html: avatar(m.name, m.user_id, 'xs') }))
+      ]
+    }] : [])
   ];
+  // The dialog's people picks, as the row's two lists.
+  const whoPatch = (got) => (schema.sectionPeople && Array.isArray(got.who)
+    ? { assignees: got.who.filter((v) => v.startsWith('u:')).map((v) => v.slice(2)), assigned_groups: got.who.filter((v) => v.startsWith('g:')).map((v) => v.slice(2)) }
+    : {});
   // Marking a new section: Start is where the video is now; play or drag on, then set End (or press [ and ]).
   let mark = null; // { start, end }
   const now10 = () => Math.round(player.time * 10) / 10;
@@ -653,7 +704,7 @@ export async function renderPractice(projectId, guest = null) {
     if (!got?.section) return;
     const position = sections.length ? Math.max(...sections.map((s) => Number(s.position) || 0)) + 1 : 0;
     const t = mark.start;
-    const row = { project_id: projectId, section: got.section, counts: got.counts || null, focus: got.focus || null, t_start: t, ...(schema.sectionEnd && mark.end !== null ? { t_end: mark.end } : {}), video_id: videoId, position, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
+    const row = { project_id: projectId, section: got.section, counts: got.counts || null, focus: got.focus || null, ...whoPatch(got), t_start: t, ...(schema.sectionEnd && mark.end !== null ? { t_end: mark.end } : {}), video_id: videoId, position, ...(schema.sheetTake && videoId ? { take_id: choreo.take.id } : {}) };
     mark = null;
     paintMark();
     const { error } = await sb.from('count_sheet_rows').insert(row);
@@ -679,7 +730,7 @@ export async function renderPractice(projectId, guest = null) {
     const s = sections[i];
     const t = Math.round(player.time * 10) / 10;
     const choice = await actionSheet({ title: s.section || 'Section', anchor, actions: [
-      { value: 'rename', icon: 'pen', label: 'Edit section', hint: 'Name, counts, what to watch for' },
+      { value: 'rename', icon: 'pen', label: 'Edit section', hint: schema.sectionPeople ? 'Name, counts, who dances it' : 'Name, counts, what to watch for' },
       { value: 'start', icon: 'at', label: `${isKo ? '시작을 여기로' : 'Set start here'} · ${fmt(t)}`, hint: 'Where the video is now' },
       ...(schema.sectionEnd ? [{ value: 'end', icon: 'at', label: `${isKo ? '끝을 여기로' : 'Set end here'} · ${fmt(t)}`, hint: 'Where the video is now' }] : []),
       { value: 'delete', icon: 'x', label: 'Delete section', danger: true }
@@ -687,7 +738,7 @@ export async function renderPractice(projectId, guest = null) {
     let patch = null;
     if (choice === 'rename') {
       const got = await dialog({ title: 'Edit section', fields: nameFields(s), confirm: 'Save' });
-      if (got?.section) patch = { section: got.section, counts: got.counts || null, focus: got.focus || null };
+      if (got?.section) patch = { section: got.section, counts: got.counts || null, focus: got.focus || null, ...whoPatch(got) };
     }
     if (choice === 'start') {
       if (s.t_end !== null && s.t_end !== undefined && t >= Number(s.t_end)) return toast('The start has to come before the end.', 'error');

@@ -21,7 +21,7 @@ export const GOOGLE_G = '<svg class="g" viewBox="0 0 48 48" width="18" height="1
 export const schema = { firstRun: true, align: true, sheetTake: true };
 const missing = (error) => Boolean(error && /42703|does not exist/i.test(`${error.code} ${error.message}`));
 export async function detectSchema() {
-  const [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, u] = await Promise.all([
+  const [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, u, w] = await Promise.all([
     sb.from('projects').select('is_sample').limit(1),
     sb.from('takes').select('align').limit(1),
     sb.from('count_sheet_rows').select('take_id').limit(1),
@@ -38,7 +38,8 @@ export async function detectSchema() {
     sb.from('practice_shares').select('token').limit(1),
     sb.from('projects').select('members_share_links').limit(1),
     sb.from('take_choreo_align').select('take_id').limit(1),
-    sb.from('projects').select('choreo_bpm').limit(1)
+    sb.from('projects').select('choreo_bpm').limit(1),
+    sb.from('count_sheet_rows').select('assignees').limit(1)
   ]);
   schema.firstRun = !missing(a.error);
   schema.align = !missing(b.error);
@@ -57,6 +58,7 @@ export async function detectSchema() {
   schema.teamLinks = !missing(o.error); // migration 064
   schema.choreoAlign = !q.error; // migration 067 (a missing table is an error; an empty one isn't)
   schema.choreoCounts = !missing(u.error); // migration 068
+  schema.sectionPeople = !missing(w.error); // migration 069
 }
 export function cols(list) {
   const drop = [...(schema.firstRun ? [] : ['is_sample', 'onboarding']), ...(schema.align ? [] : ['align']), ...(schema.goal ? [] : ['target_event_id']), ...(schema.shareCards ? [] : ['allow_share_cards']), ...(schema.noteCategories ? [] : ['category']), ...(schema.teamRecaps ? [] : ['team', 'cycle', 'auto', 'auto_recap']), ...(schema.choreo ? [] : ['choreo_video_id', 'choreo_youtube', 'choreo_title']), ...(schema.shareLinks ? [] : ['members_share_practice']), ...(schema.teamLinks ? [] : ['members_share_links']), ...(schema.choreoCounts ? [] : ['choreo_bpm', 'choreo_count_start'])];
@@ -238,7 +240,9 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     el.className = 'dialog';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>${body ? `<p>${body}</p>` : ''}
-      ${fields.map((f) => `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
+      ${fields.map((f) => f.type === 'pick'
+        ? `<div class="field"><span>${esc(f.label)}</span><div class="pick-chips" role="group" aria-label="${esc(f.label)}">${f.options.map((o) => `<label class="pick-chip"><input type="checkbox" name="${f.name}" value="${esc(o.value)}" ${(f.values || []).includes(o.value) ? 'checked' : ''} />${o.html || ''}<span>${esc(o.label)}</span></label>`).join('')}</div>${f.hint ? `<small class="field-hint">${esc(f.hint)}</small>` : ''}</div>`
+        : `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
         ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
         : f.type === 'file'
         ? `<input name="${f.name}" type="file" accept="${f.accept || ''}" ${f.required ? 'required' : ''} />`
@@ -253,6 +257,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
       const ok = el.returnValue === 'ok';
       const values = Object.fromEntries(fields.map((f) => {
         const input = el.querySelector(`[name="${f.name}"]`);
+        if (f.type === 'pick') return [f.name, [...el.querySelectorAll(`[name="${f.name}"]:checked`)].map((x) => x.value)];
         return [f.name, f.type === 'file' ? input.files?.[0] : input.value.trim()];
       }));
       el.remove();

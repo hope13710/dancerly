@@ -95,9 +95,18 @@ async function practiceLink(ps: any) {
     }
   }
   if (!choreo) return json({ error: "There’s no choreo video here anymore." }, 404);
-  let rows = admin.from("count_sheet_rows").select("id, section, counts, t_start, t_end").eq("project_id", project.id).not("t_start", "is", null);
+  let rows = admin.from("count_sheet_rows").select("id, section, counts, t_start, t_end, assignees, assigned_groups").eq("project_id", project.id).not("t_start", "is", null);
   rows = project.choreo_youtube ? rows.is("video_id", null) : rows.eq("video_id", project.choreo_video_id);
   const { data: sections } = await rows;
+  // Who dances each section (migration 069), by name: people picked and the members of groups picked, still in the project.
+  const groupIds = [...new Set((sections ?? []).flatMap((r: any) => r.assigned_groups ?? []))];
+  const { data: inGroups } = groupIds.length ? await admin.from("project_group_members").select("group_id, user_id").in("group_id", groupIds) : { data: [] };
+  const { data: members } = await admin.from("project_members").select("user_id").eq("project_id", project.id);
+  const isMember = new Set((members ?? []).map((m: any) => m.user_id));
+  const peopleIds = (r: any) => [...new Set([...(r.assignees ?? []), ...(inGroups ?? []).filter((g: any) => (r.assigned_groups ?? []).includes(g.group_id)).map((g: any) => g.user_id)])].filter((id) => isMember.has(id));
+  const allIds = [...new Set((sections ?? []).flatMap(peopleIds))];
+  const { data: profiles } = allIds.length ? await admin.from("profiles").select("id, display_name").in("id", allIds) : { data: [] };
+  const nameOf = Object.fromEntries((profiles ?? []).map((x: any) => [x.id, x.display_name]));
   let owner: string | null = null;
   if (ps.allow_requests) {
     const { data: o } = await admin.from("project_members").select("user_id").eq("project_id", project.id).eq("role", "owner").limit(1).maybeSingle();
@@ -109,7 +118,7 @@ async function practiceLink(ps: any) {
     project: project.title,
     title,
     choreo,
-    sections: (sections ?? []).map((r: any) => ({ id: r.id, section: r.section, counts: r.counts, t_start: Number(r.t_start), t_end: r.t_end === null ? null : Number(r.t_end) })),
+    sections: (sections ?? []).map((r: any) => ({ id: r.id, section: r.section, counts: r.counts, t_start: Number(r.t_start), t_end: r.t_end === null ? null : Number(r.t_end), people: peopleIds(r).filter((id) => nameOf[id]).map((id) => ({ id, name: nameOf[id] })) })),
     allow_requests: ps.allow_requests === true,
     owner,
     expires_at: ps.expires_at,

@@ -10396,3 +10396,26 @@ body.is-guest .tabbar {
 .side-link:hover { color: #fff; }
 .side-link .ic { width: 14px; height: 14px; }
 @media (max-width: 600px) { .sec-row .sec-state span { display: none; } }
+
+/* Pick chips in a dialog (who dances a section): people and groups, any number. */
+.pick-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.pick-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 6px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; background: var(--surface, #fff); }
+.pick-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.pick-chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.pick-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pick-group { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--line); color: var(--muted); }
+.pick-group .ic { width: 12px; height: 12px; }
+.field-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+@media (pointer: coarse) { .pick-chip { min-height: 40px; } }
+
+/* Practice sections: who dances it, and mine stand out. */
+.sec-people { display: inline-flex; align-items: center; flex: none; margin-right: 2px; }
+.sec-people .avatar { width: 22px; height: 22px; font-size: 9px; box-shadow: 0 0 0 2px #1b1f27; }
+.sec-people .avatar + .avatar { margin-left: -6px; }
+.sec-people i { margin-left: 4px; font-style: normal; font-size: 11px; font-weight: 600; color: #aab1bd; }
+.sec-row.mine:not(.on) { background: rgba(139, 140, 255, 0.07); }
+.sec-row.mine .sec-text b::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: #8b8cff; vertical-align: middle; }
+.sec-filter { margin-left: 4px; }
+.sec-filter[hidden] { display: none; }
+.sec-filter button { padding: 3px 9px; font-size: 12px; }
+.who-cell { font-size: 13px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
