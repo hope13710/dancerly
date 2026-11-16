@@ -329,7 +329,10 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
   // A note's or reply's author, opening their profile (someone who left the project stays plain text).
   const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
-  const canResolve = (n) => n.author_id === me.id || isOwner;
+  // Every project member who can see a note can mark it fixed or reopen it.
+  // Private notes remain limited by the database's can_see_note check.
+  const canResolve = (n) => members.some((m) => m.user_id === me.id);
+  const canManageNote = (n) => n.author_id === me.id || isOwner;
 
   function paintNotes() {
     paintFilters();
@@ -367,7 +370,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       // starting at its moment, one quiet line of context, and the rest of the actions when you point at it.
       const count = countAt(n.t_start, r.counts.bpm, n.shifted ? r.counts.start : takeCountStart(n.take_id));
       const meta = [
-        n.category ? (canResolve(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : '',
+        n.category ? (canManageNote(n) ? `<button type="button" class="cat-btn" data-category="${n.id}" title="Change focus area">${catChip(n.category)}</button>` : catChip(n.category)) : '',
         from,
         n.status === 'practicing' ? '<span class="status s-practicing">Working on it</span>' : '',
       ].filter(Boolean);
@@ -393,7 +396,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
             <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
             ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
             ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
-            ${canResolve(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
+            ${canManageNote(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>
         </div>
         ${open ? `<div class="thread">

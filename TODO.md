@@ -25,7 +25,7 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 
 ## Latest UX and collaboration fixes
 - [x] Mobile Projects sample prompt has intentional spacing between its message and action.
-- [x] Shared team Recap checklists can be checked by every project member through a narrow, permission-checked RPC; personal Recaps remain private to their creator.
+- [x] Feedback note completion checks can be changed by every project member who can see the note; private notes remain visibility-scoped.
 - [x] Inbox supports clearing all notifications and removing an individual notification without affecting its linked work.
 - [x] Feedback's project filter uses a quieter, smaller control while retaining the existing filter design language.
 - [x] Transferring project ownership creates an Inbox notification for the new owner and links them to project People.
