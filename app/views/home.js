@@ -130,7 +130,7 @@ export async function renderHome() {
   let activation = null;
   if (leader && !hideChecklist) {
     // These places are empty for now; the sidebar points at each once something lands there.
-    if (!graduated) watchNav('queue', 'feedback', 'people', 'insights');
+    if (!graduated) watchNav('queue', 'feedback', 'people');
     const NEXT = {
       'Create a project': ['Create your project', 'One project per goal: a show, a competition, a class, or your own practice.', 'Create project', 'project'],
       'Upload a practice video': ['Upload your first practice video', 'A phone video from your last practice is plenty. Pause on any moment and leave feedback right on it.', 'Upload video', 'video'],

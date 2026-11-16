@@ -69,7 +69,6 @@ export function skeletonFor(path) {
   if (p === '/app') return page(pageHead() + panels());
   if (p === '/app/projects') return page(pageHead() + cards(6));
   if (p === '/app/calendar') return page(pageHead() + calendar());
-  if (p === '/app/insights') return page(pageHead() + stats());
   if (/^\/app\/(people\/[^/]+|me)$/.test(p)) return page(`<header class="page-head sk-head"><div class="sk-project"><span class="sk sk-avatar large"></span><div>${bar('180px', 'sk-title')}${bar('120px')}</div></div></header>${stats()}`, 'narrow-wide');
   if (/^\/app\/(inbox|feedback|queue|people|trash|me\/recaps)$/.test(p)) return page(pageHead() + rows(6, /inbox|people/.test(p) ? 'avatar' : 'icon'), 'narrow-wide');
   return null;

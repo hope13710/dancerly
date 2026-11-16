@@ -65,7 +65,7 @@ export async function openSample({ from = 'unknown' } = {}) {
   await ctx.refreshNav();
   // "plan:recaps" = the recaps spot, opened from the Plan page.
   const spot = from.split(':').pop();
-  if (spot === 'insights') return ctx.navigate(`/app/insights?project=${projectId}`);
+  if (spot === 'insights') return ctx.navigate(`/app/p/${projectId}/overview`);
   if (spot === 'recaps') {
     const { data: recap } = await sb.from('recaps').select('id').eq('project_id', projectId).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (recap) return ctx.navigate(`/app/recaps/${recap.id}`);

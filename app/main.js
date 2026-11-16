@@ -14,7 +14,6 @@ import { renderHome } from './views/home.js';
 import { renderInbox } from './views/inbox.js';
 import { renderFeedback } from './views/feedback.js';
 import { renderPeople, renderPerson } from './views/people.js';
-import { renderInsights } from './views/insights.js';
 import { renderSettings } from './views/settings.js';
 import { renderProjectRecaps, renderRecap, renderMyRecaps } from './views/recaps.js';
 import { renderProjectRequests, renderRequest, newRequest } from './views/requests.js';
@@ -85,7 +84,8 @@ const routes = [
   { re: /^\/app\/feedback\/?$/, render: renderFeedback },
   { re: /^\/app\/people\/?$/, render: renderPeople },
   { re: /^\/app\/people\/([0-9a-f-]{36})\/?$/, render: renderPerson },
-  { re: /^\/app\/insights\/?$/, render: renderInsights },
+  // Insights live in each project's Overview now ("How it's going"): the old page opens the project's Overview.
+  { re: /^\/app\/insights\/?$/, render: async () => { await state.projectsReady; const wanted = new URLSearchParams(location.search).get('project'); const real = state.projects.filter((p) => !p.is_sample); const id = wanted || (real.length === 1 ? real[0].id : null); navigate(id ? `/app/p/${id}/overview` : '/app/projects', { replace: true }); } },
   { re: /^\/app\/settings(?:\/([a-z]+))?\/?$/, render: (section) => renderSettings(section) },
   { re: /^\/app\/me\/?$/, render: renderMe },
   { re: /^\/app\/?$/, render: renderHome }
@@ -298,7 +298,6 @@ function paintNav() {
     inbox: under('/app/inbox') || under('/app/queue'), // the review queue is an Inbox tab
     feedback: under('/app/feedback'),
     people: under('/app/people'),
-    insights: under('/app/insights'),
     queue: under('/app/queue'),
     calendar: under('/app/calendar'),
     settings: under('/app/settings') || path === '/app/reset',
@@ -306,7 +305,7 @@ function paintNav() {
     'all-projects': path === '/app/projects',
     projects: path === '/app/projects' || Boolean(projectId),
     // Places only reachable from Me on a phone keep the Me tab lit.
-    me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/insights', '/app/settings', '/app/reset', '/app/trash'].some(under)
+    me: ['/app/me', '/app/inbox', '/app/queue', '/app/calendar', '/app/people', '/app/settings', '/app/reset', '/app/trash'].some(under)
   };
   $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', Boolean(current[a.dataset.nav])));
   // Real projects up top; the sample sits apart, under its own label, so it never reads as real work.
@@ -400,8 +399,7 @@ async function matchSampleLanguage() {
 const NAV_DOTS = {
   queue: async () => (await unseenVideos()).length > 0,
   feedback: async () => Boolean((await noSample(sb.from('notes').select('id')).neq('author_id', state.session.user.id).limit(1)).data?.length),
-  people: () => hasTeammates(),
-  insights: async () => Boolean((await noSample(sb.from('notes').select('id')).limit(1)).data?.length)
+  people: () => hasTeammates()
 };
 const dotsOn = new Set();
 let dotsCheckedAt = 0;
@@ -773,7 +771,6 @@ function renderMe() {
     </div>
     <div class="list-group">
       ${row('/app/people', 'People')}
-      ${row('/app/insights', 'Insights')}
     </div>
     <div class="list-group">
       ${row('/app/settings/account', 'Account')}
@@ -888,7 +885,6 @@ ctx.commands = [
   { label: 'Go to videos to review', run: () => navigate('/app/queue') },
   { label: 'Go to Feedback', run: () => navigate('/app/feedback') },
   { label: 'Go to Calendar', run: () => navigate('/app/calendar') },
-  { label: 'Go to Insights', run: () => navigate('/app/insights') },
   { label: 'Go to Settings', run: () => navigate('/app/settings') },
   { label: 'Send feedback', hint: 'A bug, an idea, or a question', run: () => openHelp({ kind: 'idea' }) },
   { label: 'Get help', hint: 'Email us or read the FAQ', run: () => openHelp({ kind: 'question' }) }

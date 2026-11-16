@@ -441,7 +441,7 @@ export const LANDING_KO = {
   "Unlimited people and projects": "인원·프로젝트 무제한",
   "Notes, sketches, loops, and mirror mode": "피드백, 스케치, 구간 반복, 거울 모드",
   "Takes, side-by-side compare, and focus areas": "테이크 관리, 나란히 비교, 피드백 항목",
-  "Assignments, calendar, and Insights": "영상 과제, 캘린더, 리포트",
+  "Assignments, calendar, and project progress": "영상 과제, 캘린더, 프로젝트 진행 상황",
   "5 GB of video storage for each team owner, about 140 videos": "팀 오너마다 영상 저장 공간 5GB (약 140개)",
   "Run out of storage and nothing’s deleted: new uploads just pause. Delete old takes, or email us and we’ll add more.": "저장 공간이 가득 차도 지워지는 건 없고 새 업로드만 멈춰요. 예전 테이크를 지우거나 저희에게 연락 주시면 늘려 드려요.",
   "Is dancerly really free?": "dancerly는 정말 무료인가요?",

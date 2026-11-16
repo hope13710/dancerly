@@ -10382,3 +10382,9 @@ body.is-guest .tabbar {
 .side-head .spacer { flex: 1; }
 .counts-btn { align-self: center; color: #c9cdd8; border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); font-variant-numeric: tabular-nums; }
 .counts-btn:hover, .counts-btn[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.12); }
+/* Overview › How it's going: cards only one person sees sit apart from the team picture everyone shares. */
+.only-you { display: inline-flex; align-items: center; gap: 4px; }
+.only-you .ic { width: 12px; height: 12px; }
+.mine-panel { border-color: var(--accent-soft, #e7e7fb); box-shadow: inset 3px 0 0 var(--accent); }
+.mine-panel .row-title b { font-weight: 600; }
+.mine-panel .li-icon { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-dark); flex: none; }

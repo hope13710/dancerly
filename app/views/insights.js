@@ -10,6 +10,7 @@ import { isKo, t } from '../i18n.js';
 import { CATEGORIES, catChip, catLabel, catColor } from '../categories.js';
 import { samplePeek, sampleMoment, teamNote } from '../onboarding.js';
 import { ic } from '../icons.js';
+import { practiceHref, hasChoreo } from '../choreo-align.js';
 
 const RANGES = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
 const DAY = 86400000;
@@ -78,8 +79,8 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   // Everything is scoped to one project, or to all projects except the sample.
   const scope = (q) => (project ? q.eq('project_id', project) : sample ? q.neq('project_id', sample.id) : q);
 
-  const [{ data: notes, error }, { data: takes, error: tErr }, { data: videos }, { data: requests }, { data: submitted }, { data: roster }] = await Promise.all([
-    scope(sb.from('notes').select(cols('id, project_id, video_id, take_id, author_id, status, created_at, resolved_at, t_start, t_end, body, category, videos(title), takes(number, uploaded_by), note_reactions(user_id)'))).order('created_at', { ascending: false }).limit(5000),
+  const [{ data: allNotes, error }, { data: takes, error: tErr }, { data: videos }, { data: requests }, { data: submitted }, { data: roster }] = await Promise.all([
+    scope(sb.from('notes').select(cols('id, project_id, video_id, take_id, author_id, private_to, status, created_at, resolved_at, t_start, t_end, body, category, videos(title), takes(number, uploaded_by), note_reactions(user_id), note_mentions(user_id)'))).order('created_at', { ascending: false }).limit(5000),
     scope(notChoreo(sb.from('takes').select(cols('id, project_id, video_id, number, uploaded_by, created_at, count_start, align')))).limit(5000),
     scope(notChoreo(sb.from('videos').select('id, project_id, title, bpm'))).limit(1000),
     scope(sb.from('requests').select('id, project_id, title, due_at, everyone, created_by, request_assignees(user_id)')).eq('status', 'active').limit(100),
@@ -87,6 +88,9 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     scope(sb.from('project_members').select('project_id, user_id, role')).limit(2000)
   ]);
   if (error || tErr) throw error || tErr;
+  // The team picture is the same for everyone in the project, so it can be talked through together: private notes
+  // (which only two people see) stay out of it. They show in "For you to fix", for the person they're for.
+  const notes = allNotes.filter((n) => !n.private_to);
 
   // No data of your own yet: show what this page does, using the sample project.
   if (!embedded && !project && !notes.length && !takes.length && sample) return navigate(url({ project: sample.id }), { replace: true });
@@ -194,13 +198,6 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   // ---------- Next up: at most three things, each with one action ----------
   // Full sentences in both languages: names and titles sit inside them, so they can't be swapped piece by piece.
   const next = [];
-  const due = waiting[0];
-  if (due && isLeader) next.push({ icon: ic('upload', 'solo'), html: isKo
-    ? `<b>${esc(due.title)}</b> · 아직 안 보낸 사람 <b>${due.missing.length}명</b> · ${esc(t(dueLabel(due.due_at)))}`
-    : `<b>${due.missing.length}</b> still to send <b>${esc(due.title)}</b> · ${esc(dueLabel(due.due_at))}`, cta: 'Remind', remind: due.id });
-  else if (due && due.missing.includes(me)) next.push({ icon: ic('upload', 'solo'), html: isKo
-    ? `<b>${esc(due.title)}</b> 영상을 아직 안 보냈어요 · ${esc(t(dueLabel(due.due_at)))}`
-    : `You still need to send <b>${esc(due.title)}</b> · ${esc(dueLabel(due.due_at))}`, cta: 'Open', href: `/app/p/${due.project_id}/requests/${due.id}` });
   const hottest = spots.filter((s) => s.top).sort((a, b) => b.top.open - a.top.open)[0];
   if (hottest) next.push({ icon: ic('target', 'solo'), html: isKo
     ? `미해결 피드백이 몰린 곳: <b>${esc(hottest.video.title)}</b> · <b>${hottest.top.label}</b> (${hottest.top.open}개)`
@@ -215,6 +212,24 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   if (topArea) next.push({ icon: '<i class="li-dot"></i>', color: catColor(topArea.key), html: isKo
     ? `<b>${catLabel(topArea.key)}</b> 피드백이 가장 많이 남아 있어요 (${topArea.open}개)`
     : `<b>${catLabel(topArea.key)}</b> has the most open notes (${topArea.open})`, cta: 'See notes', sheet: `area:${topArea.key}` });
+
+  // ---------- For you to fix: only you see it. Notes for you here that aren't fixed, and assignments you owe ----------
+  const forMe = embedded ? allNotes.filter((n) => n.status !== 'resolved' && n.author_id !== me && (n.private_to === me || n.takes?.uploaded_by === me || (n.note_mentions || []).some((x) => x.user_id === me)))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at)) : [];
+  const owed = embedded ? waiting.filter((w) => w.missing.includes(me)) : [];
+  const projectRow = state.projects.find((x) => x.id === project);
+  const canPractice = hasChoreo(projectRow);
+  const mineCard = forMe.length || owed.length ? `<section class="panel mine-panel">
+      <div class="panel-head"><div><h2>For you to fix</h2><p class="muted only-you">${ic('lock')}Only you see this</p></div><a class="link" href="/app/feedback?view=for-me&project=${project}" data-link>All your notes${ic('right', 'after')}</a></div>
+      <div class="list flush">
+        ${owed.map((w) => `<a class="row" href="/app/p/${w.project_id}/requests/${w.id}" data-link><span class="li-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span class="row-main"><span class="row-title" data-no-i18n>${isKo ? `<b>${esc(w.title)}</b> 영상을 아직 안 보냈어요` : `Send <b>${esc(w.title)}</b>`}</span><span class="row-meta" data-no-i18n>${esc(isKo ? t(dueLabel(w.due_at)) : dueLabel(w.due_at))}</span></span></a>`).join('')}
+        ${forMe.slice(0, 4).map((n) => `<a class="row note-row" href="/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}" data-link>
+          <span class="row-main"><span class="row-title">${n.private_to ? `<span class="lock">${ic('lock', 'solo')}</span> ` : ''}${esc(snippet(n.body, 90))}</span><span class="row-meta"><span class="time-tag">${ic(n.t_end === null ? 'at' : 'range')}${fmt(n.t_start)}</span> <span data-no-i18n>${esc(n.videos?.title || '')}</span></span></span>
+          ${canPractice ? `<span class="row-side"><span class="row-practice" role="link" tabindex="0" data-inner-href="${practiceHref(n.project_id, { take: n.take_id, t: n.t_start, end: n.t_end, note: n.id })}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</span></span>` : ''}
+        </a>`).join('')}
+      </div>
+      ${forMe.length > 4 ? `<p class="fine left" data-no-i18n>${isKo ? `외 ${forMe.length - 4}개` : `${forMe.length - 4} more`}</p>` : ''}
+    </section>` : '';
 
   // ---------- Getting started: what makes this page useful ----------
   const steps = [
@@ -274,6 +289,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   view.innerHTML = `<section class="${embedded ? 'ins-embed' : 'page'}">
     ${embedded ? '<div class="ins-embed-head"><h2>How it’s going</h2><p class="muted">What to work on next, from this project’s notes</p></div>' : pageHead('Insights', { sub: 'What to work on next, from your feedback' })}
     ${demo ? teamNote('insights') : ''}
+    ${mineCard}
     <div class="filters">
       <div class="seg small" role="group" aria-label="Date range">${RANGES.map(([d, l]) => `<a href="${url({ range: d })}" data-link aria-selected="${Number(d) === days}">Last ${l}</a>`).join('')}</div>
       ${state.projects.length > 1 && !embedded ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
@@ -284,11 +300,11 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     <section class="panel insight-lines next-panel">
       <div class="panel-head"><div><h2>Next up</h2><p class="muted">The few things worth doing before the next practice</p></div></div>
       ${next.length ? `<ul class="lines next-list">${next.slice(0, 3).map((l, i) => `<li><span class="li-icon" aria-hidden="true" ${l.color ? `style="color:${l.color}"` : ''}>${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" data-link>${l.cta}</a>` : l.remind ? `<button class="btn small" type="button" data-remind="${l.remind}">${l.cta}</button>` : `<button class="btn small" type="button" data-sheet="${l.sheet}">${l.cta}</button>`}</li>`).join('')}</ul>`
-        : `<p class="next-done">${ic('check_circle')}Nothing needs you before the next practice.</p>`}
+        : `<p class="next-done">${ic('check_circle')}Nothing urgent before the next practice.</p>`}
     </section>
 
     ${showSteps ? `<section class="panel steps-panel">
-      <div class="panel-head"><div><h2>Get more from Insights</h2><p class="muted">Each step adds something to this page</p></div></div>
+      <div class="panel-head"><div><h2>Make this more useful</h2><p class="muted">Each step adds something to this page</p></div></div>
       <ul class="steps-list">${steps.filter(([, done]) => !done).map(([text]) => `<li>${text}</li>`).join('')}</ul>
     </section>` : ''}
 
@@ -330,7 +346,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     </section>` : ''}
 
     ${isLeader ? `<section class="panel team-panel">
-      <div class="panel-head"><div><h2>Team</h2><p class="muted">Who to check in with</p></div></div>
+      <div class="panel-head"><div><h2>Team</h2><p class="muted only-you">${ic('lock')}Who to check in with · only owners see this</p></div></div>
       ${attention.length ? `<div class="list flush">${attention.slice(0, 6).map((a) => `<div class="row attn-row"><a class="row-main" href="/app/people/${a.id}" data-link>${avatar(nameOf(a.id), a.id, 'sm')}<span><span class="row-title">${esc(nameOf(a.id))}</span><span class="row-meta" data-no-i18n>${a.why}</span></span></a>${a.remind ? `<button class="btn small" type="button" data-remind="${a.remind}">Remind</button>` : `<a class="btn small ghost" href="/app/people/${a.id}" data-link>View</a>`}</div>`).join('')}</div>`
         : '<p class="panel-empty">Everyone’s on track.</p>'}
       ${activity.length ? `<details class="team-activity"><summary>Activity by person</summary><div class="list flush">${activity.map((p) => `<a class="row" href="/app/people/${p.id}" data-link><span class="row-main">${avatar(nameOf(p.id), p.id, 'xs')}<span class="row-title">${esc(nameOf(p.id))}</span></span><span class="row-meta" data-no-i18n>${isKo ? `테이크 ${p.takes} · 남긴 피드백 ${p.given} · 받은 피드백 ${p.received}` : `${p.takes} ${p.takes === 1 ? 'take' : 'takes'} · ${p.given} given · ${p.received} received`}</span></a>`).join('')}</div></details>` : ''}
