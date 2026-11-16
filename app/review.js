@@ -206,46 +206,108 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
   const visibleNotes = () => r.notes.filter((n) => takeNo[n.take_id] <= take.number && (n.take_id === take.id || n.status !== 'resolved'));
-  // Filter and sort, like Frame.io's comments: All / Open / For you, any focus areas (a note in any of them shows),
-  // video order or newest.
-  // The timeline markers follow the same filter. Remembered on this device.
+  // Filter and sort, the Notion way: one row of pills (Who, Status, Focus area), each opening a checklist, and Sort.
+  // Nothing picked in a pill means all of it. The timeline markers follow the filter. Remembered on this device.
   const FILTER_KEY = 'dancerly:note-filter';
+  const STATUSES = [['open', isKo ? '시작 전' : 'Not started'], ['practicing', isKo ? '고치는 중' : 'Working on it'], ['resolved', isKo ? '해결됨' : 'Fixed']];
   const nf = (() => {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}'); } catch {}
-    // An older saved filter had one focus area ('cat'); it becomes a list.
+    // Older saved filters: show = all / open / mine, and one focus area ('cat').
+    const statuses = Array.isArray(saved.statuses) ? saved.statuses : saved.show === 'open' ? ['open', 'practicing'] : [];
     const cats = Array.isArray(saved.cats) ? saved.cats : saved.cat ? [saved.cat] : [];
-    return { show: ['all', 'open', 'mine'].includes(saved.show) ? saved.show : 'all', cats, sort: saved.sort === 'new' ? 'new' : 'time' };
+    const who = saved.who === 'mine' || saved.show === 'mine' ? 'mine' : 'all';
+    return { who, statuses: statuses.filter((x) => STATUSES.some(([k]) => k === x)), cats, sort: saved.sort === 'new' ? 'new' : 'time' };
   })();
   const saveFilter = () => { try { localStorage.setItem(FILTER_KEY, JSON.stringify(nf)); } catch {} };
   const uploaderOf = Object.fromEntries(takes.map((t) => [t.id, t.uploaded_by]));
   const forMeNote = (n) => n.author_id !== me.id && (n.private_to === me.id || uploaderOf[n.take_id] === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
-  const passes = (n, show = nf.show, cats = nf.cats) => (show === 'open' ? n.status !== 'resolved' : show === 'mine' ? forMeNote(n) : true) && (!cats.length || cats.includes(n.category));
-  const filtering = () => nf.show !== 'all' || nf.cats.length > 0;
+  // f: the filter to test against (by default the current one); counts use it with one part swapped.
+  const passes = (n, f = nf) => (f.who !== 'mine' || forMeNote(n)) && (!f.statuses.length || f.statuses.includes(n.status)) && (!f.cats.length || f.cats.includes(n.category));
+  const filtering = () => nf.who !== 'all' || nf.statuses.length > 0 || nf.cats.length > 0;
   const shownNotes = () => {
     const list = visibleNotes().filter((n) => passes(n));
     return nf.sort === 'new' ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)) : list;
   };
+  const changed = (what) => { saveFilter(); paintNotes(); logEvent('note_filter', { what, who: nf.who, statuses: nf.statuses.length, cats: nf.cats.length }); };
+
+  // A checklist that stays open while you tick (a dropdown on computers, a sheet on phones).
+  function checklist({ anchor, title, options, multi, values, onChange }) {
+    document.querySelector('.nf-menu')?.remove();
+    const wide = matchMedia('(min-width: 901px)').matches;
+    const el = document.createElement(wide ? 'div' : 'dialog');
+    el.className = wide ? 'drop-menu nf-menu' : 'dialog sheet nf-menu';
+    let picked = [...values];
+    const paint = () => {
+      const items = options.map((o) => `<button type="button" role="${multi ? 'menuitemcheckbox' : 'menuitemradio'}" aria-checked="${picked.includes(o.value)}" class="nf-opt" data-value="${esc(o.value)}"><span class="nf-box${multi ? '' : ' round'}" aria-hidden="true">${picked.includes(o.value) ? ic('check', 'solo') : ''}</span>${o.html || ''}<span class="nf-opt-label" data-no-i18n>${esc(o.label)}</span><span class="nf-opt-count">${o.count}</span></button>`).join('');
+      el.innerHTML = wide ? `<div role="menu" aria-label="${esc(title)}">${items}</div>`
+        : `<div class="dialog-card"><h2 data-no-i18n>${esc(title)}</h2><div role="menu" aria-label="${esc(title)}" class="nf-sheet-list">${items}</div><button type="button" class="btn primary wide" data-nf-done>Done</button></div>`;
+    };
+    paint();
+    document.body.append(el);
+    const close = () => { el.remove(); anchor.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey, true); anchor.focus(); };
+    const outside = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-nf-done]') || (!wide && e.target === el)) { close(); return; }
+      const b = e.target.closest('[data-value]');
+      if (!b) return;
+      const v = b.dataset.value;
+      picked = multi ? (picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v]) : [v];
+      onChange(picked);
+      if (!multi) { close(); return; }
+      paint();
+      el.querySelector(`[data-value="${CSS.escape(v)}"]`)?.focus();
+    });
+    anchor.setAttribute('aria-expanded', 'true');
+    if (wide) {
+      const r = anchor.getBoundingClientRect();
+      const w = Math.max(220, r.width);
+      el.style.width = `${w}px`;
+      el.style.left = `${Math.min(r.left, innerWidth - w - 12)}px`;
+      const below = r.bottom + 6;
+      el.style.top = `${below + el.offsetHeight > innerHeight - 12 ? Math.max(12, r.top - 6 - el.offsetHeight) : below}px`;
+    } else {
+      el.showModal();
+    }
+    setTimeout(() => { document.addEventListener('click', outside, true); document.addEventListener('keydown', onKey, true); });
+    el.querySelector('[data-value]')?.focus();
+  }
+
   function paintFilters() {
     const bar = $('[data-note-filters]');
     if (!bar) return;
     const all = visibleNotes();
     bar.hidden = all.length < 4 && !filtering();
     if (bar.hidden) return;
-    const count = (show) => all.filter((n) => passes(n, show, nf.cats)).length;
-    const cats = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
-    bar.innerHTML = `<div class="nf-row"><div class="seg small dark" role="group" aria-label="Show">${[['all', isKo ? '전체' : 'All'], ['open', isKo ? '미해결' : 'Open'], ['mine', isKo ? '나에게 온 피드백' : 'For you']].map(([k, label]) => `<button type="button" data-nf-show="${k}" aria-selected="${nf.show === k}" data-no-i18n>${label} <span>${count(k)}</span></button>`).join('')}</div>
-      <button type="button" class="mini ghost nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('down', 'after')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button></div>
-      ${cats.length > 1 ? `<div class="nf-cats" role="group" aria-label="Focus area">${cats.map((k) => `<button type="button" class="cat-btn" data-nf-cat="${k}" aria-pressed="${nf.cats.includes(k)}">${catChip(k)}</button>`).join('')}${nf.cats.length ? `<button type="button" class="link-btn nf-cats-clear" data-nf-cats-clear>${isKo ? '선택 해제' : 'Clear'}</button>` : ''}</div>` : ''}`;
-    bar.querySelectorAll('[data-nf-show]').forEach((b) => b.addEventListener('click', () => { nf.show = b.dataset.nfShow; saveFilter(); paintNotes(); logEvent('note_filter', { show: nf.show }); }));
-    bar.querySelectorAll('[data-nf-cat]').forEach((b) => b.addEventListener('click', () => {
-      const k = b.dataset.nfCat;
-      nf.cats = nf.cats.includes(k) ? nf.cats.filter((x) => x !== k) : [...nf.cats, k];
-      saveFilter();
-      paintNotes();
-      logEvent('note_filter', { cats: nf.cats.length });
+    const catKeys = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
+    const short = (names) => (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
+    const allWord = isKo ? '전체' : 'All';
+    const pill = (key, label, value, on) => `<button type="button" class="nf-pill${on ? ' on' : ''}" data-nf-pill="${key}" aria-haspopup="menu" aria-expanded="false" data-no-i18n><span class="nf-pill-k">${label}</span><span class="nf-pill-v">${esc(value)}</span>${ic('down', 'solo')}</button>`;
+    bar.innerHTML = `<div class="nf-row">
+      ${pill('who', isKo ? '대상' : 'Who', nf.who === 'mine' ? (isKo ? '나에게 온 피드백' : 'For you') : allWord, nf.who !== 'all')}
+      ${pill('status', isKo ? '상태' : 'Status', nf.statuses.length ? short(STATUSES.filter(([k]) => nf.statuses.includes(k)).map(([, l]) => l)) : allWord, nf.statuses.length > 0)}
+      ${catKeys.length > 1 ? pill('cat', isKo ? '항목' : 'Focus', nf.cats.length ? short(nf.cats.map((k) => catLabel(k))) : allWord, nf.cats.length > 0) : ''}
+      ${filtering() ? `<button type="button" class="link-btn nf-reset" data-nf-reset data-no-i18n>${isKo ? '초기화' : 'Reset'}</button>` : ''}
+      <button type="button" class="nf-pill nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('sort', 'solo')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button>
+    </div>`;
+    const count = (swap) => (n) => passes(n, { ...nf, ...swap });
+    bar.querySelector('[data-nf-pill="who"]').addEventListener('click', (e) => checklist({
+      anchor: e.currentTarget, title: isKo ? '대상' : 'Who', multi: false, values: [nf.who],
+      options: [['all', allWord], ['mine', isKo ? '나에게 온 피드백' : 'For you']].map(([v, l]) => ({ value: v, label: l, count: all.filter(count({ who: v })).length })),
+      onChange: ([v]) => { nf.who = v; changed('who'); }
     }));
-    bar.querySelector('[data-nf-cats-clear]')?.addEventListener('click', () => { nf.cats = []; saveFilter(); paintNotes(); });
+    bar.querySelector('[data-nf-pill="status"]').addEventListener('click', (e) => checklist({
+      anchor: e.currentTarget, title: isKo ? '상태' : 'Status', multi: true, values: nf.statuses,
+      options: STATUSES.map(([v, l]) => ({ value: v, label: l, count: all.filter(count({ statuses: [v] })).length })),
+      onChange: (vals) => { nf.statuses = vals; changed('status'); }
+    }));
+    bar.querySelector('[data-nf-pill="cat"]')?.addEventListener('click', (e) => checklist({
+      anchor: e.currentTarget, title: isKo ? '항목' : 'Focus area', multi: true, values: nf.cats,
+      options: catKeys.map((k) => ({ value: k, label: catLabel(k), html: `<i class="nf-dot" style="background:${catColor(k)}"></i>`, count: all.filter(count({ cats: [k] })).length })),
+      onChange: (vals) => { nf.cats = vals; changed('cat'); }
+    }));
+    bar.querySelector('[data-nf-reset]')?.addEventListener('click', () => { nf.who = 'all'; nf.statuses = []; nf.cats = []; changed('reset'); });
     bar.querySelector('[data-nf-sort]').addEventListener('click', async (e) => {
       const to = await actionSheet({ title: 'Sort', anchor: e.currentTarget, actions: [
         { value: 'time', label: 'Video order', hint: 'As they appear in the video', checked: nf.sort === 'time' },
@@ -338,7 +400,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       </article>`;
     }).join('') : filtering() && visibleNotes().length ? `<div class="notes-empty"><p><b>No notes match.</b> Try another filter.</p><button type="button" class="btn small" data-nf-clear>Show all notes</button></div>` : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
       <div class="starter-chips" role="group" aria-label="Start a note">${starterKeys(members.length <= 1).map((k) => `<button type="button" class="mini" data-starter="${k}">${catChip(k)}</button>`).join('')}</div></div>`;
-    list.querySelector('[data-nf-clear]')?.addEventListener('click', () => { nf.show = 'all'; nf.cats = []; saveFilter(); paintNotes(); });
+    list.querySelector('[data-nf-clear]')?.addEventListener('click', () => { nf.who = 'all'; nf.statuses = []; nf.cats = []; saveFilter(); paintNotes(); });
     paintMarkers(notes);
     paintSummary();
   }

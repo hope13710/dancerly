@@ -10467,3 +10467,30 @@ body.is-guest .tabbar {
 .note-filters { min-width: 0; }
 .nf-row { flex-wrap: wrap; row-gap: 6px; }
 .nf-row .seg { max-width: 100%; }
+
+/* Take notes, the Notion way: one row of pills (Who, Status, Focus) and Sort; each pill opens a checklist. */
+.nf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nf-pill { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 4px 8px; border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 999px; background: none; color: #c9ced9; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.nf-pill:hover, .nf-pill[aria-expanded="true"] { border-color: rgba(255, 255, 255, 0.3); color: #fff; }
+.nf-pill .ic { width: 12px; height: 12px; flex: none; opacity: 0.7; }
+.nf-pill-k { color: #8f98a8; }
+.nf-pill-v { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.nf-pill.on { background: rgba(91, 92, 226, 0.22); border-color: rgba(139, 140, 255, 0.6); color: #e0e1ff; }
+.nf-pill.on .nf-pill-k { color: #b9baff; }
+.nf-pill.nf-sort { margin-left: auto; gap: 5px; }
+.nf-pill.nf-sort .ic { width: 13px; height: 13px; }
+.nf-reset { font-size: 12px; color: #aab1bd; }
+.nf-pill:focus-visible { outline: 2px solid #8b8cff; outline-offset: 2px; }
+.nf-menu .nf-opt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink, #14171d); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.nf-menu .nf-opt:hover, .nf-menu .nf-opt:focus-visible { background: #f3f4f7; outline: none; }
+.nf-box { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; border: 1.5px solid #c4c9d4; border-radius: 5px; color: #fff; }
+.nf-box.round { border-radius: 50%; }
+.nf-opt[aria-checked="true"] .nf-box { background: var(--accent); border-color: var(--accent); }
+.nf-box .ic { width: 12px; height: 12px; }
+.nf-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.nf-opt-label { flex: 1; min-width: 0; }
+.nf-opt-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nf-sheet-list { display: grid; gap: 2px; margin: 4px 0 14px; }
+.nf-menu.dialog .nf-opt { min-height: 48px; font-size: 16px; }
+.nf-pill.nf-sort { flex-direction: row; color: #aab1bd; }
+.nf-pill-v { max-width: 120px; }
