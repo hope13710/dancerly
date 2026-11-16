@@ -1131,11 +1131,21 @@ a {
 }
 /* Resolved: dimmed and shortened; it opens up again when picked. */
 .note.is-resolved:not(.selected) .note-body {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  white-space: nowrap;
   overflow: hidden;
   color: #8993a1;
+}
+.note.is-resolved:not(.selected) .note-body .time-chip {
+  flex: none;
+}
+.note.is-resolved:not(.selected) .note-body .note-copy {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .note.is-resolved:not(.selected) .note-meta,
 .note.is-resolved:not(.selected) .note-actions {
