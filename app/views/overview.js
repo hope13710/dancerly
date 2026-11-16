@@ -7,18 +7,21 @@ import { loadProject, projectHead } from './project.js';
 import { ic } from '../icons.js';
 import { renderInsights } from './insights.js';
 import { loadChoreo, chooseChoreo, choreoTitle, canChoreo } from './practice.js';
+import { pageSnippet } from './pages.js';
+import { taskCount } from '../editor.js';
 
 export async function renderProjectOverview(projectId) {
   const { view, setCrumbs } = ctx;
   const nowIso = new Date().toISOString();
-  const [p, { data: extra }, { data: rows }, { data: events }, { count: openNotes }, { data: requests }, { data: videos }] = await Promise.all([
+  const [p, { data: extra }, { data: rows }, { data: events }, { count: openNotes }, { data: requests }, { data: videos }, { data: pinnedPages }] = await Promise.all([
     loadProject(projectId),
     sb.from('projects').select('goal, music_title, music_url').eq('id', projectId).single(),
     sb.from('count_sheet_rows').select('status, video_id, t_start').eq('project_id', projectId),
     sb.from('project_events').select('id, project_id, title, kind, starts_at, ends_at, location, details, created_by').eq('project_id', projectId).gte('starts_at', nowIso).order('starts_at').limit(5),
     sb.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', projectId).neq('status', 'resolved'),
     sb.from('requests').select('id, title, due_at').eq('project_id', projectId).eq('status', 'active').order('due_at', { ascending: true, nullsFirst: false }).limit(3),
-    notChoreo(sb.from('videos').select('id, title, created_at')).eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
+    notChoreo(sb.from('videos').select('id, title, created_at')).eq('project_id', projectId).order('created_at', { ascending: false }).limit(3),
+    sb.from('project_pages').select('id, title, body, updated_at').eq('project_id', projectId).eq('pinned', true).order('updated_at', { ascending: false }).limit(3)
   ]);
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Overview']]);
   // What the team dances: the choreo video sits with the goal and the music (Practice is one tap away).
@@ -37,6 +40,10 @@ export async function renderProjectOverview(projectId) {
   const when = (iso) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   view.innerHTML = `<section class="page">
     ${projectHead(p, 'overview')}
+    ${(pinnedPages || []).map((pg) => { const t = taskCount(pg.body); return `<a class="panel pinned-page" href="/app/p/${projectId}/pages/${pg.id}" data-link>
+      <span class="pinned-page-icon">${ic('pin', 'solo')}</span>
+      <span class="pinned-page-main"><b>${esc(pg.title || 'Untitled')}</b><small>${esc(pageSnippet(pg.body, pg.title, 160)) || 'Empty page'}</small></span>
+      <span class="pinned-page-side">${t.total ? `<span class="task-count${t.done === t.total ? ' all' : ''}">${ic('check', 'solo')}${t.done}/${t.total}</span>` : ''}${ic('right', 'solo')}</span></a>`; }).join('')}
     <div class="overview-grid">
       <section class="panel">
         <div class="panel-head"><div><h2>Goal</h2></div>${p.isOwner ? '<button class="btn ghost small" data-edit-goal>Edit</button>' : ''}</div>
