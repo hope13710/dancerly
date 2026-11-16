@@ -31,17 +31,6 @@ type Copy = { subject: string; heading: string; body: string; cta: string; fine:
 function copy(o: { lang: "en"; who: string; project: string; others: string[]; count: number; until: string; reminder: boolean; link: string }): Copy {
   const { who, project, count } = o;
   const named = o.others.slice(0, 2);
-  const crowd = count <= 1 ? "" : named.length ? `${named.join(", ")}님${count - named.length > 0 ? ` 외 ${count - named.length}명` : ""}이 이미 함께하고 있어요.` : `이미 ${count}명이 함께하고 있어요.`;
-    return {
-      subject: o.reminder ? `${who}님이 ${project}에서 기다리고 있어요` : `${who}님이 ${project}에 초대했어요`,
-      heading: o.reminder ? `${esc(project)}에 아직 참여하지 않으셨어요` : `${esc(who)}님이 ${esc(project)}에 초대했어요`,
-      body: `<p style="margin:0;font-size:15px;line-height:1.6">dancerly는 팀이 연습 영상의 정확한 순간에 피드백을 남기고, 다음 테이크에서 무엇이 나아졌는지 함께 보는 곳이에요. ${esc(crowd)}</p>
-<p style="margin:12px 0 0;font-size:15px;line-height:1.6">이름과 이메일만 있으면 1분이면 참여할 수 있어요. 앱은 설치하지 않아도 돼요.</p>`,
-      cta: `${project} 참여하기`,
-      fine: `${esc(who)}님이 이 주소로 초대를 보냈어요. 모르는 초대라면 이 메일은 무시해도 돼요.${o.reminder ? "" : " 참여하지 않으면 3일 뒤 한 번만 다시 알려 드려요."} 링크는 ${esc(o.until)}까지 쓸 수 있어요.`,
-      text: `${who}님이 ${project}에 초대했어요.\n\n${crowd}\n이름과 이메일만 있으면 1분이면 참여할 수 있어요.\n\n${o.link}`,
-    };
-  }
   const crowd = count <= 1 ? "" : named.length ? `${named.join(", ")}${count - named.length > 0 ? ` and ${count - named.length} ${count - named.length === 1 ? "other" : "others"} are` : named.length === 1 ? " is" : " are"} already in it.` : `${count} people are already in it.`;
   return {
     subject: o.reminder ? `${who} is waiting for you in ${project}` : `${who} invited you to ${project} on dancerly`,
@@ -114,7 +103,7 @@ async function reminders() {
     const c = await context(r.project_id, r.invited_by);
     if (!c.project || c.project.is_sample || c.project.deleted_at || !c.invite) continue; // link expired: the inviter makes a new one
     const link = joinLink(c.invite.code, r.email, true);
-    if (await send(r.email, c.who, copy({ lang: r.lang, who: c.who, project: c.project.title, others: c.others, count: c.count, until: untilLabel(c.invite.expires_at, r.lang), reminder: true, link }), link)) sent++;
+    if (await send(r.email, c.who, copy({ lang: "en", who: c.who, project: c.project.title, others: c.others, count: c.count, until: untilLabel(c.invite.expires_at, r.lang), reminder: true, link }), link)) sent++;
   }
   return { reminded: sent };
 }

@@ -6,7 +6,6 @@ import { ctx } from '../ctx.js';
 import { pageHead, previewEmpty, hasRealVideo, namesFor, statusPill } from './shared.js';
 import { dueLabel } from './requests.js';
 import { shiftBetween } from '../align.js';
-import { isKo, t } from '../i18n.js';
 import { CATEGORIES, catChip, catLabel, catColor } from '../categories.js';
 import { samplePeek, sampleMoment, teamNote } from '../onboarding.js';
 import { ic } from '../icons.js';
@@ -179,13 +178,13 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     for (const w of waiting) for (const u of w.missing) {
       if (seen.has(u) || u === me) continue;
       seen.add(u);
-      attention.push({ id: u, why: isKo ? `“${esc(w.title)}” 아직 안 보냄 · ${esc(t(dueLabel(w.due_at)))}` : `Hasn’t sent “${esc(w.title)}” · ${esc(dueLabel(w.due_at))}`, remind: w.id });
+      attention.push({ id: u, why: `Hasn’t sent “${esc(w.title)}” · ${esc(dueLabel(w.due_at))}`, remind: w.id });
     }
     for (const id of members) {
       if (seen.has(id)) continue;
       const p = people[id];
-      if (p?.open >= 3) { seen.add(id); attention.push({ id, why: isKo ? `자기 영상에 미해결 피드백 ${p.open}개` : `${p.open} open notes on their videos` }); continue; }
-      if (hasActivity() && (!p || Date.now() - p.last > 7 * DAY)) { seen.add(id); attention.push({ id, why: isKo ? '7일 넘게 활동이 없어요' : 'No activity for 7+ days' }); }
+      if (p?.open >= 3) { seen.add(id); attention.push({ id, why: `${p.open} open notes on their videos` }); continue; }
+      if (hasActivity() && (!p || Date.now() - p.last > 7 * DAY)) { seen.add(id); attention.push({ id, why: 'No activity for 7+ days' }); }
     }
   }
   function hasActivity() { return notes.length + takes.length > 0; }
@@ -199,19 +198,11 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   // Full sentences in both languages: names and titles sit inside them, so they can't be swapped piece by piece.
   const next = [];
   const hottest = spots.filter((s) => s.top).sort((a, b) => b.top.open - a.top.open)[0];
-  if (hottest) next.push({ icon: ic('target', 'solo'), html: isKo
-    ? `미해결 피드백이 몰린 곳: <b>${esc(hottest.video.title)}</b> · <b>${hottest.top.label}</b> (${hottest.top.open}개)`
-    : `Open notes pile up in <b>${esc(hottest.video.title)}</b> at <b>${hottest.top.label}</b> (${hottest.top.open})`, cta: 'Watch it', href: spotLink(hottest, hottest.top) });
-  if (stuck.length) next.push({ icon: ic('clock', 'solo'), html: isKo
-    ? `피드백 <b>${stuck.length}개</b>가 ${STUCK_DAYS}일 넘게 그대로예요`
-    : `<b>${stuck.length}</b> ${stuck.length === 1 ? 'note has' : 'notes have'} been open for ${STUCK_DAYS}+ days`, cta: 'See them', sheet: 'stuck' });
-  if (agreed[0]) next.push({ icon: ic('agree', 'solo'), html: isKo
-    ? `팀이 가장 공감한 피드백(공감 ${agreed[0].note_reactions.length}): “${esc(snippet(agreed[0].body, 60))}”`
-    : `Most agreed: “${esc(snippet(agreed[0].body, 60))}” (${agreed[0].note_reactions.length} 👍)`, cta: 'Open', href: noteLink(agreed[0]) });
+  if (hottest) next.push({ icon: ic('target', 'solo'), html: `Open notes pile up in <b>${esc(hottest.video.title)}</b> at <b>${hottest.top.label}</b> (${hottest.top.open})`, cta: 'Watch it', href: spotLink(hottest, hottest.top) });
+  if (stuck.length) next.push({ icon: ic('clock', 'solo'), html: `<b>${stuck.length}</b> ${stuck.length === 1 ? 'note has' : 'notes have'} been open for ${STUCK_DAYS}+ days`, cta: 'See them', sheet: 'stuck' });
+  if (agreed[0]) next.push({ icon: ic('agree', 'solo'), html: `Most agreed: “${esc(snippet(agreed[0].body, 60))}” (${agreed[0].note_reactions.length} 👍)`, cta: 'Open', href: noteLink(agreed[0]) });
   const topArea = areas.find((a) => a.key !== 'other' && a.open);
-  if (topArea) next.push({ icon: '<i class="li-dot"></i>', color: catColor(topArea.key), html: isKo
-    ? `<b>${catLabel(topArea.key)}</b> 피드백이 가장 많이 남아 있어요 (${topArea.open}개)`
-    : `<b>${catLabel(topArea.key)}</b> has the most open notes (${topArea.open})`, cta: 'See notes', sheet: `area:${topArea.key}` });
+  if (topArea) next.push({ icon: '<i class="li-dot"></i>', color: catColor(topArea.key), html: `<b>${catLabel(topArea.key)}</b> has the most open notes (${topArea.open})`, cta: 'See notes', sheet: `area:${topArea.key}` });
 
   // ---------- For you: only you see it. Notes for you here that aren't fixed, and assignments you owe ----------
   const forMe = embedded ? allNotes.filter((n) => n.status !== 'resolved' && n.author_id !== me && (n.private_to === me || n.takes?.uploaded_by === me || (n.note_mentions || []).some((x) => x.user_id === me)))
@@ -222,13 +213,13 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   const mineCard = forMe.length || owed.length ? `<section class="panel mine-panel">
       <div class="panel-head"><div><h2>For you</h2><p class="muted only-you">${ic('lock')}Only you see this</p></div><a class="link" href="/app/feedback?view=for-me&project=${project}" data-link>All your notes${ic('right', 'after')}</a></div>
       <div class="list flush">
-        ${owed.map((w) => `<a class="row" href="/app/p/${w.project_id}/requests/${w.id}" data-link><span class="li-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span class="row-main"><span class="row-title" data-no-i18n>${isKo ? `<b>${esc(w.title)}</b> 영상을 아직 안 보냈어요` : `Send <b>${esc(w.title)}</b>`}</span><span class="row-meta" data-no-i18n>${esc(isKo ? t(dueLabel(w.due_at)) : dueLabel(w.due_at))}</span></span></a>`).join('')}
+        ${owed.map((w) => `<a class="row" href="/app/p/${w.project_id}/requests/${w.id}" data-link><span class="li-icon" aria-hidden="true">${ic('upload', 'solo')}</span><span class="row-main"><span class="row-title">${`Send <b>${esc(w.title)}</b>`}</span><span class="row-meta">${esc(dueLabel(w.due_at))}</span></span></a>`).join('')}
         ${forMe.slice(0, 4).map((n) => `<a class="row note-row" href="/app/p/${n.project_id}/v/${n.video_id}?take=${n.takes?.number ?? ''}&note=${n.id}" data-link>
-          <span class="row-main"><span class="row-title">${n.private_to ? `<span class="lock">${ic('lock', 'solo')}</span> ` : ''}${esc(snippet(n.body, 90))}</span><span class="row-meta"><span class="time-tag">${ic(n.t_end === null ? 'at' : 'range')}${fmt(n.t_start)}</span> <span data-no-i18n>${esc(n.videos?.title || '')}</span></span></span>
+          <span class="row-main"><span class="row-title">${n.private_to ? `<span class="lock">${ic('lock', 'solo')}</span> ` : ''}${esc(snippet(n.body, 90))}</span><span class="row-meta"><span class="time-tag">${ic(n.t_end === null ? 'at' : 'range')}${fmt(n.t_start)}</span> <span>${esc(n.videos?.title || '')}</span></span></span>
           ${canPractice ? `<span class="row-side"><span class="row-practice" role="link" tabindex="0" data-inner-href="${practiceHref(n.project_id, { take: n.take_id, t: n.t_start, end: n.t_end, note: n.id })}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</span></span>` : ''}
         </a>`).join('')}
       </div>
-      ${forMe.length > 4 ? `<p class="fine left" data-no-i18n>${isKo ? `외 ${forMe.length - 4}개` : `${forMe.length - 4} more`}</p>` : ''}
+      ${forMe.length > 4 ? `<p class="fine left">${`${forMe.length - 4} more`}</p>` : ''}
     </section>` : '';
 
   // ---------- Getting started: what makes this page useful ----------
@@ -241,16 +232,12 @@ export async function renderInsights({ projectId: inProject = null, root = null 
 
   // ---------- Summary: what got fixed, against the period before ----------
   const diff = fixed.length - prevFixed.length;
-  const summary = isKo
-    ? (fixed.length
-      ? `최근 ${days}일 동안 피드백 <b>${fixed.length}개</b>를 해결했어요${prevFixed.length || diff ? `. 이전 ${days}일보다 <b>${Math.abs(diff)}개 ${diff >= 0 ? '많아요' : '적어요'}</b>` : ''}.`
-      : `최근 ${days}일 동안 해결된 피드백이 아직 없어요. 다음 테이크를 올리면 무엇이 나아졌는지 확인할 수 있어요.`)
-    : (fixed.length
+  const summary = (fixed.length
       ? `<b>${fixed.length}</b> ${fixed.length === 1 ? 'note' : 'notes'} fixed in the last ${days} days${prevFixed.length || diff ? `, <b>${Math.abs(diff)} ${diff >= 0 ? 'more' : 'fewer'}</b> than the ${days} days before` : ''}.`
       : `No notes fixed in the last ${days} days yet. Upload the next take to see what got better.`);
 
   // ---------- Key numbers: three, the ones with enough behind them ----------
-  const delta = (cur, prev, goodUp = true) => (!prevLeft.length && !prevFixed.length) || cur === prev ? '' : `<em class="${(cur > prev) === goodUp ? 'up' : 'down'}" data-no-i18n>${cur > prev ? '↑' : '↓'} ${Math.abs(cur - prev)}</em>`;
+  const delta = (cur, prev, goodUp = true) => (!prevLeft.length && !prevFixed.length) || cur === prev ? '' : `<em class="${(cur > prev) === goodUp ? 'up' : 'down'}">${cur > prev ? '↑' : '↓'} ${Math.abs(cur - prev)}</em>`;
   const stats = [
     fixRate !== null && { label: 'Fix rate', value: `${fixRate}%`, sub: 'of new notes in this range' },
     { label: 'Notes fixed', value: fixed.length, sub: 'in this range', extra: delta(fixed.length, prevFixed.length) },
@@ -258,7 +245,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     { label: 'Still open', value: openNow.length, sub: 'right now' },
     { label: 'New notes', value: left.length, sub: 'in this range', extra: delta(left.length, prevLeft.length, false) }
   ].filter(Boolean).slice(0, 3);
-  const locked = [fixRate === null && (isKo ? `해결률은 이 기간 피드백이 ${MIN_FOR_RATE}개 이상이면 보여요.` : `Fix rate shows once there are ${MIN_FOR_RATE}+ notes in this range.`), avgTakesToFix === null && (isKo ? '해결까지 걸린 테이크 수는 해결된 피드백이 3개 이상이면 보여요.' : 'Takes to fix shows after 3 notes are fixed.')].filter(Boolean);
+  const locked = [fixRate === null && (`Fix rate shows once there are ${MIN_FOR_RATE}+ notes in this range.`), avgTakesToFix === null && ('Takes to fix shows after 3 notes are fixed.')].filter(Boolean);
 
   // ---------- Trend chart: notes left and fixed ----------
   const bucketMs = days <= 7 ? DAY : 7 * DAY;
@@ -281,8 +268,8 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   const noVideo = !hasData && !(await hasRealVideo());
   const heatMax = Math.max(1, ...spots.flatMap((s) => s.cells.map((c) => c.open + c.fixed)));
   const heatRow = (s) => `<div class="heat-row">
-        <div class="heat-head"><a href="/app/p/${s.video.project_id}/v/${s.video.id}" data-link>${esc(s.video.title)}</a><small data-no-i18n>${isKo ? `${s.open ? `미해결 ${s.open}개` : '모두 해결'}${s.top ? ` · ${s.top.label}에 가장 많아요` : ''} · 한 칸 ${s.size}초` : `${s.open ? `${s.open} open` : 'All fixed'}${s.top ? ` · most at ${s.top.label}` : ''} · ${s.size}s per square`}</small></div>
-        <div class="heat" style="--n:${s.cells.length}">${s.cells.map((c, i) => `<a class="heat-cell" href="${spotLink(s, c)}" data-link style="--o:${(c.open / heatMax).toFixed(2)};--f:${(c.fixed / heatMax).toFixed(2)}" title="${c.label}${c.eight ? ` · ${isKo ? `${c.eight}에잇` : `Eight ${c.eight}`}` : ''}: ${c.open} open, ${c.fixed} fixed" aria-label="${c.label}: ${c.open} open, ${c.fixed} fixed">${i % Math.ceil(s.cells.length / 12) === 0 ? `<span>${c.short}</span>` : ''}${c.open ? `<b>${c.open}</b>` : ''}</a>`).join('')}</div>
+        <div class="heat-head"><a href="/app/p/${s.video.project_id}/v/${s.video.id}" data-link>${esc(s.video.title)}</a><small>${`${s.open ? `${s.open} open` : 'All fixed'}${s.top ? ` · most at ${s.top.label}` : ''} · ${s.size}s per square`}</small></div>
+        <div class="heat" style="--n:${s.cells.length}">${s.cells.map((c, i) => `<a class="heat-cell" href="${spotLink(s, c)}" data-link style="--o:${(c.open / heatMax).toFixed(2)};--f:${(c.fixed / heatMax).toFixed(2)}" title="${c.label}${c.eight ? ` · ${`Eight ${c.eight}`}` : ''}: ${c.open} open, ${c.fixed} fixed" aria-label="${c.label}: ${c.open} open, ${c.fixed} fixed">${i % Math.ceil(s.cells.length / 12) === 0 ? `<span>${c.short}</span>` : ''}${c.open ? `<b>${c.open}</b>` : ''}</a>`).join('')}</div>
         ${s.unaligned ? `<p class="fine left">${s.unaligned} ${s.unaligned === 1 ? 'note' : 'notes'} from earlier takes placed by time only — opening the latest take lines them up.</p>` : ''}
       </div>`;
 
@@ -295,11 +282,11 @@ export async function renderInsights({ projectId: inProject = null, root = null 
       ${state.projects.length > 1 && !embedded ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${state.projects.map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>
     ${!hasData && embedded ? '<p class="panel-empty ins-embed-empty">Once the team uploads a take and leaves a few notes, you’ll see here what to work on next and what got better.</p>' : !hasData ? previewEmpty('bars', 'Nothing to measure yet', 'Upload a practice video and leave a few notes. This page shows where things keep getting stuck and what to work on next.', `${noVideo ? '<button class="btn primary" data-start-action="video">Upload video</button>' : ''}${samplePeek('insights', 'See it with sample data')}`, noVideo ? 'insights' : '') : `
-    <p class="ins-summary" data-no-i18n>${summary}</p>
+    <p class="ins-summary">${summary}</p>
 
     <section class="panel insight-lines next-panel">
       <div class="panel-head"><div><h2>Next up</h2><p class="muted">The few things worth doing before the next practice</p></div></div>
-      ${next.length ? `<ul class="lines next-list">${next.slice(0, 3).map((l, i) => `<li><span class="li-icon" aria-hidden="true" ${l.color ? `style="color:${l.color}"` : ''}>${l.icon}</span><span class="li-text" data-no-i18n>${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" data-link>${l.cta}</a>` : l.remind ? `<button class="btn small" type="button" data-remind="${l.remind}">${l.cta}</button>` : `<button class="btn small" type="button" data-sheet="${l.sheet}">${l.cta}</button>`}</li>`).join('')}</ul>`
+      ${next.length ? `<ul class="lines next-list">${next.slice(0, 3).map((l, i) => `<li><span class="li-icon" aria-hidden="true" ${l.color ? `style="color:${l.color}"` : ''}>${l.icon}</span><span class="li-text">${l.html}</span>${l.href ? `<a class="btn small" href="${l.href}" data-link>${l.cta}</a>` : l.remind ? `<button class="btn small" type="button" data-remind="${l.remind}">${l.cta}</button>` : `<button class="btn small" type="button" data-sheet="${l.sheet}">${l.cta}</button>`}</li>`).join('')}</ul>`
         : `<p class="next-done">${ic('check_circle')}Nothing urgent before the next practice.</p>`}
     </section>
 
@@ -314,9 +301,9 @@ export async function renderInsights({ projectId: inProject = null, root = null 
       <div class="focus-list">${areas.map((a) => `<button type="button" class="focus-row" data-sheet="area:${a.key}" style="--cat:${catColor(a.key)}">
         ${catChip(a.key)}
         <span class="focus-bar" role="img" aria-label="${catLabel(a.key)}: ${a.open} open, ${a.fixed} fixed"><i class="open" style="width:${(a.open / areaMax) * 100}%"></i><i class="fixed" style="width:${(a.fixed / areaMax) * 100}%"></i></span>
-        <span class="focus-num" data-no-i18n>${isKo ? `미해결 ${a.open} · 해결 ${a.fixed}` : `${a.open} open · ${a.fixed} fixed`}${a.delta ? ` <em class="${a.delta < 0 ? 'up' : 'down'}" title="${isKo ? `새 피드백이 이전 ${days}일보다 ${Math.abs(a.delta)}개 ${a.delta < 0 ? '적어요' : '많아요'}` : `${Math.abs(a.delta)} ${a.delta < 0 ? 'fewer' : 'more'} new notes than the ${days} days before`}">${a.delta < 0 ? '↓' : '↑'} ${Math.abs(a.delta)}</em>` : ''}</span>
+        <span class="focus-num">${`${a.open} open · ${a.fixed} fixed`}${a.delta ? ` <em class="${a.delta < 0 ? 'up' : 'down'}" title="${`${Math.abs(a.delta)} ${a.delta < 0 ? 'fewer' : 'more'} new notes than the ${days} days before`}">${a.delta < 0 ? '↓' : '↑'} ${Math.abs(a.delta)}</em>` : ''}</span>
       </button>`).join('')}</div>
-      ${unsorted.length ? `<p class="fine left" data-no-i18n>${isKo ? `피드백 ${unsorted.length}개는 아직 분류 중이에요.` : `${unsorted.length} ${unsorted.length === 1 ? 'note is' : 'notes are'} still being sorted.`}</p>` : ''}
+      ${unsorted.length ? `<p class="fine left">${`${unsorted.length} ${unsorted.length === 1 ? 'note is' : 'notes are'} still being sorted.`}</p>` : ''}
     </section>` : ''}
 
     <section class="panel progress-panel">
@@ -331,7 +318,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
         </div>`).join('')}</div>
         <div class="chart-tip" data-tip hidden></div>
       </div>
-      ${locked.length ? `<p class="fine left" data-no-i18n>${locked.join(' ')}</p>` : ''}
+      ${locked.length ? `<p class="fine left">${locked.join(' ')}</p>` : ''}
       <details class="table-toggle"><summary>Show as table</summary>
         <table class="table compact"><thead><tr><th>${bucketMs === DAY ? 'Day' : 'Week of'}</th><th class="num">New notes</th><th class="num">Fixed</th></tr></thead>
         <tbody>${buckets.map((b) => `<tr><td>${label(b)}</td><td class="num">${b.left}</td><td class="num">${b.fixed}</td></tr>`).join('')}</tbody></table>
@@ -342,14 +329,14 @@ export async function renderInsights({ projectId: inProject = null, root = null 
       <div class="panel-head"><div><h2>Where feedback piles up</h2><p class="muted">Each square is a few seconds of the video. Darker means more notes still open. Tap one to jump there.</p></div>
         <div class="legend"><span><i class="key heat-open"></i>Open</span><span><i class="key heat-fixed"></i>Fixed</span></div></div>
       <div class="heat-list">${spots.slice(0, 3).map(heatRow).join('')}</div>
-      ${spots.length > 3 ? `<details class="heat-more"><summary data-no-i18n>${isKo ? `영상 ${spots.length - 3}개 더 보기` : `Show ${spots.length - 3} more ${spots.length - 3 === 1 ? 'video' : 'videos'}`}</summary><div class="heat-list">${spots.slice(3).map(heatRow).join('')}</div></details>` : ''}
+      ${spots.length > 3 ? `<details class="heat-more"><summary>${`Show ${spots.length - 3} more ${spots.length - 3 === 1 ? 'video' : 'videos'}`}</summary><div class="heat-list">${spots.slice(3).map(heatRow).join('')}</div></details>` : ''}
     </section>` : ''}
 
     ${isLeader ? `<section class="panel team-panel">
       <div class="panel-head"><div><h2>Team</h2><p class="muted only-you">${ic('lock')}Who to check in with · only owners see this</p></div></div>
-      ${attention.length ? `<div class="list flush">${attention.slice(0, 6).map((a) => `<div class="row attn-row"><a class="row-main" href="/app/people/${a.id}" data-link>${avatar(nameOf(a.id), a.id, 'sm')}<span><span class="row-title">${esc(nameOf(a.id))}</span><span class="row-meta" data-no-i18n>${a.why}</span></span></a>${a.remind ? `<button class="btn small" type="button" data-remind="${a.remind}">Remind</button>` : `<a class="btn small ghost" href="/app/people/${a.id}" data-link>View</a>`}</div>`).join('')}</div>`
+      ${attention.length ? `<div class="list flush">${attention.slice(0, 6).map((a) => `<div class="row attn-row"><a class="row-main" href="/app/people/${a.id}" data-link>${avatar(nameOf(a.id), a.id, 'sm')}<span><span class="row-title">${esc(nameOf(a.id))}</span><span class="row-meta">${a.why}</span></span></a>${a.remind ? `<button class="btn small" type="button" data-remind="${a.remind}">Remind</button>` : `<a class="btn small ghost" href="/app/people/${a.id}" data-link>View</a>`}</div>`).join('')}</div>`
         : '<p class="panel-empty">Everyone’s on track.</p>'}
-      ${activity.length ? `<details class="team-activity"><summary>Activity by person</summary><div class="list flush">${activity.map((p) => `<a class="row" href="/app/people/${p.id}" data-link><span class="row-main">${avatar(nameOf(p.id), p.id, 'xs')}<span class="row-title">${esc(nameOf(p.id))}</span></span><span class="row-meta" data-no-i18n>${isKo ? `테이크 ${p.takes} · 남긴 피드백 ${p.given} · 받은 피드백 ${p.received}` : `${p.takes} ${p.takes === 1 ? 'take' : 'takes'} · ${p.given} given · ${p.received} received`}</span></a>`).join('')}</div></details>` : ''}
+      ${activity.length ? `<details class="team-activity"><summary>Activity by person</summary><div class="list flush">${activity.map((p) => `<a class="row" href="/app/people/${p.id}" data-link><span class="row-main">${avatar(nameOf(p.id), p.id, 'xs')}<span class="row-title">${esc(nameOf(p.id))}</span></span><span class="row-meta">${`${p.takes} ${p.takes === 1 ? 'take' : 'takes'} · ${p.given} given · ${p.received} received`}</span></a>`).join('')}</div></details>` : ''}
     </section>` : ''}`}
   </section>`;
 
@@ -359,7 +346,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
   const sheet = (title, list) => {
     const el = document.createElement('dialog');
     el.className = 'dialog sheet notes-sheet';
-    el.innerHTML = `<div class="dialog-card"><h2></h2><div class="list flush">${list.slice(0, 30).map((n) => `<a class="row" href="${noteLink(n)}" data-link><span class="row-main"><span class="row-title" data-no-i18n>${esc(snippet(n.body))}</span><span class="row-meta">${esc(n.videos?.title || '')}${n.takes?.uploaded_by ? ` · ${first(n.takes.uploaded_by)}` : ''} · ${timeAgo(n.created_at)}</span></span>${statusPill(n.status)}</a>`).join('')}</div><form method="dialog"><button class="btn ghost wide">Close</button></form></div>`;
+    el.innerHTML = `<div class="dialog-card"><h2></h2><div class="list flush">${list.slice(0, 30).map((n) => `<a class="row" href="${noteLink(n)}" data-link><span class="row-main"><span class="row-title">${esc(snippet(n.body))}</span><span class="row-meta">${esc(n.videos?.title || '')}${n.takes?.uploaded_by ? ` · ${first(n.takes.uploaded_by)}` : ''} · ${timeAgo(n.created_at)}</span></span>${statusPill(n.status)}</a>`).join('')}</div><form method="dialog"><button class="btn ghost wide">Close</button></form></div>`;
     el.querySelector('h2').textContent = title;
     document.body.append(el);
     el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('a[data-link]')) el.close(); });
@@ -376,7 +363,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
     const open = e.target.closest('[data-sheet]');
     if (open) {
       const key = open.dataset.sheet;
-      if (key === 'stuck') return sheet(isKo ? `${STUCK_DAYS}일 넘게 미해결` : `Open for ${STUCK_DAYS}+ days`, stuck);
+      if (key === 'stuck') return sheet(`Open for ${STUCK_DAYS}+ days`, stuck);
       const cat = key.slice(5);
       const list = [...openNow.filter((n) => n.category === cat).sort((a, b) => a.created_at.localeCompare(b.created_at)), ...fixed.filter((n) => n.category === cat)];
       return sheet(catLabel(cat), list);
@@ -387,7 +374,7 @@ export async function renderInsights({ projectId: inProject = null, root = null 
       const { data: sentCount, error: rErr } = await sb.rpc('remind_request', { p_request: remind.dataset.remind });
       if (rErr) { remind.disabled = false; return toast(friendlyError(rErr), 'error'); }
       toast(sentCount ? `Reminded ${sentCount} ${sentCount === 1 ? 'person' : 'people'}.` : 'Nobody to remind — or they turned these off.');
-      $$(`[data-remind="${remind.dataset.remind}"]`).forEach((b) => { b.disabled = true; b.textContent = isKo ? '보냄' : 'Sent'; });
+      $$(`[data-remind="${remind.dataset.remind}"]`).forEach((b) => { b.disabled = true; b.textContent = 'Sent'; });
     }
   });
 

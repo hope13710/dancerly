@@ -23,8 +23,6 @@ const FRESH_KEY = 'looproom:fresh-recap';
 
 const SELECT = () => cols('id, project_id, created_by, scope, period, period_start, period_end, video_id, notes_up_to, note_count, content, sources, checked, shared_at, has_private, team, cycle, auto, created_at, projects(title), videos(title), recap_pins(user_id)');
 
-// A team recap read in another language shows its saved translation (made once, when someone asks).
-function localize(r) { return r; }
 
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const periodLabel = (r) => (r.period === 'custom' ? `${day(r.period_start)} – ${day(r.period_end)}` : PERIODS[r.period]);
@@ -149,14 +147,13 @@ async function runGeneration(params) {
 
 // The group-chat version of a recap: headline, the top three to-dos, and links. In the app's language.
 function chatMessage(r, link, invite, pulse = null) {
-  const ko = false;
   const next = (r.content?.next || []).slice(0, 3).map((it) => `• ${it.text}`).join('\n');
   return [
-    `${ko ? 'AI 요약' : 'Recap'}: ${r.content?.headline || ''}`,
+    `Recap: ${r.content?.headline || ''}`,
     pulse ? pulseText(pulse) : '',
-    next ? `\n${ko ? '다음 연습 할 일' : 'Next up'}:\n${next}` : '',
+    next ? `\nNext up:\n${next}` : '',
     // One link for everyone: teammates land on the recap, anyone not on the team yet joins first, then lands there.
-    `\n${ko ? 'dancerly에서 전체 보기' : 'Read it in dancerly'}: ${invite ? `${invite}?then=${encodeURIComponent(new URL(link).pathname)}` : link}`
+    `\nRead it in dancerly: ${invite ? `${invite}?then=${encodeURIComponent(new URL(link).pathname)}` : link}`
   ].filter(Boolean).join('\n');
 }
 
@@ -178,20 +175,16 @@ async function teamPulse(r) {
   return { fixed, open: open.length, top: top && top[1] >= 2 ? top[0] : null, since };
 }
 function pulseText(p) {
-  const ko = false;
-  const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
-  const parts = ko
-    ? [`해결 ${p.fixed}개`, `남은 피드백 ${p.open}개`, p.top ? `가장 많은 분야: ${catLabel(p.top)}` : '']
-    : [`${p.fixed} fixed`, `${p.open} still open`, p.top ? `most open: ${catLabel(p.top)}` : ''];
+  const lead = { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
+  const parts = [`${p.fixed} fixed`, `${p.open} still open`, p.top ? `most open: ${catLabel(p.top)}` : ''];
   return `${lead}: ${parts.filter(Boolean).join(' · ')}`;
 }
 function pulseHtml(p) {
-  const ko = false;
-  const lead = ko ? { practice: '지난 연습 이후', week: '이번 주', period: '이 기간' }[p.since] : { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
-  return `<p class="recap-pulse" data-no-i18n><span class="pulse-lead">${lead}</span>
-    <span class="pulse-num ok">${ic('check')}${ko ? `해결 <b>${p.fixed}</b>개` : `<b>${p.fixed}</b> fixed`}</span>
-    <span class="pulse-num">${ko ? `남은 피드백 <b>${p.open}</b>개` : `<b>${p.open}</b> still open`}</span>
-    ${p.top ? `<span class="pulse-num">${ko ? '가장 많은 분야' : 'Most open'} ${catChip(p.top)}</span>` : ''}</p>`;
+  const lead = { practice: 'Since the last practice', week: 'This week', period: 'In this period' }[p.since];
+  return `<p class="recap-pulse"><span class="pulse-lead">${lead}</span>
+    <span class="pulse-num ok">${ic('check')}${`<b>${p.fixed}</b> fixed`}</span>
+    <span class="pulse-num">${`<b>${p.open}</b> still open`}</span>
+    ${p.top ? `<span class="pulse-num">Most open ${catChip(p.top)}</span>` : ''}</p>`;
 }
 
 // ---------- Rendering ----------
@@ -334,7 +327,7 @@ export async function renderRecap(recapId) {
   const me = ctx.state.session.user.id;
   const { data: raw, error } = await sb.from('recaps').select(SELECT()).eq('id', recapId).maybeSingle();
   if (error) throw error;
-  const r = localize(raw);
+  const r = raw;
   // Not on that project (or it was deleted): not an error to report, just a way forward.
   if (!r) {
     setCrumbs([['Recaps', '/app/me/recaps'], ['Recap']]);
@@ -538,7 +531,7 @@ addEventListener('scroll', () => { const pop = document.querySelector('[data-pop
 const RECAP_MIN_NOTES = 3;
 export async function homeRecapCard() {
   const { data } = await noSample(sb.from('recaps').select(SELECT())).order('created_at', { ascending: false }).limit(1);
-  const r = localize(data?.[0]);
+  const r = data?.[0];
   if (!r) {
     // A recap summarizes notes, so the first one is offered once there are a few to work with,
     // not to someone whose team hasn't written any yet (it would come back empty).

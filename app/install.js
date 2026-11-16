@@ -8,7 +8,6 @@
 //   • Not shown when dancerly already runs from the Home Screen, or inside an app's built-in browser (Instagram,
 //     KakaoTalk…) where installing isn't possible.
 // Measured: offered, chosen, installed, and opens from the Home Screen (once a day), to compare who comes back.
-import { isKo } from './i18n.js';
 import { ic } from './icons.js';
 import { track } from './onboarding.js';
 
@@ -28,7 +27,7 @@ const offered = () => { try { return localStorage.getItem(KEY) === 'shown'; } ca
 // for desktop sites looks like a Mac, some Android browsers say they're Chrome).
 const CHOICES = {
   ios: [['ios-safari', 'Safari'], ['ios-other', 'Chrome · Edge · Firefox']],
-  android: [['android', 'Chrome · Edge'], ['samsung', isKo ? '삼성 인터넷' : 'Samsung Internet'], ['firefox', 'Firefox']],
+  android: [['android', 'Chrome · Edge'], ['samsung', 'Samsung Internet'], ['firefox', 'Firefox']],
 };
 
 // Which browser's steps to show first.
@@ -80,50 +79,42 @@ export function offerInstall(reason) {
 // The words fit the moment: right after an upload it's about seeing the team's feedback.
 function copy(reason) {
   if (reason === 'upload') {
-    return isKo
-      ? ['팀원 피드백을 바로 열어 보세요', '홈 화면에 추가하면 피드백이 올라왔을 때 한 번에 열 수 있어요. 앱 스토어에서 받을 필요 없어요.']
-      : ['See your team’s feedback in one tap', 'Add dancerly to your Home Screen to open it the moment feedback comes in. Nothing to download from an app store.'];
+    return ['See your team’s feedback in one tap', 'Add dancerly to your Home Screen to open it the moment feedback comes in. Nothing to download from an app store.'];
   }
   if (reason === 'third_day') {
-    return isKo
-      ? ['다음엔 한 번에 여세요', '홈 화면에 추가하면 앱처럼 바로 열려요. 앱 스토어에서 받을 필요 없어요.']
-      : ['Next time, open it in one tap', 'Add dancerly to your Home Screen and it opens like an app. Nothing to download from an app store.'];
+    return ['Next time, open it in one tap', 'Add dancerly to your Home Screen and it opens like an app. Nothing to download from an app store.'];
   }
   if (!isPhone()) {
-    return isKo
-      ? ['dancerly 앱 설치', '브라우저 탭 없이 별도 창으로 열려요. 작업 표시줄이나 Dock에서 바로 실행할 수 있어요.']
-      : ['Install the dancerly app', 'It opens in its own window, without browser tabs, right from your taskbar or Dock.'];
+    return ['Install the dancerly app', 'It opens in its own window, without browser tabs, right from your taskbar or Dock.'];
   }
-  return isKo
-    ? ['dancerly 앱으로 설치하기', '홈 화면에서 앱처럼 바로 열려요. 앱 스토어에서 받을 필요 없어요.']
-    : ['Install the dancerly app', 'It opens straight from your Home Screen, like an app. Nothing to download from an app store.'];
+  return ['Install the dancerly app', 'It opens straight from your Home Screen, like an app. Nothing to download from an app store.'];
 }
 
 function steps(kind) {
   const step = (icon, html) => `<li><span class="install-step-ic">${ic(icon, 'solo')}</span><span>${html}</span></li>`;
-  const add = isKo ? step('check', '<b>추가</b>를 누르면 끝이에요') : step('check', 'Tap <b>Add</b>, and you’re done');
+  const add = step('check', 'Tap <b>Add</b>, and you’re done');
   // Checked against Apple, Google, Samsung and Mozilla help pages, November 2026. iOS 26 Safari's default tab
   // layout keeps Share behind the ⋯ button, and asks whether to open it as a web app (on by default).
   if (kind === 'ios-safari') {
-    return [step('share', isKo ? '<b>공유</b> 버튼을 눌러요. 안 보이면 <b>⋯</b> 버튼을 누른 뒤 공유를 골라요' : 'Tap <b>Share</b>. Don’t see it? Tap <b>⋯</b>, then Share'),
-      step('addbox', isKo ? '목록을 내려 <b>홈 화면에 추가</b>를 골라요' : 'Scroll down and choose <b>Add to Home Screen</b>'),
-      step('check', isKo ? '<b>웹 앱으로 열기</b>가 켜진 채로 <b>추가</b>를 눌러요' : 'Keep <b>Open as Web App</b> on and tap <b>Add</b>')];
+    return [step('share', 'Tap <b>Share</b>. Don’t see it? Tap <b>⋯</b>, then Share'),
+      step('addbox', 'Scroll down and choose <b>Add to Home Screen</b>'),
+      step('check', 'Keep <b>Open as Web App</b> on and tap <b>Add</b>')];
   }
   if (kind === 'ios-other') {
-    return [step('share', isKo ? '주소창 오른쪽의 <b>공유</b> 버튼을 눌러요' : 'Tap <b>Share</b> at the right of the address bar'),
-      step('addbox', isKo ? '목록을 내려 <b>홈 화면에 추가</b>를 골라요' : 'Scroll down and choose <b>Add to Home Screen</b>'), add];
+    return [step('share', 'Tap <b>Share</b> at the right of the address bar'),
+      step('addbox', 'Scroll down and choose <b>Add to Home Screen</b>'), add];
   }
   if (kind === 'samsung') {
-    return [step('menu', isKo ? '아래쪽 <b>≡ 메뉴</b>를 눌러요' : 'Tap the <b>≡ menu</b> at the bottom'),
-      step('addbox', isKo ? '<b>현재 페이지 추가</b> → <b>홈 화면</b>을 골라요' : 'Choose <b>Add page to</b> → <b>Home screen</b>'), add];
+    return [step('menu', 'Tap the <b>≡ menu</b> at the bottom'),
+      step('addbox', 'Choose <b>Add page to</b> → <b>Home screen</b>'), add];
   }
   if (kind === 'firefox') {
-    return [step('vmore', isKo ? '<b>⋮ 메뉴</b>를 눌러요 (화면 위 또는 아래)' : 'Tap the <b>⋮ menu</b> (at the top or bottom)'),
-      step('addbox', isKo ? '<b>홈 화면에 앱 추가</b> 또는 <b>설치</b>를 골라요' : 'Choose <b>Add app to Home screen</b> or <b>Install</b>'), add];
+    return [step('vmore', 'Tap the <b>⋮ menu</b> (at the top or bottom)'),
+      step('addbox', 'Choose <b>Add app to Home screen</b> or <b>Install</b>'), add];
   }
-  return [step('vmore', isKo ? '오른쪽 위 <b>⋮ 메뉴</b>를 눌러요' : 'Tap the <b>⋮ menu</b> at the top right'),
-    step('addbox', isKo ? '<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 골라요' : 'Choose <b>Install app</b> or <b>Add to Home screen</b>'),
-    step('check', isKo ? '<b>설치</b>를 누르면 끝이에요' : 'Tap <b>Install</b>, and you’re done')];
+  return [step('vmore', 'Tap the <b>⋮ menu</b> at the top right'),
+    step('addbox', 'Choose <b>Install app</b> or <b>Add to Home screen</b>'),
+    step('check', 'Tap <b>Install</b>, and you’re done')];
 }
 
 export function showInstall(reason) {
@@ -133,15 +124,15 @@ export function showInstall(reason) {
   const [title, body] = copy(reason);
   const el = document.createElement('dialog');
   el.className = 'dialog sheet install-sheet';
-  el.innerHTML = `<div class="dialog-card" data-no-i18n>
+  el.innerHTML = `<div class="dialog-card">
     <img class="install-icon" src="/icon-192.png" alt="" width="56" height="56" />
     <h2>${title}</h2>
     <p class="muted">${body}</p>
-    ${oneTap ? '' : `<div class="install-browsers chips" role="group" aria-label="${isKo ? '브라우저' : 'Browser'}">${choices.map(([k, label]) => `<button type="button" class="chip" data-browser="${k}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
+    ${oneTap ? '' : `<div class="install-browsers chips" role="group" aria-label="Browser">${choices.map(([k, label]) => `<button type="button" class="chip" data-browser="${k}" aria-pressed="${k === kind}">${label}</button>`).join('')}</div>
     <ol class="install-steps" data-steps>${steps(kind).join('')}</ol>`}
     <div class="dialog-actions">
-      <button type="button" class="btn ghost" data-later>${isKo ? '나중에' : 'Not now'}</button>
-      ${oneTap ? `<button type="button" class="btn primary" data-install>${isKo ? '설치하기' : 'Install'}</button>` : `<button type="button" class="btn primary" data-later>${isKo ? '확인' : 'Got it'}</button>`}
+      <button type="button" class="btn ghost" data-later>Not now</button>
+      ${oneTap ? `<button type="button" class="btn primary" data-install>Install</button>` : `<button type="button" class="btn primary" data-later>Got it</button>`}
     </div>
   </div>`;
   document.body.append(el);

@@ -197,13 +197,13 @@ document.addEventListener('click', (event) => {
 });
 
 // ---------- Leader: three steps to a working project ----------
-// [key, label, suggested project name in English, in Korean]. {year} becomes this year.
+// [key, label, suggested project name]. {year} becomes this year.
 const TEAMS = [
-  ['crew', 'Dance crew', 'Showcase {year}', '{year} 정기공연'],
-  ['school', 'School or club team', 'Spring Concert {year}', '{year} 축제 무대'],
-  ['studio', 'Studio or academy', 'Recital {year}', '{year} 발표회'],
-  ['comp', 'Competition team', 'Competition Set {year}', '{year} 대회 준비'],
-  ['solo', 'On my own', 'My practice', '내 연습']
+  ['crew', 'Dance crew', 'Showcase {year}'],
+  ['school', 'School or club team', 'Spring Concert {year}'],
+  ['studio', 'Studio or academy', 'Recital {year}'],
+  ['comp', 'Competition team', 'Competition Set {year}'],
+  ['solo', 'On my own', 'My practice']
 ];
 
 export async function renderWelcome() {
@@ -240,8 +240,8 @@ export async function renderWelcome() {
   const invitesHtml = () => !pending.length ? '' : `<div class="welcome-invites">
       <p class="welcome-label">You’ve been invited</p>
       <div class="list">${pending.map((i) => `<div class="row welcome-invite">${projectMark({ id: i.project_id, title: i.project_title })}
-        <span class="row-main" data-no-i18n><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${`${esc(i.invited_by_name)} invited you`}</span></span>
-        ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta" data-no-i18n>${'Link expired'}</span>`}</div>`).join('')}</div>
+        <span class="row-main"><span class="row-title">${esc(i.project_title)}</span><span class="row-meta">${`${esc(i.invited_by_name)} invited you`}</span></span>
+        ${i.code ? `<a class="btn primary small" href="/app/join/${esc(i.code)}" data-link data-join-invite>Join</a>` : `<span class="row-meta">Link expired</span>`}</div>`).join('')}</div>
       <p class="welcome-or"><span>Or start your own team</span></p>
     </div>`;
 

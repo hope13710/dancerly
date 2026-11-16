@@ -4,7 +4,6 @@ import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
 import { ic } from '../icons.js';
-import { isKo } from '../i18n.js';
 
 const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 // Requests to join (migration 040) carry the requester's name: owners can't read a non-member's profile.
@@ -29,7 +28,7 @@ function describe(item, names) {
   if (item.kind === 'added_to_project') return `${who} added you to <b>${project}</b>`;
   if (item.kind === 'ownership_transferred') return `${who} made you the owner of <b>${project}</b>`;
   // Written on schedule before practice: from dancerly, not a person.
-  if (item.kind === 'recap_shared' && !item.actor_id) return isKo ? `<b>${project}</b> 팀 요약이 준비됐어요. 연습 전에 확인해 보세요.` : `Your team’s recap for <b>${project}</b> is ready. Have a look before practice.`;
+  if (item.kind === 'recap_shared' && !item.actor_id) return `Your team’s recap for <b>${project}</b> is ready. Have a look before practice.`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
   if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;

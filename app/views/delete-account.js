@@ -3,7 +3,6 @@
 // sign in with Google) by signing in with Google once more, like Google and Notion do before anything permanent.
 import { sb, $, $$, esc, toast, friendlyError, loadMembers, TAKE_BUCKET, isPublicMedia, GOOGLE_G } from '../client.js';
 import { ctx } from '../ctx.js';
-import { isKo } from '../i18n.js';
 
 const isSamplePerson = (id) => id.startsWith('5a3b0000-');
 const REASONS = [
@@ -59,10 +58,10 @@ export async function renderDeleteAccount() {
       <div class="da-columns">
         <div><h3 class="da-gone">Deleted for good</h3><ul>
           <li>Your profile, photo, and sign-in</li>
-          <li data-no-i18n>${isKo ? `내가 올린 테이크 ${takeCount || 0}개와 그 영상 파일` : `Your ${takeCount || 0} uploaded ${takeCount === 1 ? 'take' : 'takes'} and their video files`}</li>
-          <li data-no-i18n>${isKo ? `내가 남긴 피드백 ${noteCount || 0}개, 답글 ${replyCount || 0}개` : `Your ${noteCount || 0} ${noteCount === 1 ? 'note' : 'notes'} and ${replyCount || 0} ${replyCount === 1 ? 'reply' : 'replies'}`}</li>
+          <li>${`Your ${takeCount || 0} uploaded ${takeCount === 1 ? 'take' : 'takes'} and their video files`}</li>
+          <li>${`Your ${noteCount || 0} ${noteCount === 1 ? 'note' : 'notes'} and ${replyCount || 0} ${replyCount === 1 ? 'reply' : 'replies'}`}</li>
           <li>Your reactions, AI summaries, share links, and calendar links</li>
-          ${alone.length ? `<li data-no-i18n>${isKo ? `나만 있는 프로젝트: ${alone.map((p) => esc(p.title)).join(', ')}` : `Projects only you are in: ${alone.map((p) => esc(p.title)).join(', ')}`}</li>` : ''}
+          ${alone.length ? `<li>${`Projects only you are in: ${alone.map((p) => esc(p.title)).join(', ')}`}</li>` : ''}
         </ul></div>
         <div><h3 class="da-stays">Stays with your projects</h3><ul>
           <li>Projects you hand over below, or that another owner already manages</li>
@@ -75,7 +74,7 @@ export async function renderDeleteAccount() {
     ${decide.length ? `<section class="panel">
       <div class="panel-head"><div><h2>Projects you manage</h2><p class="muted">Other members are still using these. Choose who takes over, or delete the project for everyone.</p></div></div>
       <div class="da-projects">${decide.map((p) => `<div class="da-project" data-project="${p.id}">
-        <div class="da-project-head"><b>${esc(p.title)}</b><small data-no-i18n>${isKo ? `나 외 ${p.others.length}명` : `${p.others.length} other ${p.others.length === 1 ? 'member' : 'members'}`}</small></div>
+        <div class="da-project-head"><b>${esc(p.title)}</b><small>${`${p.others.length} other ${p.others.length === 1 ? 'member' : 'members'}`}</small></div>
         <label class="da-choice"><input type="radio" name="d-${p.id}" value="transfer" checked /><span>Hand over to</span>
           <select data-to aria-label="New owner">${p.others.map((m) => `<option value="${m.user_id}">${esc(m.name)}</option>`).join('')}</select></label>
         <label class="da-choice"><input type="radio" name="d-${p.id}" value="delete" /><span>Delete this project and everything in it, for everyone</span></label>
@@ -93,7 +92,7 @@ export async function renderDeleteAccount() {
     </section>
 
     <form class="panel da-confirm" data-confirm novalidate>
-      <div class="panel-head"><div><h2>Confirm deletion</h2><p class="muted" data-no-i18n data-confirm-help></p></div></div>
+      <div class="panel-head"><div><h2>Confirm deletion</h2><p class="muted" data-confirm-help></p></div></div>
       <label class="field"><span>Email</span><input name="confirm" type="email" autocomplete="off" required placeholder="${esc(email)}" /></label>
       <div data-password-block>
         <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" /></label>
@@ -101,7 +100,7 @@ export async function renderDeleteAccount() {
       </div>
       ${hasGoogle ? `<div class="da-google" data-google-block>
         ${googleFresh
-          ? `<p class="da-google-done">${GOOGLE_G}<span data-no-i18n>${isKo ? `Google로 확인했어요 · ${esc(email)}` : `Confirmed with Google · ${esc(email)}`}</span></p>`
+          ? `<p class="da-google-done">${GOOGLE_G}<span>${`Confirmed with Google · ${esc(email)}`}</span></p>`
           : `<button type="button" class="btn google wide" data-google-reauth>${GOOGLE_G} Confirm with Google</button><p class="fine left">You’ll sign in with Google once more, then come back here.</p>`}
         ${hasPassword ? '<p class="fine left"><button type="button" class="link-btn inline" data-use-password>Use my password instead</button></p>' : ''}
       </div>` : ''}
@@ -135,9 +134,7 @@ export async function renderDeleteAccount() {
   const paintWay = () => {
     $('[data-password-block]').hidden = !usePassword;
     if ($('[data-google-block]')) $('[data-google-block]').hidden = usePassword;
-    $('[data-confirm-help]').innerHTML = isKo
-      ? `확인을 위해 이메일 <b>${esc(email)}</b>을 입력하고 ${usePassword ? '비밀번호를 입력해 주세요.' : 'Google로 한 번 더 로그인해 주세요.'}`
-      : `To confirm, type your email <b>${esc(email)}</b> and ${usePassword ? 'your password.' : 'sign in with Google once more.'}`;
+    $('[data-confirm-help]').innerHTML = `To confirm, type your email <b>${esc(email)}</b> and ${usePassword ? 'your password.' : 'sign in with Google once more.'}`;
     ready();
   };
   $('[data-use-google]')?.addEventListener('click', () => { usePassword = false; paintWay(); });
@@ -158,7 +155,7 @@ export async function renderDeleteAccount() {
     if (d?.action === 'delete') { row.querySelector('input[value=delete]').checked = true; row.classList.add('deleting'); }
     else if (d?.to) row.querySelector('[data-to]').value = d.to;
   });
-  if (draft.me && draft.me !== me) toast(isKo ? '다른 Google 계정으로 로그인했어요. 이 계정을 삭제하려는 게 맞는지 확인해 주세요.' : 'You signed in with a different Google account. Make sure this is the account you want to delete.', 'error');
+  if (draft.me && draft.me !== me) toast('You signed in with a different Google account. Make sure this is the account you want to delete.', 'error');
   else if (googleFresh) form.confirm.focus();
   paintWay();
   form.addEventListener('input', ready);
@@ -168,7 +165,7 @@ export async function renderDeleteAccount() {
     e.preventDefault();
     if (submit.disabled) return;
     submit.disabled = true;
-    submit.textContent = isKo ? '삭제하는 중…' : 'Deleting…';
+    submit.textContent = 'Deleting…';
     const body = {
       confirm: form.confirm.value.trim(),
       password: usePassword ? form.password.value : undefined,
@@ -180,7 +177,7 @@ export async function renderDeleteAccount() {
     if (error || !data?.ok) {
       let msg = friendlyError(error || { message: 'Something went wrong. Nothing was deleted.' });
       try { const detail = await error?.context?.json?.(); if (detail?.error) msg = detail.error; } catch {}
-      submit.textContent = isKo ? '계정 삭제하기' : 'Delete my account';
+      submit.textContent = 'Delete my account';
       ready();
       return showError(msg);
     }
@@ -194,7 +191,7 @@ export async function renderDeleteAccount() {
   async function exportData(button) {
     button.disabled = true;
     const label = button.textContent;
-    button.textContent = isKo ? '준비하는 중…' : 'Preparing…';
+    button.textContent = 'Preparing…';
     try {
       const [profile, memberships, takes, notes, replies, requests, events, pages, recaps] = await Promise.all([
         sb.from('profiles').select('display_name, avatar_url, created_at').eq('id', me).maybeSingle(),
@@ -230,7 +227,7 @@ export async function renderDeleteAccount() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      toast(isKo ? '내 데이터 파일을 내려받았어요.' : 'Your data file is downloading.');
+      toast('Your data file is downloading.');
     } catch (err) {
       toast(friendlyError(err), 'error');
     } finally {

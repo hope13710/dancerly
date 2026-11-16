@@ -3,7 +3,6 @@
 // when it comes back to the screen and every 30 minutes; when there's a new one it switches over quietly on the
 // next page change, unless someone is mid-task (typing, uploading, a dialog open): then it asks, and waits.
 import { toast, isUploading } from './client.js';
-import { isKo } from './i18n.js';
 
 const EVERY_MS = 30 * 60 * 1000;
 let loaded = null; // the version this page started with
@@ -31,7 +30,7 @@ async function check() {
   if (!v || v === loaded) return;
   ready = true;
   if (busy()) {
-    toast(isKo ? '새 버전이 있어요.' : 'A new version is available.', 'info', { label: isKo ? '새로고침' : 'Refresh', run: () => location.reload() });
+    toast('A new version is available.', 'info', { label: 'Refresh', run: () => location.reload() });
   }
 }
 

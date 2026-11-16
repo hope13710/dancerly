@@ -4,7 +4,6 @@ import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema, fmtFine, notChoreo, canShareLinks } from '../client.js';
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
-import { isKo } from '../i18n.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel, nameMatches } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
 import { memberWelcome, sampleOffer, samplePeek, track, seen, markSeen, onboarding } from '../onboarding.js';
@@ -258,7 +257,7 @@ export async function renderProjectPeople(projectId) {
     ${projectHead(p, 'people', '<button class="btn primary" data-invite>Invite people</button>')}
     ${(asks || []).length ? `<div class="panel join-asks"><div class="panel-head"><div><h2>Requests to join</h2><p class="muted">They opened a link you shared. Approving adds them as a member and posts their note, if they wrote one.</p></div></div>
       <div class="list">${asks.map((a) => `<div class="row join-ask" data-ask="${a.id}">
-        ${avatar(a.requester_name || '?', a.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(a.requester_name || 'Someone')}</span><span class="row-meta">${a.video_id ? esc(a.videos?.title || 'A shared video') : (isKo ? '연습 링크' : 'Practice link')} · ${timeAgo(a.created_at)}</span>
+        ${avatar(a.requester_name || '?', a.user_id, 'sm')}<span class="row-main"><span class="row-title">${esc(a.requester_name || 'Someone')}</span><span class="row-meta">${a.video_id ? esc(a.videos?.title || 'A shared video') : 'Practice link'} · ${timeAgo(a.created_at)}</span>
           ${a.body ? `<span class="join-ask-note"><b>${fmtFine(Number(a.t_start || 0))}</b> ${esc(a.body)}</span>` : ''}</span>
         <span class="row-side"><button class="btn small ghost" data-ask-no="${a.id}">Decline</button><button class="btn small primary" data-ask-yes="${a.id}">Approve</button></span>
       </div>`).join('')}</div></div>` : ''}
@@ -363,7 +362,7 @@ export async function renderProjectSettings(projectId) {
       </section>
       ${(p.isOwner || linksTeam) && !p.project.is_sample && schema.shareLinks ? `<section class="panel">
         <div class="panel-head"><div><h2>Shared links</h2><p class="muted">Anyone with one of these links can watch, no account needed. Turn one off and it stops opening.</p></div></div>
-        ${links.length ? `<div class="list flush">${links.map((l) => `<div class="row"><span class="row-main"><span class="row-title"><span class="share-kind ${l.kind}" data-no-i18n>${l.kind === 'practice' ? (isKo ? '연습 화면' : 'Practice') : (isKo ? '테이크' : 'Take')}</span> <span data-no-i18n>${esc(l.kind === 'practice' ? practiceName : (l.videos?.title || 'Video'))}</span></span><span class="row-meta" data-no-i18n>${isKo ? `조회 ${l.views}회 · ${l.expires_at ? `${new Date(l.expires_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} 만료` : '만료 없음'} · ${esc(names[l.updated_by || l.created_by] || '팀원')}님이 마지막으로 바꿈` : `${l.views} ${l.views === 1 ? 'view' : 'views'} · ${l.expires_at ? `expires ${new Date(l.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'never expires'} · last changed by ${esc(names[l.updated_by || l.created_by] || 'someone')}`}</span></span>
+        ${links.length ? `<div class="list flush">${links.map((l) => `<div class="row"><span class="row-main"><span class="row-title"><span class="share-kind ${l.kind}">${l.kind === 'practice' ? 'Practice' : 'Take'}</span> <span>${esc(l.kind === 'practice' ? practiceName : (l.videos?.title || 'Video'))}</span></span><span class="row-meta">${`${l.views} ${l.views === 1 ? 'view' : 'views'} · ${l.expires_at ? `expires ${new Date(l.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'never expires'} · last changed by ${esc(names[l.updated_by || l.created_by] || 'someone')}`}</span></span>
           <span class="row-side"><button class="btn small" data-copy-link="${l.token}">Copy</button>${manageLinks ? `<button class="btn small ghost" data-link-off="${l.kind}:${l.token}">Turn off</button>` : ''}</span></div>`).join('')}</div>`
           : '<p class="panel-empty">No links are on. Share a take or the Practice page from its Share button.</p>'}
         ${!p.isOwner ? (manageLinks ? '' : '<p class="fine left">Only the project owner can share with a link in this project.</p>')
@@ -495,8 +494,7 @@ export async function createVideo(projectId, { request = null, name = null } = {
     const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
     if (mine) return resubmit(projectId, mine);
   }
-  // The name is a typed value (not translated with the page), so it's written in the reader's language here.
-  const autoName = `${isKo ? '런스루' : 'Run-through'} · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  const autoName = `Run-through · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   const values = await dialog({
     title: request ? `Submit: ${request.title}` : 'Upload video',
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload new take</b> — its open notes come along.',
@@ -618,17 +616,17 @@ export async function showInvite(projectId, title, { heading = null, body = null
   let invite;
   try { invite = await inviteLink(projectId); } catch (error) { return toast(friendlyError(error), 'error'); }
   const { link } = invite;
-  const until = new Date(invite.expires_at).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
+  const until = new Date(invite.expires_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
   const el = document.createElement('dialog');
   el.className = 'dialog invite-dialog';
   el.innerHTML = `<div class="dialog-card">
-    ${heading ? `<h2>${esc(heading)}</h2>` : `<h2 data-no-i18n>${isKo ? `<b>${esc(title)}</b>에 초대하기` : `Invite people to <b>${esc(title)}</b>`}</h2>`}
+    ${heading ? `<h2>${esc(heading)}</h2>` : `<h2>${`Invite people to <b>${esc(title)}</b>`}</h2>`}
     ${body ? `<p>${body}</p>` : ''}
     <div class="invite-add">
       <label class="known-field">${ic('search')}<input type="text" class="known-search" data-invite-input placeholder="Email address" aria-label="Email address" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" /><button type="button" class="known-clear" data-known-clear hidden aria-label="Clear" title="Clear">${ic('x', 'solo')}</button></label>
       <div class="invite-send" data-send-row hidden>
         <span class="invite-send-icon">${ic('mail', 'solo')}</span>
-        <span class="invite-send-main" data-send-text data-no-i18n></span>
+        <span class="invite-send-main" data-send-text></span>
         <button type="button" class="btn primary small" data-send>Send invite</button>
       </div>
       <div class="known-list" data-known-list hidden></div>
@@ -638,7 +636,7 @@ export async function showInvite(projectId, title, { heading = null, body = null
       <p class="invite-label">Or share a link</p>
       <div class="copy-row"><input readonly value="${esc(link)}" aria-label="Invite link" data-link-input /><button class="btn" data-copy>Copy</button></div>
       <div class="invite-more">${navigator.share ? `<button class="btn small" data-share>${ic('upload')}Share…</button>` : ''}<button class="btn small" data-qr-open>${ic('qr')}QR code</button></div>
-      <p class="fine left" data-no-i18n>${isKo ? `링크가 있으면 누구나 이름과 이메일만으로 참여할 수 있어요. ${esc(until)}까지 쓸 수 있어요.` : `Anyone with the link can join with just their name and email. Works until ${esc(until)}.`}</p>
+      <p class="fine left">${`Anyone with the link can join with just their name and email. Works until ${esc(until)}.`}</p>
     </div>
     <div class="dialog-actions"><button class="btn ghost" data-close>${esc(later)}</button></div></div>`;
   document.body.append(el);
@@ -650,7 +648,7 @@ export async function showInvite(projectId, title, { heading = null, body = null
   });
   el.querySelector('[data-share]')?.addEventListener('click', () => {
     track('invite_link_shared', { via: 'share', from });
-    navigator.share({ title: 'dancerly', text: isKo ? `dancerly에서 ${title}에 함께해요` : `Join ${title} on dancerly`, url: link }).catch(() => {});
+    navigator.share({ title: 'dancerly', text: `Join ${title} on dancerly`, url: link }).catch(() => {});
   });
   el.querySelector('[data-qr-open]').addEventListener('click', () => {
     track('invite_link_shared', { via: 'qr', from });
@@ -694,10 +692,10 @@ function wireInviteBox(el, projectId, title) {
     sendRow.hidden = !emailMode;
     if (emailMode) {
       sendBtn.disabled = !good.length;
-      const who = good.length === 1 ? `<b>${esc(good[0])}</b>` : (isKo ? `<b>${good.length}명</b>` : `<b>${good.length} people</b>`);
+      const who = good.length === 1 ? `<b>${esc(good[0])}</b>` : `<b>${good.length} people</b>`;
       sendText.innerHTML = good.length
-        ? `<span>${isKo ? `${who}에게 초대 메일 보내기` : `Email an invite to ${who}`}</span>${bad.length ? `<small class="invite-bad">${isKo ? '이메일 형식이 아니에요' : 'Not an email address'}: ${esc(bad.join(', '))}</small>` : ''}`
-        : `<span class="muted">${isKo ? '이메일 주소를 끝까지 입력해 주세요' : 'Finish typing the email address'}</span>`;
+        ? `<span>${`Email an invite to ${who}`}</span>${bad.length ? `<small class="invite-bad">Not an email address: ${esc(bad.join(', '))}</small>` : ''}`
+        : `<span class="muted">Finish typing the email address</span>`;
     }
     const shown = emailMode ? [] : people.filter((p) => nameMatches(p.display_name, q)).slice(0, q.trim() ? 8 : 5);
     list.hidden = emailMode || (!shown.length && !q.trim());
@@ -708,7 +706,7 @@ function wireInviteBox(el, projectId, title) {
     if (error || !data?.length) return;
     people = data.sort((a, b) => String(b.last_together).localeCompare(String(a.last_together)));
     // There are people to find by name now, so the field says so.
-    input.placeholder = isKo ? '이름 또는 이메일' : 'Name or email';
+    input.placeholder = 'Name or email';
     input.setAttribute('aria-label', input.placeholder);
     paint();
   });
@@ -726,7 +724,7 @@ function wireInviteBox(el, projectId, title) {
     if (error) { b.disabled = false; return toast(friendlyError(error), 'error'); }
     added.add(b.dataset.add);
     track('member_added_directly', { from: 'invite_dialog' });
-    toast(isKo ? `${person?.display_name || ''}님을 ${title}에 추가했어요.` : `Added ${person?.display_name || 'them'} to ${title}.`);
+    toast(`Added ${person?.display_name || 'them'} to ${title}.`);
     paint();
   });
 
@@ -744,11 +742,11 @@ function wireInviteBox(el, projectId, title) {
     const sent = by('sent'), recent = by('recent'), failed = [...by('failed'), ...by('invalid')];
     if (sent.length) {
       track('invite_email_sent', { count: sent.length });
-      toast(isKo ? (sent.length === 1 ? `${sent[0]}에 초대 메일을 보냈어요.` : `${sent.length}명에게 초대 메일을 보냈어요.`) : (sent.length === 1 ? `Invite sent to ${sent[0]}.` : `Invites sent to ${sent.length} people.`));
+      toast((sent.length === 1 ? `Invite sent to ${sent[0]}.` : `Invites sent to ${sent.length} people.`));
     }
-    if (recent.length) toast(isKo ? `${recent.join(', ')}에는 오늘 이미 보냈어요. 내일 다시 보낼 수 있어요.` : `Already sent to ${recent.join(', ')} today. You can resend tomorrow.`);
-    if (by('you').length) toast(isKo ? '내 이메일로는 초대를 보낼 수 없어요.' : 'That’s your own email.');
-    if (failed.length) toast(isKo ? `${failed.join(', ')}에는 보내지 못했어요. 주소를 확인해 주세요.` : `Couldn’t send to ${failed.join(', ')}. Check the address.`, 'error');
+    if (recent.length) toast(`Already sent to ${recent.join(', ')} today. You can resend tomorrow.`);
+    if (by('you').length) toast('That’s your own email.');
+    if (failed.length) toast(`Couldn’t send to ${failed.join(', ')}. Check the address.`, 'error');
     // Sent from the field: clear it, keeping anything that wasn't an address so it can be fixed.
     if (sent.length && fromInput) { input.value = parseEmails(input.value).bad.join(', '); paint(); }
     paintSent();
@@ -831,7 +829,7 @@ async function savePoster(qr, title, until) {
   const font = (w, px) => `${w} ${px}px Inter, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
   g.textAlign = 'center';
   g.fillStyle = '#5b5ce2'; g.font = font(700, 34);
-  g.fillText(isKo ? '스캔해서 참여하기' : 'SCAN TO JOIN', W / 2, 250);
+  g.fillText('SCAN TO JOIN', W / 2, 250);
   g.fillStyle = '#15171b'; g.font = font(800, 64);
   const name = title.length > 26 ? `${title.slice(0, 25)}…` : title;
   g.fillText(name, W / 2, 400);
@@ -843,10 +841,10 @@ async function savePoster(qr, title, until) {
   g.fillStyle = '#15171b';
   for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (qr.isDark(r, col)) g.fillRect(x0 + (col + 2) * cell, y0 + (r + 2) * cell, cell, cell);
   g.fillStyle = '#3b4048'; g.font = font(500, 34);
-  g.fillText(isKo ? '휴대폰 카메라로 스캔하면 바로 참여할 수 있어요.' : 'Point your phone’s camera at the code to join.', W / 2, y0 + side + 80);
-  g.fillText(isKo ? '연습 영상을 보고, 그 순간에 피드백을 남겨요.' : 'Watch our practice videos and leave feedback on the count.', W / 2, y0 + side + 128);
+  g.fillText('Point your phone’s camera at the code to join.', W / 2, y0 + side + 80);
+  g.fillText('Watch our practice videos and leave feedback on the count.', W / 2, y0 + side + 128);
   g.fillStyle = '#8b93a3'; g.font = font(500, 26);
-  g.fillText(isKo ? `${until}까지 사용할 수 있어요 · dancerly.app` : `Works until ${until} · dancerly.app`, W / 2, H - 60);
+  g.fillText(`Works until ${until} · dancerly.app`, W / 2, H - 60);
   const blob = await new Promise((resolve) => c.toBlob(resolve, 'image/png'));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

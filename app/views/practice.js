@@ -9,7 +9,6 @@ import { loadProject, createVideo, copyInvite } from './project.js';
 import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
 import { ic, ytIcon } from '../icons.js';
-import { isKo } from '../i18n.js';
 import { countAt, countLabel, tapTempo } from '../counts.js';
 import { overlayChrome } from '../player-chrome.js';
 import { choreoKey, loadTakeShift, saveTakeShift, shiftByMusic, focusRange, LOOP_LENGTHS } from '../choreo-align.js';
@@ -45,7 +44,7 @@ export async function loadChoreo(project) {
   const take = video?.takes?.length ? [...video.takes].sort((a, b) => b.number - a.number)[0] : null;
   return take ? { kind: 'file', video, take } : null;
 }
-export const choreoTitle = (choreo) => (choreo?.kind === 'file' ? choreo.video.title : choreo?.title) || (isKo ? '원본 안무 영상' : 'Choreo video');
+export const choreoTitle = (choreo) => (choreo?.kind === 'file' ? choreo.video.title : choreo?.title) || ('Choreo video');
 export const youtubeThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 
 // Anyone in the project adds the choreo video (migration 071): a YouTube link (nothing uploaded), or a video file uploaded as the choreo video.
@@ -72,8 +71,8 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
   }
   const keepField = sectionCount ? [{
     name: 'keep', type: 'check', value: true,
-    label: isKo ? `파트 ${sectionCount}개 그대로 유지` : `Keep the ${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'}`,
-    hint: isKo ? '같은 곡이라면 시간이 대부분 그대로 맞아요. 체크를 풀면 기존 파트를 지우고 새 영상에서 다시 나눠요.' : 'Same song? Their times usually still fit. Untick to clear them and mark the new video from scratch.'
+    label: `Keep the ${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'}`,
+    hint: 'Same song? Their times usually still fit. Untick to clear them and mark the new video from scratch.'
   }] : [];
   let keep = true;
   let next = null;
@@ -128,7 +127,7 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
     return false;
   }
   if (current) await retireChoreo(projectId, current, next, keep);
-  if (current && sectionCount) toast(keep ? (isKo ? `파트 ${sectionCount}개를 새 영상으로 옮겼어요.` : `${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'} moved to the new video.`) : (isKo ? '기존 파트를 지웠어요. 새 영상에서 파트를 나눠 보세요.' : 'Sections cleared. Mark the parts of the new video.'));
+  if (current && sectionCount) toast(keep ? `${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'} moved to the new video.` : 'Sections cleared. Mark the parts of the new video.');
   return 'practice';
 }
 
@@ -291,7 +290,7 @@ function youtubePlayer(host, id, onError) {
 // Same surfaces as the video screen (dark player, timeline, controls row, side panel), so practicing and giving
 // feedback feel like one product. The side panel is the song's sections: tap one to loop it, add one where the
 // video is now. Sections are the count sheet's rows, so they're the team's, shared with Overview.
-const SECTION_NAMES = isKo ? ['인트로', '1절', '프리코러스', '후렴', '댄브', '브릿지', '엔딩'] : ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
+const SECTION_NAMES = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Dance break', 'Bridge', 'Outro'];
 const BANDS = 6;
 // A section's status, as on the count sheet.
 const STATUS_LABEL = { learning: 'Learning', practicing: 'Cleaning', clean: 'Clean' };
@@ -381,7 +380,7 @@ export async function renderPractice(projectId, guest = null) {
   view.innerHTML = `${guest ? `<div class="guest-bar practice-guest-bar"><a class="guest-brand" href="/?ref=practice-share" aria-label="dancerly home"><img class="brand-logo" src="/logo-wordmark.png" alt="dancerly" width="542" height="128" /></a><span class="spacer"></span><a class="btn small ghost" href="${signedIn ? '/app' : '/?ref=practice-share'}">${signedIn ? 'Open dancerly' : 'What’s dancerly?'}</a></div>` : ''}
   <section class="review practice${guest ? ' is-guest-practice' : ''}">
     <header class="review-head">
-      <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted" data-no-i18n>${guest ? (isKo ? `공유됨 · ${esc(p.project.title)}` : `Shared with you · ${esc(p.project.title)}`) : esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title data-no-i18n>${esc(title)}</h1></div>
+      <div><p class="practice-eyebrow"><span class="choreo-badge">Choreo</span><span class="muted">${guest ? `Shared with you · ${esc(p.project.title)}` : esc(p.project.title)}${choreo.kind === 'youtube' ? ' · YouTube' : ''}</span></p><h1 data-practice-title>${esc(title)}</h1></div>
       ${canShare || (canChoreo(p) && !guest) ? `<div class="practice-actions">${canShare ? `<button type="button" class="btn small" data-share-practice>${ic('share')}Share</button>` : ''}${canChoreo(p) && !guest ? `<button type="button" class="icon-btn more-btn" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}</div>` : ''}
     </header>
     <div class="review-layout practice-layout">
@@ -461,11 +460,11 @@ export async function renderPractice(projectId, guest = null) {
   const paintSections = () => {
     // How many are clean, for the whole team (the same number Overview shows).
     const cleanCount = sections.filter((s) => s.status === 'clean').length;
-    $('[data-sec-count]').textContent = !sections.length ? '' : guest ? `${sections.length}` : isKo ? `${cleanCount}/${sections.length} 완성` : `${cleanCount}/${sections.length} clean`;
+    $('[data-sec-count]').textContent = !sections.length ? '' : guest ? `${sections.length}` : `${cleanCount}/${sections.length} clean`;
     const filter = $('[data-sec-filter]');
     if (filter) {
       filter.hidden = !sections.some(isMine);
-      filter.innerHTML = `<button type="button" data-only="0" aria-selected="${!onlyMine}">All</button><button type="button" data-only="1" aria-selected="${onlyMine}" data-no-i18n>${isKo ? '내 파트' : 'Mine'}</button>`;
+      filter.innerHTML = `<button type="button" data-only="0" aria-selected="${!onlyMine}">All</button><button type="button" data-only="1" aria-selected="${onlyMine}">Mine</button>`;
       filter.querySelectorAll('[data-only]').forEach((b) => b.addEventListener('click', () => {
         onlyMine = b.dataset.only === '1';
         save(ONLY_KEY, onlyMine ? '1' : '0');
@@ -481,8 +480,8 @@ export async function renderPractice(projectId, guest = null) {
       return `<div class="sec-row${on ? ' on' : ''}${i >= 0 && who.some((x) => x.id === me) ? ' mine' : ''}" data-row="${i}">
         <button type="button" class="sec-main" data-loop="${i}" aria-pressed="${on}">
           <span class="sec-dot b${i < 0 ? 'w' : i % BANDS}" aria-hidden="true"></span>
-          <span class="sec-text"><b ${i >= 0 ? 'data-no-i18n' : ''}>${name}</b><small>${meta}</small>${i >= 0 && sections[i].focus ? `<small class="sec-focus" data-no-i18n>${esc(sections[i].focus)}</small>` : ''}</span>
-          ${who.length ? `<span class="sec-people" title="${esc(who.map((x) => x.name).join(', '))}" aria-label="${esc(who.map((x) => x.name).join(', '))}" data-no-i18n>${who.slice(0, 3).map((x) => avatar(x.name, guest ? null : x.id, 'xs')).join('')}${who.length > 3 ? `<i>+${who.length - 3}</i>` : ''}</span>` : ''}
+          <span class="sec-text"><b>${name}</b><small>${meta}</small>${i >= 0 && sections[i].focus ? `<small class="sec-focus">${esc(sections[i].focus)}</small>` : ''}</span>
+          ${who.length ? `<span class="sec-people" title="${esc(who.map((x) => x.name).join(', '))}" aria-label="${esc(who.map((x) => x.name).join(', '))}">${who.slice(0, 3).map((x) => avatar(x.name, guest ? null : x.id, 'xs')).join('')}${who.length > 3 ? `<i>+${who.length - 3}</i>` : ''}</span>` : ''}
           <span class="sec-state">${on ? `${ic('loop')}<span>Looping</span>` : ic('loop', 'solo')}</span>
         </button>
         ${i >= 0 && !guest && sections[i].status ? `<button type="button" class="sec-status s-${sections[i].status}" data-sec-status="${i}" title="Change status" aria-haspopup="menu">${STATUS_LABEL[sections[i].status] || ''}</button>` : ''}
@@ -496,10 +495,10 @@ export async function renderPractice(projectId, guest = null) {
       const [a, b] = bounds(i);
       const c1 = countAt(a + 0.03, counts.bpm, counts.start);
       const c2 = Number.isFinite(b) ? countAt(b - 0.08, counts.bpm, counts.start) : null;
-      return c1 ? ` · <span class="sec-counts" data-no-i18n>${countLabel(c1)}${c2 ? `–${countLabel(c2)}` : ''}</span>` : '';
+      return c1 ? ` · <span class="sec-counts">${countLabel(c1)}${c2 ? `–${countLabel(c2)}` : ''}</span>` : '';
     };
-    $('[data-secs]').innerHTML = row(-1, isKo ? '전체' : 'Whole song', player.duration ? `${fmt(0)}–${fmt(player.duration)}` : '')
-      + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span data-no-i18n>${esc(s.counts)}</span>` : countRange(i)}`)).join('')
+    $('[data-secs]').innerHTML = row(-1, 'Whole song', player.duration ? `${fmt(0)}–${fmt(player.duration)}` : '')
+      + sections.map((s, i) => row(i, esc(s.section || `Section ${i + 1}`), `${time(i)}${s.counts ? ` · <span>${esc(s.counts)}</span>` : countRange(i)}`)).join('')
       + (sections.length || guest ? '' : `<div class="sec-empty"><b>Mark the parts of the song</b><p>Play to where a part starts (the intro, a verse, the chorus), then tap “Add a section”. Tap a section to loop it.</p></div>`);
     $('[data-bands]').innerHTML = sections.map((s, i) => { const [a, b] = bounds(i); return `<i class="t-band b${i % BANDS}" style="left:${pct(a)};width:calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})" title="${esc(s.section || '')}"></i>`; }).join('');
     $$('[data-prev], [data-next]').forEach((b) => { b.disabled = !sections.length; });
@@ -516,7 +515,7 @@ export async function renderPractice(projectId, guest = null) {
       box.hidden = false;
       box.style.left = pct(a);
       box.style.width = `calc(${pct(Number.isFinite(b) ? b : player.duration)} - ${pct(a)})`;
-      chip.innerHTML = `${ic('loop')}<span data-no-i18n>${current === FOCUS ? (isKo ? '피드백' : 'Note') : esc(sections[current].section || '')}</span><button type="button" data-unloop aria-label="Stop looping">${ic('x', 'solo')}</button>`;
+      chip.innerHTML = `${ic('loop')}<span>${current === FOCUS ? 'Note' : esc(sections[current].section || '')}</span><button type="button" data-unloop aria-label="Stop looping">${ic('x', 'solo')}</button>`;
       chip.querySelector('[data-unloop]').addEventListener('click', () => { looping = false; current = -1; paintSections(); });
     } else { box.hidden = true; chip.innerHTML = ''; }
     onLoopChange?.();
@@ -547,7 +546,7 @@ export async function renderPractice(projectId, guest = null) {
         countKey = key;
         const badge = $('[data-count]');
         badge.hidden = !c;
-        if (c) badge.innerHTML = `<small>${isKo ? `${c.eight}번째 에잇` : `Eight ${c.eight}`}</small><b>${c.count}</b>`;
+        if (c) badge.innerHTML = `<small>${`Eight ${c.eight}`}</small><b>${c.count}</b>`;
       }
     }
   };
@@ -576,7 +575,7 @@ export async function renderPractice(projectId, guest = null) {
     if (laps < 3 || !box.hidden || current < 0) return;
     try { if (localStorage.getItem(NEXT_KEY) === new Date().toDateString()) return; } catch {}
     const name = sections[current].section || '';
-    box.innerHTML = `<b>Ready to film it?</b><p data-no-i18n>${isKo ? `‘${esc(name)}’ 테이크를 찍어 올리면 팀원이 정확한 순간에 피드백을 남길 수 있어요.` : `Upload a take of ${esc(name)}, and your team can leave feedback on the exact moment.`}</p>
+    box.innerHTML = `<b>Ready to film it?</b><p>${`Upload a take of ${esc(name)}, and your team can leave feedback on the exact moment.`}</p>
       <div class="practice-next-actions"><button type="button" class="btn small primary" data-film>${ic('upload')}Upload a take</button><button type="button" class="link-btn" data-not-now>Not now</button></div>`;
     box.hidden = false;
     const done = () => { box.hidden = true; try { localStorage.setItem(NEXT_KEY, new Date().toDateString()); } catch {} };
@@ -711,7 +710,7 @@ export async function renderPractice(projectId, guest = null) {
     if (!mark) { draft.hidden = true; return; }
     const ready = mark.end !== null && mark.end > mark.start;
     box.innerHTML = `<b>New section</b>
-      <div class="range-row"><button type="button" data-mark="start">Start <b>${fmt(mark.start)}</b></button><span>${ic('right', 'solo')}</span>${schema.sectionEnd ? `<button type="button" data-mark="end">End <b>${mark.end === null ? '—' : fmt(mark.end)}</b></button>` : `<span>${isKo ? '다음 파트 전까지' : 'until the next section'}</span>`}</div>
+      <div class="range-row"><button type="button" data-mark="start">Start <b>${fmt(mark.start)}</b></button><span>${ic('right', 'solo')}</span>${schema.sectionEnd ? `<button type="button" data-mark="end">End <b>${mark.end === null ? '—' : fmt(mark.end)}</b></button>` : `<span>until the next section</span>`}</div>
       <p>${schema.sectionEnd ? 'Play or drag the timeline, then tap Start or End to set it there. Or press [ and ].' : 'Play or drag the timeline, then tap Start to set it there.'}</p>
       <div class="sec-mark-actions"><button type="button" class="btn small ghost" data-mark-cancel>Cancel</button><button type="button" class="btn small primary" data-mark-next ${ready || !schema.sectionEnd ? '' : 'disabled'}>Name it</button></div>`;
     box.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', () => markAt(b.dataset.mark)));
@@ -746,7 +745,7 @@ export async function renderPractice(projectId, guest = null) {
   async function saveMark() {
     if (!mark) return;
     player.pause();
-    const got = await dialog({ title: `${isKo ? '파트 추가' : 'Add a section'} · ${fmt(mark.start)}${mark.end !== null ? `–${fmt(mark.end)}` : ''}`, fields: nameFields(), confirm: 'Add section' });
+    const got = await dialog({ title: `Add a section · ${fmt(mark.start)}${mark.end !== null ? `–${fmt(mark.end)}` : ''}`, fields: nameFields(), confirm: 'Add section' });
     if (!got?.section) return;
     const position = sections.length ? Math.max(...sections.map((s) => Number(s.position) || 0)) + 1 : 0;
     const t = mark.start;
@@ -778,8 +777,8 @@ export async function renderPractice(projectId, guest = null) {
     const t = Math.round(player.time * 10) / 10;
     const choice = await actionSheet({ title: s.section || 'Section', anchor, actions: [
       { value: 'rename', icon: 'pen', label: 'Edit section', hint: schema.sectionPeople ? 'Name, counts, who dances it' : 'Name, counts, what to watch for' },
-      { value: 'start', icon: 'at', label: `${isKo ? '시작을 여기로' : 'Set start here'} · ${fmt(t)}`, hint: 'Where the video is now' },
-      ...(schema.sectionEnd ? [{ value: 'end', icon: 'at', label: `${isKo ? '끝을 여기로' : 'Set end here'} · ${fmt(t)}`, hint: 'Where the video is now' }] : []),
+      { value: 'start', icon: 'at', label: `Set start here · ${fmt(t)}`, hint: 'Where the video is now' },
+      ...(schema.sectionEnd ? [{ value: 'end', icon: 'at', label: `Set end here · ${fmt(t)}`, hint: 'Where the video is now' }] : []),
       { value: 'delete', icon: 'x', label: 'Delete section', danger: true }
     ] });
     let patch = null;
@@ -986,7 +985,7 @@ export async function renderPractice(projectId, guest = null) {
   const noteLine = () => {
     if (!from.note) return '';
     const text = from.note.body.length > 70 ? `${from.note.body.slice(0, 70).trim()}…` : from.note.body;
-    return `<span class="pf-note" data-no-i18n><b>${esc(from.author ? (isKo ? `${from.author}님의 피드백` : `${from.author}’s note`) : (isKo ? '피드백' : 'Note'))}</b> “${esc(text)}”</span>`;
+    return `<span class="pf-note"><b>${esc(from.author ? `${from.author}’s note` : 'Note')}</b> “${esc(text)}”</span>`;
   };
   let wasLooping = null;
   const paintFocus = (state = 'on') => {
@@ -1003,7 +1002,7 @@ export async function renderPractice(projectId, guest = null) {
       const where = k >= 0 ? (sections[k].section || '') : '';
       const lengths = [['short', 'Short'], ['normal', 'Normal'], ...(holder() >= 0 ? [['section', 'Whole section']] : [])];
       if (length === 'section' && holder() < 0) length = 'normal';
-      box.innerHTML = `<div class="pf-top"><div class="pf-main">${noteLine()}<span class="pf-where" data-no-i18n>${ic('loop')}${isKo ? `원본 ${fmt(focus.a)}–${fmt(focus.b)}` : `Original ${fmt(focus.a)}–${fmt(focus.b)}`}${where ? ` · ${esc(where)}` : ''}</span></div><button type="button" class="icon-btn" data-pf-more aria-label="More" title="More">${ic('more', 'solo')}</button></div>
+      box.innerHTML = `<div class="pf-top"><div class="pf-main">${noteLine()}<span class="pf-where">${ic('loop')}${`Original ${fmt(focus.a)}–${fmt(focus.b)}`}${where ? ` · ${esc(where)}` : ''}</span></div><button type="button" class="icon-btn" data-pf-more aria-label="More" title="More">${ic('more', 'solo')}</button></div>
         <div class="pf-row"><div class="seg dark pf-len" role="group" aria-label="How much to loop">${lengths.map(([k, label]) => `<button type="button" data-pf-len="${k}" aria-pressed="${k === length}" aria-selected="${k === length}" title="${k === 'short' ? 'Just the move, a second either side' : k === 'normal' ? '4 counts before, 2 after (at least 2 seconds each)' : 'The whole section this moment is in'}">${label}</button>`).join('')}</div><span class="spacer"></span><div class="pf-actions">${looping && current === FOCUS ? '' : `<button type="button" class="btn small" data-pf-loop>${ic('loop')}Loop it again</button>`}<button type="button" class="btn small" data-pf-back>${ic('back')}Back to the note</button></div></div>`;
       box.querySelector('[data-pf-loop]')?.addEventListener('click', () => loopFocus());
       box.querySelectorAll('[data-pf-len]').forEach((b) => b.addEventListener('click', () => {
@@ -1157,7 +1156,7 @@ export function choreoCard({ projectId, choreo, canEdit }) {
   return `<div class="video-list choreo-list"><div class="video-item${canEdit ? ' has-more' : ''}">
     <a class="video-row" href="/app/p/${projectId}/practice?from=videos" data-link aria-label="Practice ${esc(title)}">
       <span class="video-thumb${thumb ? ' has-img' : ''}" ${choreo.kind === 'file' ? `data-thumb="${choreo.take.id}"` : ''}>${thumb}<i aria-hidden="true">${ic('play', 'solo')}</i></span>
-      <span class="video-copy"><b data-no-i18n title="${esc(title)}">${esc(title)}</b><small>${meta}</small></span>
+      <span class="video-copy"><b title="${esc(title)}">${esc(title)}</b><small>${meta}</small></span>
       <span class="chev">${ic('right', 'solo')}</span>
     </a>
     ${canEdit ? `<button class="icon-btn row-more" data-choreo-more aria-label="Choreo video options" title="Choreo video options">${ic('more', 'solo')}</button>` : ''}
@@ -1170,30 +1169,30 @@ export function choreoCard({ projectId, choreo, canEdit }) {
 async function wireGuestJoin(guest) {
   const host = document.querySelector('[data-guest-join]');
   if (!host) return;
-  const owner = guest.owner || (isKo ? '프로젝트 관리자' : 'the owner');
+  const owner = guest.owner || ('the owner');
   const project = esc(guest.project);
   const signedIn = Boolean(ctx.state.session);
-  const pitch = `<b>${isKo ? '이 팀과 함께 연습하고 싶나요?' : 'Want to practice with this team?'}</b>`;
+  const pitch = `<b>Want to practice with this team?</b>`;
   let access = { status: 'signed_out' };
   if (signedIn) {
     const { data } = await sb.rpc('share_access', { p_token: guest.token });
     access = data || { status: 'none' };
   }
   if (access.status === 'member') {
-    host.innerHTML = `<b>${isKo ? '이미 이 프로젝트 멤버예요.' : 'You’re in this project.'}</b><a class="btn small primary" href="/app/p/${esc(access.project_id)}/practice" data-link>${isKo ? '프로젝트에서 연습하기' : 'Practice in the project'}</a>`;
+    host.innerHTML = `<b>You’re in this project.</b><a class="btn small primary" href="/app/p/${esc(access.project_id)}/practice" data-link>Practice in the project</a>`;
     return;
   }
   if (access.status === 'pending') {
-    host.innerHTML = `<b>${isKo ? '참여 요청을 보냈어요.' : 'Request sent.'}</b><p>${isKo ? `${esc(owner)}님이 승인하면 알려드릴게요.` : `We’ll let you know when ${esc(owner)} lets you in.`}</p>`;
+    host.innerHTML = `<b>Request sent.</b><p>${`We’ll let you know when ${esc(owner)} lets you in.`}</p>`;
     return;
   }
   if (!guest.allow_requests || access.status === 'closed' || access.status === 'unavailable') {
     if (signedIn) { host.remove(); return; }
-    host.innerHTML = `${isKo ? '<b>우리 팀도 이렇게 연습해 보세요.</b><p>원본 안무를 파트별로 반복하고, 테이크에 정확한 순간 피드백을 남겨요.</p>' : '<b>Practice like this with your own team.</b><p>Loop the choreo section by section, and leave feedback on the exact moment of every take.</p>'}<a class="btn small primary" href="/app/login?mode=signup&ref=practice-share">${isKo ? '무료로 시작하기' : 'Start free'}</a>`;
+    host.innerHTML = `<b>Practice like this with your own team.</b><p>Loop the choreo section by section, and leave feedback on the exact moment of every take.</p><a class="btn small primary" href="/app/login?mode=signup&ref=practice-share">Start free</a>`;
     return;
   }
-  host.innerHTML = `${pitch}<p>${isKo ? `참여를 요청하면 ${esc(owner)}님이 승인해요. 승인되면 팀의 테이크와 피드백도 함께 볼 수 있어요.` : `Ask to join and ${esc(owner)} will approve it. Once you’re in, you’ll see the team’s takes and feedback too.`}</p>
-    <button type="button" class="btn small primary" data-ask-join>${isKo ? `${project}에 참여 요청` : `Ask to join ${project}`}</button>`;
+  host.innerHTML = `${pitch}<p>${`Ask to join and ${esc(owner)} will approve it. Once you’re in, you’ll see the team’s takes and feedback too.`}</p>
+    <button type="button" class="btn small primary" data-ask-join>${`Ask to join ${project}`}</button>`;
   const send = async () => {
     const btn = host.querySelector('[data-ask-join]');
     if (btn) btn.disabled = true;
@@ -1201,7 +1200,7 @@ async function wireGuestJoin(guest) {
     if (error) { if (btn) btn.disabled = false; return toast(friendlyError(error), 'error'); }
     track('practice_share_join_request');
     if (data?.status === 'member') return ctx.navigate(`/app/p/${data.project_id}/practice`);
-    host.innerHTML = `<b>${isKo ? `${esc(owner)}님에게 보냈어요.` : `Sent to ${esc(owner)}.`}</b><p>${isKo ? '승인되면 알림과 이메일로 알려드릴게요.' : 'We’ll let you know by notification and email once you’re in.'}</p>`;
+    host.innerHTML = `<b>${`Sent to ${esc(owner)}.`}</b><p>We’ll let you know by notification and email once you’re in.</p>`;
   };
   host.querySelector('[data-ask-join]').addEventListener('click', () => {
     if (!signedIn) return ctx.navigate(`/app/login?mode=signup&next=${encodeURIComponent(`/app/s/${guest.token}?ask=1`)}`);

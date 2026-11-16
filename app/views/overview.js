@@ -1,7 +1,6 @@
 // Project › Overview: goal, music, what's next, and how it's going. (Sections live in Practice.)
 import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, schema, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
-import { isKo } from '../i18n.js';
 import { kindClass, daysUntil, daysLabel } from './shared.js';
 import { showEvent } from './calendar.js';
 import { loadProject, projectHead } from './project.js';
@@ -28,7 +27,7 @@ export async function renderProjectOverview(projectId) {
   const parts = choreo ? (rows || []).filter((r) => r.t_start !== null && (choreoId ? r.video_id === choreoId : !r.video_id)).length : 0;
   const practiceHref = `/app/p/${projectId}/practice?from=overview`;
   const choreoLine = choreo
-    ? `<p class="music choreo-line">${ic('loop')}<span class="muted">${isKo ? '원본 안무' : 'Choreo'} · </span><a class="link" href="${practiceHref}" data-link data-no-i18n>${esc(choreoTitle(choreo))}${ic('right', 'after')}</a>${parts ? `<span class="muted" data-no-i18n> · ${isKo ? `파트 ${parts}개` : `${parts} ${parts === 1 ? 'part' : 'parts'}`}</span>` : ''}</p>`
+    ? `<p class="music choreo-line">${ic('loop')}<span class="muted">Choreo · </span><a class="link" href="${practiceHref}" data-link>${esc(choreoTitle(choreo))}${ic('right', 'after')}</a>${parts ? `<span class="muted"> · ${`${parts} ${parts === 1 ? 'part' : 'parts'}`}</span>` : ''}</p>`
     : canChoreo(p) && schema.choreo && !p.project.is_sample ? `<p class="music choreo-line">${ic('loop')}<button type="button" class="text-btn link" data-add-choreo>Add a choreo video</button></p>` : '';
   // The music is the team's (migration 072): anyone adds or changes it. The goal stays the owner's.
   const canMusic = p.isOwner || schema.musicMembers;

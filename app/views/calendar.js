@@ -113,7 +113,7 @@ export async function renderCalendar(projectId = null) {
           <div class="cp-grid">${Array.from({ length: 12 }, (_, i) => `<button type="button" class="cp-cell${year === month.getFullYear() && i === month.getMonth() ? ' on' : ''}${year === thisYear && i === now.getMonth() ? ' now' : ''}" data-cp-month="${i}">${fmtMonth(i)}</button>`).join('')}</div>`;
       } else {
         const start = decade(year);
-        box.innerHTML = `<div class="cp-head"><button type="button" class="icon-btn" data-cp-step="-1" aria-label="Earlier years">${ic('back', 'solo')}</button><span class="cp-range" data-no-i18n>${fmtYear(start)} – ${fmtYear(start + 9)}</span><button type="button" class="icon-btn" data-cp-step="1" aria-label="Later years">${ic('right', 'solo')}</button></div>
+        box.innerHTML = `<div class="cp-head"><button type="button" class="icon-btn" data-cp-step="-1" aria-label="Earlier years">${ic('back', 'solo')}</button><span class="cp-range">${fmtYear(start)} – ${fmtYear(start + 9)}</span><button type="button" class="icon-btn" data-cp-step="1" aria-label="Later years">${ic('right', 'solo')}</button></div>
           <div class="cp-grid">${Array.from({ length: 12 }, (_, i) => start - 1 + i).map((n) => `<button type="button" class="cp-cell${n < start || n > start + 9 ? ' out' : ''}${n === month.getFullYear() ? ' on' : ''}${n === thisYear ? ' now' : ''}" data-cp-year="${n}">${fmtYear(n)}</button>`).join('')}</div>`;
       }
     };

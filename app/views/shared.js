@@ -1,7 +1,6 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
 import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
-import { isKo } from '../i18n.js';
 import { ic } from '../icons.js';
 import { practiceHref } from '../choreo-align.js';
 
@@ -38,8 +37,8 @@ export function personLink(name, id, { photo = true } = {}) {
   if (!id || !name) return esc(name || 'someone');
   return `<span class="person-link" role="link" tabindex="0" data-person="${id}">${photo ? avatar(name, id, 'xs') : ''}<span>${esc(name)}</span></span>`;
 }
-// "by Maya" / "Maya님", with Maya linked.
-export const byPerson = (name, id) => `<span data-no-i18n>${isKo ? `${personLink(name, id)}님` : `by ${personLink(name, id).replace('class="person-link"', 'class="person-link after-text"')}`}</span>`;
+// "by Maya", with Maya linked.
+export const byPerson = (name, id) => `<span>${`by ${personLink(name, id).replace('class="person-link"', 'class="person-link after-text"')}`}</span>`;
 
 // practice: also offer the note's moment in the project's choreo video (Feedback › For me).
 export function noteRow(n, names, { showAuthor = true, showProject = true, practice = false } = {}) {
@@ -48,7 +47,7 @@ export function noteRow(n, names, { showAuthor = true, showProject = true, pract
   return `<a class="row note-row" href="${noteHref(n)}" data-link>
     ${showAuthor ? (names[n.author_id] ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${n.author_id}">${avatar(author, n.author_id, 'sm')}</span>` : avatar(author, n.author_id, 'sm')) : ''}
     <span class="row-main">
-      <span class="row-title">${n.private_to ? `<span class="lock" title="Private: only the two of you" data-i18n-attrs>${ic('lock', 'solo')}</span> ` : ''}${esc(n.body)}</span>
+      <span class="row-title">${n.private_to ? `<span class="lock" title="Private: only the two of you">${ic('lock', 'solo')}</span> ` : ''}${esc(n.body)}</span>
       <span class="row-meta">${showAuthor ? `<b>${names[n.author_id] ? personLink(author, n.author_id, { photo: false }) : esc(author)}</b> · ` : ''}<span class="time-tag">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}</span> ${esc(n.videos?.title || '')}${n.takes ? ` · Take ${n.takes.number}` : ''}${showProject && n.projects ? ` · ${esc(n.projects.title)}` : ''}</span>
     </span>
     <span class="row-side">${practice ? `<span class="row-practice" role="link" tabindex="0" data-inner-href="${practiceHref(n.project_id, { take: n.take_id, t: n.t_start, end: n.t_end, note: n.id })}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</span>` : ''}${n.note_replies?.[0]?.count ? `<span class="agree-count" title="Replies">${ic('reply')}${n.note_replies[0].count}</span>` : ''}${agrees ? `<span class="agree-count" title="${agrees} agree">${ic('agree')}${agrees}</span>` : ''}${statusPill(n.status)}<small>${timeAgo(n.created_at)}</small></span>

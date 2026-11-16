@@ -1,6 +1,5 @@
 import { createClient } from './vendor/supabase-js-2.45.4.js';
 import { ic } from './icons.js';
-import { isKo } from './i18n.js';
 
 // Public values: the publishable key only works together with row level security in the database.
 export const SUPABASE_URL = 'https://egkwjdwfzuslyrhuzkmq.supabase.co';
@@ -110,7 +109,7 @@ export const isSamplePerson = (id) => String(id || '').startsWith('5a3b0000-');
 export function avatar(name, userId, cls = '') {
   const url = userId && photos.get(userId);
   if (isSamplePerson(userId)) cls += ' sample-person';
-  return `<span class="avatar ${cls}" title="${esc(name || '')}${isSamplePerson(userId) ? (isKo ? ' (샘플)' : ' (sample)') : ''}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
+  return `<span class="avatar ${cls}" title="${esc(name || '')}${isSamplePerson(userId) ? ' (sample)' : ''}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name))}</span>`;
 }
 // A project's square mark: its image, or its initials on a color of its own, so projects without an image still
 // look different in a list. The color comes from the project's id (or its name when the id isn't known yet), so it

@@ -4,7 +4,6 @@
 // in the mail app instead, so nothing typed is lost.
 import { sb, toast } from './client.js';
 import { ctx } from './ctx.js';
-import { getLang } from './i18n.js';
 import { track } from './onboarding.js';
 import { ic } from './icons.js';
 
@@ -58,7 +57,7 @@ export function openHelp({ kind = 'bug', body: prefill = '', intro = 'Tell us an
     if (!body) return text.focus();
     const send = el.querySelector('[data-help-send]');
     send.disabled = true;
-    const row = { kind: picked, body, page: location.pathname + location.search, user_agent: navigator.userAgent.slice(0, 500), lang: getLang() };
+    const row = { kind: picked, body, page: location.pathname + location.search, user_agent: navigator.userAgent.slice(0, 500), lang: 'en' };
     // The send-feedback function saves it and copies it to the Notion inbox; if it isn't there, save directly.
     let { error } = await sb.functions.invoke('send-feedback', { body: row });
     if (error) ({ error } = await sb.from('app_feedback').insert(row));

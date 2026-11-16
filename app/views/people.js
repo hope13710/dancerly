@@ -1,6 +1,5 @@
 // People: everyone you share a project with, and what each person is working on.
 import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, dialog, toast, friendlyError, notChoreo } from '../client.js';
-import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample, empty } from './shared.js';
@@ -164,12 +163,12 @@ export async function renderPerson(userId) {
   }  view.querySelector('[data-add-to-project]')?.addEventListener('click', async (e) => {
     // Always ask, even with one project to offer: the choice is also the confirmation (adding someone to a team
     // shouldn't happen on a single tap).
-    const id = await actionSheet({ title: isKo ? `${person.name}님을 어느 프로젝트에 추가할까요?` : `Add ${person.name} to which project?`, anchor: e.currentTarget, actions: addable.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
+    const id = await actionSheet({ title: `Add ${person.name} to which project?`, anchor: e.currentTarget, actions: addable.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
     if (!id) return;
     const project = addable.find((p) => p.id === id);
     const { error } = await sb.rpc('add_project_member', { p_project: id, p_user: userId });
     if (error) return toast(friendlyError(error), 'error');
-    toast(isKo ? `${person.name}님을 ${project.title}에 추가했어요.` : `Added ${person.name} to ${project.title}.`);
+    toast(`Added ${person.name} to ${project.title}.`);
     ctx.route();
   });
   view.querySelector('[data-person-more]')?.addEventListener('click', async (e) => {
@@ -178,10 +177,10 @@ export async function renderPerson(userId) {
     ] });
     if (choice !== 'remove') return;
     const got = await dialog({
-      title: isKo ? `${person.name}님을 프로젝트에서 내보낼까요?` : `Remove ${person.name} from projects?`,
+      title: `Remove ${person.name} from projects?`,
       body: 'They lose access to the videos and notes in the projects you pick. Their notes stay.',
       fields: [{ name: 'projects', label: 'Projects', type: 'pick', options: removable.map((x) => ({ value: x.id, label: x.title })), values: removable.length === 1 ? [removable[0].id] : [] }],
-      confirm: isKo ? '내보내기' : 'Remove',
+      confirm: 'Remove',
       danger: true
     });
     if (!got) return;
@@ -191,9 +190,7 @@ export async function renderPerson(userId) {
     const done = got.projects.length - results.filter((r) => r.error).length;
     if (done) {
       const titles = got.projects.filter((id, i) => !results[i].error).map((id) => removable.find((x) => x.id === id)?.title || '');
-      toast(isKo
-        ? (done === 1 ? `${person.name}님을 ${titles[0]}에서 내보냈어요.` : `${person.name}님을 프로젝트 ${done}개에서 내보냈어요.`)
-        : (done === 1 ? `Removed ${person.name} from ${titles[0]}.` : `Removed ${person.name} from ${done} projects.`));
+      toast((done === 1 ? `Removed ${person.name} from ${titles[0]}.` : `Removed ${person.name} from ${done} projects.`));
     }
     if (failed) toast(friendlyError(failed.error), 'error');
     ctx.route();

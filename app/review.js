@@ -64,7 +64,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const who = members.some((m) => m.user_id === id)
       ? `<a class="uploader" href="/app/people/${id}" data-link>${avatar(name, id, 'xs')}<span>${esc(name)}</span></a>`
       : esc(name);
-    return `<span class="byline" data-no-i18n>uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}</span>`;
+    return `<span class="byline">uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}</span>`;
   };
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
@@ -238,9 +238,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     el.className = wide ? 'drop-menu nf-menu' : 'dialog sheet nf-menu';
     let picked = [...values];
     const paint = () => {
-      const items = options.map((o) => `<button type="button" role="${multi ? 'menuitemcheckbox' : 'menuitemradio'}" aria-checked="${picked.includes(o.value)}" class="nf-opt" data-value="${esc(o.value)}"><span class="nf-box${multi ? '' : ' round'}" aria-hidden="true">${picked.includes(o.value) ? ic('check', 'solo') : ''}</span>${o.html || ''}<span class="nf-opt-label" data-no-i18n>${esc(o.label)}</span><span class="nf-opt-count">${o.count}</span></button>`).join('');
+      const items = options.map((o) => `<button type="button" role="${multi ? 'menuitemcheckbox' : 'menuitemradio'}" aria-checked="${picked.includes(o.value)}" class="nf-opt" data-value="${esc(o.value)}"><span class="nf-box${multi ? '' : ' round'}" aria-hidden="true">${picked.includes(o.value) ? ic('check', 'solo') : ''}</span>${o.html || ''}<span class="nf-opt-label">${esc(o.label)}</span><span class="nf-opt-count">${o.count}</span></button>`).join('');
       el.innerHTML = wide ? `<div role="menu" aria-label="${esc(title)}">${items}</div>`
-        : `<div class="dialog-card"><h2 data-no-i18n>${esc(title)}</h2><div role="menu" aria-label="${esc(title)}" class="nf-sheet-list">${items}</div><button type="button" class="btn primary wide" data-nf-done>Done</button></div>`;
+        : `<div class="dialog-card"><h2>${esc(title)}</h2><div role="menu" aria-label="${esc(title)}" class="nf-sheet-list">${items}</div><button type="button" class="btn primary wide" data-nf-done>Done</button></div>`;
     };
     paint();
     document.body.append(el);
@@ -282,13 +282,13 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const catKeys = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
     const short = (names) => (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
     const allWord = 'All';
-    const pill = (key, label, value, on) => `<button type="button" class="nf-pill${on ? ' on' : ''}" data-nf-pill="${key}" aria-haspopup="menu" aria-expanded="false" data-no-i18n><span class="nf-pill-k">${label}</span><span class="nf-pill-v">${esc(value)}</span>${ic('down', 'solo')}</button>`;
+    const pill = (key, label, value, on) => `<button type="button" class="nf-pill${on ? ' on' : ''}" data-nf-pill="${key}" aria-haspopup="menu" aria-expanded="false"><span class="nf-pill-k">${label}</span><span class="nf-pill-v">${esc(value)}</span>${ic('down', 'solo')}</button>`;
     bar.innerHTML = `<div class="nf-row"><div class="nf-pills">
       ${pill('who', 'Who', nf.who === 'mine' ? 'For you' : allWord, nf.who !== 'all')}
       ${pill('status', 'Status', nf.statuses.length ? short(STATUSES.filter(([k]) => nf.statuses.includes(k)).map(([, l]) => l)) : allWord, nf.statuses.length > 0)}
       ${catKeys.length > 1 ? pill('cat', 'Focus', nf.cats.length ? short(nf.cats.map((k) => catLabel(k))) : allWord, nf.cats.length > 0) : ''}
 </div>
-      ${filtering() ? '<button type="button" class="nf-pill nf-reset" data-nf-reset aria-label="Clear filters" title="Clear filters" data-no-i18n>' + ic('x', 'solo') + '</button>' : ''}
+      ${filtering() ? '<button type="button" class="nf-pill nf-reset" data-nf-reset aria-label="Clear filters" title="Clear filters">' + ic('x', 'solo') + '</button>' : ''}
       <button type="button" class="nf-pill nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('sort', 'solo')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button>
     </div>`;
     const count = (swap) => (n) => passes(n, { ...nf, ...swap });
@@ -378,7 +378,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         : canResolve(n) ? `<button class="note-check" data-status="resolved" data-id="${n.id}" title="Mark as fixed" aria-label="Mark as fixed">${ic('check', 'solo')}</button>` : '';
       return `<article class="note ${n.status === 'resolved' ? 'is-resolved' : ''} ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">· edited</span>` : ''}</span><details class="menu-more note-more"><summary class="note-more-btn" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
+        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" tabindex="0" title="${esc(editedAt(n.edited_at))}">· edited</span>` : ''}</span><details class="menu-more note-more"><summary class="note-more-btn" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
             ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
             ${withChoreo && !practiceMine ? `<button type="button" role="menuitem" data-practice-note="${n.id}">${ic('play')}Practice with the original</button>` : ''}
             ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
@@ -387,7 +387,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
             ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
             ${canManageNote(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
           </div></details>${check}</div>
-        <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" data-i18n-attrs title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" data-i18n-attrs role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> <span class="note-copy">${withMentions(n.body)}</span></p>
+        <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> <span class="note-copy">${withMentions(n.body)}</span></p>
         ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
         <div class="note-actions">

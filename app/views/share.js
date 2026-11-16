@@ -1,6 +1,5 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
 import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog, canShareLinks } from '../client.js';
-import { isKo } from '../i18n.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';
@@ -61,7 +60,7 @@ async function openShare({ kind, videoId = null, projectId = null, title = '', i
   const who = new Map();
   const nameOf = async (id) => {
     if (!id) return '';
-    if (!who.has(id)) who.set(id, id === me ? (isKo ? '나' : 'You') : ((await sb.from('profiles').select('display_name').eq('id', id).maybeSingle()).data?.display_name || '').split(' ')[0]);
+    if (!who.has(id)) who.set(id, id === me ? 'You' : ((await sb.from('profiles').select('display_name').eq('id', id).maybeSingle()).data?.display_name || '').split(' ')[0]);
     return who.get(id);
   };
   // Never, or the date it stops working (picking 7 or 30 days sets that date from today).
@@ -72,8 +71,8 @@ async function openShare({ kind, videoId = null, projectId = null, title = '', i
     const canEdit = mine();
     const what = kind === 'take' ? 'the latest take' : 'the choreo video and its sections';
     body.innerHTML = `<h2>Share with a link</h2>
-      <p class="muted share-what" data-no-i18n>${esc(title)}</p>
-      <label class="row toggle-row share-toggle"><span class="row-main"><span class="row-title">Anyone with the link can watch</span><span class="row-meta">${isKo ? (kind === 'take' ? '최신 테이크를 계정 없이 볼 수 있어요.' : '원본 안무 영상과 파트를 계정 없이 볼 수 있어요. 수정은 할 수 없어요.') : `They see ${what}, no account needed${kind === 'practice' ? ', and can’t change anything' : ''}.`}</span></span>
+      <p class="muted share-what">${esc(title)}</p>
+      <label class="row toggle-row share-toggle"><span class="row-main"><span class="row-title">Anyone with the link can watch</span><span class="row-meta">${`They see ${what}, no account needed${kind === 'practice' ? ', and can’t change anything' : ''}.`}</span></span>
         <span class="switch"><input type="checkbox" data-share-on ${link ? 'checked' : ''} ${link ? (canEdit ? '' : 'disabled') : (canCreate ? '' : 'disabled')} /><i aria-hidden="true"></i></span></label>
       ${link ? `${copyRow(url)}
         <div class="share-settings">
@@ -81,15 +80,15 @@ async function openShare({ kind, videoId = null, projectId = null, title = '', i
           ${schema.joinRequests ? `<label class="check-row"><input type="checkbox" data-share-requests ${link.allow_requests !== false ? 'checked' : ''} ${canEdit && supportsSettings ? '' : 'disabled'} /> <span><b>Let people ask to join</b><small>They send a request, and you approve it in People. Nothing is shared until you do.</small></span></label>` : ''}
           <label class="field share-expiry"><span>Link expires</span><select data-share-expiry ${canEdit && supportsSettings ? '' : 'disabled'}>
             <option value="never" ${expiryValue() === 'never' ? 'selected' : ''}>Never expires</option>
-            ${expiryValue() === 'custom' ? `<option value="custom" selected data-no-i18n>${isKo ? `${new Date(link.expires_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}에 만료` : `On ${new Date(link.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}</option>` : ''}
+            ${expiryValue() === 'custom' ? `<option value="custom" selected>${`On ${new Date(link.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}</option>` : ''}
             <option value="7">In 7 days</option>
             <option value="30">In 30 days</option>
           </select></label>
         </div>
-        <p class="fine left share-meta" data-no-i18n>${changedBy ? (isKo ? `${esc(changedBy)}${changedBy === '나' ? '가' : '님이'} 마지막으로 바꿈 · ` : `Last changed by ${esc(changedBy)} · `) : ''}${isKo ? `조회 ${link.views}회` : `${link.views} ${link.views === 1 ? 'view' : 'views'}`}${canEdit ? '' : isKo ? ' · 프로젝트 관리자만 바꿀 수 있어요.' : ' · Only the project owner can change it.'}</p>`
-        : `<p class="fine left">${canCreate ? (isKo ? '켜면 링크가 만들어지고 바로 복사돼요.' : 'Turn it on to make a link. It’s copied right away.') : (isKo ? '이 프로젝트에서는 프로젝트 관리자만 링크로 공유할 수 있어요.' : 'In this project, only the owner can share with a link.')}</p>`}
+        <p class="fine left share-meta">${changedBy ? `Last changed by ${esc(changedBy)} · ` : ''}${`${link.views} ${link.views === 1 ? 'view' : 'views'}`}${canEdit ? '' : ' · Only the project owner can change it.'}</p>`
+        : `<p class="fine left">${canCreate ? 'Turn it on to make a link. It’s copied right away.' : 'In this project, only the owner can share with a link.'}</p>`}
       <p class="fine left share-rights">Anyone with the link can watch. Only share videos you have the rights to share.</p>
-      ${projectId ? `<p class="share-invite" data-no-i18n>${ic('people')}<span>${isKo ? `프로젝트 멤버로 추가하려면 <a href="/app/p/${projectId}/people" data-link>초대하기</a>를 이용해 주세요.` : `To add someone to the project, <a href="/app/p/${projectId}/people" data-link>invite them</a> instead.`}</span></p>` : ''}`;
+      ${projectId ? `<p class="share-invite">${ic('people')}<span>${`To add someone to the project, <a href="/app/p/${projectId}/people" data-link>invite them</a> instead.`}</span></p>` : ''}`;
     wireCopy(body);
     $('[data-share-on]', body).addEventListener('change', async (e) => {
       if (e.target.checked) {

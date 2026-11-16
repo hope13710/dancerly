@@ -5,7 +5,6 @@
 //                               Written on schedule (see migration 049: 3 hours before each rehearsal, or Monday 8 AM
 //                               for projects without rehearsals on the calendar), and updated by any member when new
 //                               feedback comes in. Two people asking for the same thing get the same recap.
-//   Translate                   a team recap someone reads in another language gets a translation saved next to it.
 //   Sample project              never calls the AI: its ready-made recaps (migration 050) are handed back instead.
 // Every recap item must cite notes from the input; anything citing an unknown note is dropped.
 import Anthropic from "npm:@anthropic-ai/sdk@0.132.1";
@@ -62,13 +61,6 @@ const SCHEMA = {
   additionalProperties: false,
 };
 const strings = { type: "array", items: { type: "string" } };
-const TRANSLATION_SCHEMA = {
-  type: "object",
-  properties: { headline: { type: "string" }, worked_on: strings, next: strings, landed: strings, recurring: strings },
-  required: ["headline", "worked_on", "next", "landed", "recurring"],
-  additionalProperties: false,
-};
-
 const SYSTEM = `You write rehearsal recaps for a dance team. The input is the timestamped feedback notes teammates left on rehearsal videos during one period.
 
 Write a recap a dancer can read in under a minute before the next rehearsal:
@@ -84,9 +76,6 @@ Rules:
 - Use dance vocabulary from the notes as written (counts like "5-6", section names, people's names). Keep each item to one sentence.
 - Write for the audience given in the request ("you" for a personal recap, "the team" for a project recap).
 - Empty sections are fine. Don't pad.`;
-
-const TRANSLATE_SYSTEM = `You translate a dance team's rehearsal recap. Keep the meaning, tone, and order exactly; one output string per input string, same count in every list.
-Keep people's names, counts like "5-6", section names, and dance terms as written. Korean output uses natural, friendly 해요체.`;
 
 const NOTE_COLUMNS = "id, body, status, t_start, t_end, author_id, private_to, created_at, updated_at, video_id, take_id, note_reactions(user_id)";
 
@@ -159,8 +148,7 @@ async function build(o: { notes: Note[]; db: SupabaseClient; scope: "me" | "proj
   const audience = scope === "me"
     ? `Personal recap for ${nameOf[o.me ?? ""] ?? "this dancer"}: notes they wrote, notes on their takes or videos, and notes that @mention them. Address them as "you".`
     : `Whole-project recap for everyone on "${o.projectTitle}". Address the team.`;
-  const language = "";
-  const user = `${audience}${language}\nPeriod: ${o.start.toISOString().slice(0, 10)} to ${o.end.toISOString().slice(0, 10)}.\n\nNotes (${sources.length}):\n\n${lines.join("\n\n")}`;
+  const user = `${audience}\nPeriod: ${o.start.toISOString().slice(0, 10)} to ${o.end.toISOString().slice(0, 10)}.\n\nNotes (${sources.length}):\n\n${lines.join("\n\n")}`;
   const { parsed, model } = await ask(SYSTEM, user, SCHEMA);
 
   // Grounding: keep only items whose citations are real notes from the input.
@@ -272,26 +260,6 @@ async function runSchedule() {
     }
   }
   return { checked: projects.length, made: out };
-}
-
-// ---------- Translation of a recap someone reads in another language ----------
-async function translate(asUser: SupabaseClient, recapId: string, lang: string) {
-  const { data: r } = await asUser.from("recaps").select("*").eq("id", recapId).maybeSingle();
-  if (!r) throw new Fail("This recap isn’t available.", 404);
-  if (r.model === "sample" || r.content?.lang === lang || r.content?.translations?.[lang]) return r;
-  const source = { headline: r.content?.headline ?? "", ...Object.fromEntries(SECTIONS.map((k) => [k, (r.content?.[k] ?? []).map((it: { text: string }) => it.text)])) };
-  const target = "English";
-  const { parsed } = await ask(TRANSLATE_SYSTEM, `Translate into ${target}:\n${JSON.stringify(source)}`, TRANSLATION_SCHEMA);
-  const t: Record<string, unknown> = { headline: String(parsed.headline ?? "").slice(0, 300) };
-  for (const k of SECTIONS) {
-    const out = Array.isArray(parsed[k]) ? parsed[k] : [];
-    // Same count as the original or it isn't trusted; items without a translation keep the original words.
-    t[k] = (source[k] as string[]).map((orig, i) => String((out.length === (source[k] as string[]).length ? out[i] : orig) || orig).slice(0, 400));
-  }
-  const content = { ...r.content, translations: { ...(r.content?.translations ?? {}), [lang]: t } };
-  const { data: saved, error } = await admin.from("recaps").update({ content }).eq("id", r.id).select("*").single();
-  if (error) throw new Fail(error.message, 500);
-  return saved;
 }
 
 Deno.serve(async (req) => {
@@ -411,7 +379,7 @@ Deno.serve(async (req) => {
     const notesUpTo = upTo(notes);
 
     // ---------- Same inputs as an existing recap? Return it instead of spending a generation. ----------
-    // A team recap is the team's: anyone's matches, in any language (the app offers a translation).
+    // A team recap is the team's: anyone's matches.
     let existingQ = admin.from("recaps").select("*").eq("project_id", project_id).eq("note_count", notes.length).gte("notes_up_to", notesUpTo)
       .order("created_at", { ascending: false }).limit(1);
     existingQ = video_id ? existingQ.eq("video_id", video_id) : existingQ.is("video_id", null);

@@ -3,7 +3,6 @@ import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, action
 import { uploadTake, checkTakeFile } from './upload.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
-import { startTranslating } from './i18n.js';
 import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
 import { rememberSource, signupSource } from './source.js';
@@ -536,7 +535,7 @@ function renderLogin() {
           <button class="btn primary wide" type="submit">${signup ? 'Create account' : 'Log in'}</button>
           <p class="form-error" data-form-error role="alert" hidden></p>
         </form>
-        <p class="fine auth-legal" data-no-i18n>${legalLine()}</p>
+        <p class="fine auth-legal">${legalLine()}</p>
       </div>
     </section>`;
     const form = $('[data-auth-form]');
@@ -728,7 +727,7 @@ function renderName() {
     <p class="muted">This name appears on your notes and in @mentions.</p>
     <label class="field"><span>Your name</span><input name="name" maxlength="60" required value="${esc(suggested)}" placeholder="Maya Chen" /></label>
     <button class="btn primary wide" type="submit">Continue</button>
-    ${unsigned ? `<p class="fine auth-legal" data-no-i18n>${legalLine()}</p>` : ''}
+    ${unsigned ? `<p class="fine auth-legal">${legalLine()}</p>` : ''}
   </form></section>`;
   $('[data-name-form] input').focus();
   $('[data-name-form]').addEventListener('submit', async (event) => {
@@ -829,7 +828,7 @@ async function renderJoin(code) {
       : `${GOOGLE_ENABLED ? `<button type="button" class="btn google wide" data-join-google>${GOOGLE_G} Continue with Google</button>` : ''}
         <a class="btn ${GOOGLE_ENABLED ? '' : 'primary '}wide" href="/app/login?mode=signup&next=${encodeURIComponent(back)}${invitedEmail}" data-link>Sign up with email</a>
         <a class="btn ghost wide" href="/app/login?next=${encodeURIComponent(back)}${invitedEmail}" data-link>I already have an account</a>
-        <p class="fine auth-legal" data-no-i18n>${legalLine()}</p>`}
+        <p class="fine auth-legal">${legalLine()}</p>`}
   </div></section>`;
   $('[data-accept]')?.addEventListener('click', join);
   $('[data-join-google]')?.addEventListener('click', async () => {
@@ -895,7 +894,6 @@ sb.auth.onAuthStateChange((event, session) => {
   if (booted && changed && (event === 'SIGNED_IN' || event === 'SIGNED_OUT')) setTimeout(async () => { await loadProfile(); route(); }, 0);
 });
 
-startTranslating();
 (async () => {
   const { data } = await sb.auth.getSession();
   state.session = data.session;

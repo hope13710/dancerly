@@ -1,7 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
 import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo } from '../client.js';
-import { isKo } from '../i18n.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -99,7 +98,7 @@ export async function newRequest(projectId) {
   const refOptions = (videos || []).map((v) => {
     const ts = [...(v.takes || [])].sort((a, b) => a.number - b.number);
     if (ts.length < 2) return `<option value="${v.id}">${esc(v.title)}</option>`;
-    return `<optgroup label="${esc(v.title)}"><option value="${v.id}">${esc(v.title)} · ${isKo ? '최신 테이크' : 'Latest take'}</option>${ts.map((t) => `<option value="${v.id}:${t.id}">${esc(v.title)} · ${isKo ? `테이크 ${t.number}` : `Take ${t.number}`}</option>`).join('')}</optgroup>`;
+    return `<optgroup label="${esc(v.title)}"><option value="${v.id}">${esc(v.title)} · Latest take</option>${ts.map((t) => `<option value="${v.id}:${t.id}">${esc(v.title)} · ${`Take ${t.number}`}</option>`).join('')}</optgroup>`;
   }).join('');
   const el = document.createElement('dialog');
   el.className = 'dialog';
@@ -122,7 +121,7 @@ export async function newRequest(projectId) {
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
     <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Nobody else has joined yet. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>'}</div>
     ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” assignments too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
-    ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference" data-no-i18n><option value="">${isKo ? '없음' : 'None'}</option>${refOptions}</select></label>` : ''}
+    ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${refOptions}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Assign</button></div>
   </form>`;
   document.body.append(el);
@@ -204,8 +203,8 @@ export async function renderRequest(projectId, requestId) {
     ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
     ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
       ${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ''}
-      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="${refHref}" data-link>${ic('play')}<span data-no-i18n>${esc(reference.title)}${refTake ? ` · ${isKo ? `테이크 ${refTake.number}` : `Take ${refTake.number}`}` : ''}</span></a></p>` : ''}
-      ${refTake && refOpen ? `<p class="brief-ref muted" data-no-i18n>${isKo ? `이 테이크의 미해결 피드백 ${refOpen}개` : `${refOpen} open ${refOpen === 1 ? 'note' : 'notes'} on this take`} · <a class="link" href="${refHref}" data-link>${isKo ? '보기' : 'View'}</a></p>` : ''}
+      ${reference ? `<p class="brief-ref">Reference: <a class="link" href="${refHref}" data-link>${ic('play')}<span>${esc(reference.title)}${refTake ? ` · ${`Take ${refTake.number}`}` : ''}</span></a></p>` : ''}
+      ${refTake && refOpen ? `<p class="brief-ref muted">${`${refOpen} open ${refOpen === 1 ? 'note' : 'notes'} on this take`} · <a class="link" href="${refHref}" data-link>View</a></p>` : ''}
     </section>` : ''}
     <section class="panel">
       <div class="panel-head"><div><h2>Submissions</h2><p class="muted">${submitted} of ${subs.length} submitted${missing && r.status === 'active' ? ` · ${missing} still to go` : ''}</p></div>

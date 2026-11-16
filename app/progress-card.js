@@ -4,7 +4,6 @@
 // preview: marked SAMPLE, and the share buttons point to starting your own project instead.
 import { sb, $, $$, esc, toast, friendlyError, dialog, actionSheet, cols, takeUrl, isPublicMedia, publicMediaUrl } from './client.js';
 import { ctx } from './ctx.js';
-import { isKo } from './i18n.js';
 import { track } from './onboarding.js';
 import { shiftBetween } from './align.js';
 import { thumbUrls } from './thumbs.js';
@@ -16,7 +15,7 @@ const SAFE_TOP = 216, SAFE_BOTTOM = 256; // Instagram's own buttons cover these
 const BRAND_LINE = H - SAFE_BOTTOM - 40; // baseline of the logo row at the bottom
 const BRAND_GAP = 150; // clear space between the content and the logo row
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
-const TEMPLATES = isKo ? [['stage', '스테이지'], ['light', '라이트'], ['photo', '포토']] : [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
+const TEMPLATES = [['stage', 'Stage'], ['light', 'Light'], ['photo', 'Photo']];
 const STATS = ['fixed', 'dday', 'takes', 'days', 'practice'];
 // With one take there's nothing to compare, but every number still holds (one take isn't one day of
 // practice), plus how much feedback the team gave.
@@ -27,31 +26,29 @@ const PROMPTED = 'looproom:cardPrompt:';
 
 // What each number on a card says, in three forms: the big value, the small label under it, and a one-line
 // phrase for the Photo style. Days count calendar days; "active days" are days with a take or a note here.
-const CHIPS = isKo
-  ? { notes: ['피드백', '이 영상에 남긴 피드백 수'], fixed: ['고친 피드백', '해결된 피드백 수'], dday: ['D-day', '다가오는 일정까지 남은 날'], takes: ['테이크', '이 영상의 테이크 수'], days: ['Take 1부터', 'Take 1부터 최신 테이크까지 지난 날'], practice: ['기록한 날', '이 영상에 테이크나 피드백을 남긴 날 수'] }
-  : { notes: ['Notes', 'Notes left on this video'], fixed: ['Notes fixed', 'Notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] };
+const CHIPS = ({ notes: ['Notes', 'Notes left on this video'], fixed: ['Notes fixed', 'Notes marked fixed'], dday: ['D-day', 'Days until an upcoming event'], takes: ['Takes', 'Takes of this video'], days: ['Days since Take 1', 'Calendar days from Take 1 to the latest take'], practice: ['Active days', 'Days with a take or a note on this video'] });
 function stat(c, s, key) {
   const n = c.stats[key];
   const one = n === 1;
   switch (key) {
-    case 'fixed': return { value: String(n), label: isKo ? '고친 피드백' : one ? 'note fixed' : 'notes fixed', phrase: isKo ? `고친 피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'} fixed` };
-    case 'notes': return { value: String(n), label: isKo ? '피드백' : one ? 'note' : 'notes', phrase: isKo ? `피드백 ${n}개` : `${n} ${one ? 'note' : 'notes'}` };
-    case 'takes': return { value: String(n), label: isKo ? '테이크' : one ? 'take' : 'takes', phrase: isKo ? `테이크 ${n}개` : `${n} ${one ? 'take' : 'takes'}` };
-    case 'days': return { value: isKo ? `${n}일` : String(n), label: isKo ? 'Take 1부터' : one ? 'day since Take 1' : 'days since Take 1', phrase: isKo ? `Take 1부터 ${n}일` : `${n} ${one ? 'day' : 'days'} since Take 1` };
-    case 'practice': return { value: isKo ? `${n}일` : String(n), label: isKo ? '기록한 날' : one ? 'active day' : 'active days', phrase: isKo ? `기록한 날 ${n}일` : `${n} active ${one ? 'day' : 'days'}` };
+    case 'fixed': return { value: String(n), label: (one ? 'note fixed' : 'notes fixed'), phrase: `${n} ${one ? 'note' : 'notes'} fixed` };
+    case 'notes': return { value: String(n), label: (one ? 'note' : 'notes'), phrase: `${n} ${one ? 'note' : 'notes'}` };
+    case 'takes': return { value: String(n), label: (one ? 'take' : 'takes'), phrase: `${n} ${one ? 'take' : 'takes'}` };
+    case 'days': return { value: String(n), label: (one ? 'day since Take 1' : 'days since Take 1'), phrase: `${n} ${one ? 'day' : 'days'} since Take 1` };
+    case 'practice': return { value: String(n), label: (one ? 'active day' : 'active days'), phrase: `${n} active ${one ? 'day' : 'days'}` };
     case 'dday': {
       const e = c.events.find((x) => x.id === s.eventId);
       if (!e) return null;
       const d = daysUntil(e.starts_at);
       const value = d <= 0 ? 'D-DAY' : `D-${d}`;
-      return { value, label: e.title, phrase: isKo ? `${e.title}까지 ${value}` : `${value} to ${e.title}` };
+      return { value, label: e.title, phrase: `${value} to ${e.title}` };
     }
   }
   return null;
 }
-const NOW = isKo ? '지금' : 'NOW';
-const REHEARSAL = isKo ? '연습' : 'REHEARSAL';
-const day = (iso) => new Date(iso).toLocaleDateString(isKo ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
+const NOW = 'NOW';
+const REHEARSAL = 'REHEARSAL';
+const day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 // ---------- Data ----------
 // Everything a card needs about one video. null when there's nothing to compare yet.
@@ -372,13 +369,13 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
       <div class="ce-preview"><canvas data-ce-canvas width="${W}" height="${H}" aria-label="Preview of your progress card"></canvas><p class="ce-loading" data-ce-loading>Getting the frames…</p></div>
       <div class="ce-panel">
         <label class="field ce-title"><span>Card title</span><input data-ce-title maxlength="60" value="${esc(c.video.title)}" placeholder="${esc(c.video.title)}" autocomplete="off" /><small>Only on the card. Add the song if you like, e.g. “Supernova · Chorus”.</small></label>
-        <div class="seg ce-seg" role="group" aria-label="Style" data-no-i18n>${TEMPLATES.map(([k, l]) => `<button type="button" data-ce-template="${k}" aria-pressed="${k === s.template}">${l}</button>`).join('')}</div>
+        <div class="seg ce-seg" role="group" aria-label="Style">${TEMPLATES.map(([k, l]) => `<button type="button" data-ce-template="${k}" aria-pressed="${k === s.template}">${l}</button>`).join('')}</div>
         <div class="ce-pick ${c.single ? 'single' : ''}">
           <button type="button" data-ce-pick="before"><img alt="" data-ce-thumb="before" /><b>${c.single ? 'Your take' : `Take ${c.first.number}`}</b><small>Change moment ›</small></button>
           ${c.single ? '' : `<button type="button" data-ce-pick="after"><img alt="" data-ce-thumb="after" /><b>Take ${c.latest.number}</b><small>Change moment ›</small></button>`}
         </div>
         <p class="ce-label">On the card <small data-ce-count></small></p>
-        <div class="ce-chips" data-no-i18n>${chipKeys(c).filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(k === 'days' && c.single ? (isKo ? 'Take 1을 올린 날부터 오늘까지 지난 날' : 'Calendar days from Take 1 to today') : CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="${isKo ? '가장 최근에 해결된 피드백 한 줄' : 'The latest note that got fixed'}">${isKo ? '고친 내용 한 줄' : 'What got fixed'}</button>` : ''}</div>
+        <div class="ce-chips">${chipKeys(c).filter((k) => k !== 'dday' || c.events.length).map((k) => `<button type="button" class="ce-chip" data-ce-stat="${k}" title="${esc(k === 'days' && c.single ? 'Calendar days from Take 1 to today' : CHIPS[k][1])}">${esc(CHIPS[k][0])}</button>`).join('')}${c.fixedLine ? `<button type="button" class="ce-chip" data-ce-line title="The latest note that got fixed">What got fixed</button>` : ''}</div>
         ${c.events.length ? `<label class="ce-event" data-ce-event-row hidden><span>Counting down to</span>${c.events.length > 1
           ? `<select data-ce-event>${c.events.map((e) => `<option value="${e.id}" ${e.id === s.eventId ? 'selected' : ''}>${esc(e.title)} · ${esc(day(e.starts_at))}</option>`).join('')}</select>`
           : `<b>${esc(c.events[0].title)} · ${esc(day(c.events[0].starts_at))}</b>`}</label>` : ''}
@@ -402,7 +399,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     $$('[data-ce-template]', el).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ceTemplate === s.template)));
     $$('[data-ce-stat]', el).forEach((b) => { const on = s.stats.includes(b.dataset.ceStat); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const line = $('[data-ce-line]', el); if (line) { line.classList.toggle('on', s.line); line.setAttribute('aria-pressed', String(s.line)); }
-    $('[data-ce-count]', el).textContent = isKo ? `숫자 ${s.stats.length}/${MAX_STATS}` : `${s.stats.length} of ${MAX_STATS} numbers`;
+    $('[data-ce-count]', el).textContent = `${s.stats.length} of ${MAX_STATS} numbers`;
     const row = $('[data-ce-event-row]', el); if (row) row.hidden = !s.stats.includes('dday');
   };
   const setFrame = async (which, at) => {
@@ -432,7 +429,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     if (t.dataset.ceStat) {
       const k = t.dataset.ceStat;
       if (s.stats.includes(k)) s.stats = s.stats.filter((x) => x !== k);
-      else if (s.stats.length >= MAX_STATS) return toast(isKo ? `숫자는 ${MAX_STATS}개까지 넣을 수 있어요. 하나를 먼저 빼 주세요.` : `Up to ${MAX_STATS} numbers. Turn one off first.`);
+      else if (s.stats.length >= MAX_STATS) return toast(`Up to ${MAX_STATS} numbers. Turn one off first.`);
       else s.stats = chipKeys(c).filter((x) => x === k || s.stats.includes(x));
       if (k === 'dday' && !s.eventId) s.eventId = c.events[0]?.id || null; // no goal set: the soonest event
       return paint();
@@ -466,7 +463,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       track('card_shared', { via: 'download', template: s.template });
-      toast(isKo ? '이미지를 저장했어요.' : 'Image saved.');
+      toast('Image saved.');
     }
   });
 }
@@ -514,10 +511,8 @@ export async function celebrate({ projectId, videoId }) {
   const thumb = (t) => (t.thumb_path && urls[t.thumb_path] ? `<img src="${esc(urls[t.thumb_path])}" alt="" />` : '<span class="ce-blank"></span>');
   track('card_prompted', { sample: Boolean(c.project.is_sample) });
   const yes = await dialog({
-    title: isKo ? `${c.video.title}, 모두 해결!` : `All clear on ${c.video.title}!`,
-    body: `<span data-no-i18n>${isKo
-      ? `Take 1부터 피드백 ${c.stats.fixed}개를 고쳤어요. ${c.stats.days}일 동안의 변화를 남겨 볼까요?`
-      : `${c.stats.fixed} ${c.stats.fixed === 1 ? 'note' : 'notes'} fixed since Take 1. Want to keep ${c.stats.days} ${c.stats.days === 1 ? 'day' : 'days'} of progress?`}</span>
+    title: `All clear on ${c.video.title}!`,
+    body: `<span>${`${c.stats.fixed} ${c.stats.fixed === 1 ? 'note' : 'notes'} fixed since Take 1. Want to keep ${c.stats.days} ${c.stats.days === 1 ? 'day' : 'days'} of progress?`}</span>
       <span class="ce-celebrate" aria-hidden="true">${thumb(c.first)}${thumb(c.latest)}<i>${ic('right', 'solo')}</i></span>`,
     confirm: 'Make a progress card',
     cancel: 'Not now'
