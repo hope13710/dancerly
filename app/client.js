@@ -241,7 +241,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>${body ? `<p>${body}</p>` : ''}
       ${fields.map((f) => f.type === 'pick'
-        ? `<div class="field"><span>${esc(f.label)}</span><div class="pick-chips" role="group" aria-label="${esc(f.label)}">${f.options.map((o) => `<label class="pick-chip"><input type="checkbox" name="${f.name}" value="${esc(o.value)}" ${(f.values || []).includes(o.value) ? 'checked' : ''} />${o.html || ''}<span>${esc(o.label)}</span></label>`).join('')}</div>${f.hint ? `<small class="field-hint">${esc(f.hint)}</small>` : ''}</div>`
+        ? `<div class="field"><span>${esc(f.label)}</span><div class="pick-chips" role="group" aria-label="${esc(f.label)}">${f.options.map((o) => `<label class="pick-chip"><input type="checkbox" name="${f.name}" value="${esc(o.value)}" ${(f.values || []).includes(o.value) ? 'checked' : ''} />${o.html || ''}<span>${esc(o.label)}</span></label>`).join('')}</div>${f.hint || f.action ? `<small class="field-hint">${f.hint ? esc(f.hint) : ''}${f.action ? ` <button type="button" class="link-btn" data-field-action="${f.name}">${esc(f.action.label)}</button>` : ''}</small>` : ''}</div>`
         : `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
         ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
         : f.type === 'file'
@@ -264,6 +264,12 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
       const v = el.returnValue;
       // Buttons in the body can carry their own value (e.g. value="goal"): resolved as { action }.
       resolve(v === 'extra' ? { extra: true } : ok ? values : v && v !== 'cancel' ? { action: v } : null);
+    });
+    el.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-field-action]');
+      if (!action) return;
+      event.preventDefault();
+      fields.find((f) => f.name === action.dataset.fieldAction)?.action?.run();
     });
     // Suggestion chips fill their field (e.g. a section name: Intro, Verse, Chorus…).
     el.addEventListener('click', (event) => {

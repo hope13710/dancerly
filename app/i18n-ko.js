@@ -471,6 +471,7 @@ export const KO = {
   'New notes': '새 피드백',
   'Practice': '연습하기',
   'Practice it': '원본으로 연습',
+  'It’s just you so far. Once your team joins with the invite link, you can pick who dances each section.': '아직 나 혼자예요. 팀원이 초대 링크로 들어오면 파트마다 누가 추는지 지정할 수 있어요.',
   'Who': '담당',
   'Who dances it (optional)': '누가 추나요? (선택)',
   'Leave it empty if everyone does. People who join later with the invite link can be added here.': '모두 추는 파트라면 비워 두세요. 나중에 초대 링크로 들어온 멤버도 여기서 추가할 수 있어요.',

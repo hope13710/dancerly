@@ -5,7 +5,7 @@ import { sb, $, $$, esc, fmt, fmtFine, timeAgo, avatar, toast, friendlyError, di
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { volumeControl, wireVolume } from '../volume.js';
-import { loadProject, createVideo } from './project.js';
+import { loadProject, createVideo, copyInvite } from './project.js';
 import { sharePractice } from './share.js';
 import { track } from '../onboarding.js';
 import { ic, ytIcon } from '../icons.js';
@@ -640,9 +640,12 @@ export async function renderPractice(projectId, guest = null) {
     { name: 'section', label: 'Section name', value: s.section || '', placeholder: 'Chorus', required: true, max: 80, chips: SECTION_NAMES },
     { name: 'counts', label: 'Counts (optional)', value: s.counts || '', placeholder: '1–8 ×4', max: 80 },
     { name: 'focus', label: 'What to watch for (optional)', value: s.focus || '', placeholder: 'Arms stay sharp on 5–6', max: 500 },
-    ...(schema.sectionPeople && (groups.length || (p.members || []).length > 1) ? [{
+    ...(schema.sectionPeople && !guest ? [{
       name: 'who', type: 'pick', label: 'Who dances it (optional)',
-      hint: 'Leave it empty if everyone does. People who join later with the invite link can be added here.',
+      hint: groups.length || (p.members || []).length > 1
+        ? 'Leave it empty if everyone does. People who join later with the invite link can be added here.'
+        : 'It’s just you so far. Once your team joins with the invite link, you can pick who dances each section.',
+      action: p.project.is_sample ? null : { label: 'Copy invite link', run: () => copyInvite(projectId, 'section') },
       values: [...(s.assigned_groups || []).map((g) => `g:${g}`), ...(s.assignees || []).map((u) => `u:${u}`)],
       options: [
         ...groups.map((g) => ({ value: `g:${g.id}`, label: g.name, html: `<span class="pick-group">${ic('people', 'solo')}</span>` })),
