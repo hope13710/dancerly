@@ -45,7 +45,7 @@ export async function renderProjects() {
     <header class="page-head"><div><h1>Projects</h1><p class="muted sub">One project per goal — a showcase, a competition, or weekly practice.</p></div><button class="btn primary" data-new-project>+ New project</button></header>
     ${projects.length ? `${real.length ? `<div class="cards">${real.map(card).join('')}</div>` : ''}
       ${sample ? `<h2 class="section-label">Try it out</h2><div class="cards">${card(sample)}</div>`
-        : schema.firstRun ? '<p class="muted projects-sample">Want to try things without touching real work? <button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></p>' : ''}`
+        : schema.firstRun ? '<div class="muted projects-sample"><span>Want to try things without touching real work?</span><button type="button" class="link-btn" data-open-sample="projects">Open the sample project</button></div>' : ''}`
     : empty('folder', 'Create your first project', 'A project is one goal — a showcase, a competition, a class, or your own practice. Upload a practice video and start leaving notes.', `<button class="btn primary" data-new-project>+ New project</button>${schema.firstRun ? '<button class="btn" data-open-sample>Explore a sample first</button>' : ''}`)}
   </section>`;
   $$('[data-new-project]').forEach((b) => b.addEventListener('click', createProject));
@@ -856,4 +856,3 @@ async function savePoster(qr, title, until) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   toast('Poster saved.');
 }
-

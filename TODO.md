@@ -23,6 +23,13 @@ Planning docs: `docs/README.md` (menu structure, service structure, functional s
 - [x] Mobile navigation drawer and responsive review layout.
 - [x] Clear front-end prototype boundary: seeded demo data is local to the browser; no real auth, database, storage, or billing yet.
 
+## Latest UX and collaboration fixes
+- [x] Mobile Projects sample prompt has intentional spacing between its message and action.
+- [x] Shared team Recap checklists can be checked by every project member through a narrow, permission-checked RPC; personal Recaps remain private to their creator.
+- [x] Inbox supports clearing all notifications and removing an individual notification without affecting its linked work.
+- [x] Feedback's project filter uses a quieter, smaller control while retaining the existing filter design language.
+- [x] Transferring project ownership creates an Inbox notification for the new owner and links them to project People.
+
 ## Prototype alignment with the planning docs
 - [ ] Coach sidebar: Home · Inbox · Review queue · Projects · People · Insights · Settings (`docs/01-menu-structure.md`).
 - [ ] Separate mobile dancer app at `/d` with bottom tabs: Today · Feedback · ＋ · Recap · Me.

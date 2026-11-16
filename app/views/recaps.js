@@ -212,14 +212,15 @@ function citeChips(cites, sources) {
 
 export function recapBody(r, { interactive = false } = {}) {
   const sources = r.sources || [];
-  const mine = r.created_by === ctx.state.session.user.id && !r.team; // a team recap's ticks would be everyone's
+  const mine = r.created_by === ctx.state.session.user.id && !r.team;
+  const canCheck = interactive && (mine || r.team); // shared team recap checklists belong to the whole project
   let order = 0; // reveal order for the first-open animation
   return SECTIONS.map(([key, label]) => {
     const items = r.content?.[key] || [];
     if (!items.length) return '';
     return `<section class="recap-section" style="--i:${order++}"><h3>${label}</h3><ul class="${key === 'next' ? 'todo' : ''}">${items.map((it, i) => {
       const done = key === 'next' && (r.checked || []).includes(i);
-      const box = key === 'next' && interactive && mine ? `<input type="checkbox" data-check="${i}" ${done ? 'checked' : ''} aria-label="Done" />` : key === 'next' ? `<span class="todo-dot ${done ? 'done' : ''}"></span>` : '';
+      const box = key === 'next' && canCheck ? `<input type="checkbox" data-check="${i}" ${done ? 'checked' : ''} aria-label="Done" />` : key === 'next' ? `<span class="todo-dot ${done ? 'done' : ''}"></span>` : '';
       return `<li class="${done ? 'done' : ''}" style="--i:${order++}">${box}<span>${esc(it.text)} ${citeChips(it.cites, sources)}</span></li>`;
     }).join('')}</ul></section>`;
   }).join('');
@@ -500,7 +501,7 @@ export async function renderRecap(recapId) {
   $$('[data-check]').forEach((box) => box.addEventListener('change', async () => {
     const i = Number(box.dataset.check);
     const checked = box.checked ? [...new Set([...(r.checked || []), i])] : (r.checked || []).filter((x) => x !== i);
-    const { error: e } = await sb.from('recaps').update({ checked }).eq('id', r.id);
+    const { error: e } = await sb.rpc('set_recap_checked', { p_recap: r.id, p_checked: checked });
     if (e) { box.checked = !box.checked; return toast(friendlyError(e), 'error'); }
     r.checked = checked;
     box.closest('li').classList.toggle('done', box.checked);

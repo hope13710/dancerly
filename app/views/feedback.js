@@ -56,7 +56,7 @@ export async function renderFeedback() {
   view.innerHTML = `<section class="page narrow-wide">
     ${pageHead('Feedback', { sub: 'Every note, wherever it was left. Open one to jump to that moment.' })}
     ${tabs(VIEWS.map(([k, label]) => [k, label, url({ view: k })]), which)}
-    <div class="filters">
+    <div class="filters feedback-filters">
       <div class="seg small" role="group" aria-label="Status">${STATUSES.map(([k, label]) => `<a href="${url({ status: k })}" data-link aria-selected="${k === status}">${label} <span>${counts[k]}</span></a>`).join('')}</div>
       ${realProjects().length > 1 ? `<label class="select-wrap"><span class="sr-only">Project</span><select data-project><option value="">All projects</option>${realProjects().map((p) => `<option value="${p.id}" ${p.id === project ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}</select></label>` : ''}
     </div>

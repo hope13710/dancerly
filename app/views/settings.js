@@ -20,6 +20,7 @@ const KINDS = [
   ['note_resolved', 'Your notes get fixed', 'When someone marks a note you wrote as fixed.'],
   ['joined', 'Someone joins', 'People joining a project you own.'],
   ['added_to_project', 'Someone adds you to a project', 'When a teammate adds you to another of their projects.'],
+  ['ownership_transferred', 'A project is handed to you', 'When another owner makes you the project owner.'],
   ['recap_shared', 'Recaps shared with you', 'When someone shares an AI recap to a project.'],
   ['request', 'Assignments', 'When someone gives you an assignment, and its reminders.']
 ];

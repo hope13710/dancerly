@@ -1,5 +1,5 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
-import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema } from '../client.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema, dialog } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
@@ -27,6 +27,7 @@ function describe(item, names) {
   if (item.kind === 'join_request') return `<b>${esc(item.join_requests?.requester_name || 'Someone')}</b> asked to join <b>${project}</b>${item.join_requests?.status === 'approved' ? ' · approved' : item.join_requests?.status === 'declined' ? ' · declined' : ''}`;
   if (item.kind === 'join_approved') return `${who} let you into <b>${project}</b>`;
   if (item.kind === 'added_to_project') return `${who} added you to <b>${project}</b>`;
+  if (item.kind === 'ownership_transferred') return `${who} made you the owner of <b>${project}</b>`;
   // Written on schedule before practice: from dancerly, not a person.
   if (item.kind === 'recap_shared' && !item.actor_id) return isKo ? `<b>${project}</b> 팀 요약이 준비됐어요. 연습 전에 확인해 보세요.` : `Your team’s recap for <b>${project}</b> is ready. Have a look before practice.`;
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
@@ -41,7 +42,7 @@ function describe(item, names) {
 }
 
 function hrefFor(item) {
-  if (item.kind === 'joined' || item.kind === 'join_request') return `/app/p/${item.project_id}/people`;
+  if (item.kind === 'joined' || item.kind === 'join_request' || item.kind === 'ownership_transferred') return `/app/p/${item.project_id}/people`;
   if (item.kind === 'recap_shared') return `/app/recaps/${item.recap_id}`;
   if (item.request_id) return `/app/p/${item.project_id}/requests/${item.request_id}`;
   if (item.notes) return `/app/p/${item.project_id}/v/${item.notes.video_id}?take=${item.notes.takes?.number ?? ''}&note=${item.note_id}`;
@@ -63,13 +64,14 @@ export async function renderInbox() {
   ]);
   if (error) throw error;
   // A note or take deleted since then leaves nothing to open.
-  const live = items.filter((i) => i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.notes || i.takes || i.recaps || i.requests);
+  const live = items.filter((i) => i.kind === 'joined' || i.kind === 'join_request' || i.kind === 'join_approved' || i.kind === 'added_to_project' || i.kind === 'ownership_transferred' || i.notes || i.takes || i.recaps || i.requests);
   const names = await namesFor(live.map((i) => i.actor_id));
 
   view.innerHTML = `<section class="page narrow-wide">
-    ${pageHead('Inbox', { actions: unread ? '<button class="btn" data-read-all>Mark all as read</button>' : '' })}
+    ${pageHead('Inbox', { actions: `${unread ? '<button class="btn" data-read-all>Mark all as read</button>' : ''}${live.length ? '<button class="btn ghost" data-clear-all>Clear all</button>' : ''}` })}
     ${tabs([['all', 'All', '/app/inbox'], ['unread', 'Unread', '/app/inbox?show=unread', unread], ['mentions', 'Mentions', '/app/inbox?show=mentions'], ['review', 'To review', '/app/queue']], filter)}
-    ${live.length ? `<div class="list">${live.map((item) => `<a class="row inbox-row ${item.read_at ? '' : 'unread'}" href="${hrefFor(item)}" data-link data-item="${item.id}">
+      ${live.length ? `<div class="list">${live.map((item) => `<div class="row inbox-row ${item.read_at ? '' : 'unread'}" data-item="${item.id}">
+        <a class="inbox-row-link" href="${hrefFor(item)}" data-link>
         ${item.actor_id ? avatar(names[item.actor_id] || '?', item.actor_id, 'sm') : '<span class="avatar sm app-avatar" aria-hidden="true"><img src="/favicon.svg" alt="" width="28" height="28" /></span>'}
         <span class="row-main">
           <span class="row-text">${describe(item, names)}</span>
@@ -78,7 +80,9 @@ export async function renderInbox() {
           <span class="row-meta">${esc(item.projects?.title || '')} · ${timeAgo(item.created_at)}</span>
         </span>
         ${item.read_at ? '' : '<span class="dot" aria-label="Unread"></span>'}
-      </a>`).join('')}</div>`
+        </a>
+        <button type="button" class="icon-btn inbox-delete" data-delete-item="${item.id}" aria-label="Remove notification" title="Remove notification">${ic('trash', 'solo')}</button>
+      </div>`).join('')}</div>`
       : empty('inbox', filter === 'unread' ? 'You’re all caught up' : 'Nothing here yet', filter === 'mentions' ? 'When someone @mentions you in a note, it shows up here.' : 'Notes on your videos, @mentions, new takes, and fixes will show up here.', filter === 'all' ? samplePeek('inbox') : '')}
   </section>`;
 
@@ -92,4 +96,20 @@ export async function renderInbox() {
     ctx.refreshUnread();
     renderInbox();
   });
+  $('[data-clear-all]')?.addEventListener('click', async () => {
+    const ok = await dialog({ title: 'Clear your Inbox?', body: 'This removes all of your notifications. It won’t delete the notes, videos, or projects they link to.', confirm: 'Clear all', danger: true });
+    if (!ok) return;
+    const { error: clearErr } = await sb.from('notifications').delete().eq('user_id', state.session.user.id);
+    if (clearErr) return toast(friendlyError(clearErr), 'error');
+    ctx.refreshUnread();
+    renderInbox();
+  });
+  $$('[data-delete-item]').forEach((b) => b.addEventListener('click', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const { error: deleteErr } = await sb.from('notifications').delete().eq('id', b.dataset.deleteItem);
+    if (deleteErr) return toast(friendlyError(deleteErr), 'error');
+    ctx.refreshUnread();
+    renderInbox();
+  }));
 }
