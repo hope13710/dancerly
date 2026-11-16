@@ -10446,3 +10446,19 @@ body.is-guest .tabbar {
   .cp-cell { padding: 14px 0; }
 }
 .cp-cell.out:not(.on) { color: var(--muted); }
+
+/* Above a take's notes: All / Open / For you, one focus area, and the sort. */
+.note-filters { display: grid; gap: 8px; margin: 2px 0 4px; }
+.note-filters[hidden] { display: none; }
+.nf-row { display: flex; align-items: center; gap: 8px; }
+.nf-row .seg { flex: none; }
+.nf-row .seg button { padding: 4px 9px; font-size: 12px; }
+.nf-row .seg button span { margin-left: 2px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.nf-sort { margin-left: auto; display: inline-flex; align-items: center; flex-direction: row-reverse; gap: 4px; color: #aab1bd; font-size: 12px; white-space: nowrap; }
+.nf-sort .ic { width: 14px; height: 14px; }
+.nf-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.nf-cats .cat-btn { opacity: 0.75; }
+.nf-cats .cat-btn[aria-pressed="true"] { opacity: 1; }
+.nf-cats .cat-btn[aria-pressed="true"] .cat-chip { box-shadow: inset 0 0 0 1.5px var(--cat); }
+.nf-cats .cat-chip { color: #e3e6ed; }
+@media (max-width: 600px) { .nf-row .seg button { padding: 6px 8px; } }

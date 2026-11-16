@@ -147,6 +147,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       </div>
       <aside class="notes-col">
         <div class="take-summary" data-summary></div>
+        <div class="note-filters" data-note-filters hidden></div>
         <div class="note-list" data-list></div>
         <form class="composer" data-composer>
           <button type="button" class="composer-open" data-composer-open><span class="co-plus" aria-hidden="true">${ic('plus', 'solo')}</span><span class="co-label" data-co-label>Add a note</span><span class="co-at">${ic('at')}<span data-at2>00:00.0</span></span></button>
@@ -205,6 +206,44 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   // On this take you see its own notes plus anything from earlier takes that isn't fixed yet.
   const visibleNotes = () => r.notes.filter((n) => takeNo[n.take_id] <= take.number && (n.take_id === take.id || n.status !== 'resolved'));
+  // Filter and sort, like Frame.io's comments: All / Open / For you, one focus area, video order or newest.
+  // The timeline markers follow the same filter. Remembered on this device.
+  const FILTER_KEY = 'dancerly:note-filter';
+  const nf = (() => { try { return { show: 'all', cat: null, sort: 'time', ...JSON.parse(localStorage.getItem(FILTER_KEY) || '{}') }; } catch { return { show: 'all', cat: null, sort: 'time' }; } })();
+  const saveFilter = () => { try { localStorage.setItem(FILTER_KEY, JSON.stringify(nf)); } catch {} };
+  const uploaderOf = Object.fromEntries(takes.map((t) => [t.id, t.uploaded_by]));
+  const forMeNote = (n) => n.author_id !== me.id && (n.private_to === me.id || uploaderOf[n.take_id] === me.id || (n.note_mentions || []).some((x) => x.user_id === me.id));
+  const passes = (n, show = nf.show, cat = nf.cat) => (show === 'open' ? n.status !== 'resolved' : show === 'mine' ? forMeNote(n) : true) && (!cat || n.category === cat);
+  const filtering = () => nf.show !== 'all' || Boolean(nf.cat);
+  const shownNotes = () => {
+    const list = visibleNotes().filter((n) => passes(n));
+    return nf.sort === 'new' ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)) : list;
+  };
+  function paintFilters() {
+    const bar = $('[data-note-filters]');
+    if (!bar) return;
+    const all = visibleNotes();
+    bar.hidden = all.length < 4 && !filtering();
+    if (bar.hidden) return;
+    const count = (show) => all.filter((n) => passes(n, show, nf.cat)).length;
+    const cats = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
+    bar.innerHTML = `<div class="nf-row"><div class="seg small dark" role="group" aria-label="Show">${[['all', isKo ? '전체' : 'All'], ['open', isKo ? '미해결' : 'Open'], ['mine', isKo ? '나에게 온 피드백' : 'For you']].map(([k, label]) => `<button type="button" data-nf-show="${k}" aria-selected="${nf.show === k}" data-no-i18n>${label} <span>${count(k)}</span></button>`).join('')}</div>
+      <button type="button" class="mini ghost nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('down', 'after')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button></div>
+      ${cats.length > 1 ? `<div class="nf-cats" role="group" aria-label="Focus area">${cats.map((k) => `<button type="button" class="cat-btn" data-nf-cat="${k}" aria-pressed="${nf.cat === k}">${catChip(k)}</button>`).join('')}</div>` : ''}`;
+    bar.querySelectorAll('[data-nf-show]').forEach((b) => b.addEventListener('click', () => { nf.show = b.dataset.nfShow; saveFilter(); paintNotes(); logEvent('note_filter', { show: nf.show }); }));
+    bar.querySelectorAll('[data-nf-cat]').forEach((b) => b.addEventListener('click', () => { nf.cat = nf.cat === b.dataset.nfCat ? null : b.dataset.nfCat; saveFilter(); paintNotes(); logEvent('note_filter', { cat: nf.cat }); }));
+    bar.querySelector('[data-nf-sort]').addEventListener('click', async (e) => {
+      const to = await actionSheet({ title: 'Sort', anchor: e.currentTarget, actions: [
+        { value: 'time', label: 'Video order', hint: 'As they appear in the video', checked: nf.sort === 'time' },
+        { value: 'new', label: 'Newest', hint: 'The latest notes first', checked: nf.sort === 'new' }
+      ] });
+      if (!to || to === nf.sort) return;
+      nf.sort = to;
+      saveFilter();
+      paintNotes();
+      logEvent('note_sort', { sort: to });
+    });
+  }
   const noteTime = (n) => (n.t_end === null ? fmt(n.t_start) : `${fmt(n.t_start)}–${fmt(n.t_end)}`);
   // "3·5" next to the time when the video has counts (each take keeps its own count 1).
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
@@ -214,7 +253,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const canResolve = (n) => n.author_id === me.id || isOwner;
 
   function paintNotes() {
-    const notes = visibleNotes();
+    paintFilters();
+    const notes = shownNotes();
     const list = $('[data-list]');
     if (!list) return;
     // Keep half-typed replies (and focus) across live refreshes.
@@ -282,8 +322,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           <form class="reply-form" data-reply-form="${n.id}"><div class="mention-menu" data-reply-mentions role="listbox" hidden></div><input name="reply" maxlength="2000" placeholder="${n.private_to ? `Reply to ${esc(nameOf(other))}…` : 'Reply…'}" aria-label="Reply" autocomplete="off" /><button class="btn small" type="submit">Send</button></form>
         </div>` : ''}
       </article>`;
-    }).join('') : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
+    }).join('') : filtering() && visibleNotes().length ? `<div class="notes-empty"><p><b>No notes match.</b> Try another filter.</p><button type="button" class="btn small" data-nf-clear>Show all notes</button></div>` : `<div class="notes-empty"><p><b>No notes on this take yet.</b> Pause anywhere and say what you see. One short note is enough.</p>
       <div class="starter-chips" role="group" aria-label="Start a note">${starterKeys(members.length <= 1).map((k) => `<button type="button" class="mini" data-starter="${k}">${catChip(k)}</button>`).join('')}</div></div>`;
+    list.querySelector('[data-nf-clear]')?.addEventListener('click', () => { nf.show = 'all'; nf.cat = null; saveFilter(); paintNotes(); });
     paintMarkers(notes);
     paintSummary();
   }
@@ -1177,7 +1218,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (e.target.closest('input, textarea, dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (r.drawing && (e.key === 'Escape' || e.key === 'Enter')) { e.preventDefault(); finishSketch(); return; }
     if (e.shiftKey && e.key.toLowerCase() === 'n' && queue?.next) { e.preventDefault(); navigate(queue.next); return; }
-    const notes = visibleNotes();
+    const notes = shownNotes();
     const step = (dir) => {
       const i = notes.findIndex((n) => n.id === r.selected);
       const n = notes[Math.max(0, Math.min(notes.length - 1, i + dir))];
