@@ -147,8 +147,9 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
   const changed = () => onChange();
 
   // Typing "- " / "* " / "1. " / "[] " / "# " / "> " at the start of a line turns it into that block.
-  // "*" may arrive full-width (＊) from Korean and Japanese keyboards on phones; "•" pasted or typed works too.
-  const SHORTCUTS = [[/^[-*＊]\s\[( |x)?\]\s$/i, 'task'], [/^\[( |x)?\]\s$/i, 'task'], [/^[-*＊•]\s$/, 'li'], [/^\d+[.)]\s$/, 'ol'], [/^#\s$/, 'h1'], [/^##\s$/, 'h2'], [/^###\s$/, 'h3'], [/^>\s$/, 'quote']];
+  // "-" and "*" may arrive as look-alikes from phone keyboards (full-width －＊ from Korean and Japanese keyboards,
+  // ‐ – − from autocorrect); "•" pasted or typed works too.
+  const SHORTCUTS = [[/^[-*＊－‐–−]\s\[( |x)?\]\s$/i, 'task'], [/^\[( |x)?\]\s$/i, 'task'], [/^[-*＊•－‐–−]\s$/, 'li'], [/^\d+[.)]\s$/, 'ol'], [/^#\s$/, 'h1'], [/^##\s$/, 'h2'], [/^###\s$/, 'h3'], [/^>\s$/, 'quote']];
   const shortcut = (block) => {
     if (!block || block.dataset.t !== 'p') return;
     const text = block.textContent.replace(/ /g, ' ');
