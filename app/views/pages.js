@@ -130,7 +130,7 @@ export async function renderPage(projectId, pageId) {
       <button type="button" data-link-btn title="Link" aria-label="Link">${ic('link', 'solo')}</button>
     </div>
     <article class="doc" data-doc aria-label="Page"></article>
-    <p class="doc-hint muted" data-hint hidden>Type <code>-</code> for a list, <code>[]</code> for a checklist, <code>#</code> for a heading. Changes save as you go.</p>
+    <p class="doc-hint muted" data-hint hidden>Type <code>-</code> or <code>*</code> for a list, <code>[]</code> for a checklist, <code>#</code> for a heading. Changes save as you go.</p>
   </section>`;
 
   const titleView = $('[data-title-view]');

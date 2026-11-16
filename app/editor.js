@@ -147,7 +147,8 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
   const changed = () => onChange();
 
   // Typing "- " / "* " / "1. " / "[] " / "# " / "> " at the start of a line turns it into that block.
-  const SHORTCUTS = [[/^[-*]\s\[( |x)?\]\s$/i, 'task'], [/^\[( |x)?\]\s$/i, 'task'], [/^[-*]\s$/, 'li'], [/^\d+[.)]\s$/, 'ol'], [/^#\s$/, 'h1'], [/^##\s$/, 'h2'], [/^###\s$/, 'h3'], [/^>\s$/, 'quote']];
+  // "*" may arrive full-width (＊) from Korean and Japanese keyboards on phones; "•" pasted or typed works too.
+  const SHORTCUTS = [[/^[-*＊]\s\[( |x)?\]\s$/i, 'task'], [/^\[( |x)?\]\s$/i, 'task'], [/^[-*＊•]\s$/, 'li'], [/^\d+[.)]\s$/, 'ol'], [/^#\s$/, 'h1'], [/^##\s$/, 'h2'], [/^###\s$/, 'h3'], [/^>\s$/, 'quote']];
   const shortcut = (block) => {
     if (!block || block.dataset.t !== 'p') return;
     const text = block.textContent.replace(/ /g, ' ');
@@ -208,7 +209,9 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
         if (from.t === 'task') block.dataset.done = 'false';
       } else { block.dataset.t = 'p'; delete block.dataset.done; }
     }
-    if (e.inputType === 'insertText' && e.data === ' ') shortcut(block);
+    // A marker and a space at the start of a line. Phones don't always send the space as plain typing (autocorrect,
+    // a Korean keyboard finishing a character), so any input that leaves the line like that counts.
+    if (block && block.dataset.t === 'p' && /^\S{1,5}[\s\u00a0]$/.test(block.textContent)) shortcut(block);
     changed();
   });
   root.addEventListener('keydown', (e) => {
