@@ -240,7 +240,9 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     el.className = 'dialog';
     el.innerHTML = `<form method="dialog" class="dialog-card">
       <h2>${esc(title)}</h2>${body ? `<p>${body}</p>` : ''}
-      ${fields.map((f) => f.type === 'pick'
+      ${fields.map((f) => f.type === 'check'
+        ? `<label class="check-row dialog-check"><input type="checkbox" name="${f.name}" ${f.value ? 'checked' : ''} /> <span><b>${esc(f.label)}</b>${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</span></label>`
+        : f.type === 'pick'
         ? `<div class="field"><span>${esc(f.label)}</span><div class="pick-chips" role="group" aria-label="${esc(f.label)}">${f.options.map((o) => `<label class="pick-chip"><input type="checkbox" name="${f.name}" value="${esc(o.value)}" ${(f.values || []).includes(o.value) ? 'checked' : ''} />${o.html || ''}<span>${esc(o.label)}</span></label>`).join('')}</div>${f.hint || f.action ? `<small class="field-hint">${f.hint ? esc(f.hint) : ''}${f.action ? ` <button type="button" class="link-btn" data-field-action="${f.name}">${esc(f.action.label)}</button>` : ''}</small>` : ''}</div>`
         : `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
         ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
@@ -258,6 +260,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
       const values = Object.fromEntries(fields.map((f) => {
         const input = el.querySelector(`[name="${f.name}"]`);
         if (f.type === 'pick') return [f.name, [...el.querySelectorAll(`[name="${f.name}"]:checked`)].map((x) => x.value)];
+        if (f.type === 'check') return [f.name, input.checked];
         return [f.name, f.type === 'file' ? input.files?.[0] : input.value.trim()];
       }));
       el.remove();

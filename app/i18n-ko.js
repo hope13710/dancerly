@@ -532,7 +532,7 @@ export const KO = {
   'That take isn’t available anymore.': '이 테이크는 더 이상 볼 수 없어요.',
   'Rename choreo video': '원본 안무 이름 바꾸기',
   'Choreo video renamed.': '원본 안무 이름을 바꿨어요.',
-  'A new link or file · sections carry over': '새 링크나 파일로 · 파트는 그대로 유지돼요',
+  'A new link or file · you can keep the sections': '새 링크나 파일 · 파트는 그대로 유지할 수 있어요',
   'Edit note': '피드백 수정',
   'Copy link': '링크 복사',
   'Note updated.': '피드백을 수정했어요.',

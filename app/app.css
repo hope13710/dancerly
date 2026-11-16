@@ -10520,3 +10520,9 @@ body.is-guest .tabbar {
   /* The list keeps 16px at its top for the first card's toolbar: that's the space under the filter row there. */
   .note-filters:not([hidden]) + .note-list { margin-top: 0; }
 }
+
+/* A checkbox with a line under it, inside a dialog (Keep the sections). */
+.dialog-check { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 2px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.dialog-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+.dialog-check b { display: block; font-size: 14px; }
+.dialog-check small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }

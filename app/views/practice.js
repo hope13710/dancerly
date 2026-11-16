@@ -62,6 +62,20 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
     ]
   }) : 'youtube';
   if (!how) return false;
+  // Changing the choreo video: keep its sections (same song, the times usually still fit) or start over. Asked in
+  // the same step as the new link or file; nothing to ask when there are no sections.
+  let sectionCount = 0;
+  if (current) {
+    let q = sb.from('count_sheet_rows').select('id', { count: 'exact', head: true }).eq('project_id', projectId).not('t_start', 'is', null);
+    q = current.kind === 'file' ? q.eq('video_id', current.video.id) : q.is('video_id', null);
+    sectionCount = (await q).count || 0;
+  }
+  const keepField = sectionCount ? [{
+    name: 'keep', type: 'check', value: true,
+    label: isKo ? `파트 ${sectionCount}개 그대로 유지` : `Keep the ${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'}`,
+    hint: isKo ? '같은 곡이라면 시간이 대부분 그대로 맞아요. 체크를 풀면 기존 파트를 지우고 새 영상에서 다시 나눠요.' : 'Same song? Their times usually still fit. Untick to clear them and mark the new video from scratch.'
+  }] : [];
+  let keep = true;
   let next = null;
   if (how === 'file') {
     const got = await dialog({
@@ -69,11 +83,13 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
       body: 'The original your team learns from. It stays apart from your takes, so nobody leaves feedback on it.',
       fields: [
         { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: 'MP4, MOV, or WebM · up to 15 minutes' },
-        { name: 'title', label: 'Name', placeholder: 'e.g. Chorus by the choreographer', required: true, max: 120 }
+        { name: 'title', label: 'Name', placeholder: 'e.g. Chorus by the choreographer', required: true, max: 120 },
+        ...keepField
       ],
       confirm: 'Upload'
     });
     if (!got) return false;
+    if (keepField.length) keep = got.keep;
     const problem = checkTakeFile(got.file);
     if (problem) { toast(problem, 'error'); return false; }
     const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: got.title, kind: 'choreo' }).select('id').single();
@@ -90,15 +106,17 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
   } else {
     for (let value = ''; ;) {
       const got = await dialog({
-        title: 'Add a YouTube choreo video',
+        title: current ? 'Change the choreo video' : 'Add a YouTube choreo video',
         body: 'Paste the link to the video your team learns from. It plays here from YouTube, so nothing is uploaded.',
         fields: [
           { name: 'url', label: 'YouTube link', placeholder: 'https://youtu.be/…', value, required: true, max: 300 },
-          { name: 'title', label: 'Name (optional)', placeholder: 'e.g. Official dance practice', max: 120 }
+          { name: 'title', label: 'Name (optional)', placeholder: 'e.g. Official dance practice', max: 120 },
+          ...keepField
         ],
-        confirm: 'Add'
+        confirm: current ? 'Change' : 'Add'
       });
       if (!got) return false;
+      if (keepField.length) keep = got.keep;
       const id = youtubeId(got.url);
       if (id) { next = { youtube: id, title: got.title || null }; break; }
       toast('That doesn’t look like a YouTube video link. Copy it from the Share button on YouTube.', 'error');
@@ -109,17 +127,21 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
     if (next.videoId) await sb.from('videos').delete().eq('id', next.videoId);
     return false;
   }
-  if (current) await retireChoreo(projectId, current, next);
+  if (current) await retireChoreo(projectId, current, next, keep);
+  if (current && sectionCount) toast(keep ? (isKo ? `파트 ${sectionCount}개를 새 영상으로 옮겼어요.` : `${sectionCount} ${sectionCount === 1 ? 'section' : 'sections'} moved to the new video.`) : (isKo ? '기존 파트를 지웠어요. 새 영상에서 파트를 나눠 보세요.' : 'Sections cleared. Mark the parts of the new video.'));
   return 'practice';
 }
 
-// The old choreo video goes: its sections move to the new one (same song, so the times usually still fit), and an
-// uploaded file is deleted for good (it isn't a take, so there's nothing to keep).
-async function retireChoreo(projectId, old, next = null) {
-  const to = { video_id: next?.videoId || null, ...(schema.sheetTake ? { take_id: next?.takeId || null } : {}) };
-  let move = sb.from('count_sheet_rows').update(to).eq('project_id', projectId).not('t_start', 'is', null);
-  move = old.kind === 'file' ? move.eq('video_id', old.video.id) : move.is('video_id', null);
-  if (next && (old.kind === 'file' || next.videoId)) await move;
+// The old choreo video goes: its sections move to the new one when kept (same song, so the times usually still
+// fit) or are cleared, and an uploaded file is deleted for good (it isn't a take, so there's nothing to keep).
+async function retireChoreo(projectId, old, next = null, keep = true) {
+  const mine = (q) => (old.kind === 'file' ? q.eq('video_id', old.video.id) : q.is('video_id', null)).eq('project_id', projectId).not('t_start', 'is', null);
+  if (next && !keep) {
+    await mine(sb.from('count_sheet_rows').delete());
+  } else {
+    const to = { video_id: next?.videoId || null, ...(schema.sheetTake ? { take_id: next?.takeId || null } : {}) };
+    if (next && (old.kind === 'file' || next.videoId)) await mine(sb.from('count_sheet_rows').update(to));
+  }
   if (old.kind === 'file') {
     const { error } = await sb.from('videos').delete().eq('id', old.video.id);
     if (!error) {
@@ -135,7 +157,7 @@ export async function choreoMenu({ projectId, choreo, anchor }) {
   const choice = await actionSheet({ title: choreoTitle(choreo), anchor, actions: [
     ...(choreo.kind === 'youtube' ? [{ value: 'youtube', icon: 'share', label: 'Open on YouTube' }] : []),
     { value: 'rename', icon: 'pen', label: 'Rename' },
-    { value: 'change', icon: 'upload', label: 'Change choreo video', hint: 'A new link or file · sections carry over' },
+    { value: 'change', icon: 'upload', label: 'Change choreo video', hint: 'A new link or file · you can keep the sections' },
     { value: 'remove', icon: 'x', label: 'Remove choreo video', danger: true }
   ] });
   if (choice === 'youtube') { window.open(`https://www.youtube.com/watch?v=${choreo.id}`, '_blank', 'noopener'); return null; }
