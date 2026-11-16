@@ -4,6 +4,8 @@
 //   **bold** · *italic* · `code` · [link](https://…)
 //   [Chorus · Take 2 · 0:15](dancerly:video/<id>?take=2&t=15) — a chip pointing at something in the project
 //   (person, video, section, event, page), and ![photo](storage:<path>) on its own line — a photo
+//   ![Chorus · Take 2 · 0:15](dancerly:video/<id>?take=2&t=15) on its own line — a video shown as a card
+//   {w=60} after a photo or a card: its width, as a share of the page (set by dragging its edge, as in Notion)
 // The page is one row of blocks (one per line). Reading, a checklist item ticks with a tap; editing, typing "- ",
 // "1. ", "[] " or "# " at the start of a line turns it into that block, and Enter carries a list on.
 import { esc } from './client.js';
@@ -23,11 +25,17 @@ export function inline(t) {
     .replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
 }
 
+// A photo's or card's width in % of the page (20–100), or null for its natural size.
+const width = (v) => (v ? Math.max(20, Math.min(100, Number(v))) : null);
+const sized = (w) => (w ? ` data-w="${w}" style="width:${w}%"` : '');
+// Handles to drag a photo or a card wider or narrower (computers; CSS hides them on touch).
+const HANDLES = '<span class="rz rz-l" data-rz="l" aria-hidden="true"></span><span class="rz rz-r" data-rz="r" aria-hidden="true"></span>';
 // One line of Markdown → { t, done, text }.
 export function parseLine(raw) {
   const line = raw.replace(/\s+$/, '');
   let m;
-  if ((m = line.match(/^!\[([^\]]*)\]\(storage:([^)\s]+)\)$/))) return { t: 'img', alt: m[1], src: m[2], text: '' };
+  if ((m = line.match(/^!\[([^\]]*)\]\(storage:([^)\s]+)\)(?:\{w=(\d{1,3})\})?$/))) return { t: 'img', alt: m[1], src: m[2], w: width(m[3]), text: '' };
+  if ((m = line.match(/^!\[([^\]]*)\]\(dancerly:(video\/[^)\s]+)\)(?:\{w=(\d{1,3})\})?$/))) return { t: 'card', label: m[1], ref: m[2], w: width(m[3]), text: '' };
   if ((m = line.match(/^(#{1,3})\s+(.*)$/))) return { t: `h${m[1].length}`, text: m[2] };
   if ((m = line.match(/^\s*[-*]\s+\[( |x)\]\s?(.*)$/i))) return { t: 'task', done: m[1].trim() !== '', text: m[2] };
   // An empty item ("- " or "1. ", a blank to fill in) is still a list item.
@@ -41,8 +49,16 @@ export function parseLine(raw) {
 const blockHtml = (b) => (b.t === 'hr'
   ? '<div class="blk" data-t="hr" contenteditable="false"><hr /></div>'
   : b.t === 'img'
-  ? `<div class="blk" data-t="img" data-src="${esc(b.src)}" contenteditable="false"><img alt="${esc(b.alt || 'Photo')}" /><button type="button" class="img-remove" data-img-remove aria-label="Remove photo" title="Remove photo">×</button></div>`
+  ? `<div class="blk" data-t="img" data-src="${esc(b.src)}"${sized(b.w)} contenteditable="false"><img alt="${esc(b.alt || 'Photo')}" /><button type="button" class="img-remove" data-img-remove aria-label="Remove photo" title="Remove photo">×</button>${HANDLES}</div>`
+  : b.t === 'card'
+  ? cardHtml(b)
   : `<div class="blk" data-t="${b.t}"${b.t === 'task' ? ` data-done="${b.done ? 'true' : 'false'}"` : ''}>${inline(b.text) || '<br>'}</div>`);
+
+// A video as a card: its thumbnail, played right there from that moment, and a way to its page.
+const cardHtml = (b) => `<div class="blk" data-t="card" data-ref="${esc(b.ref)}"${sized(b.w)} contenteditable="false">
+  <div class="card-media"><img alt="" /><button type="button" class="card-play" data-card-play aria-label="Play from here"></button></div>
+  <div class="card-foot"><span class="card-label">${esc(b.label)}</span><button type="button" class="card-open" data-card-open>Open</button></div>
+  <span class="card-tools"><button type="button" data-card-link title="Show as a link in the text">Show as link</button><button type="button" class="img-remove" data-img-remove aria-label="Remove" title="Remove">×</button></span>${HANDLES}</div>`;
 
 export const toBlocks = (md) => String(md || '').split('\n').map(parseLine);
 export const blocksHtml = (md) => toBlocks(md).map(blockHtml).join('');
@@ -77,7 +93,9 @@ export function toMarkdown(root) {
     const t = el.dataset.t || 'p';
     n = t === 'ol' ? n + 1 : 0;
     if (t === 'hr') { lines.push('---'); continue; }
-    if (t === 'img') { if (el.dataset.src) lines.push(`![${(el.querySelector('img')?.alt || 'Photo').replace(/[[\]]/g, '')}](storage:${el.dataset.src})`); continue; }
+    const w = el.dataset.w ? `{w=${el.dataset.w}}` : '';
+    if (t === 'img') { if (el.dataset.src) lines.push(`![${(el.querySelector('img')?.alt || 'Photo').replace(/[[\]]/g, '')}](storage:${el.dataset.src})${w}`); continue; }
+    if (t === 'card') { lines.push(`![${(el.querySelector('.card-label')?.textContent || 'Video').replace(/[[\]*`]/g, '')}](dancerly:${el.dataset.ref})${w}`); continue; }
     const text = inlineMd(el).replace(/\n/g, ' ');
     if (t === 'task') lines.push(`- [${el.dataset.done === 'true' ? 'x' : ' '}] ${text}`);
     else if (t === 'ol') lines.push(`${n}. ${text}`);
@@ -101,7 +119,8 @@ export function taskCount(md) {
 // Optional: suggest(query) → [{ group, label, sub, ref, text }] for the @ menu; unfurl(url) → { ref, text } | null to
 // turn a pasted dancerly link into a chip; imageUrl(path) → a URL to show a photo; onRef(ref, el) when a chip is
 // opened while reading; onImage(img) when a photo is opened.
-export function mount(root, { markdown = '', onChange = () => {}, onToggle = () => {}, suggest = null, unfurl = null, imageUrl = null, onRef = () => {}, onImage = () => {}, onInsert = () => {} } = {}) {
+// card(ref) → { thumb, play() → video URL, t } fills in a video card.
+export function mount(root, { markdown = '', onChange = () => {}, onToggle = () => {}, suggest = null, unfurl = null, imageUrl = null, onRef = () => {}, onImage = () => {}, onInsert = () => {}, card = null } = {}) {
   root.classList.add('doc', 'doc-blocks');
   root.innerHTML = blocksHtml(markdown) || blockHtml({ t: 'p', text: '' });
   let editing = false;
@@ -117,7 +136,20 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
       urls.get(src).then((u) => { if (u) img.src = u; else b.classList.add('gone'); });
     }
   };
-  paintImages();
+  // Video cards: thumbnail on view, the video itself only when played.
+  const cards = new Map();
+  const paintCards = () => {
+    if (!card) return;
+    for (const b of root.querySelectorAll(':scope > .blk[data-t="card"]')) {
+      const img = b.querySelector('.card-media img');
+      if (!img || img.getAttribute('src') || b.classList.contains('gone')) continue;
+      const ref = b.dataset.ref;
+      if (!cards.has(ref)) cards.set(ref, card(ref).catch(() => null));
+      cards.get(ref).then((c) => { if (!c) b.classList.add('gone'); else if (c.thumb) img.src = c.thumb; else b.classList.add('no-thumb'); });
+    }
+  };
+  const paintMedia = () => { paintImages(); paintCards(); };
+  paintMedia();
 
   const blocks = () => [...root.querySelectorAll(':scope > .blk')];
   const blockOf = (node) => { let n = node?.nodeType === 3 ? node.parentNode : node; while (n && n !== root && !(n.classList?.contains('blk') && n.parentNode === root)) n = n.parentNode; return n && n !== root ? n : null; };
@@ -158,7 +190,7 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
     }
     for (const b of blocks()) {
       if (!b.dataset.t) b.dataset.t = 'p';
-      if (b.dataset.t === 'img' || b.dataset.t === 'hr') continue;
+      if (b.dataset.t === 'img' || b.dataset.t === 'card' || b.dataset.t === 'hr') continue;
       for (const el of [...b.querySelectorAll('*')]) {
         if (el.closest('a.ref') && el.tagName !== 'A') continue;
         if (el.tagName === 'A' && el.dataset.ref) { el.removeAttribute('style'); el.contentEditable = 'false'; continue; }
@@ -217,7 +249,7 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
       prev.remove();
       changed();
     }
-    if (e.inputType === 'deleteContentBackward' && block && atStart(block) && prev?.dataset.t === 'img') {
+    if (e.inputType === 'deleteContentBackward' && block && atStart(block) && (prev?.dataset.t === 'img' || prev?.dataset.t === 'card')) {
       e.preventDefault();
       if (prev.classList.contains('picked')) { prev.remove(); changed(); } else prev.classList.add('picked');
     }
@@ -295,9 +327,25 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
 
   // A checklist box: the left edge of a checklist line (drawn with CSS), in reading and in editing.
   root.addEventListener('click', (e) => {
+    if (e.target.closest('[data-rz]')) return;
     const chip = e.target.closest('a.ref');
-    if (chip) { e.preventDefault(); if (!editing) onRef(chip.dataset.ref, chip); return; }
+    if (chip) {
+      e.preventDefault();
+      if (!editing) onRef(chip.dataset.ref, chip);
+      else if (chip.dataset.kind === 'video' && card) chipMenu(chip);
+      return;
+    }
     if (editing && e.target.closest('[data-img-remove]')) { e.preventDefault(); e.target.closest('.blk').remove(); normalize(); changed(); return; }
+    const cardEl = e.target.closest('.blk[data-t="card"]');
+    if (cardEl) {
+      e.preventDefault();
+      if (cardEl.classList.contains('gone')) return onRef(cardEl.dataset.ref, cardEl);
+      if (e.target.closest('[data-card-link]')) return toChip(cardEl);
+      if (e.target.closest('[data-card-open]')) return onRef(cardEl.dataset.ref, cardEl);
+      if (e.target.closest('[data-card-play]')) return playCard(cardEl);
+      if (editing) cardEl.classList.toggle('picked');
+      return;
+    }
     const photo = e.target.closest('.blk[data-t="img"] img');
     if (photo) { if (!editing) onImage(photo); else photo.closest('.blk').classList.toggle('picked'); return; }
     const block = blockOf(e.target);
@@ -312,6 +360,85 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
   });
 
   function toggleMark(cmd) { document.execCommand(cmd); normalize(); changed(); }
+
+  // ---------- Video cards ----------
+  async function playCard(el) {
+    const c = await cards.get(el.dataset.ref);
+    if (!c?.play) return onRef(el.dataset.ref, el);
+    const src = await c.play().catch(() => null);
+    if (!src) return onRef(el.dataset.ref, el);
+    const media = el.querySelector('.card-media');
+    media.innerHTML = `<video controls playsinline autoplay preload="auto" src="${esc(src)}"></video>`;
+    const v = media.querySelector('video');
+    v.addEventListener('loadedmetadata', () => { if (c.t) v.currentTime = Math.min(c.t, Math.max(0, v.duration - 0.2)); }, { once: true });
+  }
+  // A video chip, alone on its line or not, becomes a card on its own line (Notion's "Turn into card").
+  function toCard(chip) {
+    const block = blockOf(chip);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cardHtml({ ref: chip.dataset.ref, label: chip.textContent, w: null });
+    const el = tmp.firstChild;
+    chip.remove();
+    if (block.textContent.replace(/\u00a0/g, ' ').trim()) block.after(el);
+    else block.replaceWith(el);
+    if (!el.nextElementSibling) { const t = document.createElement('div'); t.innerHTML = blockHtml({ t: 'p', text: '' }); el.after(t.firstChild); }
+    paintCards();
+    normalize();
+    changed();
+  }
+  function toChip(el) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = blockHtml({ t: 'p', text: `[${(el.querySelector('.card-label')?.textContent || 'Video').replace(/[[\]*`]/g, '')}](dancerly:${el.dataset.ref})` });
+    el.replaceWith(tmp.firstChild);
+    normalize();
+    changed();
+  }
+  // Editing: a click on a video chip offers to show it as a card.
+  let pop = null;
+  const closePop = () => { pop?.remove(); pop = null; };
+  function chipMenu(chip) {
+    closePop();
+    pop = document.createElement('div');
+    pop.className = 'chip-pop';
+    pop.innerHTML = '<button type="button">Show as card</button>';
+    pop.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
+    pop.querySelector('button').addEventListener('click', () => { closePop(); toCard(chip); });
+    document.body.append(pop);
+    const r = chip.getBoundingClientRect();
+    pop.style.left = `${Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8))}px`;
+    pop.style.top = `${r.bottom + 6}px`;
+    setTimeout(() => document.addEventListener('mousedown', closePop, { once: true }), 0);
+  }
+
+  // ---------- Resizing photos and cards: drag an edge (computers). Centered, so both sides move. ----------
+  root.addEventListener('pointerdown', (e) => {
+    const h = e.target.closest('[data-rz]');
+    if (!h || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const el = h.closest('.blk');
+    const page = root.getBoundingClientRect().width;
+    const w0 = el.getBoundingClientRect().width;
+    const x0 = e.clientX;
+    const dir = h.dataset.rz === 'l' ? -1 : 1;
+    el.classList.add('resizing');
+    h.setPointerCapture?.(e.pointerId);
+    const move = (ev) => {
+      const w = Math.max(20, Math.min(100, ((w0 + (ev.clientX - x0) * dir * 2) / page) * 100));
+      el.style.width = `${w}%`;
+      el.dataset.w = String(Math.round(w));
+    };
+    const up = () => {
+      h.removeEventListener('pointermove', move);
+      el.classList.remove('resizing');
+      // Dragged all the way out: back to full width (no size stored).
+      if (Number(el.dataset.w) >= 99) { delete el.dataset.w; el.style.removeProperty('width'); }
+      changed();
+    };
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up, { once: true });
+    h.addEventListener('pointercancel', up, { once: true });
+  });
 
   // ---------- Chips ----------
   // Put a chip where the caret is (replacing `range` if given, e.g. the typed "@que"), with a space after it.
@@ -424,14 +551,14 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
   const api = {
     edit(on) {
       editing = on;
-      if (!on) closeMenu();
+      if (!on) { closeMenu(); closePop(); }
       root.contentEditable = on ? 'true' : 'false';
       root.classList.toggle('editing', on);
       if (on) { root.focus({ preventScroll: true }); if (!root.contains(getSelection().anchorNode)) placeCaret(blocks().pop(), true); }
     },
-    setMarkdown(md) { root.innerHTML = blocksHtml(md) || blockHtml({ t: 'p', text: '' }); paintImages(); },
-    // The chips on the page, to mark the ones that point at something gone.
-    chips: () => [...root.querySelectorAll('a.ref')],
+    setMarkdown(md) { root.innerHTML = blocksHtml(md) || blockHtml({ t: 'p', text: '' }); paintMedia(); },
+    // The chips and cards on the page, to mark the ones that point at something gone.
+    chips: () => [...root.querySelectorAll('a.ref, :scope > .blk[data-t="card"]')],
     // @ from the toolbar (phones): type it, and the menu opens.
     mention() { if (!root.contains(getSelection().anchorNode)) placeCaret(blocks().pop(), true); const b = caretBlock(); const needSpace = b && b.textContent && !/[\s\u00a0]$/.test(b.textContent); document.execCommand('insertText', false, `${needSpace ? ' ' : ''}@`); },
     // Photos: a placeholder while it uploads, then done(path) or failed().

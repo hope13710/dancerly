@@ -20,7 +20,7 @@ const withoutTitle = (body, title) => {
 export const pageSnippet = (body, title, n = 110) => toBlocks(withoutTitle(body, title)).filter((b) => b.t !== 'hr' && b.text.trim())
   .map((b) => b.text.replace(/[*`]/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')).join(' · ').slice(0, n);
 // Read-only HTML of a page's Markdown (the same blocks the editor shows), for places that only display it.
-export const markdown = (md) => toBlocks(md).filter((b) => b.t !== 'img').map((b) => (b.t === 'hr' ? '<hr />' : `<div class="blk" data-t="${b.t}"${b.t === 'task' ? ` data-done="${b.done}"` : ''}>${inline(b.text) || '<br>'}</div>`)).join('');
+export const markdown = (md) => toBlocks(md).filter((b) => b.t !== 'img' && b.t !== 'card').map((b) => (b.t === 'hr' ? '<hr />' : `<div class="blk" data-t="${b.t}"${b.t === 'task' ? ` data-done="${b.done}"` : ''}>${inline(b.text) || '<br>'}</div>`)).join('');
 
 // Pages teams make again and again. Each starts filled in, ready to edit.
 const day = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -159,7 +159,8 @@ export async function renderPage(projectId, pageId) {
     imageUrl: (path) => takeUrl(path),
     onRef: (ref, el) => refs.open(ref, el),
     onImage: (img) => lightbox(img),
-    onInsert: (ref, how) => track('page_ref_inserted', { kind: ref.split('/')[0], how })
+    onInsert: (ref, how) => track('page_ref_inserted', { kind: ref.split('/')[0], how }),
+    card: refs.card
   });
   // Shows a version of the page, and greys out chips whose video, section, event, page or person is gone.
   const show = (md) => { ed.setMarkdown(md); refs.check(ed.chips()); };
@@ -274,7 +275,7 @@ export async function renderPage(projectId, pageId) {
   // On a computer, clicking into the text starts editing right there (the caret lands where you clicked).
   // With touch, Edit does it: scrolling a page shouldn't open the keyboard.
   $('[data-doc]').addEventListener('mousedown', (e) => {
-    if (editing || coarse || e.button !== 0 || e.target.closest('a, .blk[data-t="img"]')) return;
+    if (editing || coarse || e.button !== 0 || e.target.closest('a, .blk[data-t="img"], .blk[data-t="card"]')) return;
     const block = e.target.closest('.blk');
     if (block?.dataset.t === 'task' && e.clientX - block.getBoundingClientRect().left <= 30) return; // the box ticks
     setEditing(true);
@@ -521,7 +522,18 @@ function pageRefs(p, pageId) {
       if (gone) c.title = GONE[kind]; else c.removeAttribute('title');
     }
   }
-  return { suggest, unfurl, open, check };
+  // A video card: the take it points at (or the latest), its thumbnail, and the video when played.
+  async function card(ref) {
+    const { kind, id, query } = splitRef(ref);
+    if (kind !== 'video') return null;
+    const q = new URLSearchParams(query);
+    const { data: takes } = await sb.from('takes').select(`number, thumb_path, storage_path${schema.trash ? ', deleted_at' : ''}`).eq('video_id', id).order('number', { ascending: false });
+    const list = (takes || []).filter((t) => !t.deleted_at);
+    const tk = list.find((t) => t.number === Number(q.get('take'))) || list[0];
+    if (!tk) return null;
+    return { thumb: tk.thumb_path ? await takeUrl(tk.thumb_path).catch(() => null) : null, play: () => { track('page_card_played'); return takeUrl(tk.storage_path); }, t: Number(q.get('t')) || 0 };
+  }
+  return { suggest, unfurl, open, check, card };
 }
 
 // People newly @mentioned in this save hear about it, with the line they're on (migration 075).
