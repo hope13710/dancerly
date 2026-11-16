@@ -10422,3 +10422,27 @@ body.is-guest .tabbar {
 
 /* How it's going › Progress: room between the "shows once…" line and Show as table. */
 .progress-panel .fine + .table-toggle { margin-top: 14px; }
+
+/* Calendar: the month title opens a picker — the months of a year, or a range of years. */
+.cal-title-wrap { position: relative; }
+.cal-title { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.cal-title:hover, .cal-title[aria-expanded="true"] { background: var(--line, #eef0f4); }
+.cal-title .ic { width: 16px; height: 16px; color: var(--muted); }
+.cal-picker { position: absolute; z-index: 60; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); width: 280px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface, #fff); box-shadow: 0 12px 32px rgba(15, 18, 30, 0.14); }
+.cal-picker[hidden] { display: none; }
+.cp-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; }
+.cp-up, .cp-range { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 15px; font-weight: 700; color: inherit; }
+.cp-up { cursor: pointer; }
+.cp-up:hover { background: var(--line, #eef0f4); }
+.cp-up .ic { width: 14px; height: 14px; color: var(--muted); }
+.cp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.cp-cell { padding: 10px 0; border: 1px solid transparent; border-radius: 8px; background: none; font: inherit; font-size: 14px; color: inherit; cursor: pointer; }
+.cp-cell:hover { background: var(--line, #eef0f4); }
+.cp-cell.now { border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+.cp-cell.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.cp-cell:focus-visible, .cp-up:focus-visible, .cal-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .cal-picker { position: fixed; top: auto; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); width: auto; transform: none; }
+  .cp-cell { padding: 14px 0; }
+}
+.cp-cell.out:not(.on) { color: var(--muted); }

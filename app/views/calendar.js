@@ -2,7 +2,7 @@
 // Month grid on wide screens, an agenda list on phones (or when chosen).
 import { sb, $, $$, esc, toast, friendlyError, dialog, schema, enterConfirms } from '../client.js';
 import { ctx } from '../ctx.js';
-import { samplePeek } from '../onboarding.js';
+import { samplePeek, track } from '../onboarding.js';
 import { loadProject, projectHead } from './project.js';
 import { subscribeCalendar } from './share.js';
 import { kindLabel, kindClass, realProjects, daysUntil, daysLabel } from './shared.js';
@@ -51,7 +51,7 @@ export async function renderCalendar(projectId = null) {
   const chip = (it, i) => `<button class="cal-item ${kindClass(it.kind)} ${it.closed ? 'closed' : ''}" data-item="${i}" title="${esc(it.title)}">${it.type === 'due' ? 'Due · ' : `${timeOf(it.at)} `}${esc(it.title)}</button>`;
   const head = `${projectId ? projectHead(p, 'calendar', '<button class="btn primary" data-new-event>+ Add event</button>') : `<header class="page-head"><div><h1>Calendar</h1><p class="muted sub">Rehearsals, shows, and assignment due dates across your projects.</p></div><div class="head-actions"><button class="btn primary" data-new-event>+ Add event</button></div></header>`}`;
   const toolbar = `<div class="cal-toolbar">
-    ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><h2>${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
+    ${mode === 'month' ? `<div class="cal-nav"><a class="btn small ghost icon" href="${link({ m: shift(-1) })}" data-link aria-label="Previous month">‹</a><div class="cal-title-wrap"><h2><button type="button" class="cal-title" data-cal-pick aria-haspopup="dialog" aria-expanded="false" title="Pick a month">${month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}${ic('down', 'after')}</button></h2><div class="cal-picker" data-cal-picker role="dialog" aria-label="Pick a month" hidden></div></div><a class="btn small ghost icon" href="${link({ m: shift(1) })}" data-link aria-label="Next month">›</a><a class="btn small" href="${link({ m: `${now.getFullYear()}-${now.getMonth() + 1}` })}" data-link>Today</a></div>` : '<h2>Next 60 days</h2>'}
     <div class="cal-right"><div class="seg small" role="group" aria-label="View"><a href="${link({ view: 'month' })}" data-link aria-selected="${mode === 'month'}">Month</a><a href="${link({ view: 'agenda' })}" data-link aria-selected="${mode === 'agenda'}">Agenda</a></div>
       <details class="menu-more cal-sync"><summary class="btn small ghost">Sync${ic('down', 'after')}</summary><div class="tabs-more-menu" role="menu"><button type="button" role="menuitem" data-subscribe>Subscribe in Google, Apple, or Outlook</button><button type="button" role="menuitem" data-ics>Download as .ics file</button></div></details></div>
   </div>
@@ -86,6 +86,7 @@ export async function renderCalendar(projectId = null) {
   view.innerHTML = `<section class="page">${head}${toolbar}${mode === 'month' && !items.length ? samplePeek('calendar') : ''}${body}</section>`;
 
   $$('[data-new-event]').forEach((b) => b.addEventListener('click', () => editEvent({ projectId, date: null })));
+  if (mode === 'month') wireMonthPicker();
   $$('[data-item]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); openItem(items[Number(b.dataset.item)]); }));
   $$('[data-day-more]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); navigate(link({ view: 'agenda' })); }));
   // Click an empty part of a day to add an event on that day.
@@ -94,6 +95,51 @@ export async function renderCalendar(projectId = null) {
   $$('.cal-sync [role=menuitem]').forEach((b) => b.addEventListener('click', () => { b.closest('details').open = false; }));
   $('[data-subscribe]').addEventListener('click', subscribeCalendar);
   $('[data-ics]').addEventListener('click', () => exportIcs(items, projectId ? p.project.title : 'dancerly'));
+
+  // Jump to any month: tap the title for the months of a year, the year for a range of years, and back down.
+  // Arrow keys move around the grid, Enter picks, Escape goes back up a level (or closes).
+  function wireMonthPicker() {
+    const btn = $('[data-cal-pick]');
+    const box = $('[data-cal-picker]');
+    const thisYear = now.getFullYear();
+    let level = 'months';
+    let year = month.getFullYear();
+    const fmtMonth = (i) => new Date(2000, i, 1).toLocaleDateString(undefined, { month: 'short' });
+    const fmtYear = (n) => new Date(n, 0, 1).toLocaleDateString(undefined, { year: 'numeric' });
+    const decade = (n) => Math.floor(n / 10) * 10; // years show a decade, with the year either side of it
+    const paint = () => {
+      if (level === 'months') {
+        box.innerHTML = `<div class="cp-head"><button type="button" class="icon-btn" data-cp-step="-1" aria-label="Previous year">${ic('back', 'solo')}</button><button type="button" class="cp-up" data-cp-up aria-label="Pick a year">${fmtYear(year)}${ic('down', 'after')}</button><button type="button" class="icon-btn" data-cp-step="1" aria-label="Next year">${ic('right', 'solo')}</button></div>
+          <div class="cp-grid">${Array.from({ length: 12 }, (_, i) => `<button type="button" class="cp-cell${year === month.getFullYear() && i === month.getMonth() ? ' on' : ''}${year === thisYear && i === now.getMonth() ? ' now' : ''}" data-cp-month="${i}">${fmtMonth(i)}</button>`).join('')}</div>`;
+      } else {
+        const start = decade(year);
+        box.innerHTML = `<div class="cp-head"><button type="button" class="icon-btn" data-cp-step="-1" aria-label="Earlier years">${ic('back', 'solo')}</button><span class="cp-range" data-no-i18n>${fmtYear(start)} – ${fmtYear(start + 9)}</span><button type="button" class="icon-btn" data-cp-step="1" aria-label="Later years">${ic('right', 'solo')}</button></div>
+          <div class="cp-grid">${Array.from({ length: 12 }, (_, i) => start - 1 + i).map((n) => `<button type="button" class="cp-cell${n < start || n > start + 9 ? ' out' : ''}${n === month.getFullYear() ? ' on' : ''}${n === thisYear ? ' now' : ''}" data-cp-year="${n}">${fmtYear(n)}</button>`).join('')}</div>`;
+      }
+    };
+    const focusCell = () => (box.querySelector('.cp-cell.on') || box.querySelector('.cp-cell.now') || box.querySelector('.cp-cell'))?.focus();
+    const open = () => { level = 'months'; year = month.getFullYear(); paint(); box.hidden = false; btn.setAttribute('aria-expanded', 'true'); focusCell(); track('calendar_month_picker', {}); };
+    const close = (refocus) => { if (box.hidden) return; box.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus(); };
+    btn.addEventListener('click', (e) => { e.stopPropagation(); if (box.hidden) open(); else close(false); });
+    box.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.cpStep) { year += Number(t.dataset.cpStep) * (level === 'months' ? 1 : 10); paint(); return; }
+      if (t.hasAttribute('data-cp-up')) { level = 'years'; paint(); focusCell(); return; }
+      if (t.dataset.cpYear) { year = Number(t.dataset.cpYear); level = 'months'; paint(); focusCell(); return; }
+      if (t.dataset.cpMonth) { close(false); navigate(link({ m: `${year}-${Number(t.dataset.cpMonth) + 1}` })); }
+    });
+    box.addEventListener('keydown', (e) => {
+      const cells = $$('.cp-cell', box);
+      const i = cells.indexOf(document.activeElement);
+      const move = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[e.key];
+      if (move && i >= 0) { e.preventDefault(); cells[Math.max(0, Math.min(cells.length - 1, i + move))].focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (level === 'years') { level = 'months'; paint(); focusCell(); } else close(true); }
+    });
+    const outside = (e) => { if (!box.isConnected) return document.removeEventListener('click', outside); if (!box.hidden && !e.target.closest('.cal-title-wrap')) close(false); };
+    document.addEventListener('click', outside);
+  }
 
   function openItem(it) {
     if (it.type === 'due') return navigate(`/app/p/${it.project_id}/requests/${it.raw.id}`);
