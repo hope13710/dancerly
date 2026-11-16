@@ -253,7 +253,7 @@ function setCrumbs(items) {
   // A project's tabs add the project ("Notes · Spring Showcase"), so they don't read like the app-wide pages.
   const here = items.length ? items[items.length - 1][0] : '';
   const inProject = items.length >= 3 && PROJECT_TAB.test(location.pathname) ? ` · ${items[items.length - 2][0]}` : '';
-  document.title = here ? `${t(here)}${inProject} · dancerly` : 'dancerly';
+  document.title = here ? `${here}${inProject} · dancerly` : 'dancerly';
   $('[data-crumbs]').innerHTML = items.map(([label, href]) => href ? `<a href="${href}" data-link>${esc(label)}</a>` : `<b>${esc(label)}</b>`).join('<i>/</i>');
   // On phones the breadcrumb is hidden; a back link to the nearest parent takes its place.
   let parent = [...items].reverse().find(([, href]) => href);
