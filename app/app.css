@@ -5827,6 +5827,20 @@ body.is-guest .topbar {
 @keyframes sample-nudge {
   from { background: #cfd0ff; }
 }
+
+/* The sample bar is mounted above the app shell. Keep the review surface on the
+   same type scale as a normal project even when the first-run surface has been
+   resized by a browser's inherited text settings. */
+body.in-sample .review-layout {
+  zoom: 1;
+  font-size: 14px;
+}
+body.in-sample .review-layout .note p {
+  font-size: 14px;
+}
+body.in-sample .review-layout .composer-field textarea {
+  font-size: 14px;
+}
 .section-label {
   margin: 24px 0 8px;
   font-size: 12px;

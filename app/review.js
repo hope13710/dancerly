@@ -15,7 +15,6 @@ import { copyInvite, confirmDeleteVideo, removeTakeFiles, restoreFromTrash, rena
 import { reviewTips, explainPrivate, track, track as logEvent, seen, markSeen, sampleMoment } from './onboarding.js';
 import { shiftBetween, alignTake } from './align.js';
 import { practiceHref } from './choreo-align.js';
-import { isKo } from './i18n.js';
 import { personLink, empty } from './views/shared.js';
 import { shareChoice, celebrate } from './progress-card.js';
 import { CATEGORIES, catLabel, catChip, catHint, catColor, starterKeys } from './categories.js';
@@ -65,7 +64,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const who = members.some((m) => m.user_id === id)
       ? `<a class="uploader" href="/app/people/${id}" data-link>${avatar(name, id, 'xs')}<span>${esc(name)}</span></a>`
       : esc(name);
-    return `<span class="byline" data-no-i18n>${isKo ? `${who}님이 올림` : `uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}`}</span>`;
+    return `<span class="byline" data-no-i18n>uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}</span>`;
   };
   const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
@@ -209,7 +208,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // Filter and sort, the Notion way: one row of pills (Who, Status, Focus area), each opening a checklist, and Sort.
   // Nothing picked in a pill means all of it. The timeline markers follow the filter. Remembered on this device.
   const FILTER_KEY = 'dancerly:note-filter';
-  const STATUSES = [['open', isKo ? '시작 전' : 'Not started'], ['practicing', isKo ? '고치는 중' : 'Working on it'], ['resolved', isKo ? '해결됨' : 'Fixed']];
+  const STATUSES = [['open', 'Not started'], ['practicing', 'Working on it'], ['resolved', 'Fixed']];
   const nf = (() => {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}'); } catch {}
@@ -282,29 +281,29 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (bar.hidden) return;
     const catKeys = schema.noteCategories ? CATEGORIES.map(([k]) => k).filter((k) => all.some((n) => n.category === k)) : [];
     const short = (names) => (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
-    const allWord = isKo ? '전체' : 'All';
+    const allWord = 'All';
     const pill = (key, label, value, on) => `<button type="button" class="nf-pill${on ? ' on' : ''}" data-nf-pill="${key}" aria-haspopup="menu" aria-expanded="false" data-no-i18n><span class="nf-pill-k">${label}</span><span class="nf-pill-v">${esc(value)}</span>${ic('down', 'solo')}</button>`;
     bar.innerHTML = `<div class="nf-row"><div class="nf-pills">
-      ${pill('who', isKo ? '대상' : 'Who', nf.who === 'mine' ? (isKo ? '나에게 온 피드백' : 'For you') : allWord, nf.who !== 'all')}
-      ${pill('status', isKo ? '상태' : 'Status', nf.statuses.length ? short(STATUSES.filter(([k]) => nf.statuses.includes(k)).map(([, l]) => l)) : allWord, nf.statuses.length > 0)}
-      ${catKeys.length > 1 ? pill('cat', isKo ? '항목' : 'Focus', nf.cats.length ? short(nf.cats.map((k) => catLabel(k))) : allWord, nf.cats.length > 0) : ''}
+      ${pill('who', 'Who', nf.who === 'mine' ? 'For you' : allWord, nf.who !== 'all')}
+      ${pill('status', 'Status', nf.statuses.length ? short(STATUSES.filter(([k]) => nf.statuses.includes(k)).map(([, l]) => l)) : allWord, nf.statuses.length > 0)}
+      ${catKeys.length > 1 ? pill('cat', 'Focus', nf.cats.length ? short(nf.cats.map((k) => catLabel(k))) : allWord, nf.cats.length > 0) : ''}
 </div>
-      ${filtering() ? `<button type="button" class="nf-pill nf-reset" data-nf-reset aria-label="${isKo ? '필터 초기화' : 'Clear filters'}" title="${isKo ? '필터 초기화' : 'Clear filters'}" data-no-i18n>${ic('x', 'solo')}</button>` : ''}
+      ${filtering() ? '<button type="button" class="nf-pill nf-reset" data-nf-reset aria-label="Clear filters" title="Clear filters" data-no-i18n>' + ic('x', 'solo') + '</button>' : ''}
       <button type="button" class="nf-pill nf-sort" data-nf-sort aria-haspopup="menu" title="Sort">${ic('sort', 'solo')}<span>${nf.sort === 'new' ? 'Newest' : 'Video order'}</span></button>
     </div>`;
     const count = (swap) => (n) => passes(n, { ...nf, ...swap });
     bar.querySelector('[data-nf-pill="who"]').addEventListener('click', (e) => checklist({
-      anchor: e.currentTarget, title: isKo ? '대상' : 'Who', multi: false, values: [nf.who],
-      options: [['all', allWord], ['mine', isKo ? '나에게 온 피드백' : 'For you']].map(([v, l]) => ({ value: v, label: l, count: all.filter(count({ who: v })).length })),
+      anchor: e.currentTarget, title: 'Who', multi: false, values: [nf.who],
+      options: [['all', allWord], ['mine', 'For you']].map(([v, l]) => ({ value: v, label: l, count: all.filter(count({ who: v })).length })),
       onChange: ([v]) => { nf.who = v; changed('who'); }
     }));
     bar.querySelector('[data-nf-pill="status"]').addEventListener('click', (e) => checklist({
-      anchor: e.currentTarget, title: isKo ? '상태' : 'Status', multi: true, values: nf.statuses,
+      anchor: e.currentTarget, title: 'Status', multi: true, values: nf.statuses,
       options: STATUSES.map(([v, l]) => ({ value: v, label: l, count: all.filter(count({ statuses: [v] })).length })),
       onChange: (vals) => { nf.statuses = vals; changed('status'); }
     }));
     bar.querySelector('[data-nf-pill="cat"]')?.addEventListener('click', (e) => checklist({
-      anchor: e.currentTarget, title: isKo ? '항목' : 'Focus area', multi: true, values: nf.cats,
+      anchor: e.currentTarget, title: 'Focus area', multi: true, values: nf.cats,
       options: catKeys.map((k) => ({ value: k, label: catLabel(k), html: `<i class="nf-dot" style="background:${catColor(k)}"></i>`, count: all.filter(count({ cats: [k] })).length })),
       onChange: (vals) => { nf.cats = vals; changed('cat'); }
     }));
@@ -325,7 +324,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // "3·5" next to the time when the video has counts (each take keeps its own count 1).
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
   // When a note's words last changed, for its "edited" mark (on hover, focus or long press).
-  const editedAt = (at) => { const d = new Date(at).toLocaleString(isKo ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }); return isKo ? `${d}에 수정됨` : `Edited ${d}`; };
+  const editedAt = (at) => { const d = new Date(at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); return `Edited ${d}`; };
   const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
   // A note's or reply's author, opening their profile (someone who left the project stays plain text).
   const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
@@ -379,7 +378,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         : canResolve(n) ? `<button class="note-check" data-status="resolved" data-id="${n.id}" title="Mark as fixed" aria-label="Mark as fixed">${ic('check', 'solo')}</button>` : '';
       return `<article class="note ${n.status === 'resolved' ? 'is-resolved' : ''} ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">${isKo ? '· 수정됨' : '· edited'}</span>` : ''}</span>${check}</div>
+        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">· edited</span>` : ''}</span>${check}</div>
         <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" data-i18n-attrs title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" data-i18n-attrs role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> <span class="note-copy">${withMentions(n.body)}</span></p>
         ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
