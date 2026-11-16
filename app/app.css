@@ -10513,3 +10513,10 @@ body.is-guest .tabbar {
   .nf-row { align-items: flex-start; }
   .nf-pills { flex-wrap: wrap; overflow: visible; -webkit-mask-image: none; mask-image: none; padding-right: 0; row-gap: 6px; }
 }
+/* The take summary, the filter row and the first note sit 12px apart. */
+.note-filters { margin: 12px 0 0; }
+.note-filters:not([hidden]) + .note-list { margin-top: 12px; }
+@media (hover: hover) and (min-width: 901px) {
+  /* The list keeps 16px at its top for the first card's toolbar: that's the space under the filter row there. */
+  .note-filters:not([hidden]) + .note-list { margin-top: 0; }
+}
