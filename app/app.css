@@ -10419,3 +10419,6 @@ body.is-guest .tabbar {
 .sec-filter[hidden] { display: none; }
 .sec-filter button { padding: 3px 9px; font-size: 12px; }
 .who-cell { font-size: 13px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+
+/* How it's going › Progress: room between the "shows once…" line and Show as table. */
+.progress-panel .fine + .table-toggle { margin-top: 14px; }
