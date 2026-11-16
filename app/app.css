@@ -40,6 +40,11 @@
 * {
   box-sizing: border-box;
 }
+/* Text stays the size we set: phones don't enlarge it on their own (iPhone in landscape, Android's font boosting). */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 html,
 body {
   margin: 0;
@@ -1013,6 +1018,8 @@ a {
 }
 .note-list {
   display: grid;
+  /* One column no wider than the list: a fixed note's one-line summary (no wrapping) must not widen it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 12px 0;
   overflow: auto;
@@ -10629,4 +10636,101 @@ article.note[data-note] .reply-form {
 }
 @media (min-width: 601px) {
   .me-card .person-actions { margin-left: auto; }
+}
+
+/* Laptops and desktops: the note box is folded into one "Add a note" line until it's used (as on phones, but in
+   place rather than pinned to the bottom edge), so the notes list gets the column's height. A note card is
+   taller than the list could show when the full form stood open. */
+@media (min-width: 901px) {
+  .composer:not(.open) .composer-body {
+    display: none;
+  }
+  .composer:not(.open) .composer-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1px solid #3e4757;
+    background: #232935;
+    color: #c4c9d6;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: text;
+  }
+  .composer:not(.open) .composer-open:hover {
+    border-color: #566176;
+  }
+  .composer .co-plus {
+    color: #7cc4ff;
+    font-weight: 700;
+  }
+  .composer .co-at {
+    margin-left: auto;
+    font-size: 12px;
+    color: #8993a1;
+    font-variant-numeric: tabular-nums;
+  }
+  .note-list {
+    min-height: 240px;
+  }
+}
+
+/* A note's ⋯ sits in its header, next to ✓ (as in Slack and Frame.io), so the action row never wraps onto a second,
+   empty line when the column is narrow. On computers it shows when you point at the note. */
+.note-head .note-more {
+  margin-left: auto;
+  flex: none;
+}
+.note-head .note-more + .note-check {
+  margin-left: 0;
+}
+.note-more-btn {
+  list-style: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #8993a1;
+  cursor: pointer;
+}
+.note-more-btn::-webkit-details-marker {
+  display: none;
+}
+.note-more-btn:hover,
+.note-more[open] .note-more-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e3e6ed;
+}
+.note-more-btn .ic {
+  width: 16px;
+  height: 16px;
+}
+/* With touch, a 44px tap area around the 28px button, without making every note's header taller. */
+@media (pointer: coarse) {
+  .note-more-btn { position: relative; min-height: 0; min-width: 0; padding: 0; }
+  .note-head .note-more { height: 28px; }
+  .note-more-btn::after { content: ""; position: absolute; inset: -8px; }
+}
+@media (hover: hover) and (min-width: 901px) {
+  .note-head .note-more {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .note:hover .note-head .note-more,
+  .note:focus-within .note-head .note-more,
+  .note.selected .note-head .note-more,
+  .note-head .note-more[open] {
+    opacity: 1;
+  }
+}
+@media (min-width: 901px) {
+  /* While writing, the open note box comes first: the list gives way rather than pushing Add note out of view. */
+  .notes-col:has(.composer.open) .note-list {
+    min-height: 0;
+  }
 }

@@ -175,7 +175,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   videoEl.addEventListener('error', cantPlay);
   videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.videoWidth) cantPlay(); });
   const duration = () => (Number.isFinite(videoEl.duration) ? videoEl.duration : 0);
-  const pct = (sec) => `${duration() ? (sec / duration()) * 100 : 0}%`;
+  const pct = (sec) => `${duration() ? Math.min(100, Math.max(0, (sec / duration()) * 100)) : 0}%`;
 
   // ---------- Notes ----------
   async function loadNotes() {
@@ -378,7 +378,15 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
         : canResolve(n) ? `<button class="note-check" data-status="resolved" data-id="${n.id}" title="Mark as fixed" aria-label="Mark as fixed">${ic('check', 'solo')}</button>` : '';
       return `<article class="note ${n.status === 'resolved' ? 'is-resolved' : ''} ${r.selected === n.id ? 'selected' : ''} ${looping ? 'looping' : ''} ${n.private_to ? 'private' : ''} ${r.nowIds.has(n.id) ? 'now' : ''} ${r.justPinned === n.id ? 'just-pinned' : ''}" data-note="${n.id}">
         ${n.private_to ? `<p class="private-tag" title="Only you and ${esc(nameOf(other))} can see this note and its replies">${ic('lock')}Private · you and ${esc(nameOf(other))}</p>` : ''}
-        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">· edited</span>` : ''}</span>${check}</div>
+        <div class="note-head"><span class="who">${by(n.author_id)}</span><span class="when">${timeAgo(n.created_at)}${n.edited_at ? ` <span class="edited" data-no-i18n tabindex="0" title="${esc(editedAt(n.edited_at))}">· edited</span>` : ''}</span><details class="menu-more note-more"><summary class="note-more-btn" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
+            ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
+            ${withChoreo && !practiceMine ? `<button type="button" role="menuitem" data-practice-note="${n.id}">${ic('play')}Practice with the original</button>` : ''}
+            ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
+            <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
+            ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
+            ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
+            ${canManageNote(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
+          </div></details>${check}</div>
         <p class="note-body"><button class="time-chip" data-seek="${n.id}">${ic(n.t_end === null ? 'at' : 'range')}${noteTime(n)}${count ? `<span class="chip-count" data-i18n-attrs title="Eight ${count.eight}, count ${count.count}">${countLabel(count)}</span>` : ''}${n.sketch ? `<span class="chip-sketch" data-i18n-attrs role="img" title="This note has a sketch on the frame" aria-label="This note has a sketch on the frame">${ic('pen', 'solo')}</span>` : ''}</button> <span class="note-copy">${withMentions(n.body)}</span></p>
         ${meta.length ? `<div class="note-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>` : ''}
         ${ask}
@@ -388,15 +396,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
           ${looping ? `<button class="mini on" data-loop="${n.id}" aria-pressed="true">${ic('loop')}Looping</button>` : ''}
           ${forMe ? `<button class="mini on-it" data-status="practicing" data-id="${n.id}" title="Tell the team you’re working on this">${ic('check')}I’m on it</button>` : ''}
           ${practiceMine ? `<button class="mini practice-it" data-practice-note="${n.id}" title="Loop this moment in the choreo video at 0.75×">${ic('loop')}Practice it</button>` : ''}
-          <details class="menu-more note-more quiet"><summary class="mini ghost" aria-label="More actions">${ic('more', 'solo')}</summary><div class="tabs-more-menu" role="menu">
-            ${looping ? '' : `<button type="button" role="menuitem" data-loop="${n.id}">${ic('loop')}${n.t_end === null ? 'Loop ±2s' : 'Loop this part'}</button>`}
-            ${withChoreo && !practiceMine ? `<button type="button" role="menuitem" data-practice-note="${n.id}">${ic('play')}Practice with the original</button>` : ''}
-            ${n.author_id === me.id ? `<button type="button" role="menuitem" data-edit-note="${n.id}">${ic('pen')}Edit note</button>` : ''}
-            <button type="button" role="menuitem" data-copy-note="${n.id}">${ic('link')}Copy link</button>
-            ${n.status === 'open' && !forMe ? `<button type="button" role="menuitem" data-status="practicing" data-id="${n.id}">I’m on it</button>` : ''}
-            ${n.status === 'practicing' ? `<button type="button" role="menuitem" data-status="open" data-id="${n.id}">Clear “Working on it”</button>` : ''}
-            ${canManageNote(n) ? `<button type="button" role="menuitem" class="danger" data-delete="${n.id}">Delete note</button>` : ''}
-          </div></details>
         </div>
         ${open ? `<div class="thread">
           ${replies.map((rp) => `<div class="reply">${members.some((m) => m.user_id === rp.author_id) ? `<span class="person-link" role="link" tabindex="-1" aria-hidden="true" data-person="${rp.author_id}">${avatar(nameOf(rp.author_id), rp.author_id, 'xs')}</span>` : avatar(nameOf(rp.author_id), rp.author_id, 'xs')}<div><p><b>${members.some((m) => m.user_id === rp.author_id) ? personLink(nameOf(rp.author_id), rp.author_id, { photo: false }) : esc(nameOf(rp.author_id))}</b> <small>${timeAgo(rp.created_at)}</small>${rp.author_id !== me.id ? ` <button type="button" class="reply-to" data-reply-to="${n.id}" data-name="${esc(nameOf(rp.author_id))}">Reply</button>` : ''}</p><p>${withMentions(rp.body)}</p></div>${rp.author_id === me.id || isOwner ? `<button class="mini ghost" data-delete-reply="${rp.id}" data-id="${n.id}" aria-label="Delete reply">${ic('x', 'solo')}</button>` : ''}</div>`).join('')}
@@ -449,7 +448,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     if (!duration()) return;
     $('[data-markers]').innerHTML = notes.map((n) => n.t_end === null
       ? `<button class="t-pin ${r.selected === n.id ? 'on' : ''}" style="left:${pct(n.t_start)}" data-seek="${n.id}" aria-label="Note at ${noteTime(n)}"></button>`
-      : `<button class="t-range ${r.selected === n.id ? 'on' : ''}" style="left:${pct(n.t_start)};width:${pct(n.t_end - n.t_start)}" data-seek="${n.id}" aria-label="Note from ${noteTime(n)}"></button>`).join('');
+      : `<button class="t-range ${r.selected === n.id ? 'on' : ''}" style="left:${pct(n.t_start)};width:${pct(Math.min(n.t_end, duration() || n.t_end) - Math.min(n.t_start, duration() || n.t_start))}" data-seek="${n.id}" aria-label="Note from ${noteTime(n)}"></button>`).join('');
   }
 
   // ---------- Player ----------
@@ -526,6 +525,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   }
   function startSketch() {
     if (r.drawing) return;
+    setComposer(true);
     play(false);
     setLoop(null);
     if (!r.sketch) r.sketchAt = videoEl.currentTime || 0;
@@ -553,7 +553,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     r.shownKey = '';
     paintSketchChip();
     paintPlayer();
-    if (r.sketch) input.focus();
+    if (r.sketch) focusInput();
   }
   function dropSketch() {
     if (r.drawing) { r.drawing.stop(); r.drawing = null; $('[data-player]').classList.remove('drawing'); $('[data-sketch-bar]').hidden = true; }
@@ -943,7 +943,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       r.starter = { key: starter.dataset.starter, prefix: `${word}:` };
       $('[data-composer-open]')?.click();
       input.value = `${word}: `;
-      input.focus();
+      focusInput();
       input.setSelectionRange(input.value.length, input.value.length);
       return;
     }
@@ -1120,6 +1120,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     paintPlayer();
   }
   function mark(which) {
+    setComposer(true);
     const t = videoEl.currentTime || 0;
     if (r.mode !== 'range') setMode('range');
     if (which === 'start') { r.rangeStart = t; if (r.rangeEnd !== null && r.rangeEnd <= t) r.rangeEnd = null; }
@@ -1232,7 +1233,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // again once the note is pinned (or you leave it empty). On wider screens it's always open.
   const composer = $('[data-composer]');
   function setComposer(open) { composer.classList.toggle('open', open); }
-  $('[data-composer-open]').addEventListener('click', () => { setComposer(true); input.focus(); });
+  // The note box is folded into one line until it's used; anything that puts the cursor there opens it first.
+  function focusInput() { setComposer(true); input.focus(); }
+  $('[data-composer-open]').addEventListener('click', focusInput);
   composer.addEventListener('focusout', () => setTimeout(() => {
     if (!composer.contains(document.activeElement) && !input.value.trim() && !r.sketch && !r.drawing && r.mode === 'point') setComposer(false);
   }, 150));
@@ -1260,8 +1263,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   let pinning = false;
   async function pin() {
     const body = input.value.trim();
-    if (!body && r.sketch && !pinning) { toast('Add a few words to go with the sketch.'); return input.focus(); }
-    if (!body || pinning) return input.focus();
+    if (!body && r.sketch && !pinning) { toast('Add a few words to go with the sketch.'); return focusInput(); }
+    if (!body || pinning) return focusInput();
     if (r.drawing) finishSketch();
     // A sketch belongs to the frame it was drawn on.
     let start = r.sketch && r.mode === 'point' ? r.sketchAt : videoEl.currentTime || 0;
@@ -1319,7 +1322,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const actions = {
       ' ': () => play(videoEl.paused), k: () => play(false), j: () => seek(videoEl.currentTime - 5), l: () => seek(videoEl.currentTime + 5),
       arrowleft: () => seek(videoEl.currentTime - 5), arrowright: () => seek(videoEl.currentTime + 5),
-      d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); input.focus(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) input.focus(); },
+      d: () => (r.drawing ? finishSketch() : startSketch()), b: abLoop, t: tap, c: toggleCompare, m: toggleMirror, n: () => { setMode('point'); focusInput(); }, '[': () => mark('start'), ']': () => { mark('end'); if (r.rangeEnd !== null) focusInput(); },
       f: toggleFull, w: toggleTheater, escape: () => (playerCol.classList.contains('is-full') && !fsElement() ? toggleFull() : setLoop(null)), arrowup: () => step(-1), arrowdown: () => step(1),
       '<': () => stepSpeed(-1), '>': () => stepSpeed(1), ',': () => e.shiftKey && stepSpeed(-1), '.': () => e.shiftKey && stepSpeed(1)
     };
