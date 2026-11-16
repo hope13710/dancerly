@@ -158,7 +158,9 @@ export async function renderPerson(userId) {
     paintThumbs(growth.flatMap((v) => [v.first, v.last]));
     $$('[data-make-card]').forEach((b) => b.addEventListener('click', () => openCardEditor({ projectId: b.dataset.project, videoId: b.dataset.makeCard, from: 'profile' })));
   }  view.querySelector('[data-add-to-project]')?.addEventListener('click', async (e) => {
-    const id = addable.length === 1 ? addable[0].id : await actionSheet({ title: 'Add to which project?', anchor: e.currentTarget, actions: addable.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
+    // Always ask, even with one project to offer: the choice is also the confirmation (adding someone to a team
+    // shouldn't happen on a single tap).
+    const id = await actionSheet({ title: isKo ? `${person.name}님을 어느 프로젝트에 추가할까요?` : `Add ${person.name} to which project?`, anchor: e.currentTarget, actions: addable.map((p) => ({ value: p.id, label: p.title, icon: 'folder' })) });
     if (!id) return;
     const project = addable.find((p) => p.id === id);
     const { error } = await sb.rpc('add_project_member', { p_project: id, p_user: userId });

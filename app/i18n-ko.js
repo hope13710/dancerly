@@ -1558,7 +1558,6 @@ export const KO = {
   'No one by that name. Send them the link below.': '그 이름의 사람이 없어요. 아래 링크를 보내 주세요.',
   'Added': '추가됨',
   'Add to project': '프로젝트에 추가',
-  'Add to which project?': '어느 프로젝트에 추가할까요?',
   'Someone adds you to a project': '누군가 나를 프로젝트에 추가할 때',
   'When a teammate adds you to another of their projects.': '함께하는 팀원이 나를 다른 프로젝트에 추가했을 때 알려드려요.',
   'You can only add people you already work with. Send them the invite link instead.': '함께한 적 있는 사람만 바로 추가할 수 있어요. 대신 초대 링크를 보내 주세요.',
