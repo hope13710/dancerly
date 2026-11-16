@@ -101,7 +101,7 @@ export function taskCount(md) {
 // Optional: suggest(query) → [{ group, label, sub, ref, text }] for the @ menu; unfurl(url) → { ref, text } | null to
 // turn a pasted dancerly link into a chip; imageUrl(path) → a URL to show a photo; onRef(ref, el) when a chip is
 // opened while reading; onImage(img) when a photo is opened.
-export function mount(root, { markdown = '', onChange = () => {}, onToggle = () => {}, suggest = null, unfurl = null, imageUrl = null, onRef = () => {}, onImage = () => {} } = {}) {
+export function mount(root, { markdown = '', onChange = () => {}, onToggle = () => {}, suggest = null, unfurl = null, imageUrl = null, onRef = () => {}, onImage = () => {}, onInsert = () => {} } = {}) {
   root.classList.add('doc', 'doc-blocks');
   root.innerHTML = blocksHtml(markdown) || blockHtml({ t: 'p', text: '' });
   let editing = false;
@@ -274,7 +274,7 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
     if (lines.length === 1 && unfurl && /^https?:\/\/\S+$/.test(text.trim())) {
       const at = getSelection().rangeCount ? getSelection().getRangeAt(0).cloneRange() : null;
       const chip = await unfurl(text.trim()).catch(() => null);
-      if (chip && at) { const s = getSelection(); s.removeAllRanges(); s.addRange(at); insertChip(chip); return; }
+      if (chip && at) { const s = getSelection(); s.removeAllRanges(); s.addRange(at); insertChip(chip); onInsert(chip.ref, 'paste'); return; }
       document.execCommand('insertText', false, text);
       return;
     }
@@ -402,6 +402,7 @@ export function mount(root, { markdown = '', onChange = () => {}, onToggle = () 
     r.setEnd(menu.node, end);
     closeMenu();
     insertChip(it, r);
+    onInsert(it.ref, 'menu');
   }
   root.addEventListener('blur', () => setTimeout(() => { if (!root.contains(document.activeElement)) closeMenu(); }, 150));
 

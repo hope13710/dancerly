@@ -10927,8 +10927,8 @@ article.note[data-note] .reply-form {
 /* Pages: chips (@ a person, a video moment, a section, an event, a page), the @ menu, and photos. */
 .doc-blocks a.ref, .doc a.ref { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 0 7px 0 5px; margin: 0 1px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; font-size: 0.94em; line-height: 1.6; text-decoration: none; vertical-align: baseline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; user-select: all; }
 .doc-blocks a.ref::before { content: ""; flex: none; width: 13px; height: 13px; background: currentColor; -webkit-mask: var(--ref-ic) center / contain no-repeat; mask: var(--ref-ic) center / contain no-repeat; opacity: 0.85; }
-.doc-blocks a.ref[data-kind="person"] { padding-left: 6px; }
-.doc-blocks a.ref[data-kind="person"]::before { content: "@"; width: auto; height: auto; background: none; -webkit-mask: none; mask: none; }
+.doc-blocks a.ref[data-kind="person"], .doc-blocks a.ref[data-kind="everyone"] { padding-left: 6px; }
+.doc-blocks a.ref[data-kind="person"]::before, .doc-blocks a.ref[data-kind="everyone"]::before { content: "@"; width: auto; height: auto; background: none; -webkit-mask: none; mask: none; }
 a.ref[data-kind="video"], .ref-menu-icon[data-kind="video"] { --ref-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5.5v13l11-6.5z'/%3E%3C/svg%3E"); }
 a.ref[data-kind="section"], .ref-menu-icon[data-kind="section"] { --ref-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M4 7h16M4 12h10M4 17h13'/%3E%3C/svg%3E"); }
 a.ref[data-kind="event"], .ref-menu-icon[data-kind="event"] { --ref-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='4' y='5.5' width='16' height='14' rx='2.5'/%3E%3Cpath d='M4 10h16M9 3.5v4M15 3.5v4'/%3E%3C/svg%3E"); }
@@ -10944,8 +10944,9 @@ a.ref[data-kind="page"], .ref-menu-icon[data-kind="page"] { --ref-ic: url("data:
 .ref-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 6px 8px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .ref-menu-item.on, .ref-menu-item:hover { background: var(--accent-soft); }
 .ref-menu-icon { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--bg-2, #f1f2f5); color: #4b5563; font-size: 13px; font-weight: 700; }
-.ref-menu-icon:not([data-kind="person"])::before { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--ref-ic) center / contain no-repeat; mask: var(--ref-ic) center / contain no-repeat; }
-.ref-menu-icon[data-kind="person"]::before { content: "@"; }
+.ref-menu-icon:not([data-kind="person"]):not([data-kind="everyone"])::before { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--ref-ic) center / contain no-repeat; mask: var(--ref-ic) center / contain no-repeat; }
+.ref-menu-icon[data-kind="person"]::before, .ref-menu-icon[data-kind="everyone"]::before { content: "@"; }
+.ref-menu-icon[data-kind="everyone"] { background: var(--accent-soft); color: var(--accent-dark); }
 .ref-menu-main { display: grid; min-width: 0; }
 .ref-menu-main b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ref-menu-main small { color: var(--muted); font-size: 12px; }
@@ -10979,3 +10980,7 @@ a.ref[data-kind="page"], .ref-menu-icon[data-kind="page"] { --ref-ic: url("data:
   .doc-toolbar [data-mention-btn], .doc-toolbar [data-photo-btn] { order: -2; }
   .doc-toolbar .tb-sep-media { order: -1; }
 }
+
+/* @everyone in a note, and its row in the @ menu. */
+.mention.everyone { cursor: default; }
+.everyone-av { display: inline-grid; place-items: center; background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }

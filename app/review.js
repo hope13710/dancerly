@@ -329,7 +329,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   const takeCountStart = (takeId) => { const t = takes.find((x) => x.id === takeId); return t?.count_start === null || t?.count_start === undefined ? null : Number(t.count_start); };
   // When a note's words last changed, for its "edited" mark (on hover, focus or long press).
   const editedAt = (at) => { const d = new Date(at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); return `Edited ${d}`; };
-  const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text));
+  const withMentions = (text) => members.reduce((html, m) => html.split(`@${esc(m.name)}`).join(`<span class="mention" role="link" tabindex="0" data-person="${m.user_id}">@${esc(m.name)}</span>`), esc(text))
+    .replace(/(^|[\s(])@everyone\b/g, '$1<span class="mention everyone">@everyone</span>');
   // A note's or reply's author, opening their profile (someone who left the project stays plain text).
   const by = (id) => (members.some((m) => m.user_id === id) ? personLink(nameOf(id), id) : `${avatar(nameOf(id), id, 'xs')}${esc(nameOf(id))}`);
   // Every project member who can see a note can mark it fixed or reopen it.
@@ -1012,7 +1013,8 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       el.closest('details')?.removeAttribute('open');
       const n = takes.find((t) => t.id === note.take_id)?.number;
       const t = Math.floor(Number(note.t_start));
-      return addToPage(projectId, { ref: `video/${videoId}?${n ? `take=${n}&` : ''}t=${t}`, text: [video.title, n && `Take ${n}`, fmt(t)].filter(Boolean).join(' · '), body: note.body, anchor: el.closest('.note-more')?.querySelector('summary') });
+      logEvent('page_add_from_note');
+      return addToPage(projectId, { ref: `video/${videoId}?${n ? `take=${n}&` : ''}t=${t}&note=${note.id}`, text: [video.title, n && `Take ${n}`, fmt(t)].filter(Boolean).join(' · '), body: note.body, anchor: el.closest('.note-more')?.querySelector('summary') });
     }
     if (el.dataset.copyNote) {
       // Opens this video at this note, for anyone in the project (the page already handles ?note=).
@@ -1145,16 +1147,23 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   // The @name being typed, if any. A name already finished ("@Jordan Lee ") isn't one: Enter then sends.
   const mentionMatch = (field = input) => {
     const m = field.value.slice(0, field.selectionStart).match(/@([^@\n]{0,30})$/);
-    return m && /\s$/.test(m[1]) && members.some((x) => m[1].startsWith(`${x.name} `)) ? null : m;
+    return m && /\s$/.test(m[1]) && (m[1].startsWith('everyone ') || members.some((x) => m[1].startsWith(`${x.name} `))) ? null : m;
   };
   // `only`: in a private thread, just the two people in it.
   function paintMentions(field = input, menu = $('[data-mentions]'), only = null) {
     const m = mentionMatch(field);
     const options = m ? rankMentions(m[1], only) : [];
+    // @everyone: everyone else in the project, as Slack's @channel. Not in replies or private notes.
+    const others = members.filter((x) => x.user_id !== me.id).length;
+    const typed = m ? m[1].trim().toLowerCase() : '';
+    const everyone = Boolean(m) && field === input && !$('[data-visibility]')?.value && others >= 2 && (!typed || 'everyone'.startsWith(typed) || 'all'.startsWith(typed));
     // Typed a name that isn't on the project (or there's nobody else yet): offer the invite link right there.
     const missing = field === input && Boolean(m) && !project.is_sample && (m[1].trim().length >= 2 || members.length === 1) && !options.length;
-    menu.hidden = !options.length && !missing;
-    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${options.map((x, i) => `<button type="button" role="option" class="${i === 0 ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}${missing ? '<button type="button" class="mention-invite" data-invite-copy="mention"><b>Not in this project yet?</b><small>Copy the invite link. Once they join, you can @mention them.</small></button>' : ''}`;
+    const invite = missing && !everyone;
+    menu.hidden = !options.length && !invite && !everyone;
+    // Typing a name puts that person first; an empty @ or "@ev" puts everyone first.
+    const everyoneFirst = everyone && (!typed || !options.length);
+    menu.innerHTML = `<span class="menu-label">People on ${esc(project.title)}</span>${everyone ? `<button type="button" role="option" class="${everyoneFirst ? 'active' : ''}" data-pick="everyone"><span class="avatar xs everyone-av" aria-hidden="true">@</span>everyone<small>Notify all ${others} people</small></button>` : ''}${options.map((x, i) => `<button type="button" role="option" class="${i === 0 && !everyoneFirst ? 'active' : ''}" data-pick="${esc(x.name)}">${avatar(x.name, x.user_id, 'xs')}${esc(x.name)}<small>${x.role === 'owner' ? 'Owner' : 'Member'}</small></button>`).join('')}${invite ? '<button type="button" class="mention-invite" data-invite-copy="mention"><b>Not in this project yet?</b><small>Copy the invite link. Once they join, you can @mention them.</small></button>' : ''}`;
     $$('[data-pick]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); pick(b.dataset.pick, field, menu, only); }));
     $$('[data-invite-copy]', menu).forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); menu.hidden = true; copyInvite(projectId, 'mention'); }));
   }
@@ -1292,7 +1301,9 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     pinning = false;
     if (error) return toast(friendlyError(error), 'error');
     // In a private note only the recipient can be mentioned (they're notified anyway).
-    const mentioned = members.filter((m) => m.user_id !== me.id && body.includes(`@${m.name}`) && (!privateTo || m.user_id === privateTo));
+    const toEveryone = !privateTo && /(^|[\s(])@everyone\b/.test(body);
+    const mentioned = members.filter((m) => m.user_id !== me.id && (toEveryone || body.includes(`@${m.name}`)) && (!privateTo || m.user_id === privateTo));
+    if (toEveryone) logEvent('mention_everyone', { where: 'note' });
     if (mentioned.length) await sb.from('note_mentions').insert(mentioned.map((m) => ({ note_id: note.id, user_id: m.user_id })));
     r.starter = null;
     input.value = '';
@@ -1315,7 +1326,7 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
     const recipient = privateTo ? members.find((m) => m.user_id === privateTo)?.name : null;
     toast(recipient
       ? `Private note pinned. Only ${recipient.split(' ')[0]} can see it.`
-      : `Note added at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
+      : `Note added at ${end === null ? fmt(start) : `${fmt(start)}–${fmt(end)}`}.${toEveryone ? ' Everyone in the project will see it in their feedback.' : mentioned.length ? ` ${mentioned.map((m) => m.name.split(' ')[0]).join(' and ')} will see it in their feedback.` : ''}`);
   }
 
   // ---------- Keyboard ----------

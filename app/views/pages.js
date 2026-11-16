@@ -2,6 +2,7 @@
 // sheet. Written and read in the same view (app/editor.js), ticked with a tap, saved as you go.
 import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, isEnter, Unavailable, schema, takeUrl, notChoreo, fmt } from '../client.js';
 import { showEvent } from './calendar.js';
+import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { loadProject, projectHead } from './project.js';
 import { empty, namesFor } from './shared.js';
@@ -157,7 +158,8 @@ export async function renderPage(projectId, pageId) {
     unfurl: refs.unfurl,
     imageUrl: (path) => takeUrl(path),
     onRef: (ref, el) => refs.open(ref, el),
-    onImage: (img) => lightbox(img)
+    onImage: (img) => lightbox(img),
+    onInsert: (ref, how) => track('page_ref_inserted', { kind: ref.split('/')[0], how })
   });
   // Shows a version of the page, and greys out chips whose video, section, event, page or person is gone.
   const show = (md) => { ed.setMarkdown(md); refs.check(ed.chips()); };
@@ -183,7 +185,7 @@ export async function renderPage(projectId, pageId) {
     version = data[0].updated_at;
     const before = saved.body;
     saved = { title, body };
-    notifyMentions(page.id, before, body, p.me);
+    notifyMentions(page.id, before, body, p.me, p.members);
     setState('Saved');
     titleView.textContent = title;
     return true;
@@ -317,6 +319,7 @@ export async function renderPage(projectId, pageId) {
         const { error: e } = await sb.storage.from('takes').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
         if (e) throw e;
         slot.done(path);
+        track('page_photo_added');
       } catch (e) {
         slot.failed();
         toast(e?.decode ? 'This photo type can’t be added. Try a JPG or PNG.' : friendlyError(e), 'error');
@@ -349,9 +352,16 @@ export async function renderPage(projectId, pageId) {
   // ⋯: pin to the Overview, delete.
   $('[data-page-more]').addEventListener('click', async (e) => {
     const choice = await actionSheet({ title: titleEl.value || page.title, anchor: e.currentTarget, actions: [
+      { value: 'copy', icon: 'link', label: 'Copy link', hint: 'Paste it in your team chat. Anyone in the project can open it.' },
       { value: 'pin', icon: 'pin', label: page.pinned ? 'Unpin from Overview' : 'Pin to Overview', hint: page.pinned ? null : 'Everyone sees it first on the project’s Overview' },
       ...(canDelete ? [{ value: 'delete', icon: 'trash', label: 'Delete page', danger: true }] : [])
     ] });
+    if (choice === 'copy') {
+      const url = `${location.origin}/app/p/${projectId}/pages/${page.id}`;
+      track('page_link_copied');
+      try { await navigator.clipboard.writeText(url); toast('Link copied. Anyone in the project can open it.'); }
+      catch { await dialog({ title: 'Copy this link', fields: [{ name: 'url', label: 'Link', value: url, max: 400 }], confirm: 'Done' }); }
+    }
     if (choice === 'pin') {
       const { data, error: e2 } = await sb.from('project_pages').update({ pinned: !page.pinned }).eq('id', page.id).select('updated_at');
       if (e2) return toast(friendlyError(e2), 'error');
@@ -390,7 +400,7 @@ export async function renderPage(projectId, pageId) {
 }
 
 // ---------- Chips: what @ can link to in this project, opening them, and spotting the ones that are gone ----------
-const KIND_GROUP = { person: 'People', video: 'Videos', section: 'Practice sections', event: 'Events', page: 'Pages' };
+const KIND_GROUP = { everyone: 'People', person: 'People', video: 'Videos', section: 'Practice sections', event: 'Events', page: 'Pages' };
 const GONE = { person: 'They’re no longer in this project.', video: 'This video was deleted.', section: 'This section was removed from Practice.', event: 'This event was deleted.', page: 'This page was deleted.' };
 const splitRef = (ref) => { const [kind, rest = ''] = ref.split(/\/(.*)/s); const [id, query = ''] = rest.split('?'); return { kind, id, query }; };
 const sectionLabel = (r) => [r.section, r.counts].filter(Boolean).join(' · ') || `Section ${r.position + 1}`;
@@ -410,6 +420,7 @@ function pageRefs(p, pageId) {
     const soon = Date.now() - 864e5;
     const date = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     return [
+      ...(p.members.length >= 3 ? [{ group: 'People', label: 'everyone', sub: `Notify all ${p.members.length - 1} people`, ref: `everyone/${projectId}`, text: 'everyone' }] : []),
       ...p.members.map((m) => ({ group: 'People', label: m.name, sub: m.user_id === p.me ? 'You' : m.role === 'owner' ? 'Owner' : '', ref: `person/${m.user_id}`, text: m.name })),
       ...(videos || []).map((v) => {
         const last = Math.max(0, ...(v.takes || []).filter((t) => !t.deleted_at).map((t) => t.number));
@@ -456,6 +467,7 @@ function pageRefs(p, pageId) {
       const q = new URLSearchParams();
       if (take) q.set('take', take);
       if (t !== null && !Number.isNaN(t)) q.set('t', Math.floor(t));
+      if (note) q.set('note', noteId);
       return { ref: `video/${m[1]}${q.toString() ? `?${q}` : ''}`, text: [v.title || 'Video', take && `Take ${take}`, t !== null && !Number.isNaN(t) && fmt(t)].filter(Boolean).join(' · ') };
     }
     if (inThis && path.endsWith('/practice') && url.searchParams.get('section')) {
@@ -477,6 +489,8 @@ function pageRefs(p, pageId) {
     const { kind, id, query } = splitRef(ref);
     if (el?.classList.contains('gone')) return toast(GONE[kind] || 'This isn’t available anymore.');
     const go = ctx.navigate;
+    track('page_chip_open', { kind });
+    if (kind === 'everyone') return go(`/app/p/${projectId}/people`);
     if (kind === 'person') return go(`/app/people/${id}`);
     if (kind === 'video') return go(`/app/p/${projectId}/v/${id}${query ? `?${query}` : ''}`);
     if (kind === 'section') return go(`/app/p/${projectId}/practice?section=${id}`);
@@ -513,13 +527,21 @@ function pageRefs(p, pageId) {
 // People newly @mentioned in this save hear about it, with the line they're on (migration 075).
 const personIds = (md) => new Set([...(md || '').matchAll(/\]\(dancerly:person\/([0-9a-f-]{36})\)/g)].map((m) => m[1]));
 const plainLine = (line) => line.replace(/^\s*(?:[-*]\s+\[[ xX]\]\s+|[-*]\s+|\d{1,2}\.\s+|#{1,3}\s+|>\s+)/, '')
-  .replace(/\[([^\]]+)\]\(dancerly:person\/[^)]+\)/g, '@$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*`]/g, '').trim();
-function notifyMentions(pageId, before, after, me) {
+  .replace(/\[([^\]]+)\]\(dancerly:(?:person|everyone)\/[^)]+\)/g, '@$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*`]/g, '').trim();
+const EVERYONE = /\]\(dancerly:everyone\//;
+function notifyMentions(pageId, before, after, me, members) {
   if (!schema.pageMentions) return;
   const had = personIds(before);
   const lines = (after || '').split('\n');
-  const mentions = [...personIds(after)].filter((u) => !had.has(u) && u !== me)
+  let mentions = [...personIds(after)].filter((u) => !had.has(u) && u !== me)
     .map((user) => ({ user, line: plainLine(lines.find((l) => l.includes(`dancerly:person/${user}`)) || '') }));
+  // @everyone newly on the page: everyone else in the project, with that line (the server skips anyone told
+  // about this page in the last hour).
+  if (EVERYONE.test(after || '') && !EVERYONE.test(before || '')) {
+    const line = plainLine(lines.find((l) => EVERYONE.test(l)) || '');
+    mentions = [...mentions, ...members.filter((m) => m.user_id !== me && !mentions.some((x) => x.user === m.user_id)).map((m) => ({ user: m.user_id, line }))];
+    track('mention_everyone', { where: 'page' });
+  }
   if (mentions.length) sb.rpc('notify_page_mentions', { p_page: pageId, p_mentions: mentions }).then(({ error }) => { if (error) console.warn(error); });
 }
 
@@ -567,7 +589,8 @@ export async function addToPage(projectId, { ref, text, body, anchor = null }) {
   ] });
   if (!choice) return;
   const clean = (body || '').replace(/\s+/g, ' ').trim().slice(0, 300);
-  const line = `- [ ] [${text.replace(/[[\]*`]/g, '')}](dancerly:${ref})${clean ? ` ${clean}` : ''}`;
+  // A plain list item, not a checklist one: whether it's fixed lives on the note (one place to mark it).
+  const line = `- [${text.replace(/[[\]*`]/g, '')}](dancerly:${ref})${clean ? ` ${clean}` : ''}`;
   let pageId = choice;
   let title = '';
   if (choice === '+new') {
