@@ -8373,7 +8373,9 @@ body.is-onboarding .tabbar {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: var(--font-size-11);
+  /* The same size and line as status badges, so a row of them lines up. */
+  font-size: var(--font-size-12);
+  line-height: var(--line-height-body);
   font-weight: 600;
   padding: 2px 8px 2px 6px;
   border-radius: var(--radius-sm);
