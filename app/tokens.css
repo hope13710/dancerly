@@ -85,6 +85,10 @@
   --color-warning-fg: var(--color-amber-600);
   --color-warning-bg: var(--color-orange-50);
   --color-danger-fg: var(--color-red-600);
+  --color-danger-bg: var(--color-orange-25);
+  --color-warning-border: #f5d9a6;
+  --color-warning-text: #6b4a12;
+  --color-danger-strong: #7c2d12;
   /* A note's state, wherever it shows (review, Feedback, Inbox, pages). */
   --color-note-open: var(--color-accent);
   --color-note-working: var(--color-amber-600);
@@ -134,6 +138,8 @@
   --control-sm: 32px;
   --control-md: 40px;
   --control-lg: 44px;
+  /* Rows in menus and lists you pick from (GitHub, Linear and Notion keep these at 32–36). */
+  --control-item: 36px;
   /* Elevation: cards · menus and popovers · dialogs and sheets. */
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-2: 0 12px 32px rgba(20, 23, 29, 0.16);

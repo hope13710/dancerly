@@ -6166,6 +6166,8 @@ body.in-sample .review-layout .composer-field textarea {
 .help-links a:hover {
   border-color: var(--accent);
 }
+.help-links a .ic { grid-row: span 2; color: var(--accent); }
+.help-links small { grid-column: 2; }
 .help-links a span {
   grid-row: span 2;
   color: var(--accent);
@@ -11124,3 +11126,53 @@ button.chip[aria-pressed="true"], button.chip[aria-checked="true"], .pick-chip:h
 /* Reference: chips that open something (a goal, a person, a moment, a page). Violet tint, small radius. */
 .goal-chip { border-radius: var(--radius-sm); }
 .mention { border-radius: var(--radius-sm); }
+
+/* ---------- Surfaces that float or ask (design tokens) ----------
+   Menus and popovers share one shell (border, radius, elevation 2) and one item; dialogs elevation 3;
+   form fields one height, border and focus; banners and toasts one shape per tone. */
+
+/* Menus and popovers. */
+.tabs-more-menu, .drop-menu, .account-menu, .ref-menu, .chip-pop, .cite-pop {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+}
+.mention-menu { border-radius: var(--radius-lg); box-shadow: var(--shadow-2); }
+/* Their items: one height, radius and hover. */
+.account-menu button, .tabs-more-menu a, .drop-menu .sheet-action, .mention-menu button, .chip-pop button {
+  min-height: var(--control-item);
+  border-radius: var(--radius-md);
+}
+@media (pointer: coarse) {
+  .account-menu button, .tabs-more-menu a, .drop-menu .sheet-action, .mention-menu button, .chip-pop button { min-height: var(--control-lg); }
+}
+.account-menu button:hover, .tabs-more-menu a:hover, .chip-pop button:hover { background: var(--color-hover); color: var(--color-text); }
+
+/* Dialogs and sheets. */
+.dialog-card { border-radius: var(--radius-xl); box-shadow: var(--shadow-3); }
+
+/* Form fields: one border, radius, height and focus everywhere a form asks for something. 16px text, so
+   iPhones don't zoom in. */
+:where(.field, .dialog-card) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+  min-height: var(--control-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+:where(.field, .dialog-card) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):hover { border-color: var(--color-neutral-200); }
+:where(.field, .dialog-card) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+/* Banners: one shape; the tone is the color. */
+.banner { border-radius: var(--radius-lg); border: 1px solid transparent; }
+.banner.ok { background: var(--color-success-bg); color: var(--color-success-fg); border-color: transparent; }
+.banner.warn { background: var(--color-amber-50); border-color: var(--color-warning-border); color: var(--color-warning-text); }
+
+/* Toasts: above everything but the photo viewer. */
+.toast { z-index: var(--z-toast); border-radius: var(--radius-lg); box-shadow: var(--shadow-3); }
+.toast[data-kind="error"] { background: var(--color-danger-strong); }

@@ -15,7 +15,7 @@ const now = {
   'raw rgba()': count(/rgba?\(\s*\d/g),
   'raw font sizes (px)': count(/font-size:\s*\d+(\.\d+)?px/g),
   'raw radii (px)': count(/border-radius:\s*\d+px/g),
-  'raw box-shadows': count(/box-shadow:\s*(?!none|var\()[^;]*\d/g),
+  'raw box-shadows': count(/box-shadow:(?!\s*(?:none|var\())[^;]*\d/g),
   '!important': count(/!important/g)
 };
 
