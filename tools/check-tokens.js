@@ -16,6 +16,8 @@ const now = {
   'raw font sizes (px)': count(/font-size:\s*\d+(\.\d+)?px/g),
   'raw radii (px)': count(/border-radius:\s*\d+px/g),
   'raw box-shadows': count(/box-shadow:(?!\s*(?:none|var\())[^;]*\d/g),
+  // Spacing: px in padding, margin and gap, other than 0, 1px hairlines and negatives (a few are deliberate).
+  'raw spacing (px)': (css.match(/(?<![-\w])(?:padding|margin|gap|row-gap|column-gap)(?:-[a-z-]+)?\s*:[^;}]*/g) || []).reduce((n, d) => n + (d.split(':').slice(1).join(':').match(/(?<![\w.-])(?!1px)\d+px/g) || []).length, 0),
   '!important': count(/!important/g)
 };
 

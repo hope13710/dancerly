@@ -126,6 +126,33 @@
   --font-weight-bold: 700;
   --line-height-tight: 1.25;
   --line-height-body: 1.5;
+  /* Spacing scale: 4px steps (6 only for tight spots, like an icon next to its text). Nothing in between;
+     1px is for borders. */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  /* Spacing by relationship: what screens use, so the same relationship is the same distance everywhere. */
+  --gap-icon: var(--space-6);       /* an icon and its text */
+  --gap-tight: var(--space-4);      /* a title and its subtitle, a label and its field */
+  --gap-inline: var(--space-8);     /* buttons or chips side by side */
+  --gap-stack: var(--space-12);     /* items within one group */
+  --gap-group: var(--space-16);     /* card to card, group to group */
+  --gap-section: var(--space-32);   /* section to section */
+  --pad-control: var(--space-16);   /* inside a button or field, left and right (small: 12) */
+  --pad-row: var(--space-12) var(--space-16); /* inside a list row */
+  --pad-card: var(--space-20);      /* inside a card or panel */
+  --pad-dialog: var(--space-24);    /* inside a dialog or sheet */
+  --page-gutter: var(--space-32);   /* the page's left and right margin */
   /* Radius: xs tiny marks · sm badges · md controls, menu items · lg cards, rows, menus · xl dialogs, sheets and big
      panels · full chips, avatars. */
   --radius-xs: 4px;
@@ -156,6 +183,17 @@
   --z-toast: 120;
   --z-lightbox: 200;
   /* Breakpoints (for reference: CSS can't use variables in media queries): phone ≤ 600px, tablet ≤ 900px. */
+}
+
+/* Phones: a little tighter, as iOS and Material do (16px page margins). */
+@media (max-width: 600px) {
+  :root {
+    --gap-tight: var(--space-6);
+    --gap-section: var(--space-24);
+    --pad-card: var(--space-16);
+    --pad-dialog: var(--space-20);
+    --page-gutter: var(--space-16);
+  }
 }
 
 /* People who asked their device for less motion get none. */
