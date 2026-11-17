@@ -9160,8 +9160,40 @@ button.focus-row:focus-visible { outline: 2px solid var(--accent); outline-offse
 }
 
 /* Delete account: confirming with Google instead of a password. */
-.da-google .btn.google {
-  margin-top: var(--space-4);
+.da-google {
+  display: grid;
+  gap: var(--space-8);
+  margin: var(--space-4) 0 var(--space-20);
+}
+.da-google .fine {
+  margin: 0;
+}
+/* The last step before deleting: the checkbox stands apart from the sign-in above and the buttons below. */
+.da-confirm .consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  margin: 0 0 var(--space-20);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.da-confirm .consent input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: var(--space-2) 0 0;
+  accent-color: var(--color-danger-strong);
+}
+.da-confirm .form-error {
+  margin: 0 0 var(--space-16);
+}
+.da-confirm .da-actions {
+  padding: var(--space-16) 0 var(--space-12);
+  border-top: 1px solid var(--line);
 }
 .da-google-done {
   display: flex;
