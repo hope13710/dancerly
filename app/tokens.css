@@ -89,6 +89,16 @@
   --color-note-open: var(--color-accent);
   --color-note-working: var(--color-amber-600);
   --color-note-fixed: var(--color-success-fg);
+  /* Hover and press on neutral things (icon buttons, menu items, toolbar buttons): one tint each. */
+  --color-hover: var(--color-neutral-75);
+  --color-press: var(--color-neutral-100);
+  /* Focus areas (categories). Their own hues, apart from the brand violet and the status green/amber/red. */
+  --color-cat-timing: #3b9eff;
+  --color-cat-technique: #b072f5;
+  --color-cat-sync: #f0609e;
+  --color-cat-formation: #13b5ad;
+  --color-cat-performance: #e8b007;
+  --color-cat-other: #8e96a3;
   /* Keyboard focus, the same ring on every control (shown with :focus-visible). */
   --focus-ring: 0 0 0 3px rgba(91, 92, 226, 0.35);
   /* The dark stage around video. */
@@ -112,11 +122,13 @@
   --font-weight-bold: 700;
   --line-height-tight: 1.25;
   --line-height-body: 1.5;
-  /* Radius: xs tiny marks · sm badges · md controls · lg cards, panels, dialogs · full chips, avatars. */
+  /* Radius: xs tiny marks · sm badges · md controls, menu items · lg cards, rows, menus · xl dialogs, sheets and big
+     panels · full chips, avatars. */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-full: 999px;
   /* Controls: compact · default (computers) · touch and main actions (Apple HIG 44pt). */
   --control-sm: 28px;
