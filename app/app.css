@@ -11028,3 +11028,7 @@ a.ref[data-kind="page"], .ref-menu-icon[data-kind="page"] { --ref-ic: url("data:
 .chip-pop { position: fixed; z-index: 80; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface, #fff); box-shadow: 0 8px 24px rgba(20, 23, 29, 0.14); }
 .chip-pop button { display: block; padding: 8px 12px; border: 0; border-radius: 7px; background: none; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .chip-pop button:hover { background: var(--accent-soft); color: var(--accent-dark); }
+/* Invite screen: what joining gets you, before the sign-up buttons. */
+.join-next { display: grid; gap: 8px; margin: 4px auto 18px; padding: 0; list-style: none; text-align: left; width: fit-content; max-width: 100%; font-size: 14px; }
+.join-next li { display: flex; align-items: center; gap: 10px; }
+.join-next .ic { flex: none; width: 16px; height: 16px; color: var(--accent); }

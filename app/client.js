@@ -274,7 +274,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
         ? `<textarea name="${f.name}" rows="${f.rows || 4}" maxlength="${f.max || 2000}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''}>${esc(f.value || '')}</textarea>`
         : `<input name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value || '')}" placeholder="${esc(f.placeholder || '')}" maxlength="${f.max || 120}" ${f.required ? 'required' : ''} />`}${f.chips ? `<span class="field-chips">${f.chips.map((c) => `<button type="button" class="field-chip" data-chip="${esc(c)}" data-for="${f.name}">${esc(c)}</button>`).join('')}</span>` : ''}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</label>`).join('')}
       <!-- The side action comes last in the markup (CSS shows it on the left) so Enter and first focus never pick it. -->
-      <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">${esc(cancel)}</button><button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button>${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}</div>
+      <div class="dialog-actions">${cancel === null ? '' : `<button value="cancel" formnovalidate class="btn ghost">${esc(cancel)}</button>`}<button value="ok" class="btn ${danger ? 'danger' : 'primary'}">${esc(confirm)}</button>${extra ? `<button value="extra" formnovalidate class="btn ghost danger push-left">${esc(extra)}</button>` : ''}</div>
     </form>`;
     document.body.append(el);
     el.addEventListener('close', () => {

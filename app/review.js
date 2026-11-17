@@ -1055,10 +1055,30 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       } } : null;
       toast(to === 'resolved' ? `Marked fixed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as working on it.' : from === 'practicing' ? '“Working on it” cleared.' : 'Note reopened.', 'info', undo);
       await loadNotes();
+      const stillFixed = () => view.isConnected && r.notes.find((n) => n.id === id)?.status === 'resolved';
+      // The loop closing for the first time: a note on one take, fixed once a later take is up. That's what
+      // dancerly is for, so it gets its moment, once per person (after Undo has had its 8 seconds).
+      const noteTake = takes.find((t) => t.id === note.take_id)?.number;
+      const firstLoop = to === 'resolved' && !project.is_sample && noteTake && takes.some((t) => t.number > noteTake) && !seen('first_fix_loop');
+      if (firstLoop) {
+        setTimeout(async () => {
+          if (!stillFixed() || seen('first_fix_loop')) return;
+          markSeen('first_fix_loop');
+          logEvent('first_fix_loop', { own_note: note.author_id === me.id });
+          const writer = note.author_id === me.id ? null : nameOf(note.author_id)?.split(' ')[0];
+          await dialog({
+            title: 'Your first fix in a new take',
+            body: `<span>A note from Take ${noteTake}, fixed by Take ${Math.max(...takes.map((t) => t.number))}. That’s the whole idea: feedback that lands, then shows up in the next run-through.${writer ? ` ${esc(writer)} will hear that their note landed.` : ''}</span>`,
+            confirm: 'Nice',
+            cancel: null
+          });
+        }, 8000);
+        return;
+      }
       // The last open note on this video just got fixed: offer a progress card, once, after Undo has had its
       // moment (8 seconds), and only if it's still fixed.
       if (to === 'resolved' && !r.notes.some((n) => !n.private_to && n.status !== 'resolved')) {
-        setTimeout(() => { if (view.isConnected && r.notes.find((n) => n.id === id)?.status === 'resolved') celebrate({ projectId, videoId }); }, 8000);
+        setTimeout(() => { if (stillFixed()) celebrate({ projectId, videoId }); }, 8000);
       }
       return;
     }

@@ -828,6 +828,7 @@ async function renderJoin(code) {
     ${projectMark({ title: invite.project_title }, 'big')}
     <p class="eyebrow">You’re invited to</p><h1>${esc(invite.project_title)}</h1>
     <p class="muted">${invite.member_count} ${Number(invite.member_count) === 1 ? 'person is' : 'people are'} already here, giving each other feedback on practice videos.</p>
+    <ul class="join-next"><li>${ic('play', 'solo')}Watch the team’s latest takes</li><li>${ic('reply', 'solo')}See notes left for you, on the exact count</li><li>${ic('upload', 'solo')}Send your own take when you practice</li></ul>
     ${signedIn
       ? '<button class="btn primary wide" data-accept>Join project</button>'
       : `${GOOGLE_ENABLED ? `<button type="button" class="btn google wide" data-join-google>${GOOGLE_G} Continue with Google</button>` : ''}

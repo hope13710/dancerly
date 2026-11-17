@@ -15,6 +15,16 @@
       "destination": "/privacy.html"
     },
     {
+      "source": "/app/join/:code",
+      "missing": [
+        {
+          "type": "query",
+          "key": "p"
+        }
+      ],
+      "destination": "/api/join-preview?code=:code"
+    },
+    {
       "source": "/app",
       "destination": "/app/index.html"
     },
