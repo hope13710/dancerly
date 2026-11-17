@@ -123,8 +123,32 @@ function header(g, { y = 300 } = {}) {
   type(g, CARD.crew, 60 * u, y * u, 92, 900, { track: -2 });
   type(g, CARD.song, 62 * u, (y + 58) * u, 36, 600, { alpha: 0.7 });
 }
+// "made with" + the real horizontal wordmark (the site's logo file), in white. Falls back to the name in type.
+let logo = null;
+async function loadLogo() {
+  if (logo) return logo;
+  const img = new Image();
+  img.src = '/logo-wordmark.png';
+  try { await img.decode(); } catch { return null; }
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+  return (logo = c);
+}
 function signature(g) {
-  type(g, 'made with dancerly', W / 2, 1600 * u, 28, 600, { alpha: 0.6, align: 'center', track: 0.5 });
+  const base = 1600 * u, lh = 40 * u;
+  const lw = logo ? Math.round(lh * logo.width / logo.height) : 0;
+  g.font = `600 ${28 * u}px ${FONT}`;
+  const tw = g.measureText('made with').width, gap = 12 * u;
+  if (!logo) return type(g, 'made with dancerly', W / 2, base, 28, 600, { alpha: 0.6, align: 'center' });
+  const left = (W - tw - gap - lw) / 2;
+  type(g, 'made with', left, base, 28, 600, { alpha: 0.6 });
+  g.globalAlpha = 0.85;
+  g.drawImage(logo, left + tw + gap, base - lh * 0.78, lw, lh); // the y's tail hangs below the line, like type
+  g.globalAlpha = 1;
 }
 
 // ---------- Three cards ----------
@@ -200,7 +224,7 @@ async function make(kind) {
   $('[data-out]').hidden = true;
   const started = performance.now();
   try {
-    await fonts();
+    await Promise.all([fonts(), loadLogo()]);
     const codec = qs.get('codec') || ((await mb.canEncodeVideo('avc', { width: W, height: H, bitrate: 6e6 })) ? 'avc' : 'vp9');
     log(`— ${kind} · ${W}×${H} · ${codec}`);
     const open = async (url) => {
