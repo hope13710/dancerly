@@ -130,9 +130,9 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-full: 999px;
-  /* Controls: compact · default (computers) · touch and main actions (Apple HIG 44pt). */
-  --control-sm: 28px;
-  --control-md: 36px;
+  /* Controls: small buttons and chips · default buttons · phones and main actions (Apple HIG 44pt). */
+  --control-sm: 32px;
+  --control-md: 40px;
   --control-lg: 44px;
   /* Elevation: cards · menus and popovers · dialogs and sheets. */
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);

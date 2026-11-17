@@ -11060,3 +11060,67 @@ a.ref[data-kind="page"], .ref-menu-icon[data-kind="page"] { --ref-ic: url("data:
   .reply { --reply-font: var(--font-size-14); }
   .row-quote { font-size: var(--font-size-14); }
 }
+
+/* ---------- Components (design tokens) ----------
+   The five kinds of small things, each with one look, so they never pass for each other:
+   action (buttons) · choice (chips you turn on and off) · status (badges you only read) ·
+   reference (chips that open something) · category (focus areas, with their colored dot). */
+
+/* Action: buttons. Secondary is the plain .btn; primary, ghost and danger change only the fill. */
+.btn {
+  min-height: var(--control-md);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+.btn.small { min-height: var(--control-sm); }
+.btn.ghost-border { background: var(--color-surface); border-color: var(--color-border); }
+.btn:not(.primary):not(.danger):active:not(:disabled) { background: var(--color-press); }
+.btn.ghost:hover:not(:disabled) { background: var(--color-hover); }
+.btn.primary:active:not(:disabled) { background: var(--color-violet-800); border-color: var(--color-violet-800); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+/* Text actions: one link look. */
+.link-btn, .text-btn { color: var(--color-accent); font-weight: var(--font-weight-semibold); }
+.link-btn:hover, .text-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Choice: chips you turn on and off (filters, pickers, answers). Fully round; on = violet tint. */
+button.chip, .pick-chip, .chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: var(--control-sm);
+  padding: 0 var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-neutral-700);
+  font: inherit;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+button.chip:hover, .pick-chip:hover, .chip-btn:hover { border-color: var(--color-violet-250); }
+button.chip[aria-pressed="true"], button.chip[aria-checked="true"], .pick-chip:has(input:checked), .chip-btn.on {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+/* Status: badges you only read (Fixed, due, Example, link kind). Small rounded rectangles, never pressable. */
+.pill, .tag, .share-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-body);
+  white-space: nowrap;
+}
+/* Counts (unread, waiting): round. */
+.badge { border-radius: var(--radius-full); }
+
+/* Reference: chips that open something (a goal, a person, a moment, a page). Violet tint, small radius. */
+.goal-chip { border-radius: var(--radius-sm); }
+.mention { border-radius: var(--radius-sm); }
