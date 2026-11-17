@@ -1056,19 +1056,22 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       toast(to === 'resolved' ? `Marked fixed · ${noteTime(note)}` : to === 'practicing' ? 'Marked as working on it.' : from === 'practicing' ? '“Working on it” cleared.' : 'Note reopened.', 'info', undo);
       await loadNotes();
       const stillFixed = () => view.isConnected && r.notes.find((n) => n.id === id)?.status === 'resolved';
-      // The loop closing for the first time: a note on one take, fixed once a later take is up. That's what
-      // dancerly is for, so it gets its moment, once per person (after Undo has had its 8 seconds).
-      const noteTake = takes.find((t) => t.id === note.take_id)?.number;
-      const firstLoop = to === 'resolved' && !project.is_sample && noteTake && takes.some((t) => t.number > noteTake) && !seen('first_fix_loop');
+      // The loop closing for the first time: a teammate's note, fixed (in a new take, or right on this one: many
+      // teams fix it at practice and tick it). That's what dancerly is for, so it gets its moment, once per person,
+      // after Undo has had its 8 seconds. Your own note on your own video doesn't count.
+      const noteTakeRow = takes.find((t) => t.id === note.take_id);
+      const noteTake = noteTakeRow?.number;
+      const latestNo = Math.max(...takes.map((t) => t.number));
+      const firstLoop = to === 'resolved' && !project.is_sample && noteTakeRow && note.author_id !== noteTakeRow.uploaded_by && !seen('first_fix_loop');
       if (firstLoop) {
         setTimeout(async () => {
           if (!stillFixed() || seen('first_fix_loop')) return;
           markSeen('first_fix_loop');
-          logEvent('first_fix_loop', { own_note: note.author_id === me.id });
+          logEvent('first_fix_loop', { own_note: note.author_id === me.id, new_take: latestNo > noteTake });
           const writer = note.author_id === me.id ? null : nameOf(note.author_id)?.split(' ')[0];
           await dialog({
-            title: 'Your first fix in a new take',
-            body: `<span>A note from Take ${noteTake}, fixed by Take ${Math.max(...takes.map((t) => t.number))}. That’s the whole idea: feedback that lands, then shows up in the next run-through.${writer ? ` ${esc(writer)} will hear that their note landed.` : ''}</span>`,
+            title: 'Your team’s first fix',
+            body: `<span>${note.author_id === me.id ? `Your note on ${esc(nameOf(noteTakeRow.uploaded_by).split(' ')[0])}’s take` : `${esc(writer || 'A teammate')}’s note`}${latestNo > noteTake ? `, from Take ${noteTake}, fixed by Take ${latestNo}.` : ', marked fixed.'} That’s the whole idea: feedback that lands, and practice that shows it.${writer ? ` ${esc(writer)} will hear that their note landed.` : ''}</span>`,
             confirm: 'Nice',
             cancel: null
           });

@@ -63,7 +63,7 @@ export async function renderHome() {
     sb.from('video_views').select('video_id', { count: 'exact', head: true }).eq('user_id', me),
     // The loop, for the getting-started steps: notes between two different people, and notes marked fixed.
     noSample(sb.from('notes').select('project_id, author_id, takes(uploaded_by)')).order('created_at', { ascending: false }).limit(100),
-    noSample(sb.from('notes').select('project_id, takes(video_id, number, uploaded_by)').eq('status', 'resolved')).order('resolved_at', { ascending: false }).limit(100)
+    noSample(sb.from('notes').select('project_id, author_id, takes(uploaded_by)').eq('status', 'resolved')).order('resolved_at', { ascending: false }).limit(100)
   ]);
   const todo = forMe.filter((n) => n.status !== 'resolved');
   // One timeline of takes and notes, newest first.
@@ -78,13 +78,12 @@ export async function renderHome() {
   const leader = owned.length > 0 || !real.length;
   const firstReal = (owned[0] || real[0])?.id;
   const latestVideo = (takes || []).find((t) => t.uploaded_by === me) || (takes || [])[0];
-  // "Fixed in a new take": a note marked fixed on a video that has a later take than the one it was left on (a tick
-  // with no new take is just a tick). Leaders count their projects; everyone else, notes on their own takes.
+  // A teammate's note marked fixed: someone's note on another person's take. Fixed in a new take or right on the
+  // same one (plenty of teams fix it at practice and tick it), but not your own note on your own video.
+  // Leaders count their projects; everyone else, notes on their own takes.
   const ownedIds = new Set(real.filter((p) => p.created_by === me).map((p) => p.id));
-  const mineFixed = (fixedNotes || []).filter((n) => n.takes && (ownedIds.size ? ownedIds.has(n.project_id) : n.takes.uploaded_by === me));
-  const fixVideos = [...new Set(mineFixed.map((n) => n.takes.video_id))].slice(0, 50);
-  const { data: fixTakes } = fixVideos.length ? await notChoreo(sb.from('takes').select('video_id, number')).in('video_id', fixVideos) : { data: [] };
-  const fixedLoop = mineFixed.some((n) => (fixTakes || []).some((t) => t.video_id === n.takes.video_id && t.number > n.takes.number));
+  const fixedLoop = (fixedNotes || []).some((n) => n.takes && n.author_id !== n.takes.uploaded_by
+    && (ownedIds.size ? ownedIds.has(n.project_id) : n.takes.uploaded_by === me));
   // Notes between two people: one person's note on someone else's take (either way round).
   const traded = (pairs || []).some((n) => n.takes && n.author_id !== n.takes.uploaded_by && (!ownedIds.size || ownedIds.has(n.project_id)));
   if (fixedLoop && schema.firstRun && !seen('loop_closed')) { markSeen('loop_closed'); track('loop_closed', { leader: ownedIds.size > 0 }); }
@@ -96,13 +95,13 @@ export async function renderHome() {
     ['Upload a practice video', (myTakes || 0) > 0, 'video'],
     ['Invite people', (roster || []).length > 0, 'invite'],
     ['Trade notes with your team', traded, (roster || []).length ? latestHref : 'invite'],
-    ['See a note fixed in a new take', fixedLoop, latestHref]
+    ['See a note get fixed', fixedLoop, latestHref]
   ] : [
     ['Watch a project video', (myViews || 0) > 0, toReview[0] ? `/app/p/${toReview[0].project_id}/v/${toReview[0].video_id}` : firstReal ? `/app/p/${firstReal}` : null],
     ['Check feedback for you', !todo.length, todo.length ? '/app/feedback' : null],
     ['Submit your video', (myTakes || 0) > 0, dueFromMe[0] ? `/app/p/${dueFromMe[0].project_id}/requests/${dueFromMe[0].id}` : 'video'],
     ['Reply or leave a note', (myReplies || 0) + (myNotes || 0) > 0, firstReal ? `/app/p/${firstReal}` : null],
-    ['Fix a note in your next take', fixedLoop, todo[0] ? `/app/p/${todo[0].project_id}/v/${todo[0].video_id}?take=${todo[0].takes?.number ?? ''}&note=${todo[0].id}` : 'video']
+    ['Fix a note from your team', fixedLoop, todo[0] ? `/app/p/${todo[0].project_id}/v/${todo[0].video_id}?take=${todo[0].takes?.number ?? ''}&note=${todo[0].id}` : 'video']
   ];
   const done = steps.filter((s) => s[1]).length;
   let hideChecklist = done === steps.length || Boolean(onboarding().checklist_hidden);
@@ -147,7 +146,7 @@ export async function renderHome() {
   // The last two steps wait on the team and the next practice: the big card makes way for the small checklist
   // then, instead of filling Home for days with something that can't be done right now.
   const nextLabel = steps.find(([, ok, action]) => !ok && action)?.[0];
-  const waitsOnTeam = ['Trade notes with your team', 'See a note fixed in a new take'].includes(nextLabel) && (roster || []).length > 0;
+  const waitsOnTeam = ['Trade notes with your team', 'See a note get fixed'].includes(nextLabel) && (roster || []).length > 0;
   if (leader && !hideChecklist && !waitsOnTeam) {
     // These places are empty for now; the sidebar points at each once something lands there.
     if (!graduated) watchNav('queue', 'feedback', 'people');
@@ -158,9 +157,9 @@ export async function renderHome() {
       'Trade notes with your team': (roster || []).length
         ? ['Trade notes with your team', 'Pause on a moment in a teammate’s take and say what you see, or @mention someone on yours to ask for their eye.', 'Open the latest video', 'note']
         : ['Trade notes with your team', 'Feedback starts when someone else watches. Send the invite link to your team chat.', 'Invite people', 'invite'],
-      'See a note fixed in a new take': ['See a note fixed in the next take', 'After the next practice, upload the new take of the same video. Mark what got better as fixed: whoever wrote the note hears that it landed.', 'Open the latest video', 'video']
+      'See a note get fixed': ['See a note get fixed', 'After practice, mark what got better as fixed, on a new take or right on the same one. Whoever wrote the note hears that it landed.', 'Open the latest video', 'video']
     };
-    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload video', 'Invite people': 'Invite people', 'Trade notes with your team': 'Trade notes', 'See a note fixed in a new take': 'First fix' };
+    const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload video', 'Invite people': 'Invite people', 'Trade notes with your team': 'Trade notes', 'See a note get fixed': 'First fix' };
     const next = steps.find(([, ok, action]) => !ok && action);
     const [title, text, cta, kind] = NEXT[next?.[0]] || NEXT['Upload a practice video'];
     const action = next?.[2] || 'video';

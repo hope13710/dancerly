@@ -6,8 +6,9 @@
 --   two_people_7d     ... where, within 7 days of creation, two different people worked on the same video
 --                     (uploaded a take of it or left a note on it): the team is actually using it together
 --   note_by_other_7d  ... where someone left a note on a take someone else uploaded, within 7 days
---   fixed_loop_14d    ... where, within 14 days, a note was marked fixed after a later take of that video was
---                     uploaded (a tick with no new take doesn't count: that's ticking, not fixing)
+--   fixed_14d         ... where, within 14 days, a note was marked fixed on someone else's take (in a new take or
+--                     right on the same one: plenty of teams fix it at practice and tick it)
+--   fixed_new_take_14d  the stricter version: fixed after a later take of that video was uploaded
 -- And at the end, weekly active teams now: projects where two or more people did something in the last 7 days.
 -- Change the interval to look further back.
 with p as (
@@ -46,6 +47,11 @@ note_by_other as (
   from n join p on p.id = n.project_id
   where n.author_id <> n.take_by and n.created_at < p.created_at + interval '7 days'
 ),
+fixed_any as (
+  select distinct n.project_id
+  from n join p on p.id = n.project_id
+  where n.status = 'resolved' and n.author_id <> n.take_by and n.resolved_at < p.created_at + interval '14 days'
+),
 fixed_loop as (
   select distinct n.project_id
   from n join p on p.id = n.project_id
@@ -58,9 +64,10 @@ select p.week,
   count(*) filter (where exists (select 1 from t where t.project_id = p.id)) as with_video,
   count(*) filter (where p.id in (select project_id from two_people)) as two_people_7d,
   count(*) filter (where p.id in (select project_id from note_by_other)) as note_by_other_7d,
-  count(*) filter (where p.id in (select project_id from fixed_loop)) as fixed_loop_14d,
+  count(*) filter (where p.id in (select project_id from fixed_any)) as fixed_14d,
+  count(*) filter (where p.id in (select project_id from fixed_loop)) as fixed_new_take_14d,
   round(100.0 * count(*) filter (where p.id in (select project_id from two_people)) / nullif(count(*), 0), 1) as two_people_pct,
-  round(100.0 * count(*) filter (where p.id in (select project_id from fixed_loop)) / nullif(count(*), 0), 1) as fixed_loop_pct
+  round(100.0 * count(*) filter (where p.id in (select project_id from fixed_any)) / nullif(count(*), 0), 1) as fixed_pct
 from p
 group by p.week
 order by p.week desc;
