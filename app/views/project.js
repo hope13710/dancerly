@@ -2,7 +2,7 @@
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema, fmtFine, notChoreo, canShareLinks, Unavailable, isMissingRow } from '../client.js';
-import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, wasCanceled, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel, nameMatches } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';
@@ -525,10 +525,11 @@ export async function createVideo(projectId, { request = null, name = null } = {
     if (!choice) return;
     if (!choice.extra) {
       try {
-        const added = await withUploadBar(`${match.title} · Take ${next}`, (stage) => uploadTake({ projectId, videoId: match.id, file: values.file, onStage: stage }));
+        const added = await withUploadBar(`${match.title} · Take ${next}`, (stage, signal) => uploadTake({ projectId, videoId: match.id, file: values.file, onStage: stage, signal }));
         toast(`Take ${added.number} is up. Open notes came along.`);
         return ctx.navigate(`/app/p/${projectId}/v/${match.id}?take=${added.number}`);
       } catch (err) {
+        if (wasCanceled(err)) return toast('Upload canceled.');
         return toast(friendlyError(err), 'error');
       }
     }
@@ -536,12 +537,16 @@ export async function createVideo(projectId, { request = null, name = null } = {
   const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title, ...(request ? { request_id: request.id } : {}) }).select('id').single();
   if (error) return toast(friendlyError(error), 'error');
   try {
-    await withUploadBar(values.title, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
+    await withUploadBar(values.title, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
     toast('Uploaded. Pause on a moment and add your first note.');
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
     inviteAfterFirstVideo(projectId);
   } catch (err) {
     // A stopped upload can be resumed from the video's page; anything else leaves nothing worth keeping.
+    if (wasCanceled(err)) {
+      await sb.from('videos').delete().eq('id', video.id);
+      return toast('Upload canceled.');
+    }
     if (err.resumable) {
       toast(err.message, 'error');
       return ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
@@ -564,10 +569,11 @@ async function resubmit(projectId, video) {
   const problem = checkTakeFile(values.file);
   if (problem) return toast(problem, 'error');
   try {
-    const added = await withUploadBar(`${video.title} · Take ${next}`, (stage) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage }));
+    const added = await withUploadBar(`${video.title} · Take ${next}`, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
     toast(`Take ${added.number} is up.`);
     ctx.navigate(`/app/p/${projectId}/v/${video.id}?take=${added.number}`);
   } catch (err) {
+    if (wasCanceled(err)) return toast('Upload canceled.');
     toast(friendlyError(err), 'error');
   }
 }

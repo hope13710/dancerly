@@ -384,27 +384,80 @@ function dropMenu({ title, actions, anchor, label }) {
   });
 }
 
-// One shared upload bar, so people can keep working while a take uploads.
+// One shared upload panel, so people can keep working while a take uploads: one bar that only moves
+// forward (optimizing on the phone, then sending, then saving), time left once it can be told, and Cancel.
 // Closing the tab mid-upload asks first; picking the same file again later resumes it.
 let uploading = 0;
+const uploads = new Set(); // AbortControllers of the uploads running now
 export const isUploading = () => uploading > 0;
 window.addEventListener('beforeunload', (e) => { if (uploading) { e.preventDefault(); e.returnValue = ''; } });
+const PHASE = { check: 'Getting ready', prepare: 'Optimizing for smooth playback', upload: 'Uploading', resume: 'Picking up where it stopped', save: 'Finishing up' };
+const left = (secs) => (secs < 60 ? 'under 1 min left' : `${Math.round(secs / 60)} min left`);
 export async function withUploadBar(label, task) {
   const bar = $('[data-upload-bar]');
-  bar.querySelector('span').textContent = label;
-  bar.classList.add('show');
-  bar.setAttribute('aria-hidden', 'false');
+  const title = $('[data-ub-title]', bar), meta = $('[data-ub-meta]', bar), fill = $('[data-ub-fill]', bar), track = $('.ub-track', bar), live = $('[data-ub-live]', bar);
+  const ctrl = new AbortController();
+  uploads.add(ctrl);
   uploading += 1;
+  title.textContent = uploading > 1 ? `${label} (+${uploading - 1} more)` : label;
+  // Overall progress: optimizing (when it happens) is the first 40%, sending the rest; it never goes back.
+  let shown = 0, prepared = false, phase = '', rate = null, mark = null;
+  // "Uploading 61% · 2 min left"
+  const draw = (p, text, eta = '') => {
+    shown = Math.max(shown, Math.min(1, p));
+    const pct = Math.round(shown * 100);
+    fill.style.transform = `scaleX(${shown})`;
+    track.setAttribute('aria-valuenow', String(pct));
+    meta.textContent = `${text} ${pct}%${eta ? ` · ${eta}` : ''}`;
+  };
+  const stage = (name, f = null, extra = {}) => {
+    if (name !== phase) { phase = name; live.textContent = `${PHASE[name] || name}: ${label}`; }
+    if (name === 'prepare') { prepared = true; return draw(0.4 * (f || 0), 'Optimizing for playback'); }
+    if (name === 'upload') {
+      // Time left from the recent sending speed (smoothed), once a few seconds of it are known.
+      const now = performance.now();
+      if (mark && extra.sent > mark.sent) {
+        const r = (extra.sent - mark.sent) / ((now - mark.t) / 1000);
+        rate = rate ? rate * 0.8 + r * 0.2 : r;
+      }
+      if (!mark || now - mark.t > 1000) mark = { t: now, sent: extra.sent || 0, first: mark?.first || now };
+      const known = rate && now - mark.first > 3000 && extra.total;
+      const base = prepared ? 0.4 : 0;
+      return draw(base + (0.97 - base) * (f || 0), PHASE.upload, known ? left((extra.total - extra.sent) / rate) : '');
+    }
+    if (name === 'save') return draw(0.98, PHASE.save);
+    return draw(shown, PHASE[name] || name);
+  };
+  draw(0, PHASE.check);
+  bar.classList.add('show');
+  document.body.classList.add('is-uploading');
+  document.body.style.setProperty('--upload-h', `${bar.offsetHeight}px`);
+  bar.setAttribute('aria-hidden', 'false');
   try {
-    const result = await task((stage) => { bar.querySelector('span').textContent = `${stage} · ${label}`; });
+    const result = await task(stage, ctrl.signal);
+    draw(1, 'Uploaded');
     window.dispatchEvent(new CustomEvent('dancerly:uploaded'));
     return result;
   } finally {
+    uploads.delete(ctrl);
     uploading -= 1;
-    // Still another upload going: keep the bar (and its message) up until the last one finishes.
-    if (!uploading) { bar.classList.remove('show'); bar.setAttribute('aria-hidden', 'true'); }
+    // Still another upload going: keep the panel up until the last one finishes.
+    if (!uploading) {
+      bar.classList.remove('show');
+      document.body.classList.remove('is-uploading');
+      bar.setAttribute('aria-hidden', 'true');
+      setTimeout(() => { if (!uploading) fill.style.transform = 'scaleX(0)'; }, 300);
+    }
   }
 }
+// Cancel asks first: an upload can take minutes, and stopping it throws that away.
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-ub-cancel]') || !uploading) return;
+  const yes = await dialog({ title: 'Cancel this upload?', body: 'What’s been sent so far is discarded. You can upload the video again anytime.', confirm: 'Cancel upload', cancel: 'Keep uploading', danger: true });
+  if (yes) uploads.forEach((c) => c.abort());
+});
+// Upload code throws this when the person stops it: say so calmly, not as an error.
+export const wasCanceled = (err) => err?.name === 'AbortError';
 
 // Project members with their display names, owner first.
 export async function loadMembers(projectId) {

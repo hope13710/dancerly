@@ -3,7 +3,7 @@ import { cols, schema, notChoreo, canShareLinks } from './client.js';
 import { overlayChrome } from './player-chrome.js';
 import { volumeControl, wireVolume } from './volume.js';
 import { thumbUrls } from './thumbs.js';
-import { sb, $, $$, esc, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
+import { sb, $, $$, esc, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, wasCanceled, loadMembers, avatar, takeUrl, isEnter } from './client.js';
 import { uploadTake } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
@@ -1524,10 +1524,11 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       fileInput.value = '';
       if (!file) return;
       try {
-        const added = await withUploadBar(`${video.title} · new take`, (stage) => uploadTake({ projectId, videoId, file, onStage: stage }));
+        const added = await withUploadBar(`${video.title} · new take`, (stage, signal) => uploadTake({ projectId, videoId, file, onStage: stage, signal }));
         toast(`Take ${added.number} is up. Open notes from earlier takes came along.`);
         navigate(`${base}?take=${added.number}`);
       } catch (err) {
+        if (wasCanceled(err)) return toast('Upload canceled.');
         toast(friendlyError(err), 'error');
       }
     });

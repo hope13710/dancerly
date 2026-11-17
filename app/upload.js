@@ -26,6 +26,10 @@ const LONG_SECONDS = 8 * 60; // long runs re-encode the music at 96 kbps so 15 m
 const AUDIO_LONG_BPS = 96_000;
 const AUDIO_DEFAULT_BPS = 160_000; // assumed when the original's audio bitrate can't be read
 
+// Progress is reported as onStage(phase, fraction, extra): phase is check | prepare | upload | resume | save;
+// fraction is 0..1 within that phase (or null); extra carries { sent, total } bytes while uploading.
+const canceled = () => Object.assign(new DOMException('Upload canceled.', 'AbortError'), { canceled: true });
+
 // The person's file is the problem (too long, not a video), not this device: reported, but quietly.
 const fileProblem = (message) => Object.assign(new Error(message), { fileProblem: true });
 const typeOf = (file) => file.type || ({ mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' })[file.name.split('.').pop().toLowerCase()] || '';
@@ -39,14 +43,14 @@ export function checkTakeFile(file) {
 // ---------- 1. Prepare ----------
 const canConvert = () => typeof window.VideoEncoder === 'function' && typeof window.VideoDecoder === 'function';
 
-export async function prepareVideo(file, onStage, facts = {}) {
+export async function prepareVideo(file, onStage, facts = {}, signal = null) {
   const tooBig = file.size > MAX_TAKE_BYTES;
   facts.canConvert = canConvert();
   if (!canConvert()) {
     if (tooBig) throw new Error(`This video is ${mb(file.size)} and this browser can’t shrink it. Try Chrome or Safari, or trim it under 50 MB.`);
     return null;
   }
-  onStage('Checking video');
+  onStage('check', null);
   const mbx = await import('./vendor/mediabunny-1.61.3.js');
   const input = new mbx.Input({ source: new mbx.BlobSource(file), formats: mbx.ALL_FORMATS });
   let track;
@@ -124,8 +128,11 @@ export async function prepareVideo(file, onStage, facts = {}) {
     if (!tooBig && track.codec === 'avc') return null;
     throw new Error('This browser can’t keep the music while shrinking this video. Try Chrome, or trim it under 50 MB.');
   }
-  conversion.onProgress = (p) => onStage(`Preparing ${Math.round(p * 100)}%`);
-  await conversion.execute();
+  conversion.onProgress = (p) => onStage('prepare', p);
+  const stop = () => conversion.cancel();
+  signal?.addEventListener('abort', stop, { once: true });
+  try { await conversion.execute(); } finally { signal?.removeEventListener('abort', stop); }
+  if (signal?.aborted) throw canceled();
   const blob = new Blob([output.target.buffer], { type: 'video/mp4' });
   if (blob.size > MAX_TAKE_BYTES) throw new Error('Even after shrinking, this video is over 50 MB. Trim it to the part you want feedback on.');
   return blob;
@@ -161,8 +168,9 @@ function writeRecord(key, value) { try { localStorage.setItem(recordKey(key), JS
 function clearRecord(key) { try { localStorage.removeItem(recordKey(key)); } catch {} }
 
 // ---------- 2. Upload ----------
-function tusUpload(blob, { path, type, key }, onStage) {
+function tusUpload(blob, { path, type, key }, onStage, signal) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(canceled());
     const upload = new Upload(blob, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
       retryDelays: [0, 2000, 5000, 10000, 20000, 30000, 60000],
@@ -178,7 +186,7 @@ function tusUpload(blob, { path, type, key }, onStage) {
         req.setHeader('authorization', `Bearer ${data.session?.access_token || ''}`);
         req.setHeader('apikey', SUPABASE_PUBLISHABLE_KEY);
       },
-      onProgress: (sent, total) => onStage(`Uploading ${Math.min(99, Math.round((sent / total) * 100))}%`),
+      onProgress: (sent, total) => onStage('upload', total ? sent / total : 0, { sent, total }),
       onSuccess: () => resolve(),
       onError: (err) => {
         // The object is already there (finished earlier, record not yet cleared): carry on.
@@ -192,20 +200,24 @@ function tusUpload(blob, { path, type, key }, onStage) {
         reject(stopped);
       }
     });
+    // Canceled: stop sending and drop the partial upload on the server (true = terminate it there too).
+    signal?.addEventListener('abort', () => { upload.abort(true).catch(() => {}); reject(canceled()); }, { once: true });
     upload.findPreviousUploads().then((previous) => {
-      if (previous.length) { onStage('Resuming'); upload.resumeFromPreviousUpload(previous[0]); }
+      if (signal?.aborted) return;
+      if (previous.length) { onStage('resume', null); upload.resumeFromPreviousUpload(previous[0]); }
       upload.start();
     });
   });
 }
 
 // Prepare (or reuse the prepared copy), upload (or resume), then record the take.
-export async function uploadTake({ projectId, videoId, file, onStage = () => {} }) {
+export async function uploadTake({ projectId, videoId, file, onStage = () => {}, signal = null }) {
   const facts = { type: (file && typeOf(file)) || 'unknown', mb: Math.round((file?.size || 0) / 1048576), online: navigator.onLine };
   let step = 'check';
   try {
-    return await sendTake({ projectId, videoId, file, onStage, facts, at: (s) => { step = s; } });
+    return await sendTake({ projectId, videoId, file, onStage, signal, facts, at: (s) => { step = s; } });
   } catch (error) {
+    if (error?.name === 'AbortError') throw error; // the person stopped it: nothing to report
     const level = error.fileProblem || step === 'check' ? 'info' : error.resumable ? 'warning' : 'error';
     reportFailure('upload', error, { level, step, ...facts, status: error.status, detail: error.detail });
     throw error;
@@ -224,18 +236,19 @@ async function storageFull(projectId) {
   return err;
 }
 
-async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
+async function sendTake({ projectId, videoId, file, onStage, signal, facts, at }) {
   const problem = checkTakeFile(file);
   if (problem) throw new Error(problem);
   // Full storage stops the upload on the server anyway; saying so before compressing saves the wait.
   const full = await storageFull(projectId);
   if (full) throw full;
+  if (signal?.aborted) throw canceled();
   at('prepare');
   const key = `${projectId}/${videoId}/${file.name}/${file.size}/${file.lastModified}`;
   let record = readRecord(key);
   let blob = record?.prepared ? await cacheGet(key) : null;
   if (!blob) {
-    const prepared = await prepareVideo(file, onStage, facts);
+    const prepared = await prepareVideo(file, onStage, facts, signal);
     blob = prepared || file;
     if (prepared) await cachePut(key, prepared);
     const type = prepared ? 'video/mp4' : typeOf(file);
@@ -248,13 +261,16 @@ async function sendTake({ projectId, videoId, file, onStage, facts, at }) {
   // Keep the path stable across retries so a resumed upload lands in the same place.
   if (!record.path.endsWith(`.${TAKE_TYPES[record.type]}`)) record.path = `${projectId}/${videoId}/${crypto.randomUUID()}.${TAKE_TYPES[record.type]}`;
   try {
-    await tusUpload(blob, { ...record, key }, onStage);
+    await tusUpload(blob, { ...record, key }, onStage, signal);
   } catch (error) {
+    // Canceled on purpose: forget the prepared copy and the position, so it isn't offered back later.
+    if (error?.name === 'AbortError') { clearRecord(key); cacheDelete(key); throw error; }
     // Refused because the storage filled up meanwhile: say that, not "no permission".
     throw (await storageFull(projectId).catch(() => null)) || error;
   }
+  if (signal?.aborted) throw canceled();
   at('save');
-  onStage('Saving');
+  onStage('save', null);
   const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select(`id, number, project_id, video_id${schema.videoKind ? ', kind' : ''}`).single();
   if (error) {
     await sb.storage.from(TAKE_BUCKET).remove([record.path]);
