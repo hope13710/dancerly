@@ -6746,6 +6746,8 @@ button.row {
 }
 
 /* ---------- Progress card editor ---------- */
+/* Preview on the left (it plays the real card), choices on the right; on a phone, the preview on top and the
+   action pinned to the bottom. */
 .dialog.card-editor {
   width: min(920px, calc(100% - 32px));
   max-height: calc(100dvh - 32px);
@@ -6753,7 +6755,7 @@ button.row {
 .ce {
   background: var(--surface);
   border-radius: var(--radius-xl);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-3);
   display: flex;
   flex-direction: column;
   max-height: calc(100dvh - 32px);
@@ -6776,133 +6778,256 @@ button.row {
 .ce-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
+  align-content: start;
   gap: var(--space-24);
   padding: var(--space-20);
   overflow: auto;
+}
+.ce:focus {
+  outline: none;
 }
 .ce-preview {
   position: relative;
   display: grid;
   place-items: center;
-  background: var(--bg);
+  background: var(--dark);
   border-radius: var(--radius-lg);
   padding: var(--space-16);
 }
-.ce-preview canvas {
+.ce-preview canvas,
+.ce-result {
   height: min(64dvh, 600px);
   width: auto;
   aspect-ratio: 9 / 16;
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 30px rgba(20, 23, 29, 0.18);
+  background: var(--color-black);
+  box-shadow: var(--shadow-2);
+}
+.ce-preview canvas[hidden],
+.ce-result[hidden] {
+  display: none;
+}
+/* The takes the preview draws from: playing, but never shown. */
+.ce-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 .ce-loading {
   position: absolute;
-  inset: auto 0 22px;
+  inset: 0;
   margin: 0;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
   font-size: var(--font-size-13);
   color: var(--color-neutral-0);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.ce-loading .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-neutral-600);
+  border-top-color: var(--color-neutral-0);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
 }
 .ce-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--space-16);
+  min-width: 0;
 }
-.ce-seg {
+.ce-edit {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-6);
+  gap: var(--space-20);
+}
+.ce-edit[hidden],
+.ce-done[hidden] {
+  display: none;
 }
 .ce-seg button {
-  padding: var(--space-8) 0;
-  border-radius: var(--radius-md);
-  border: 0;
-  background: var(--bg);
-  font-weight: 600;
-  color: var(--color-neutral-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
 }
 .ce-seg button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--color-neutral-0);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
 }
-.ce-pick {
+.ce-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: var(--space-8);
 }
-.ce-pick button {
+.ce-section .field {
+  margin-bottom: var(--space-4);
+}
+.ce-label {
+  margin: 0;
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  color: var(--muted);
+}
+/* Styles: each tile is the card itself. */
+.ce-styles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.ce-style {
   display: grid;
   gap: var(--space-2);
+  padding: var(--space-6);
   text-align: left;
-  padding: var(--space-8);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  color: var(--ink);
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
 }
-.ce-pick button:hover {
+.ce-style:hover {
+  border-color: var(--color-neutral-300);
+}
+.ce-style[aria-checked="true"] {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
-.ce-pick img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
+.ce-style-art {
+  display: block;
+  aspect-ratio: 9 / 16;
   border-radius: var(--radius-md);
-  background: var(--dark-3);
+  overflow: hidden;
+  background: var(--dark);
   margin-bottom: var(--space-4);
 }
-.ce-pick img:not([src]) {
-  visibility: visible;
+.ce-style-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.ce-pick small {
-  color: var(--accent-dark);
-  font-weight: 600;
+.ce-style-art img:not([src]) {
+  visibility: hidden;
 }
-.ce-label {
-  margin: 0 0 -6px;
+.ce-style b {
   font-size: var(--font-size-13);
-  font-weight: 700;
-  display: flex;
-  justify-content: space-between;
+  padding: 0 var(--space-2);
 }
-.ce-label small {
+.ce-style small {
+  font-size: var(--font-size-12);
   color: var(--muted);
-  font-weight: 500;
+  padding: 0 var(--space-2) var(--space-2);
+  line-height: 1.35;
 }
-.ce-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-}
-.ce-chip {
-  font-size: var(--font-size-13);
-  padding: var(--space-6) var(--space-12);
-  border-radius: var(--radius-full);
+/* Where the card starts. */
+.ce-moment {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-8);
   border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--color-slate-700);
+  border-radius: var(--radius-lg);
 }
-.ce-chip.on {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-weight: 600;
+.ce-moment img {
+  width: 64px;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--dark);
 }
-.ce-chip.on::before {
-  content: '✓ ';
+.ce-moment img:not([src]) {
+  visibility: hidden;
+}
+.ce-moment b {
+  display: block;
+  font-size: var(--font-size-14);
+}
+.ce-moment small {
+  display: block;
+  font-size: var(--font-size-12);
+  color: var(--muted);
+  line-height: 1.35;
+}
+.ce-tip {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+  margin: 0;
+  font-size: var(--font-size-13);
+  line-height: 1.45;
+  color: var(--muted);
+}
+.ce-tip .ic {
+  flex: none;
+  margin-top: var(--space-2);
+}
+/* Made: the result plays in the preview; share or save it. */
+.ce-done {
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+}
+.ce-done-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: var(--font-size-20);
+  font-weight: 700;
+  letter-spacing: var(--tracking-title);
+}
+.ce-done-title .ic {
+  color: var(--color-success-fg);
+}
+.ce-done .fine {
+  margin: 0;
+  text-align: left;
+}
+.ce-done .link-btn {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
 }
 .ce-actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   gap: var(--space-8);
   margin-top: auto;
 }
-.ce-actions .btn:only-child {
-  grid-column: 1 / -1;
+.ce-actions .btn {
+  flex: 1;
+  gap: var(--space-6);
 }
-.ce-fine {
-  margin: -4px 0 0;
-  text-align: left;
+.ce-actions .btn[hidden] {
+  display: none;
+}
+/* Creating: the button fills up as the video is made. */
+.ce-create {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ce-create[aria-busy="true"] {
+  pointer-events: none;
+}
+.ce-create[aria-busy="true"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--p, 0%);
+  background: var(--accent-dark);
+  z-index: -1;
+  transition: width var(--duration-fast) linear;
+}
+.ce[data-state="making"] .ce-edit {
+  opacity: 0.5;
+  pointer-events: none;
 }
 .ce-sample {
   margin-top: auto;
@@ -6978,24 +7103,25 @@ button.row {
   }
   .ce-body {
     grid-template-columns: 1fr;
-    gap: var(--space-12);
-    padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom));
+    gap: var(--space-16);
+    padding: var(--space-12) var(--space-16) 0;
   }
   .ce-preview {
     padding: var(--space-12);
   }
-  .ce-preview canvas {
-    height: min(42dvh, 400px);
+  .ce-preview canvas,
+  .ce-result {
+    height: min(44dvh, 420px);
   }
-  /* The share button stays in reach while the options scroll. */
+  /* The main action stays in reach while the options scroll. */
   .ce-actions,
   .ce-sample {
     position: sticky;
-    bottom: calc(-16px - env(safe-area-inset-bottom));
-    margin: 0 -16px calc(-16px - env(safe-area-inset-bottom));
-    padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom));
+    bottom: 0;
+    margin: 0 calc(-1 * var(--space-16));
+    padding: var(--space-12) var(--space-16) calc(var(--space-12) + env(safe-area-inset-bottom));
     background: var(--surface);
-    box-shadow: 0 -8px 20px rgba(20, 23, 29, 0.06);
+    border-top: 1px solid var(--line);
     border-radius: 0;
   }
   .ce-sample {
@@ -7080,57 +7206,6 @@ button.row {
   .growth-item {
     grid-template-columns: 112px minmax(0, 1fr);
   }
-}
-.ce-title {
-  margin: 0;
-}
-.ce-title small {
-  display: block;
-  margin-top: var(--space-4);
-  color: var(--muted);
-  font-size: var(--font-size-12);
-}
-.ce-tip {
-  margin: 0;
-  padding: var(--space-8) var(--space-12);
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-size: var(--font-size-13);
-  line-height: 1.45;
-}
-.ce-event {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  flex-wrap: wrap;
-  margin: -4px 0 0;
-  font-size: var(--font-size-13);
-  color: var(--muted);
-}
-.ce-event[hidden] {
-  display: none;
-}
-.ce-event b {
-  color: var(--ink);
-  font-weight: 600;
-}
-.ce-event select {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-size: var(--font-size-13);
-  padding: var(--space-6) var(--space-8);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--ink);
-}
-.ce-pick.single {
-  grid-template-columns: 1fr;
-}
-.ce-pick.single img {
-  aspect-ratio: 16 / 8;
 }
 
 /* ---------- Review: the video and the composer stay in view however many notes pile up ---------- */
