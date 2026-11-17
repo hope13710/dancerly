@@ -87,6 +87,8 @@ const routes = [
   // Insights live in each project's Overview now ("How it's going"): the old page opens the project's Overview.
   { re: /^\/app\/insights\/?$/, render: async () => { await state.projectsReady; const wanted = new URLSearchParams(location.search).get('project'); const real = state.projects.filter((p) => !p.is_sample); const id = wanted || (real.length === 1 ? real[0].id : null); navigate(id ? `/app/p/${id}/overview` : '/app/projects', { replace: true }); } },
   { re: /^\/app\/settings(?:\/([a-z]+))?\/?$/, render: (section) => renderSettings(section) },
+  // The design system (tokens and components), for whoever builds the next screen. Not linked from the app.
+  { re: /^\/app\/_ui\/?$/, render: async () => (await import('./views/styleguide.js')).renderStyleguide() },
   { re: /^\/app\/me\/?$/, render: renderMe },
   { re: /^\/app\/?$/, render: renderHome }
 ];

@@ -11176,3 +11176,19 @@ button.chip[aria-pressed="true"], button.chip[aria-checked="true"], .pick-chip:h
 /* Toasts: above everything but the photo viewer. */
 .toast { z-index: var(--z-toast); border-radius: var(--radius-lg); box-shadow: var(--shadow-3); }
 .toast[data-kind="error"] { background: var(--color-danger-strong); }
+
+/* /app/_ui, the design system page (views/styleguide.js). */
+.sg-section h2 { margin: 0 0 var(--space-4); font-size: var(--font-size-20); }
+.sg-why { margin: 0 0 var(--space-16); font-size: var(--font-size-13); }
+.sg-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-12); }
+.sg-kinds { gap: var(--space-24); }
+.sg-label { margin: 0 0 var(--space-6); color: var(--color-text-muted); font-size: var(--font-size-11); font-weight: var(--font-weight-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.sg-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-16); }
+.sg-type p { margin: 0 0 var(--space-8); line-height: var(--line-height-tight); }
+.sg-type code, .sg-swatch code, .sg-shape code, .sg-control code { font-size: var(--font-size-11); color: var(--color-text-muted); }
+.sg-shapes .sg-shape { display: grid; place-items: end start; width: 140px; height: 72px; padding: var(--space-8); border: 1px solid var(--color-border); background: var(--color-surface); }
+.sg-control { display: grid; place-items: center; padding: 0 var(--space-12); border: 1px dashed var(--color-neutral-200); border-radius: var(--radius-md); }
+.sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-8); }
+.sg-swatch { display: grid; grid-template-columns: 32px 1fr; column-gap: var(--space-8); align-items: center; }
+.sg-swatch small { grid-column: 2; color: var(--color-text-muted); font-size: var(--font-size-11); }
+.sg-chip { grid-row: span 2; width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
