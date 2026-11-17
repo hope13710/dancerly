@@ -610,7 +610,7 @@ export async function renderPractice(projectId, guest = null) {
     if (playing) startTick(); else stopTick();
     keepAwake(playing);
     chrome?.sync();
-    if (player.ended) { player.seek(bounds(looping ? current : -1)[0]); player.play(); }
+    if (player.ended) { player.seek(bounds(looping ? current : -1)[0]); player.play(); if (looping) lapped(); }
   };
   player.on(paintPlay);
 

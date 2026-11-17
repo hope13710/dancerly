@@ -177,7 +177,10 @@ export async function renderShared(token) {
   // The end card: once per visit, after the video plays to the end.
   const end = $('[data-guest-end]');
   let endShown = false;
-  video.addEventListener('ended', () => { if (end && !endShown) { endShown = true; end.hidden = false; } });
+  video.addEventListener('ended', () => {
+    if (tools.loop) { video.currentTime = tools.loop[0]; video.play().catch(() => {}); return; } // a loop that ends with the video goes round
+    if (end && !endShown) { endShown = true; end.hidden = false; }
+  });
   video.addEventListener('play', () => { if (end) end.hidden = true; });
   $('[data-replay]')?.addEventListener('click', () => { end.hidden = true; video.currentTime = 0; video.play(); });
   $$('[data-guest-cta]').forEach((a) => a.addEventListener('click', () => { try { window.dataLayer?.push({ event: 'guest_cta', cta: a.dataset.guestCta }); } catch {} }));
@@ -280,7 +283,8 @@ function wirePlayerTools(video) {
   });
   let frame = 0;
   const tick = () => {
-    if (api.loop && (video.currentTime >= api.loop[1] || video.currentTime < api.loop[0] - 0.5)) video.currentTime = api.loop[0];
+    const end = Number.isFinite(video.duration) ? Math.min(api.loop?.[1] ?? 0, video.duration - 0.08) : api.loop?.[1];
+    if (api.loop && (video.currentTime >= end || video.currentTime < api.loop[0] - 0.5)) video.currentTime = api.loop[0];
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);

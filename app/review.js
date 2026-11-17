@@ -582,13 +582,16 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
   window.addEventListener('resize', onResize);
   function tick() {
     if (!videoEl.isConnected) return; // left this page before its cleanup was handed over: stop the loop
-    if (r.loop && !videoEl.paused && videoEl.currentTime >= r.loop.end) videoEl.currentTime = r.loop.start;
+    // Wrap a hair before the end of the video: a loop that ends where the video ends would otherwise stop there.
+    if (r.loop && !videoEl.paused && videoEl.currentTime >= Math.min(r.loop.end, duration() - 0.08)) videoEl.currentTime = r.loop.start;
     if (r.compare.on) follow(videoEl, video2, r.compare.offset, r.speed);
     paintPlayer();
     r.frame = requestAnimationFrame(tick);
   }
   // The video can finish loading after someone has already left this page (Sentry DANCERLY-3): nothing to paint then.
   videoEl.addEventListener('loadedmetadata', () => { if (!videoEl.isConnected) return; $('[data-dur]').textContent = fmt(duration()); placeSketchLayer(); paintEights(); paintNotes(); paintPlayer(); });
+  // If it still ran off the end (a slow frame), go round instead of stopping.
+  videoEl.addEventListener('ended', () => { if (r.loop && videoEl.isConnected) { videoEl.currentTime = r.loop.start; videoEl.play().catch(() => {}); } });
   videoEl.addEventListener('error', () => { if (videoEl.isConnected) toast('This take couldn’t be played in this browser. Try MP4 (H.264).', 'error'); });
   $$('[data-play]').forEach((b) => b.addEventListener('click', () => play(videoEl.paused)));
   // Clicking anywhere on the picture plays or pauses, like YouTube or Frame.io. Not while drawing a sketch,
