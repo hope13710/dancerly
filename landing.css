@@ -401,7 +401,7 @@ h3 { font-size: 20px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 60
 .mod-request, .mod-cal, .mod-counts, .mod-queue { background: var(--color-neutral-25); color: var(--ink); border: 1px solid var(--color-neutral-75); }
 .rq-head { display: flex; align-items: center; gap: 10px; }
 .rq-head b { font-size: 16px; }
-.pill { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; margin-left: auto; white-space: nowrap; }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; margin-left: auto; white-space: nowrap; }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .rq-brief { font-size: 13px; color: var(--muted); }
 .rq-progress { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); }
@@ -660,7 +660,7 @@ details p { padding: 0 0 18px; color: var(--ink-2); }
 .plan .btn { white-space: normal; text-align: center; text-wrap: balance; }
 
 /* ---------- In step with the app (focus areas, control row, count badge) ---------- */
-.cat-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 7px 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--cat) 16%, transparent); color: inherit; white-space: nowrap; }
+.cat-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 7px 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--cat) 16%, transparent); color: inherit; white-space: nowrap; }
 .cat-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cat); flex: none; }
 .rv-controls { flex-wrap: wrap; row-gap: 6px; }
 .rv-controls .chip i, .pr-controls .chip i { font-style: normal; margin-left: 4px; opacity: 0.8; }
