@@ -11032,3 +11032,10 @@ a.ref[data-kind="page"], .ref-menu-icon[data-kind="page"] { --ref-ic: url("data:
 .join-next { display: grid; gap: 8px; margin: 4px auto 18px; padding: 0; list-style: none; text-align: left; width: fit-content; max-width: 100%; font-size: 14px; }
 .join-next li { display: flex; align-items: center; gap: 10px; }
 .join-next .ic { flex: none; width: 16px; height: 16px; color: var(--accent); }
+/* "Not useful" on a recap: what was off, one tap. */
+.feedback-why { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.feedback-why span { margin-right: 2px; }
+.feedback-why .chip-btn { min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface, #fff); color: #3a3f4a; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.feedback-why .chip-btn:hover { border-color: var(--accent); }
+.feedback-why .chip-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+.recap-foot { flex-wrap: wrap; }

@@ -8,6 +8,9 @@ import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './share
 import { ic } from '../icons.js';
 import { catChip, catLabel } from '../categories.js';
 
+// "Not useful" on a recap: what was off (migration 076).
+const REASONS = [['wrong', 'Got something wrong'], ['obvious', 'Too obvious'], ['missed', 'Missed notes'], ['long', 'Too long']];
+
 const SECTIONS = [
   ['worked_on', 'Worked on'],
   ['next', 'What to do next'],
@@ -349,7 +352,7 @@ export async function renderRecap(recapId) {
   const canRedo = mine || r.team;
   const pulse = r.team ? await teamPulse(r).catch(() => null) : null;
   const pinned = isPinned(r);
-  const { data: myFeedback } = await sb.from('recap_feedback').select('helpful').eq('recap_id', r.id).eq('user_id', me).maybeSingle();
+  const { data: myFeedback } = await sb.from('recap_feedback').select(schema.recapReason ? 'helpful, reason' : 'helpful').eq('recap_id', r.id).eq('user_id', me).maybeSingle();
   const cited = (r.sources || []).map((src, i) => ({ ...src, n: i + 1 }));
   await ctx.state.projectsReady;
   const sampleProject = ctx.state.projects.some((p) => p.id === r.project_id && p.is_sample);
@@ -384,6 +387,7 @@ export async function renderRecap(recapId) {
           <button class="icon-btn ${myFeedback?.helpful === true ? 'on' : ''}" data-feedback="up" aria-pressed="${myFeedback?.helpful === true}" aria-label="Useful" title="Useful">${ic('agree', 'solo')}</button>
           <button class="icon-btn ${myFeedback?.helpful === false ? 'on' : ''}" data-feedback="down" aria-pressed="${myFeedback?.helpful === false}" aria-label="Not useful" title="Not useful">${ic('disagree', 'solo')}</button>
         </div>
+        ${schema.recapReason && myFeedback?.helpful === false ? `<div class="feedback-why" role="group" aria-label="What was off?"><span>What was off?</span>${REASONS.map(([k, label]) => `<button type="button" class="chip-btn${myFeedback.reason === k ? ' on' : ''}" data-reason="${k}" aria-pressed="${myFeedback.reason === k}">${label}</button>`).join('')}</div>` : ''}
       </div>
     </article>
     <div class="cite-pop" data-pop hidden></div>
@@ -398,7 +402,15 @@ export async function renderRecap(recapId) {
       ? await sb.from('recap_feedback').delete().eq('recap_id', r.id).eq('user_id', me)
       : await sb.from('recap_feedback').upsert({ recap_id: r.id, user_id: me, helpful });
     if (e) return toast(friendlyError(e), 'error');
-    if (!undo) toast(helpful ? 'Thanks — glad it helped.' : 'Thanks. Regenerate or check the sources if something’s off.');
+    if (!undo) toast(helpful ? 'Thanks — glad it helped.' : schema.recapReason ? 'Thanks. What was off? One tap below helps make recaps better.' : 'Thanks. Regenerate or check the sources if something’s off.');
+    renderRecap(recapId);
+  }));
+  // "Not useful": what was off, in one tap. Read by hand to improve the recap prompt (supabase/queries/recap_feedback.sql).
+  $$('[data-reason]').forEach((b) => b.addEventListener('click', async () => {
+    const reason = myFeedback?.reason === b.dataset.reason ? null : b.dataset.reason;
+    const { error: e } = await sb.from('recap_feedback').update({ reason }).eq('recap_id', r.id).eq('user_id', me);
+    if (e) return toast(friendlyError(e), 'error');
+    if (reason) { track('recap_feedback_reason', { reason }); toast('Got it. Thanks for telling us.'); }
     renderRecap(recapId);
   }));
   $('[data-pin]').addEventListener('click', async () => {
