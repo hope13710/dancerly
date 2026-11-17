@@ -68,5 +68,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/join-preview.js": {
+      "includeFiles": "app/index.html"
+    }
+  }
 }

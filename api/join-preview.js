@@ -2,9 +2,12 @@
 // pasted into a group chat reads "Join Spring Showcase on dancerly · 5 people are already here" instead of the
 // generic app card. People get the same app page as before; only the preview tags change.
 // Only what invite_preview already tells anyone with the link: the project's name and how many people are in it.
+import { readFileSync } from 'node:fs';
+
 const SUPABASE_URL = 'https://egkwjdwfzuslyrhuzkmq.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_tPZZPnIucN4L1EAwXam_uA_3m7tNshc';
 
+const isApp = (html) => html.includes('<meta name="apple-mobile-web-app-title" content="dancerly" />') && html.includes('</html>');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const setMeta = (html, attr, key, value) => html.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), `$1${esc(value)}$2`);
 
@@ -26,12 +29,12 @@ async function invite(code) {
 }
 
 export default async function handler(req, res) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = req.headers['x-forwarded-proto'] || 'https';
   const code = String(req.query.code || '');
-  // The app itself: the same index.html the static site serves.
-  const page = await fetch(`${proto}://${host}/app/index.html`, { signal: AbortSignal.timeout(4000) }).catch(() => null);
-  if (!page?.ok) {
+  // The app itself: the same index.html the static site serves (build.js copies it as is), bundled with this
+  // function (vercel.json includeFiles). Checked to really be the app before it's served.
+  let html = '';
+  try { html = readFileSync(new URL('../app/index.html', import.meta.url), 'utf8'); } catch { html = ''; }
+  if (!isApp(html)) {
     // Couldn't read the page: send people to it unchanged (the static route), so the link still works.
     res.setHeader('Cache-Control', 'no-store');
     // ?p=1 skips this function in vercel.json, so this can't loop.
@@ -39,7 +42,6 @@ export default async function handler(req, res) {
     res.setHeader('Location', `/app/join/${encodeURIComponent(code)}?p=1`);
     return res.end();
   }
-  let html = await page.text();
   const row = await invite(code);
   if (row) {
     const n = Number(row.member_count) || 0;
