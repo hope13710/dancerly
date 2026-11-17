@@ -2,6 +2,9 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { buildSitemap } from './sitemap.js';
 
+// The look stays on the design tokens: no new raw colors, font sizes or radii in app/app.css.
+await import('./tools/check-tokens.js');
+
 const files = ['index.html', 'landing.css', 'landing.js', 'terms.html', 'privacy.html', 'legal.css', 'legal.js', 'logo-wordmark.png', 'favicon.png', 'apple-touch-icon.png', 'icon-512.png', 'og-image.png', 'logo.svg'];
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');

@@ -1,0 +1,151 @@
+/* dancerly design tokens. Every color, size, radius, shadow, layer and timing in the app comes from here.
+ *
+ * Three layers (the structure Material 3, GitHub Primer, Atlassian and Polaris share):
+ *   1. Primitives  --color-neutral-*, --color-violet-*, …  Raw values with no meaning. Only this file uses them
+ *                  directly, plus places that need an exact shade (the video stage, sketch colors).
+ *   2. Semantic    --color-text, --color-border, --color-success-fg, --color-note-fixed, …  What screens use:
+ *                  the role, not the shade. Changing a role's look happens here, once.
+ *   3. Scales      type, space, radius, elevation, control size, motion, layers.
+ *
+ * Kept apart on purpose, so they never look alike:
+ *   action (buttons)        rectangles, --radius-md
+ *   choice (filter chips)   fully round, --radius-full; on = accent-soft
+ *   status (badges)         --radius-sm, small text, never pressable, status colors only
+ *   reference (@ chips)     accent-soft with a leading icon
+ *   category (focus areas)  their own palette (--color-cat-*), never the status colors
+ * And two surfaces: the light app, and the dark "stage" around video (review, practice): same shapes, sizes
+ * and type, different colors (.stage tokens below).
+ *
+ * build.js checks app/app.css against tools/token-baseline.json: no new raw colors, font sizes or radii.
+ */
+:root {
+  /* ---------- 1. Primitives ---------- */
+  /* Neutrals: cool gray, light to dark. */
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #fafbfc;
+  --color-neutral-50: #f1f2f5;
+  --color-neutral-75: #eef0f4;
+  --color-neutral-100: #e3e6ed;
+  --color-neutral-150: #d4d7de;
+  --color-neutral-200: #c4c9d6;
+  --color-neutral-300: #aab1bd;
+  --color-neutral-400: #8993a1;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #3b4048;
+  --color-neutral-800: #2b3039;
+  --color-neutral-850: #1d222a;
+  --color-neutral-900: #14171d;
+  --color-neutral-950: #0b0d11;
+  --color-black: #000000;
+  /* Slate: the cooler grays of the dark video stage. */
+  --color-slate-100: #c9ced9;
+  --color-slate-300: #8f98a8;
+  --color-slate-600: #4a5263;
+  --color-slate-650: #3e4757;
+  --color-slate-700: #3a4150;
+  --color-slate-800: #232935;
+  /* Violet: the brand. */
+  --color-violet-50: #ededff;
+  --color-violet-100: #e0e1ff;
+  --color-violet-150: #dcdcfa;
+  --color-violet-200: #c9caff;
+  --color-violet-250: #c8c9f5;
+  --color-violet-275: #c4c5ff;
+  --color-violet-300: #a5a6ff;
+  --color-violet-400: #8b8cff;
+  --color-violet-500: #5b5ce2;
+  --color-violet-600: #4546b8;
+  --color-violet-800: #34366e;
+  /* Green, amber, red, blue: status only. */
+  --color-green-50: #e4f7ee;
+  --color-green-400: #4fd59c;
+  --color-green-600: #16845b;
+  --color-amber-50: #fff7e6;
+  --color-amber-300: #feaf75;
+  --color-amber-600: #b66c21;
+  --color-orange-25: #fff4f0;
+  --color-orange-50: #ffede5;
+  --color-red-600: #c2410c;
+  --color-blue-300: #7cc4ff;
+
+  /* ---------- 2. Semantic ---------- */
+  --color-bg: var(--color-neutral-25);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-text: var(--color-neutral-900);
+  --color-text-muted: var(--color-neutral-500);
+  --color-text-on-accent: var(--color-neutral-0);
+  --color-border: var(--color-neutral-100);
+  --color-accent: var(--color-violet-500);
+  --color-accent-strong: var(--color-violet-600);
+  --color-accent-soft: var(--color-violet-50);
+  --color-success-fg: var(--color-green-600);
+  --color-success-bg: var(--color-green-50);
+  --color-warning-fg: var(--color-amber-600);
+  --color-warning-bg: var(--color-orange-50);
+  --color-danger-fg: var(--color-red-600);
+  /* A note's state, wherever it shows (review, Feedback, Inbox, pages). */
+  --color-note-open: var(--color-accent);
+  --color-note-working: var(--color-amber-600);
+  --color-note-fixed: var(--color-success-fg);
+  /* Keyboard focus, the same ring on every control (shown with :focus-visible). */
+  --focus-ring: 0 0 0 3px rgba(91, 92, 226, 0.35);
+  /* The dark stage around video. */
+  --color-stage-bg: var(--color-neutral-900);
+  --color-stage-surface: var(--color-neutral-850);
+  --color-stage-raised: var(--color-neutral-800);
+
+  /* ---------- 3. Scales ---------- */
+  /* Type: 11 caption · 12 meta · 13 small · 14 body (UI) · 16 lead, inputs, and reading on phones · 20/24/32 titles. */
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-16: 16px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-32: 32px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-body: 1.5;
+  /* Radius: xs tiny marks · sm badges · md controls · lg cards, panels, dialogs · full chips, avatars. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+  /* Controls: compact · default (computers) · touch and main actions (Apple HIG 44pt). */
+  --control-sm: 28px;
+  --control-md: 36px;
+  --control-lg: 44px;
+  /* Elevation: cards · menus and popovers · dialogs and sheets. */
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 12px 32px rgba(20, 23, 29, 0.16);
+  --shadow-3: 0 30px 70px rgba(0, 0, 0, 0.25);
+  /* Motion: hover and press · things appearing. One curve. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* Layers, bottom to top. */
+  --z-sticky: 5;
+  --z-bar: 60;
+  --z-menu: 80;
+  --z-dialog: 100;
+  --z-toast: 120;
+  --z-lightbox: 200;
+  /* Breakpoints (for reference: CSS can't use variables in media queries): phone ≤ 600px, tablet ≤ 900px. */
+}
+
+/* People who asked their device for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
