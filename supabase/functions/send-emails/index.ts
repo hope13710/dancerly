@@ -1,5 +1,5 @@
 // send-emails: follows up on Inbox notifications by email. Called every 5 minutes by pg_cron (migration 025).
-//   instant  mentions, private notes, replies, video requests: ~15 min after, bundled per person, skipped if read
+//   instant  mentions, private notes, replies, video requests, your notes fixed: ~15 min after, bundled per person, skipped if read
 //   digest   everything else, once a morning at 8 AM in each person's own time zone, only when there is something
 //   weekly   Monday 8 AM in each person's own time zone: fixes and takes from the past week, plus the team's latest recap
 //            (migration 049), only after an active week; a week with
@@ -34,7 +34,10 @@ const GROUP: Record<string, string> = {
 };
 const DEFAULTS: Record<string, string> = {
   mention: "instant", private_note: "instant", reply: "instant", request: "instant",
-  note_on_your_video: "digest", new_take: "digest", note_resolved: "digest", joined: "digest", recap_shared: "digest",
+  note_on_your_video: "digest", new_take: "digest", joined: "digest", recap_shared: "digest",
+  // Your note got fixed: right away, so the person who gave feedback sees it landed (it's why they'll give more).
+  // A fix undone within 10 minutes deletes the notification first; instant emails wait 15.
+  note_resolved: "instant",
   join_request: "instant", added: "instant",
 };
 const GROUP_LABEL: Record<string, string> = {

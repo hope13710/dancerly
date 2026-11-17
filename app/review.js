@@ -991,6 +991,15 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       // A sketch note stops on its frame so the drawing can be read; others play from just before.
       if (note.sketch) { play(false); seek(note.t_start); } else seek(note.t_end === null ? Math.max(0, note.t_start - 1) : note.t_start, { start: true });
       paintNotes();
+      // On phones the player stays pinned on top: a card tapped while half under it comes fully into view
+      // (its time and author included). scroll-margin-top accounts for the player's height.
+      // A card taller than the space left under the player stays put with 'nearest': bring its top in instead.
+      const card = view.querySelector(`[data-note="${id}"]`);
+      if (card) {
+        const top = card.getBoundingClientRect().top;
+        const margin = parseFloat(getComputedStyle(card).scrollMarginTop) || 0;
+        card.scrollIntoView({ block: top < margin ? 'start' : 'nearest', behavior: 'smooth' });
+      }
     };
     if (el.dataset.seek) return goTo();
     if (el.dataset.loop) return setLoop(note);

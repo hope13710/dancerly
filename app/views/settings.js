@@ -31,7 +31,7 @@ const EMAIL_GROUPS = [
   ['request', 'Assignments and due dates', 'instant', 'request'],
   ['note_on_your_video', 'Notes on your videos', 'digest', 'note_on_your_video'],
   ['new_take', 'New takes', 'digest', 'new_take'],
-  ['note_resolved', 'Your notes get fixed', 'digest', 'note_resolved'],
+  ['note_resolved', 'Your notes get fixed', 'instant', 'note_resolved'],
   ['joined', 'Someone joins', 'digest', 'joined'],
   ['added', 'Added to a project', 'instant', 'added_to_project'],
   ['recap_shared', 'Recaps shared with you', 'digest', 'recap_shared']
