@@ -2,7 +2,7 @@
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { thumbUrls, backfillThumbs } from '../thumbs.js';
 import { cols, schema, fmtFine, notChoreo, canShareLinks, Unavailable, isMissingRow } from '../client.js';
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, projectMark, wireImagePicker, TAKE_BUCKET, isPublicMedia } from '../client.js';
 import { ctx } from '../ctx.js';
 import { NOTE_SELECT, noteRow, tabs, empty, namesFor, projectGoal, daysUntil, daysLabel, nameMatches } from './shared.js';
 import { loadGroups, groupsSection, wireGroups } from './groups.js';

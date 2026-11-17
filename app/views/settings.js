@@ -1,6 +1,5 @@
 // Settings: your account, what you get notified about, the projects you're in, and your plan.
-import { sb, $, $$, esc, initials, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
-import { cols, schema } from '../client.js';
+import { sb, $, $$, esc, toast, friendlyError, projectMark, avatar, wireImagePicker, rememberPhotos } from '../client.js';
 import { ctx } from '../ctx.js';
 import { openHelp } from '../help.js';
 import { ic } from '../icons.js';

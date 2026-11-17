@@ -1,5 +1,5 @@
 // Pieces several screens share: note rows, tabs, empty states, people names.
-import { sb, esc, initials, fmt, timeAgo, avatar, rememberPhotos, notChoreo } from '../client.js';
+import { sb, esc, fmt, timeAgo, avatar, rememberPhotos, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { ic } from '../icons.js';
 import { practiceHref } from '../choreo-align.js';

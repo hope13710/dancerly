@@ -1,5 +1,5 @@
 // Sharing outside the team: a read-only guest link for one video, and a calendar subscription URL.
-import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog, canShareLinks } from '../client.js';
+import { sb, $, $$, esc, fmt, toast, friendlyError, SUPABASE_URL, schema, fmtFine, dialog } from '../client.js';
 import { track } from '../onboarding.js';
 import { ctx } from '../ctx.js';
 import { placeLayer, paintSketches, sketchShowsAt } from '../sketch.js';

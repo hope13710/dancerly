@@ -1,11 +1,10 @@
 import { cols, detectSchema, schema } from './client.js';
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, GOOGLE_ENABLED, GOOGLE_G, avatar, projectMark, rememberPhotos, Unavailable, isMissingRow } from './client.js';
-import { uploadTake, checkTakeFile } from './upload.js';
+import { sb, $, $$, esc, initials, toast, friendlyError, dialog, actionSheet, GOOGLE_ENABLED, GOOGLE_G, avatar, projectMark, rememberPhotos, Unavailable, isMissingRow } from './client.js';
 import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
-import { rememberSource, signupSource } from './source.js';
+import { rememberSource } from './source.js';
 import { startMonitoring, setMonitoredUser, reportFailure } from './monitor.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderTrash } from './views/trash.js';

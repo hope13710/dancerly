@@ -3,8 +3,8 @@ import { cols, schema, notChoreo, canShareLinks } from './client.js';
 import { overlayChrome } from './player-chrome.js';
 import { volumeControl, wireVolume } from './volume.js';
 import { thumbUrls } from './thumbs.js';
-import { sb, $, $$, esc, initials, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
-import { uploadTake, checkTakeFile } from './upload.js';
+import { sb, $, $$, esc, fmt, fmtFine, timeAgo, toast, friendlyError, dialog, actionSheet, withUploadBar, loadMembers, avatar, takeUrl, isEnter } from './client.js';
+import { uploadTake } from './upload.js';
 import { COLORS, TOOLS, placeLayer, paintSketches, sketchShowsAt, startDrawing } from './sketch.js';
 import { countAt, countLabel, eightStarts, tapTempo } from './counts.js';
 import { offsetByMusic, follow } from './compare.js';
@@ -67,7 +67,6 @@ export async function mountReview({ projectId, videoId, me, view, navigate, setC
       : esc(name);
     return `<span class="byline">uploaded by ${who.replace('class="uploader"', 'class="uploader after-text"')}</span>`;
   };
-  const roleOf = (id) => (members.find((m) => m.user_id === id)?.role === 'owner' ? 'Owner' : 'Member');
 
   if (!takes.length) {
     view.innerHTML = `<section class="page"><div class="empty"><div class="empty-icon">${ic('video', 'solo')}</div><h2>No takes yet</h2><p>Upload the first take of “${esc(video.title)}”. If an upload stopped, pick the same file again — it continues where it left off.</p><button class="btn primary" data-upload>Upload Take 1</button></div></section><input type="file" accept="video/mp4,video/quicktime,video/webm" hidden data-file />`;

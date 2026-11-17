@@ -1,5 +1,5 @@
 // People: everyone you share a project with, and what each person is working on.
-import { sb, $$, esc, initials, timeAgo, avatar, isSamplePerson, cols, actionSheet, dialog, toast, friendlyError, notChoreo } from '../client.js';
+import { sb, $$, esc, timeAgo, avatar, isSamplePerson, cols, actionSheet, dialog, toast, friendlyError, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { NOTE_SELECT, noteRow, pageHead, previewEmpty, namesFor, tabs, noSample, empty, nameMatches, realProjects } from './shared.js';

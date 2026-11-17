@@ -1,6 +1,6 @@
 // To review (an Inbox tab): new takes you haven't watched yet, oldest first, plus requests that are past due.
 // Opening a video marks it seen; "Next in queue" walks the list without coming back here.
-import { sb, $, esc, initials, timeAgo, avatar, notChoreo } from '../client.js';
+import { sb, $, esc, avatar, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { pageHead, tabs, empty, previewEmpty, hasTeammates, namesFor, noSample, realProjects } from './shared.js';

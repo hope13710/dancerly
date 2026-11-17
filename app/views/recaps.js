@@ -1,10 +1,10 @@
 // AI recaps: made per project × period, saved automatically, pinned per person, shared on purpose.
 // They live in Project › Recaps, show up on Home, and collect in Me › My recaps.
-import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, actionSheet, notChoreo } from '../client.js';
+import { sb, $, $$, esc, fmt, timeAgo, toast, friendlyError, dialog, enterConfirms, cols, schema, notChoreo } from '../client.js';
 import { ctx } from '../ctx.js';
 import { sampleMoment, samplePeek, teamNote, track } from '../onboarding.js';
 import { loadProject, projectHead, inviteLink } from './project.js';
-import { empty, namesFor, tabs, noSample, realProjects, byPerson } from './shared.js';
+import { empty, namesFor, noSample, realProjects, byPerson } from './shared.js';
 import { ic } from '../icons.js';
 import { catChip, catLabel } from '../categories.js';
 

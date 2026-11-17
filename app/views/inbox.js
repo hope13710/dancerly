@@ -1,5 +1,5 @@
 // Inbox: what happened that you should know about. Opening an item marks it read and jumps to the moment.
-import { sb, $, $$, esc, initials, toast, friendlyError, timeAgo, avatar, schema, dialog, actionSheet } from '../client.js';
+import { sb, $, esc, toast, friendlyError, timeAgo, avatar, schema, dialog, actionSheet } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';

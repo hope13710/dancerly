@@ -1,5 +1,5 @@
 // Groups inside a project — "Juniors", "Front line" — so requests can go to a group at once.
-import { sb, $$, esc, initials, toast, friendlyError, dialog, avatar, enterConfirms } from '../client.js';
+import { sb, $$, esc, toast, friendlyError, dialog, avatar, enterConfirms } from '../client.js';
 
 export async function loadGroups(projectId) {
   const { data, error } = await sb.from('project_groups').select('id, name, created_by, project_group_members(user_id)').eq('project_id', projectId).order('name');

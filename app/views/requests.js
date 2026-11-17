@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, initials, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo, Unavailable } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo, Unavailable } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
