@@ -19,7 +19,7 @@
   button.primary { background: #5b5ce2; color: #fff; border-color: #5b5ce2; }
   button:disabled { opacity: .45; }
   #log { font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; max-width: 560px; }
-  video, canvas.preview { width: 100%; max-width: 280px; border-radius: 12px; background: #000; display: block; }
+  video { width: 100%; max-width: 280px; border-radius: 12px; background: #000; display: block; }
 </style>
 </head>
 <body>
@@ -27,8 +27,9 @@
 <p>Checks whether this phone can make a short video card, then makes one from the sample takes. Nothing is uploaded.</p>
 <table id="caps"></table>
 <div class="row">
-  <button class="primary" data-make="split">Make “Split” (7 s)</button>
-  <button class="primary" data-make="wipe">Make “Wipe” (7 s)</button>
+  <button class="primary" data-make="split">Split</button>
+  <button class="primary" data-make="wipe">Wipe</button>
+  <button class="primary" data-make="countdown">Countdown</button>
 </div>
 <div class="row">
   <button data-share disabled>Share…</button>
@@ -38,16 +39,27 @@
 <pre id="log"></pre>
 <script type="module">
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 const log = (m) => { $('#log').textContent += `${m}\n`; };
 const qs = new URLSearchParams(location.search);
-const W = Number(qs.get('w') || 1080), H = Math.round(W * 16 / 9);
+const W = Number(qs.get('w') || 1080), H = Math.round(W * 16 / 9), u = W / 1080;
 const FPS = 30, LEN = 7;
 const SRC = qs.get('src') ? qs.get('src').split(',') : ['/samples/opener-take-1.mp4', '/samples/opener-take-2.mp4'];
 const T0 = Number(qs.get('t0') || 2.0); // the moment both takes start from (the lined-up beat)
-const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Apple SD Gothic Neo", sans-serif';
+const FONT = 'CardInter, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif';
+// What the card says. In the app these come from the project: crew, video, the days between takes, the goal event.
+const CARD = { crew: 'NOVA CREW', song: 'Supernova · Chorus', first: 1, latest: 23, firstDate: 'OCT 25', event: 'SHOWCASE', eventDate: 'NOV 24', dday: 7 };
+const VIOLET = '#7d7ef0';
 
 let mb;
 let result = null;
+
+async function fonts() {
+  await Promise.all([600, 800, 900].map(async (w) => {
+    const f = new FontFace('CardInter', `url(/fonts/inter-latin-${w}-normal.woff2)`, { weight: String(w) });
+    try { document.fonts.add(await f.load()); } catch {}
+  }));
+}
 
 async function caps() {
   mb = await import('/app/vendor/mediabunny-card-1.61.3.js');
@@ -68,70 +80,119 @@ async function caps() {
   $('#caps').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
 }
 
-// ---------- Drawing ----------
-function label(g, text, x, y, { size, weight = 800, bg = null, fg = '#fff', pad = 0.42, align = 'left' }) {
-  g.font = `${weight} ${size}px ${FONT}`;
-  const w = g.measureText(text).width;
-  const px = size * pad, h = size * 1.5;
-  const left = align === 'right' ? x - w - px * 2 : x;
-  if (bg) { g.fillStyle = bg; g.beginPath(); g.roundRect(left, y, w + px * 2, h, h * 0.28); g.fill(); }
-  g.fillStyle = fg; g.textBaseline = 'middle'; g.fillText(text, left + px, y + h / 2 + size * 0.04);
+// ---------- Drawing helpers ----------
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const clamp = (t) => Math.max(0, Math.min(1, t));
+function type(g, text, x, y, size, weight, { fill = '#fff', alpha = 1, align = 'left', track = 0 } = {}) {
+  g.font = `${weight} ${size * u}px ${FONT}`;
+  if ('letterSpacing' in g) g.letterSpacing = `${track * u}px`;
+  g.globalAlpha = alpha; g.fillStyle = fill; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.fillText(text, x, y);
+  g.globalAlpha = 1; g.textAlign = 'left'; if ('letterSpacing' in g) g.letterSpacing = '0px';
+  return g.measureText(text).width;
+}
+// A tag on the picture: small caps on a dark glass chip, or the reverse for "now".
+function tag(g, text, x, y, { now = false, size = 30 } = {}) {
+  g.font = `800 ${size * u}px ${FONT}`;
+  if ('letterSpacing' in g) g.letterSpacing = `${1.5 * u}px`;
+  const w = g.measureText(text).width, px = 18 * u, h = size * 1.7 * u;
+  g.beginPath(); g.roundRect(x, y, w + px * 2, h, 10 * u);
+  g.fillStyle = now ? '#fff' : 'rgba(10,10,14,0.62)'; g.fill();
+  g.fillStyle = now ? '#0b0c10' : '#fff'; g.textBaseline = 'middle'; g.fillText(text, x + px, y + h / 2 + 1 * u);
+  if ('letterSpacing' in g) g.letterSpacing = '0px';
+  return w + px * 2;
 }
 function fit(g, img, x, y, w, h, mode = 'cover') {
-  if (!img) { g.fillStyle = '#222'; g.fillRect(x, y, w, h); return; }
+  if (!img) { g.fillStyle = '#1a1b20'; g.fillRect(x, y, w, h); return; }
   const s = mode === 'cover' ? Math.max(w / img.width, h / img.height) : Math.min(w / img.width, h / img.height);
   const iw = img.width * s, ih = img.height * s;
   g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
 }
-const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const clamp = (t) => Math.max(0, Math.min(1, t));
+function clip(g, img, x, y, w, h, r = 24) {
+  g.save(); g.beginPath(); g.roundRect(x, y, w, h, r * u); g.clip(); fit(g, img, x, y, w, h); g.restore();
+}
+// A soft backdrop from the picture itself: drawn tiny and stretched back up (works on every browser, unlike ctx.filter).
+const tiny = Object.assign(document.createElement('canvas'), { width: 27, height: 48 });
+function backdrop(g, img, dim = 0.55) {
+  const t = tiny.getContext('2d');
+  fit(t, img, 0, 0, tiny.width, tiny.height);
+  g.imageSmoothingQuality = 'high'; g.drawImage(tiny, 0, 0, W, H);
+  g.fillStyle = `rgba(0,0,0,${dim})`; g.fillRect(0, 0, W, H);
+}
+function header(g, { y = 300 } = {}) {
+  type(g, CARD.crew, 60 * u, y * u, 92, 900, { track: -2 });
+  type(g, CARD.song, 62 * u, (y + 58) * u, 36, 600, { alpha: 0.7 });
+}
+function signature(g) {
+  type(g, 'made with dancerly', W / 2, 1600 * u, 28, 600, { alpha: 0.6, align: 'center', track: 0.5 });
+}
 
-const CARD = { crew: 'NOVA CREW', title: 'Supernova · Chorus', from: 'DAY 1', to: 'DAY 23', dday: 'SHOWCASE D-7' };
-
+// ---------- Three cards ----------
+// Split: both takes on the same beat, stacked. Fits footage filmed sideways, which most group practice is.
 function frameSplit(g, a, b, t) {
-  g.fillStyle = '#0d0e12'; g.fillRect(0, 0, W, H);
-  const u = W / 1080;
-  const ph = Math.round(W * 9 / 16), gap = 16 * u, mid = H / 2;
-  const ya = mid - gap / 2 - ph, yb = mid + gap / 2;
-  fit(g, a, 0, ya, W, ph); fit(g, b, 0, yb, W, ph);
-  g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(0, ya, W, ph); // the past, a touch dimmer
-  label(g, CARD.from, 40 * u, ya + 28 * u, { size: 40 * u, bg: 'rgba(0,0,0,0.55)' });
-  label(g, CARD.to, 40 * u, yb + 28 * u, { size: 40 * u, bg: '#fff', fg: '#000' });
-  // Header and footer in the bands Instagram leaves free.
-  g.fillStyle = '#fff'; g.textBaseline = 'alphabetic';
-  g.font = `900 ${72 * u}px ${FONT}`; g.fillText(CARD.crew, 56 * u, ya - 92 * u);
-  g.globalAlpha = 0.72; g.font = `600 ${36 * u}px ${FONT}`; g.fillText(CARD.title, 58 * u, ya - 40 * u); g.globalAlpha = 1;
-  const end = clamp((t - 5.6) / 0.6);
-  g.font = `900 ${60 * u}px ${FONT}`; g.globalAlpha = 0.35 + 0.65 * end;
-  g.fillText(`${CARD.from} → ${CARD.to}`, 56 * u, yb + ph + 96 * u);
-  g.globalAlpha = 1;
-  label(g, CARD.dday, 56 * u, yb + ph + 130 * u, { size: 34 * u, bg: '#5b5ce2' });
-  signature(g, u);
+  g.fillStyle = '#0b0c10'; g.fillRect(0, 0, W, H);
+  header(g);
+  const x = 60 * u, w = W - 120 * u, h = Math.round(w * 9 / 16), ya = 430 * u, yb = ya + h + 14 * u;
+  const end = ease(clamp((t - 5.7) / 0.5));
+  clip(g, a, x, ya, w, h); clip(g, b, x, yb, w, h);
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.roundRect(x, ya, w, h, 24 * u); g.fill(); // the past, a touch dimmer
+  tag(g, `DAY ${CARD.first} · ${CARD.firstDate}`, x + 20 * u, ya + 20 * u);
+  tag(g, `DAY ${CARD.latest} · NOW`, x + 20 * u, yb + 20 * u, { now: true });
+  // The payoff for the last beat: the two pictures dim and the span takes over.
+  if (end > 0) {
+    g.fillStyle = `rgba(11,12,16,${0.72 * end})`; g.fillRect(0, ya - 10 * u, W, yb + h - ya + 20 * u);
+    const cy = ya + (yb + h - ya) / 2;
+    type(g, `${CARD.latest} days in.`, W / 2, cy - 10 * u, 150, 900, { align: 'center', alpha: end, track: -4 });
+    type(g, `${CARD.event} IN ${CARD.dday} DAYS`, W / 2, cy + 80 * u, 40, 800, { align: 'center', alpha: end, fill: VIOLET, track: 3 });
+  }
+  signature(g);
 }
 
+// Wipe: Take 1, then a hard wipe to the latest take while the day counter runs up.
 function frameWipe(g, a, b, t) {
-  const u = W / 1080;
-  // 0–3.2 s Take 1, 3.2–3.9 the wipe, then the latest take; the last second holds the line.
-  const p = ease(clamp((t - 3.2) / 0.7));
-  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-  const draw = (img) => { g.save(); g.filter = 'blur(28px) brightness(0.5)'; fit(g, img, 0, 0, W, H, 'cover'); g.restore(); fit(g, img, 0, H * 0.28, W, H * 0.44, 'contain'); };
-  if (p < 1) draw(a);
-  if (p > 0) { g.save(); g.beginPath(); g.rect(0, 0, W * p, H); g.clip(); draw(b); g.restore(); g.fillStyle = '#fff'; g.fillRect(W * p - 4 * u, 0, 8 * u, H); }
-  g.fillStyle = '#fff'; g.textBaseline = 'alphabetic';
-  g.font = `900 ${84 * u}px ${FONT}`; g.fillText(CARD.crew, 56 * u, 330 * u);
-  g.globalAlpha = 0.72; g.font = `600 ${40 * u}px ${FONT}`; g.fillText(CARD.title, 58 * u, 392 * u); g.globalAlpha = 1;
-  const tag = p < 0.5 ? CARD.from : CARD.to;
-  label(g, tag, 56 * u, H * 0.72 + 32 * u, { size: 56 * u, bg: p < 0.5 ? 'rgba(0,0,0,0.6)' : '#fff', fg: p < 0.5 ? '#fff' : '#000' });
-  const end = clamp((t - 5.8) / 0.5);
-  if (end > 0) { g.globalAlpha = end; label(g, CARD.dday, 56 * u, H - 380 * u, { size: 36 * u, bg: '#5b5ce2' }); g.globalAlpha = 1; }
-  signature(g, u);
+  const p = ease(clamp((t - 3.0) / 0.8));
+  const show = (img) => { backdrop(g, img); fit(g, img, 0, 560 * u, W, 640 * u, 'contain'); };
+  if (p < 1) show(a);
+  if (p > 0) {
+    g.save(); g.beginPath(); g.rect(0, 0, W * p, H); g.clip(); show(b); g.restore();
+    if (p < 1) { g.fillStyle = '#fff'; g.shadowColor = 'rgba(255,255,255,0.8)'; g.shadowBlur = 30 * u; g.fillRect(W * p - 5 * u, 0, 10 * u, H); g.shadowBlur = 0; }
+  }
+  header(g);
+  const day = Math.round(CARD.first + (CARD.latest - CARD.first) * p);
+  type(g, 'DAY', 60 * u, 1300 * u, 44, 800, { alpha: 0.8, track: 4 });
+  type(g, String(day), 52 * u, 1500 * u, 230, 900, { track: -8, fill: p >= 1 ? '#fff' : 'rgba(255,255,255,0.92)' });
+  const end = ease(clamp((t - 5.4) / 0.5));
+  if (end > 0) {
+    g.font = `900 ${230 * u}px ${FONT}`;
+    const nx = 52 * u + g.measureText(String(day)).width + 36 * u;
+    type(g, `${CARD.event}`, nx, 1420 * u, 40, 800, { alpha: end, fill: VIOLET, track: 3 });
+    type(g, `IN ${CARD.dday} DAYS`, nx, 1470 * u, 40, 800, { alpha: end, track: 3 });
+  }
+  signature(g);
 }
 
-function signature(g, u) {
-  g.globalAlpha = 0.85; g.fillStyle = '#fff'; g.textBaseline = 'alphabetic'; g.textAlign = 'right';
-  g.font = `800 ${34 * u}px ${FONT}`; g.fillText('dancerly', W - 56 * u, H - 290 * u);
-  g.textAlign = 'left'; g.globalAlpha = 1;
+// Countdown: built around the show. The latest take big, Take 1 as a small "then" in the corner.
+function frameCountdown(g, a, b, t) {
+  g.fillStyle = '#0b0c10'; g.fillRect(0, 0, W, H);
+  type(g, CARD.crew, 60 * u, 300 * u, 40, 800, { alpha: 0.85, track: 3 });
+  const pulse = 1 + 0.04 * Math.max(0, Math.sin(Math.PI * clamp((t - 5.6) / 0.5)));
+  g.save(); g.translate(48 * u, 640 * u); g.scale(pulse, pulse);
+  type(g, `D-${CARD.dday}`, 0, 0, 300, 900, { track: -12 });
+  g.restore();
+  type(g, `${CARD.event} · ${CARD.eventDate}`, 62 * u, 712 * u, 40, 800, { fill: VIOLET, track: 3 });
+  const x = 60 * u, w = W - 120 * u, h = Math.round(w * 9 / 16), y = 790 * u;
+  clip(g, b, x, y, w, h);
+  tag(g, `DAY ${CARD.latest} · NOW`, x + 20 * u, y + 20 * u, { now: true });
+  // Take 1, small, overlapping the bottom right corner.
+  const pw = 380 * u, ph = Math.round(pw * 9 / 16), px = W - 60 * u - pw + 24 * u, py = y + h - ph + 120 * u;
+  g.fillStyle = '#0b0c10'; g.beginPath(); g.roundRect(px - 8 * u, py - 8 * u, pw + 16 * u, ph + 16 * u, 22 * u); g.fill();
+  clip(g, a, px, py, pw, ph, 16);
+  tag(g, `DAY ${CARD.first}`, px + 14 * u, py + 14 * u, { size: 24 });
+  type(g, CARD.song, 62 * u, y + h + 90 * u, 36, 600, { alpha: 0.7 });
+  signature(g);
 }
+
+const FRAMES = { split: frameSplit, wipe: frameWipe, countdown: frameCountdown };
 
 // ---------- Making the video ----------
 async function make(kind) {
@@ -139,20 +200,21 @@ async function make(kind) {
   $('[data-out]').hidden = true;
   const started = performance.now();
   try {
+    await fonts();
     const codec = qs.get('codec') || ((await mb.canEncodeVideo('avc', { width: W, height: H, bitrate: 6e6 })) ? 'avc' : 'vp9');
     log(`— ${kind} · ${W}×${H} · ${codec}`);
     const open = async (url) => {
       const input = new mb.Input({ source: new mb.UrlSource(url), formats: mb.ALL_FORMATS });
       const track = await input.getPrimaryVideoTrack();
       const dur = await input.computeDuration();
-      const scale = Math.min(1, (kind === 'split' ? W : H * 0.6) / Math.max(track.displayWidth, track.displayHeight));
+      const scale = Math.min(1, W / Math.max(track.displayWidth, track.displayHeight));
       const sink = new mb.CanvasSink(track, { width: Math.round(track.displayWidth * scale), height: Math.round(track.displayHeight * scale), fit: 'fill', poolSize: 2 });
       return { sink, dur };
     };
     const [A, B] = await Promise.all(SRC.map(open));
     const n = FPS * LEN;
     const at = (dur, i) => Math.min(dur - 0.05, T0 + i / FPS); // both takes move on the same beat
-    const range = kind === 'wipe' ? [[0, Math.ceil(3.9 * FPS)], [Math.floor(3.2 * FPS), n]] : [[0, n], [0, n]];
+    const range = kind === 'wipe' ? [[0, Math.ceil(3.8 * FPS)], [Math.floor(3.0 * FPS), n]] : [[0, n], [0, n]];
     const ts = (src, [s, e]) => Array.from({ length: e - s }, (_, k) => at(src.dur, s + k));
     const itA = A.sink.canvasesAtTimestamps(ts(A, range[0]))[Symbol.asyncIterator]();
     const itB = B.sink.canvasesAtTimestamps(ts(B, range[1]))[Symbol.asyncIterator]();
@@ -166,12 +228,12 @@ async function make(kind) {
     let a = null, b = null;
     let decode = 0, draw = 0, encode = 0;
     for (let i = 0; i < n; i++) {
-      let t1 = performance.now();
+      const t1 = performance.now();
       if (i >= range[0][0] && i < range[0][1]) a = (await itA.next()).value?.canvas || a;
       if (i >= range[1][0] && i < range[1][1]) b = (await itB.next()).value?.canvas || b;
-      let t2 = performance.now(); decode += t2 - t1;
-      (kind === 'wipe' ? frameWipe : frameSplit)(g, a, b, i / FPS);
-      let t3 = performance.now(); draw += t3 - t2;
+      const t2 = performance.now(); decode += t2 - t1;
+      FRAMES[kind](g, a, b, i / FPS);
+      const t3 = performance.now(); draw += t3 - t2;
       await source.add(i / FPS, 1 / FPS);
       encode += performance.now() - t3;
       if (i % 30 === 0) log(`frame ${i}/${n}`);
@@ -192,7 +254,6 @@ async function make(kind) {
   $$('button').forEach((b) => (b.disabled = false));
   $('[data-share]').disabled = $('[data-save]').disabled = !result;
 }
-const $$ = (s) => [...document.querySelectorAll(s)];
 $$('[data-make]').forEach((b) => b.addEventListener('click', () => make(b.dataset.make)));
 $('[data-save]').addEventListener('click', () => {
   const a = document.createElement('a');
