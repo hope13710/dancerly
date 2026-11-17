@@ -124,6 +124,15 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  /* Tracking: page titles · other titles (16–24px) · small uppercase labels. */
+  --tracking-display: -0.03em;
+  --tracking-title: -0.02em;
+  --tracking-label: 0.06em;
+  /* Icons: even sizes only, so their lines stay sharp. They follow the text they sit in (see .ic). */
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-stroke: 1.8;
   --line-height-tight: 1.25;
   --line-height-body: 1.5;
   /* Spacing scale: 4px steps (6 only for tight spots, like an icon next to its text). Nothing in between;
