@@ -1,7 +1,7 @@
 // Practice: the project's choreo video, section by section. Loop a part, slow it down, mirror it.
 // The choreo video is one of the project's own videos, or a YouTube video (migration 057).
 // Built for a phone propped up in a studio: big controls, tap the video to play or pause, the screen stays on.
-import { sb, $, $$, esc, fmt, fmtFine, timeAgo, avatar, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, TAKE_BUCKET, canShareLinks } from '../client.js';
+import { sb, $, $$, esc, fmt, fmtFine, timeAgo, avatar, toast, friendlyError, dialog, actionSheet, schema, takeUrl, withUploadBar, wasCanceled, TAKE_BUCKET, canShareLinks } from '../client.js';
 import { uploadTake, checkTakeFile } from '../upload.js';
 import { ctx } from '../ctx.js';
 import { volumeControl, wireVolume } from '../volume.js';
@@ -95,10 +95,11 @@ export async function chooseChoreo({ projectId, current = null, anchor = null, t
     if (error) { toast(friendlyError(error), 'error'); return false; }
     let take;
     try {
-      take = await withUploadBar(got.title, (stage) => uploadTake({ projectId, videoId: video.id, file: got.file, onStage: stage }));
+      take = await withUploadBar(got.title, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: got.file, onStage: stage, signal }));
     } catch (err) {
       await sb.from('videos').delete().eq('id', video.id);
-      toast(friendlyError(err), 'error');
+      if (wasCanceled(err)) toast('Upload canceled.');
+      else toast(friendlyError(err), 'error');
       return false;
     }
     next = { videoId: video.id, takeId: take?.id || null };
