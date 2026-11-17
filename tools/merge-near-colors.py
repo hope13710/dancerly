@@ -1,16 +1,17 @@
 # Finds raw colors in app/app.css that are nearly the same as a primitive token (CIE76 ΔE below the limit) and,
 # with --apply, replaces them with that token. ΔE under ~2 is invisible side by side; up to 5 is a shade
 # only noticeable when compared directly.
-# Usage: python3 tools/merge-near-colors.py [limit=5] [--apply]
+# Usage: python3 tools/merge-near-colors.py [limit=5] [--apply] [--file=landing.css]
 import re, sys, math, pathlib, collections
 
 root = pathlib.Path(__file__).resolve().parent.parent
 limit = float(next((a for a in sys.argv[1:] if not a.startswith('--')), 5))
 apply = '--apply' in sys.argv
 # Tints that read as a different hue (info blues, teal, a violet-tinted white) stay as they are.
-SKIP = {'#e5edfd', '#e3edfd', '#dbeafe', '#f4f4ff', '#dcf3ef', '#c7d2fe'}
+SKIP = {'#e5edfd', '#e3edfd', '#dbeafe', '#f4f4ff', '#dcf3ef', '#c7d2fe', '#000000'}
 tokens = (root / 'app/tokens.css').read_text()
-css_path = root / 'app/app.css'
+target = next((a.split('=',1)[1] for a in sys.argv if a.startswith('--file=')), 'app/app.css')
+css_path = root / target
 css = css_path.read_text()
 
 def full(h):
