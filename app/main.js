@@ -4,7 +4,7 @@ import { mountReview } from './review.js';
 import { ctx } from './ctx.js';
 import { renderWelcome, markSeen, sampleOnReturn, markSampleSeen } from './onboarding.js';
 import { openHelp } from './help.js';
-import { rememberSource } from './source.js';
+import { rememberSource, signupSource } from './source.js';
 import { startMonitoring, setMonitoredUser, reportFailure } from './monitor.js';
 import { renderDeleteAccount } from './views/delete-account.js';
 import { renderTrash } from './views/trash.js';

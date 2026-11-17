@@ -62,8 +62,6 @@ const played = new IntersectionObserver((entries) => {
 $$('[data-play]').forEach((el) => (reducedMotion ? el.classList.add('play', 'still') : played.observe(el)));
 
 
-applyLang();
-
 // ---------- Hero: pin → sketch → loop → fixed, on a gentle loop while visible ----------
 const demo = $('[data-hero-demo]');
 const typed = $('[data-hero-typed]');
@@ -190,6 +188,15 @@ else {
     // Off screen, the video rests.
     if (!visible) video?.pause(); else if (step !== 1 && !stopped) video?.play().catch(() => {});
   }, { threshold: 0.2 }).observe(demo);
+  // Coming back to this page (Back from the app restores it from memory, paused) or to this tab: nothing
+  // above fires, since the demo never left the screen. Pick it up where it was, unless someone paused it.
+  const resume = () => {
+    if (document.hidden || !visible || stopped || !video) return;
+    if (step !== 1 && video.paused) video.play().catch(() => {});
+    if (auto) schedule();
+  };
+  window.addEventListener('pageshow', (e) => { if (e.persisted) resume(); });
+  document.addEventListener('visibilitychange', resume);
   show(0);
   schedule();
   $$('[data-hero-step]').forEach((b) => b.addEventListener('click', () => {
