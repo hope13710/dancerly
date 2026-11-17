@@ -2,7 +2,7 @@
 // Stories, Reels and TikTok. Made on the device from the takes themselves; nothing is uploaded or stored.
 // Anyone on the project can make one, unless the owner turned it off (migration 034). In the sample it's a
 // preview: marked SAMPLE, and the share buttons point to starting your own project instead.
-import { sb, $, $$, esc, toast, friendlyError, dialog, actionSheet, cols, takeUrl, isPublicMedia, publicMediaUrl, fmt } from './client.js';
+import { sb, $, $$, esc, toast, friendlyError, dialog, actionSheet, cols, takeUrl, isPublicMedia, publicMediaUrl, fmtFine } from './client.js';
 import { ctx } from './ctx.js';
 import { track } from './onboarding.js';
 import { shiftBetween } from './align.js';
@@ -12,6 +12,7 @@ import { ic } from './icons.js';
 import { W, H, LEN, STYLES, loadAssets, canMakeVideo, makePlayers, playersReady, startPreview, still, makeVideo } from './card-video.js';
 
 const PROMPTED = 'looproom:cardPrompt:';
+const LEAD = 3; // seconds of the card before the chosen moment
 const day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 // ---------- Data ----------
@@ -155,7 +156,7 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
             </select></label>` : ''}
             <div class="ce-moment">
               <img alt="" data-ce-thumb />
-              <div><b>Starts at <span data-ce-at>00:00</span></b><small>${c.single ? 'On your take' : `On Take ${c.first.number}; Take ${c.latest.number} follows on the same beat`}</small></div>
+              <div><b>Moment <span data-ce-at>00:00</span></b><small>${c.single ? 'The card plays the 7 seconds around it' : `The card plays the 7 seconds around it, Take ${c.latest.number} on the same beat`}</small></div>
               <button type="button" class="btn small" data-ce-pick>Change</button>
             </div>
           </section>
@@ -198,14 +199,16 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   }
   if (!video) s.format = 'image';
   $('[data-ce-formats]', el).hidden = !video;
-  // Where the card starts: just before the moment the team last fixed (or talked about), else a third in.
+  // The moment the card is about: the one the team last fixed (or talked about), else a third in. The card
+  // plays the 7 seconds around it, with the moment 3 seconds in (where the Wipe swaps takes); near either end
+  // the window shifts so it stays inside the take, and the moment is always in it.
   const durA = (players.a || players.b).duration || LEN;
-  const fitStart = (t) => Math.max(0, Math.min(t, durA - LEN));
-  setStart(fitStart(c.moment !== null ? c.moment - 1.5 : durA / 3));
-  function setStart(at) {
-    s.startA = at;
-    s.startB = c.single ? at : Math.max(0, at + shift);
-    $('[data-ce-at]', el).textContent = fmt(at);
+  setMoment(c.moment !== null ? c.moment : durA / 3);
+  function setMoment(at) {
+    s.moment = Math.max(0, Math.min(at, durA));
+    s.startA = Math.max(0, Math.min(s.moment - LEAD, durA - LEN));
+    s.startB = c.single ? s.startA : Math.max(0, s.startA + shift);
+    $('[data-ce-at]', el).textContent = fmtFine(s.moment);
   }
   const state = () => ({ style: s.style, card: cardWords(c, s), startA: s.startA, startB: s.startB });
 
@@ -223,8 +226,15 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
       const img = $(`[data-ce-art="${k}"]`, el);
       if (img) img.src = small.toDataURL('image/jpeg', 0.75);
     }
-    await still(small, players, { ...state(), style: 'rehearsal', card: { ...cardWords(c, s), crew: '', song: '' } }, logo, 0.5);
-    $('[data-ce-thumb]', el).src = small.toDataURL('image/jpeg', 0.7);
+    // The thumbnail is the chosen frame itself.
+    const frame = players.a || players.b;
+    await new Promise((res) => { frame.addEventListener('seeked', res, { once: true }); frame.currentTime = Math.min(s.moment, durA - 0.05); });
+    const t = document.createElement('canvas');
+    t.width = 160; t.height = 100;
+    const tg = t.getContext('2d');
+    const k = Math.max(t.width / frame.videoWidth, t.height / frame.videoHeight);
+    tg.drawImage(frame, (t.width - frame.videoWidth * k) / 2, (t.height - frame.videoHeight * k) / 2, frame.videoWidth * k, frame.videoHeight * k);
+    $('[data-ce-thumb]', el).src = t.toDataURL('image/jpeg', 0.7);
     play();
   };
   const play = () => {
@@ -296,8 +306,8 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
     if (t.dataset.ceStyle) { s.style = t.dataset.ceStyle; paint(); return play(); }
     if (t.hasAttribute('data-ce-pick')) {
       preview?.stop(); preview = null;
-      const at = await pickMoment(urlA || urlB, s.startA, c.first.number);
-      if (at !== null) setStart(fitStart(at));
+      const at = await pickMoment(urlA || urlB, s.moment, c.first.number, durA);
+      if (at !== null) setMoment(at);
       return tiles().then(paint);
     }
     if (t.hasAttribute('data-ce-back')) return back();
@@ -359,22 +369,45 @@ export async function openCardEditor({ projectId, videoId, from = 'unknown' }) {
   });
 }
 
-// Pick a moment in a take: its player, then "Use this moment". Resolves to seconds, or null.
-function pickMoment(url, at, number) {
+// Pick the moment in a take: drag the bar (or step a tenth of a second), or play and tap Use this moment.
+// Our own bar rather than the browser's controls: on iPhone those can report a stale time right after a drag.
+function pickMoment(url, at, number, dur) {
   return new Promise((resolve) => {
     const el = document.createElement('dialog');
     el.className = 'dialog ce-picker';
-    el.innerHTML = `<div class="dialog-card"><h2>Take ${number}: pick the moment</h2>
-      <video src="${esc(url)}" controls playsinline muted preload="auto" crossorigin="anonymous"></video>
-      <p class="fine left">Pause on the frame you want on the card.</p>
+    el.innerHTML = `<div class="dialog-card">
+      <h2>Choose the moment</h2>
+      <p class="muted">Take ${number}. Drag to it, or play and tap the button when it comes up.</p>
+      <div class="pk-stage"><video src="${esc(url)}" playsinline muted preload="auto" crossorigin="anonymous"></video>
+        <button type="button" class="pk-play" data-pk-play aria-label="Play">${ic('play', 'solo')}</button></div>
+      <div class="pk-scrub">
+        <button type="button" class="btn small ghost icon" data-pk-step="-0.1" aria-label="Back a tenth of a second">${ic('back', 'solo')}</button>
+        <input type="range" min="0" max="${dur.toFixed(2)}" step="0.01" value="${(at || 0).toFixed(2)}" data-pk-bar aria-label="Moment" />
+        <button type="button" class="btn small ghost icon" data-pk-step="0.1" aria-label="Forward a tenth of a second">${ic('right', 'solo')}</button>
+        <span class="pk-time" data-pk-time>${fmtFine(at || 0)}</span>
+      </div>
       <div class="dialog-actions"><button type="button" class="btn ghost" data-no>Cancel</button><button type="button" class="btn primary" data-yes>Use this moment</button></div></div>`;
     document.body.append(el);
-    const v = $('video', el);
-    v.addEventListener('loadedmetadata', () => { if (at !== null && at !== undefined) v.currentTime = Math.min(at, Math.max(0, v.duration - 0.1)); }, { once: true });
+    const v = $('video', el), bar = $('[data-pk-bar]', el), time = $('[data-pk-time]', el), playBtn = $('[data-pk-play]', el);
+    let chosen = Math.min(at || 0, dur), raf = 0;
+    const show = (t) => { chosen = Math.max(0, Math.min(t, dur)); bar.value = chosen.toFixed(2); time.textContent = fmtFine(chosen); };
+    const seek = (t) => { show(t); v.pause(); v.currentTime = chosen; };
+    const follow = () => { if (!v.paused) { show(v.currentTime); raf = requestAnimationFrame(follow); } };
+    const paintPlay = () => { const on = !v.paused; playBtn.innerHTML = ic(on ? 'pause' : 'play', 'solo'); playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play'); el.classList.toggle('playing', on); };
+    v.addEventListener('loadedmetadata', () => { v.currentTime = chosen; }, { once: true });
+    v.addEventListener('play', () => { paintPlay(); cancelAnimationFrame(raf); follow(); });
+    v.addEventListener('pause', () => { paintPlay(); cancelAnimationFrame(raf); });
+    v.addEventListener('ended', () => show(dur));
+    const toggle = () => (v.paused ? v.play().catch(() => {}) : v.pause());
+    playBtn.addEventListener('click', toggle);
+    v.addEventListener('click', toggle);
+    bar.addEventListener('input', () => seek(Number(bar.value)));
+    el.querySelectorAll('[data-pk-step]').forEach((b) => b.addEventListener('click', () => seek(chosen + Number(b.dataset.pkStep))));
     let out = null;
-    $('[data-yes]', el).addEventListener('click', () => { out = v.currentTime; el.close(); });
+    // While playing, the moment is where it is right now; paused, it's what the bar shows.
+    $('[data-yes]', el).addEventListener('click', () => { out = v.paused ? chosen : v.currentTime; el.close(); });
     $('[data-no]', el).addEventListener('click', () => el.close());
-    el.addEventListener('close', () => { v.pause(); el.remove(); resolve(out); });
+    el.addEventListener('close', () => { cancelAnimationFrame(raf); v.pause(); v.removeAttribute('src'); v.load(); el.remove(); resolve(out); });
     el.showModal();
   });
 }

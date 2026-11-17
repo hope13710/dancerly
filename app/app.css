@@ -7105,12 +7105,67 @@ button.row {
 .ce-picker {
   width: min(640px, calc(100% - 32px));
 }
-.ce-picker video {
-  width: 100%;
-  max-height: 56dvh;
+.ce-picker h2 {
+  margin-bottom: var(--space-4);
+}
+.ce-picker .muted {
+  margin: 0 0 var(--space-12);
+  font-size: var(--font-size-13);
+}
+/* Choosing the moment: the take, tap to play or pause, and our own bar under it. */
+.pk-stage {
+  position: relative;
   border-radius: var(--radius-md);
+  overflow: hidden;
   background: var(--color-black);
-  margin: var(--space-8) 0;
+}
+.pk-stage video {
+  display: block;
+  width: 100%;
+  max-height: 52dvh;
+  object-fit: contain;
+}
+.pk-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: var(--control-lg);
+  height: var(--control-lg);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-neutral-0);
+  color: var(--ink);
+  box-shadow: var(--shadow-2);
+  transition: opacity var(--duration-fast) var(--ease);
+}
+.ce-picker.playing .pk-play {
+  opacity: 0;
+}
+.ce-picker.playing .pk-stage:hover .pk-play,
+.ce-picker.playing .pk-play:focus-visible {
+  opacity: 1;
+}
+.pk-scrub {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-8);
+  margin: var(--space-12) 0 var(--space-4);
+}
+.pk-scrub input[type="range"] {
+  width: 100%;
+  min-height: var(--control-md);
+  accent-color: var(--accent);
+}
+.pk-time {
+  min-width: 56px;
+  text-align: right;
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .ce-celebrate {
   position: relative;
