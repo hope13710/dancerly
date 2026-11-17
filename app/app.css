@@ -4271,9 +4271,11 @@ td.ref .play {
   font-size: 13px;
 }
 .save-state {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
+.doc-meta:has(> .save-state:not([hidden])) > [data-meta] { display: none; }
+.save-state.ok::before { content: "✓ "; color: var(--ok); }
 .save-state.error {
   color: var(--danger);
 }

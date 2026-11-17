@@ -113,9 +113,8 @@ export async function renderPage(projectId, pageId) {
   const TOOLS = [['p', 'Text', 'T'], ['h1', 'Heading', 'H1'], ['h2', 'Subheading', 'H2'], ['li', 'Bulleted list', '•'], ['ol', 'Numbered list', '1.'], ['task', 'Checklist', '☐']];
   view.innerHTML = `<section class="page narrow-wide doc-page">
     <header class="doc-head">
-      <p class="muted doc-meta" data-meta>Edited by ${esc(names[page.updated_by] || 'someone')} · ${timeAgo(page.updated_at)}</p>
+      <p class="muted doc-meta"><span data-meta>Edited by ${esc(names[page.updated_by] || 'someone')} · ${timeAgo(page.updated_at)}</span><span class="save-state" data-save role="status" hidden></span></p>
       <div class="head-actions">
-        <span class="save-state" data-save hidden></span>
         <button type="button" class="btn small" data-edit>${ic('pen')}Edit</button>
         <button type="button" class="btn small primary" data-done hidden>Done</button>
         <button type="button" class="btn small ghost icon" data-page-more aria-label="Page options" title="Page options">${ic('more', 'solo')}</button>
@@ -144,7 +143,17 @@ export async function renderPage(projectId, pageId) {
   const stateEl = $('[data-save]');
   const conflictEl = $('[data-conflict]');
   const toolbar = $('[data-toolbar]');
-  const setState = (text, bad = false) => { stateEl.hidden = !text; stateEl.textContent = text; stateEl.classList.toggle('error', bad); };
+  // Where "Edited by …" is: while editing (or right after a save from reading, like a resized photo), the save state
+  // takes its place, as Google Docs shows "Saving… / Saved" by the title.
+  let stateTimer = null;
+  const setState = (text, bad = false) => {
+    clearTimeout(stateTimer);
+    stateEl.hidden = !text;
+    stateEl.textContent = text;
+    stateEl.classList.toggle('error', bad);
+    stateEl.classList.toggle('ok', text === 'Saved');
+    if (text === 'Saved' && !editing) stateTimer = setTimeout(() => { setState(''); paintMeta('you'); }, 1500);
+  };
 
   let timer = null;
   let pending = false;
