@@ -489,20 +489,47 @@ function suggestStack(title, videos, lastViewedId) {
   return videos.find((v) => v.id === lastViewedId) || null;
 }
 
+// "Run-through · Nov 16": the day it was filmed (the file's date), not the day it's uploaded.
+const runThrough = (date) => `Run-through · ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+// A file name worth keeping as the video's name ("Chorus 1 full.mp4" → "Chorus 1 full"), or null for the ones
+// cameras and phones make up (IMG_4127, VID_20261116_1902, PXL_…, Screen Recording…, a string of digits).
+function nameFromFile(fileName) {
+  const base = String(fileName || '').replace(/\.[a-z0-9]{2,4}$/i, '').trim();
+  if (/^(img|vid|mov|mvi|dsc|dscn|pxl|dji|gopr|gx|gh|mvimg|video|clip|movie|trim|copy|untitled|screen ?recording|screen ?shot|rpreplay|record|recording)\b/i.test(base.replace(/[_-]/g, ' '))) return null;
+  const words = base.replace(/[_]+/g, ' ').replace(/\s*-\s*/g, ' - ').replace(/\s+/g, ' ').trim();
+  // Needs a real word once "final", "take 2", "v3", "edit" and the like are set aside (Korean words count at 2 letters).
+  const meaningful = words.replace(/\b(take|v|ver|version|vid|clip)\s*\d+\b|\b(final|new|again|retake|edit|edited|export|copy|draft|test)\b/gi, ' ');
+  if (!/[a-z]{3,}|[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]{2,}/iu.test(meaningful) || /^[0-9a-f-]{16,}$/i.test(base)) return null;
+  const name = words.charAt(0).toUpperCase() + words.slice(1);
+  return name.length > 80 ? `${name.slice(0, 79).trim()}…` : name;
+}
+
 // request: answer a request. Your first upload becomes your submission; later ones are its next takes.
 export async function createVideo(projectId, { request = null, name = null } = {}) {
   if (request) {
     const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
     if (mine) return resubmit(projectId, mine);
   }
-  const autoName = `Run-through · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  // The name is filled in for you and follows the file you pick (below), until you type your own.
+  const autoName = runThrough(new Date());
+  let suggested = request ? null : name || autoName; // what's in the field now, if you haven't changed it
+  let generic = !request && !name; // a dated "Run-through" says nothing about which video this is
   const values = await dialog({
     title: request ? `Submit: ${request.title}` : 'Upload video',
     body: request ? (request.due_at ? `Due ${new Date(request.due_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : 'Your video goes to everyone on the project.') : 'Re-shooting something you already uploaded? Open that video and use <b>Upload new take</b> — its open notes come along.',
     // The video first (what people reach for), then a name that's already filled in and easy to change.
     fields: [
-      { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT },
-      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : name || autoName }
+      { name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT,
+        onChange: (file, field) => {
+          const input = field('title');
+          if (!file || suggested === null || input.value.trim() !== suggested) return; // you've named it yourself
+          const fromFile = nameFromFile(file.name);
+          suggested = fromFile || runThrough(file.lastModified ? new Date(file.lastModified) : new Date());
+          generic = !fromFile;
+          input.value = suggested;
+          input.dataset.suggested = suggested;
+        } },
+      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, select: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : name || autoName }
     ],
     confirm: 'Upload'
   });
@@ -513,7 +540,7 @@ export async function createVideo(projectId, { request = null, name = null } = {
   let lastViewed = null;
   try { lastViewed = localStorage.getItem(`looproom:lastVideo:${projectId}`); } catch {}
   // A name left as filled in says nothing about which video this is, so don't match on it.
-  const match = request ? null : suggestStack(values.title === autoName ? '' : values.title, existing || [], lastViewed);
+  const match = request ? null : suggestStack(generic && values.title === suggested ? '' : values.title, existing || [], lastViewed);
   if (match) {
     const next = (match.takes[0]?.count ?? 0) + 1;
     const choice = await dialog({

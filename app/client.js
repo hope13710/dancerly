@@ -309,6 +309,16 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
     });
     // A link in the body goes somewhere else in the app: close the dialog on the way.
     el.addEventListener('click', (event) => { if (event.target.closest('a[data-link]')) el.close('cancel'); });
+    // A field can react to another (e.g. a name that follows the picked file), and a filled-in suggestion is
+    // selected when you tap into it, so typing replaces it (as when renaming a file).
+    const field = (name) => el.querySelector(`[name="${name}"]`);
+    fields.forEach((f) => {
+      const input = field(f.name);
+      if (!input) return;
+      if (f.onChange) input.addEventListener('change', () => f.onChange(f.type === 'file' ? input.files?.[0] : input.value, field));
+      if (f.select) input.addEventListener('focus', () => { if (input.value === input.dataset.suggested) setTimeout(() => input.select()); });
+      if (f.select) input.dataset.suggested = input.value;
+    });
     enterConfirms(el);
     el.showModal();
     el.querySelector('input')?.focus();
