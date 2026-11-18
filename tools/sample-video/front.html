@@ -294,7 +294,7 @@ function frame(t) {
     g.fillStyle = o.d.me ? 'rgba(139,140,255,0.92)' : 'rgba(10,11,15,0.6)'; g.fill();
     text(label, hd.headX, hd.headY - 6, o.d.me ? 13 : 12, 700, '#fff', 'center');
   }
-  drawHud(b);
+  // No words on the picture: a team's own video has none (the player shows the counts).
   const fade = Math.min(clamp(t / 0.6), clamp((END - t) / 0.6));
   if (fade < 1) { g.fillStyle = `rgba(0,0,0,${1 - fade})`; g.fillRect(0, 0, W, H); }
 }
