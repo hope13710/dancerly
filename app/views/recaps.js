@@ -268,7 +268,7 @@ export async function renderProjectRecaps(projectId) {
     sb.from('recaps').select(SELECT()).eq('project_id', projectId).order('created_at', { ascending: false }).limit(200)
   ]);
   if (error) throw error;
-  const recaps = rawRecaps.map(localize);
+  const recaps = rawRecaps;
   setCrumbs([['Projects', '/app/projects'], [p.project.title, `/app/p/${projectId}`], ['Recaps']]);
   const filtered = recaps.filter((r) => show === 'team' ? r.team || r.shared_at : show === 'mine' ? r.created_by === me && !r.team : show === 'pinned' ? isPinned(r) : true);
   const groups = pinnedFirst(groupVersions(filtered));
@@ -314,7 +314,7 @@ export async function renderMyRecaps() {
   const extraIds = (pins || []).map((p) => p.recap_id).filter((id) => !mine.some((r) => r.id === id));
   let pinnedShared = [];
   if (extraIds.length) ({ data: pinnedShared = [] } = await noSample(sb.from('recaps').select(SELECT())).in('id', extraIds));
-  const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine].map(localize)));
+  const groups = pinnedFirst(groupVersions([...pinnedShared, ...mine]));
   const names = await namesFor(groups.map((g) => g.latest.created_by));
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div><h1>My recaps</h1><p class="muted sub">Every recap you made, across all your projects. Pinned first.</p></div><button class="btn" data-new-recap>Custom recap</button></header>
