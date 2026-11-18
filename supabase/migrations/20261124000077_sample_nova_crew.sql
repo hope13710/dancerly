@@ -58,6 +58,7 @@ begin
   select id into p from public.projects where created_by = me and is_sample limit 1;
   if p is not null then return p; end if;
   select coalesce(nullif(btrim(display_name), ''), 'you') into my_name from public.profiles where id = me;
+  my_name := coalesce(my_name, 'you'); -- no profile row yet: the mention still reads
   -- Midnight today in the person's time zone.
   day0 := (date_trunc('day', now() at time zone tz)) at time zone tz;
 
