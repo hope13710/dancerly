@@ -48,7 +48,7 @@ export async function renderProjectOverview(projectId) {
       <section class="panel">
         <div class="panel-head"><div><h2>Goal</h2></div>${p.isOwner ? '<button class="btn ghost small" data-edit-goal>Edit</button>' : ''}</div>
         ${extra?.goal ? `<p class="brief">${esc(extra.goal)}</p>` : `<p class="panel-empty">${p.isOwner ? 'What is this project for? “Clean, confident chorus for the spring showcase.”' : 'The owner hasn’t written a goal yet.'}</p>`}
-        ${extra?.music_title || extra?.music_url ? `<p class="music">${ic('music')}${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)}${ic('arrow', 'after')}</a>` : esc(extra.music_title)}${canMusic ? `<button type="button" class="icon-btn music-edit" data-edit-music aria-label="Change the music" title="Change the music">${ic('pen', 'solo')}</button>` : ''}</p>`
+        ${extra?.music_title || extra?.music_url ? `<p class="music">${ic('music')}${extra.music_url ? `<a class="link" href="${esc(extra.music_url)}" target="_blank" rel="noopener noreferrer">${esc(extra.music_title || extra.music_url)}${ic('arrow', 'after')}</a>` : esc(extra.music_title)}${canMusic ? `<button type="button" class="icon-btn music-edit" data-edit-music aria-label="Change the music" title="Change the music">${ic('pen', 'solo')}</button>` : ''}${p.project.is_sample ? '<span class="muted"> · not included in the sample</span>' : ''}</p>`
           : canMusic && !p.project.is_sample ? `<p class="music">${ic('music')}<button type="button" class="text-btn link" data-edit-music>Add the music</button></p>` : ''}
         ${choreoLine}
       </section>
