@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Front view</title>
+<style>body{margin:0;background:#0b0c10}canvas{display:block;width:100%;height:auto}</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script type="module">
+// Nova Crew's Chorus 1 seen from the front, as a team films it: seven pictogram dancers on a studio floor.
+// ?take=1 | 2 | choreo · window.still(t) draws one moment · window.render() encodes the MP4 (H.264, no sound).
+const qs = new URLSearchParams(location.search);
+const TAKE = qs.get('take') || 'choreo';
+const W = 1280, H = 720, FPS = 30;
+const BPM = 98, BEAT = 60 / BPM;
+const T0 = 1.25;
+const EIGHTS = 6, BEATS = EIGHTS * 8;
+const END = T0 + BEATS * BEAT + 2.0;
+const FONT = 'CardInter, Inter, -apple-system, "Segoe UI", sans-serif';
+
+const CREW = [
+  { id: 'J', name: 'Jin', color: '#e8578f' },
+  { id: 'A', name: 'Ari', color: '#16a8a0' },
+  { id: 'D', name: 'Dani', color: '#d9a514' },
+  { id: 'M', name: 'Maya', color: '#3f8fe8' },
+  { id: 'L', name: 'Leo', color: '#ef7d45' },
+  { id: 'S', name: 'Sofia', color: '#30b571' },
+  { id: 'Y', name: 'You', color: '#8b8cff', me: true }
+];
+const SIDE = { J: 1, A: -1, D: 1, M: -1, L: -1, S: 1, Y: 1 }; // which hand goes by the head in the ending pose
+
+// Formations, seen from above (x: 0 = stage left as the audience sees it; y: 0 = upstage, 1 = downstage)
+const V = { J: [.5, .62], A: [.40, .52], Y: [.60, .52], M: [.30, .42], S: [.70, .42], L: [.20, .32], D: [.80, .32] };
+const ROWS = { M: [.23, .56], A: [.41, .56], Y: [.59, .56], S: [.77, .56], L: [.32, .40], J: [.50, .40], D: [.68, .40] };
+const ROWS_BLOCKED = { ...ROWS, L: [.41, .40], D: [.59, .40] };
+const CLUMP = { J: [.50, .72], L: [.43, .58], A: [.36, .64], Y: [.64, .64], M: [.28, .52], S: [.72, .52], D: [.59, .48] };
+const CLUMP_HIDDEN = { ...CLUMP, L: [.50, .58] };
+const WEDGE = { J: [.50, .70], A: [.40, .63], Y: [.60, .63], M: [.30, .56], S: [.70, .56], L: [.20, .49], D: [.80, .49] };
+const MISTAKES = {
+  choreo: {},
+  1: { youPopUp: true, blockedRows: true, walkAhead: 0.05, leoHidden: true, mayaArm: true, changeAt: 25, dropAt: 48.6 },
+  2: { walkAhead: 0.02, changeAt: 24.5, dropAt: 48.15 }
+}[TAKE];
+
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const clamp = (t) => Math.max(0, Math.min(1, t));
+const lerp = (a, b, t) => a + (b - a) * t;
+const mix = (p, q, t) => [lerp(p[0], q[0], t), lerp(p[1], q[1], t)];
+const stepEase = (t, steps) => { const s = Math.min(steps - 1e-6, t * steps); const i = Math.floor(s); return (i + ease(s - i)) / steps; };
+const blend = (a, b, t) => Object.fromEntries(Object.keys(a).map((k) => [k, lerp(a[k], b[k], t)]));
+
+// Where each dancer is (same choreography as the formation plan)
+function place(id, b) {
+  const m = MISTAKES;
+  const rows = m.blockedRows ? ROWS_BLOCKED : ROWS;
+  const clump = m.leoHidden ? CLUMP_HIDDEN : CLUMP;
+  let pos = V[id];
+  if (b >= 14) pos = mix(V[id], rows[id], ease(clamp((b - 14) / 2)));
+  const walk = 0.14 + (['M', 'A', 'L'].includes(id) ? (m.walkAhead || 0) : 0);
+  if (b >= 20) pos = [rows[id][0], rows[id][1] + walk * stepEase(clamp((b - 20) / 4), 4)];
+  const from = [rows[id][0], rows[id][1] + walk];
+  if (b >= 24) pos = mix(from, clump[id], ease(clamp((b - (m.changeAt ?? 25)) / 3)));
+  if (b >= 40) pos = mix(clump[id], WEDGE[id], ease(clamp((b - 40) / 3)));
+  return pos;
+}
+
+// ---------- Poses: a small rig (all lengths as a share of the dancer's height) ----------
+// drop: how far the hips sink; stance: half the distance between the feet; arm a = angle from hanging down
+// (90 = out to the side, 180 = straight up), e = elbow bend; lift: a foot off the floor (walking).
+const NEUTRAL = { drop: 0.02, stance: 0.1, la: 12, le: 10, ra: 12, re: 10, tilt: 0, liftL: 0, liftR: 0 };
+const CHEST = { drop: 0.04, stance: 0.12, la: 30, le: 115, ra: 30, re: 115, tilt: 0, liftL: 0, liftR: 0 };
+const SQUAT = { drop: 0.2, stance: 0.2, la: 22, le: 35, ra: 22, re: 35, tilt: 0, liftL: 0, liftR: 0 };
+const HIT_R = { drop: 0.05, stance: 0.15, la: 35, le: 100, ra: 155, re: 0, tilt: -4, liftL: 0, liftR: 0 };
+const HIT_L = { drop: 0.05, stance: 0.15, la: 155, le: 0, ra: 35, re: 100, tilt: 4, liftL: 0, liftR: 0 };
+const HIT_V = { drop: 0.03, stance: 0.16, la: 160, le: 0, ra: 160, re: 0, tilt: 0, liftL: 0, liftR: 0 };
+const HIT_OUT = { drop: 0.08, stance: 0.18, la: 95, le: 0, ra: 95, re: 0, tilt: 0, liftL: 0, liftR: 0 };
+
+function pose(id, b, moving) {
+  const m = MISTAKES;
+  let p = { ...NEUTRAL };
+  const beatFrac = ((b % 1) + 1) % 1;
+  const bounce = 0.035 * Math.max(0, Math.cos(beatFrac * Math.PI)); // down on the beat
+  if (b < 0) { p = { ...NEUTRAL }; p.drop += 0.01 * Math.max(0, Math.cos(beatFrac * Math.PI)); return p; }
+  // 1st eight: hook groove, chest pops on the beat
+  if (b < 8) { p = blend(NEUTRAL, CHEST, ease(clamp(b / 0.5))); p.drop += bounce; p.la += 10 * Math.cos(beatFrac * Math.PI); p.ra += 10 * Math.cos(beatFrac * Math.PI); return p; }
+  // 2nd eight: squat on 3–4 (hold it), up on 5, squat hit on 6, travel on 7–8
+  if (b < 16) {
+    p = blend(CHEST, NEUTRAL, ease(clamp(b - 8)));
+    const up = id === 'Y' && m.youPopUp ? 10.55 : 12;
+    if (b >= 9.6 && b < up + 0.4) p = blend(p, SQUAT, b < up ? ease(clamp((b - 9.6) / 0.4)) : 1 - ease(clamp((b - up) / 0.4)));
+    if (b >= 12.6 && b < 13.9) p = blend(p, SQUAT, b < 13 ? ease(clamp((b - 12.6) / 0.4)) : 1 - ease(clamp((b - 13.3) / 0.6)));
+    if (b >= 14) p.drop += bounce * 0.6;
+    return p;
+  }
+  // 3rd eight: groove in the rows, then the walk-up (one step a count)
+  if (b < 24) { p = blend(NEUTRAL, CHEST, 0.6); p.drop += bounce; return p; }
+  // 4th eight: the formation change, then groove; 5th eight: hits on 1, 3, 5, 7
+  if (b < 32) { p = blend(NEUTRAL, CHEST, 0.5); p.drop += bounce * 0.8; return p; }
+  if (b < 40) {
+    const k = Math.floor((b - 32) / 2), f = (b - 32) % 2;
+    const hit = [HIT_R, HIT_L, HIT_V, HIT_OUT][k];
+    p = f < 1 ? blend(CHEST, hit, ease(clamp(f / 0.25))) : blend(hit, CHEST, ease(clamp((f - 1) / 0.6)));
+    p.drop += bounce * 0.5;
+    return p;
+  }
+  // 6th eight: out to the wedge, then the ending pose from 5 (hand by the head), freeze on 8
+  if (b < 44) { p = blend(NEUTRAL, CHEST, 0.5); p.drop += bounce * 0.7; return p; }
+  const side = SIDE[id];
+  const straight = id === 'M' && m.mayaArm;
+  const by = straight ? { a: 178, e: 0 } : { a: 150, e: 118 };
+  const end = { drop: 0.05, stance: 0.16, tilt: side * -5, liftL: 0, liftR: 0,
+    la: side < 0 ? by.a : 28, le: side < 0 ? by.e : 70, ra: side > 0 ? by.a : 28, re: side > 0 ? by.e : 70 };
+  p = blend(blend(NEUTRAL, CHEST, 0.5), end, ease(clamp((b - 44) / 0.6)));
+  const dropAt = m.dropAt ?? 49;
+  if (b >= dropAt) p = blend(end, NEUTRAL, ease(clamp((b - dropAt) / 0.8)));
+  return p;
+}
+
+// ---------- The studio, seen from the front ----------
+const c = document.getElementById('c');
+const g = c.getContext('2d');
+const HORIZON = 262, FRONT = 700;
+// Stage position (x, depth) to the floor point on screen, and how big a dancer is there
+function project(x, d) {
+  const y = lerp(HORIZON + 20, FRONT - 20, d);
+  const width = lerp(1050, 1650, d);
+  return { x: 640 + (x - 0.5) * width, y, h: lerp(168, 262, d) };
+}
+
+let bgCache = null;
+function drawStudio() {
+  if (bgCache) return g.drawImage(bgCache, 0, 0);
+  bgCache = document.createElement('canvas'); bgCache.width = W; bgCache.height = H;
+  const f = bgCache.getContext('2d');
+  // Back wall
+  const wall = f.createLinearGradient(0, 0, 0, HORIZON); wall.addColorStop(0, '#0e1016'); wall.addColorStop(1, '#171a22');
+  f.fillStyle = wall; f.fillRect(0, 0, W, HORIZON);
+  // Wall panels
+  f.strokeStyle = 'rgba(255,255,255,0.035)'; f.lineWidth = 1;
+  for (let x = 40; x < W; x += 120) { f.beginPath(); f.moveTo(x, 60); f.lineTo(x, HORIZON); f.stroke(); }
+  // Ceiling lights
+  for (let i = 0; i < 7; i++) {
+    const x = 260 + i * 128, y = 22 + (i % 2) * 5;
+    const glow = f.createRadialGradient(x, y, 0, x, y, 46); glow.addColorStop(0, 'rgba(255,255,255,0.12)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+    f.fillStyle = glow; f.fillRect(x - 46, y - 46, 92, 92);
+    f.fillStyle = 'rgba(255,255,255,0.55)'; f.beginPath(); f.ellipse(x, y, 14, 2.5, 0, 0, Math.PI * 2); f.fill();
+  }
+  // Floor with perspective
+  const floor = f.createLinearGradient(0, HORIZON, 0, H); floor.addColorStop(0, '#20232c'); floor.addColorStop(1, '#2a2e39');
+  f.fillStyle = floor; f.fillRect(0, HORIZON, W, H - HORIZON);
+  const shine = f.createRadialGradient(640, HORIZON + 120, 10, 640, HORIZON + 120, 560); shine.addColorStop(0, 'rgba(180,185,255,0.10)'); shine.addColorStop(1, 'rgba(0,0,0,0)');
+  f.fillStyle = shine; f.fillRect(0, HORIZON, W, H - HORIZON);
+  f.strokeStyle = 'rgba(255,255,255,0.05)';
+  for (let i = -8; i <= 8; i++) { f.beginPath(); f.moveTo(640 + i * 40, HORIZON); f.lineTo(640 + i * 160, H); f.stroke(); }
+  for (const d of [0.05, 0.25, 0.5, 0.8]) { const y = lerp(HORIZON, H, d * d); f.beginPath(); f.moveTo(0, y); f.lineTo(W, y); f.stroke(); }
+  // Spike marks on the front edge (center out), as dancers call their spots
+  const ny = FRONT - 8;
+  ['8', '6', '4', '2', 'C', '2', '4', '6', '8'].forEach((n, i) => {
+    const x = 640 + ((i - 4) / 9) * 1180;
+    f.fillStyle = n === 'C' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
+    f.fillRect(x - 1, ny - 18, 2, 10);
+    f.font = `700 12px ${FONT}`; f.textAlign = 'center'; f.fillText(n, x, ny + 4);
+  });
+  f.textAlign = 'left';
+  // Wall meets floor
+  f.fillStyle = 'rgba(0,0,0,0.35)'; f.fillRect(0, HORIZON - 2, W, 4);
+  g.drawImage(bgCache, 0, 0);
+}
+
+// ---------- A pictogram dancer ----------
+function limb(ax, ay, bx, by, w, color) { g.strokeStyle = color; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); }
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
+function dancer(fx, fy, hgt, p, color, alpha = 1, mirror = false) {
+  const u = hgt;
+  const sy = mirror ? -1 : 1;
+  const Y = (v) => fy + sy * v * u, X = (v) => fx + v * u;
+  const thigh = 0.25, shin = 0.25, torso = 0.29, sw = 0.085, hw = 0.055, ua = 0.165, fa = 0.155;
+  const hipY = -(thigh + shin) + p.drop;
+  const tilt = (p.tilt * Math.PI) / 180;
+  const body = color, far = shade(color, -0.22), near = shade(color, 0.08);
+  g.save(); g.globalAlpha = alpha;
+  // Legs (2-bone, knees out)
+  const leg = (side, lift) => {
+    const hx = side * hw, hy = hipY;
+    const fxl = side * p.stance, fyl = -lift;
+    const dx = fxl - hx, dy = fyl - hy, D = Math.hypot(dx, dy);
+    const L = thigh;
+    const h = D < 2 * L ? Math.sqrt(L * L - (D / 2) * (D / 2)) : 0;
+    const mx = (hx + fxl) / 2, my = (hy + fyl) / 2;
+    let nx = -dy / D, ny = dx / D; if (nx * side < 0) { nx = -nx; ny = -ny; }
+    const kx = mx + nx * h, ky = my + ny * h;
+    limb(X(hx), Y(hy), X(kx), Y(ky), 0.085 * u, side < 0 ? far : near);
+    limb(X(kx), Y(ky), X(fxl), Y(fyl), 0.075 * u, side < 0 ? far : near);
+    g.fillStyle = shade(color, -0.35); g.beginPath(); g.ellipse(X(fxl + side * 0.02), Y(fyl), 0.05 * u, 0.022 * u, 0, 0, Math.PI * 2); g.fill();
+  };
+  leg(-1, p.liftL); leg(1, p.liftR);
+  // Torso
+  const shx = Math.sin(tilt) * torso, shy = hipY - Math.cos(tilt) * torso;
+  limb(X(0), Y(hipY + 0.02), X(shx), Y(shy + 0.03), 0.15 * u, body);
+  // Arms
+  const arm = (side, a, e) => {
+    const sx = shx + side * sw * Math.cos(tilt), syy = shy + side * sw * Math.sin(tilt);
+    const ar = (a * Math.PI) / 180, er = ((a + e) * Math.PI) / 180;
+    const ex = sx + side * Math.sin(ar) * ua, ey = syy + Math.cos(ar) * ua;
+    const hx = ex + side * Math.sin(er) * fa, hy = ey + Math.cos(er) * fa;
+    const col = side < 0 ? far : near;
+    limb(X(sx), Y(syy), X(ex), Y(ey), 0.07 * u, col);
+    limb(X(ex), Y(ey), X(hx), Y(hy), 0.062 * u, col);
+    g.fillStyle = col; g.beginPath(); g.arc(X(hx), Y(hy), 0.036 * u, 0, Math.PI * 2); g.fill();
+  };
+  arm(-1, p.la, p.le); arm(1, p.ra, p.re);
+  // Head
+  const hx = shx + Math.sin(tilt) * 0.1, hy = shy - 0.1;
+  g.fillStyle = shade(color, 0.12); g.beginPath(); g.arc(X(hx), Y(hy), 0.072 * u, 0, Math.PI * 2); g.fill();
+  g.restore();
+  return { headX: X(hx), headY: Y(hy - 0.09) };
+}
+
+// ---------- HUD ----------
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function text(s, x, y, size, weight, color, align = 'left', track = 0) {
+  g.font = `${weight} ${size}px ${FONT}`; if ('letterSpacing' in g) g.letterSpacing = `${track}px`;
+  g.fillStyle = color; g.textAlign = align; g.textBaseline = 'alphabetic'; g.fillText(s, x, y);
+  if ('letterSpacing' in g) g.letterSpacing = '0px'; g.textAlign = 'left';
+}
+function countLabel(b) {
+  if (b < 0) { const k = Math.floor(b + 4) + 5; return { eight: 'Count-in', n: String(Math.max(5, Math.min(8, k))) }; }
+  if (b >= BEATS) return { eight: '6th eight', n: '8' };
+  return { eight: ['1st', '2nd', '3rd', '4th', '5th', '6th'][Math.floor(b / 8)] + ' eight', n: String(Math.floor(b % 8) + 1) };
+}
+function partLabel(b) {
+  if (b < 0) return '';
+  return b < 8 ? 'Hook groove' : b < 16 ? 'Squats' : b < 20 ? 'Spacing' : b < 24 ? 'Walk-up' : b < 32 ? 'Formation change' : b < 40 ? 'Hits' : b < 44 ? 'Into the wedge' : 'Ending pose';
+}
+function drawHud(b) {
+  // A soft band so the words read over the wall
+  const band = g.createLinearGradient(0, 0, 0, 120); band.addColorStop(0, 'rgba(8,9,12,0.75)'); band.addColorStop(1, 'rgba(8,9,12,0)');
+  g.fillStyle = band; g.fillRect(0, 0, W, 120);
+  const { eight, n } = countLabel(b);
+  text('CHORUS 1', 40, 42, 12, 800, 'rgba(255,255,255,0.5)', 'left', 2.5);
+  text(eight, 40, 72, 22, 700, '#fff');
+  g.font = `700 22px ${FONT}`; const ew = g.measureText(eight).width;
+  text('·', 40 + ew + 10, 72, 22, 700, 'rgba(255,255,255,0.4)');
+  const pulse = b >= -4 ? 1 - clamp((b - Math.floor(b)) / 0.35) : 0;
+  text(n, 40 + ew + 28, 73, 28 + 4 * pulse, 900, b >= 0 ? '#a5a6ff' : 'rgba(255,255,255,0.6)');
+  const part = partLabel(b); if (part) text(part, 40, 96, 14, 600, 'rgba(255,255,255,0.55)');
+  const label = TAKE === 'choreo' ? 'CHOREO · JIN' : `TAKE ${TAKE}`;
+  g.font = `800 13px ${FONT}`; if ('letterSpacing' in g) g.letterSpacing = '2px';
+  const lw = g.measureText(label).width + 28; if ('letterSpacing' in g) g.letterSpacing = '0px';
+  rr(W - 40 - lw, 26, lw, 30, 8); g.fillStyle = TAKE === 'choreo' ? 'rgba(165,166,255,0.2)' : 'rgba(255,255,255,0.1)'; g.fill();
+  text(label, W - 40 - lw + 14, 46, 13, 800, TAKE === 'choreo' ? '#c7c8ff' : 'rgba(255,255,255,0.9)', 'left', 2);
+  // The 8 counts of this eight
+  const cur = b < 0 ? -1 : Math.floor(b % 8);
+  const bx = W - 40 - 8 * 26 + 6, by = 82;
+  for (let i = 0; i < 8; i++) {
+    const on = i === cur, past = cur >= 0 && i < cur;
+    g.fillStyle = on ? '#a5a6ff' : past ? 'rgba(165,166,255,0.4)' : 'rgba(255,255,255,0.14)';
+    rr(bx + i * 26, by - (on ? 3 : 0), 20, on ? 10 : 4, 3); g.fill();
+  }
+}
+
+// ---------- One frame ----------
+const prev = {};
+function frame(t) {
+  const b = (t - T0) / BEAT;
+  drawStudio();
+  const list = CREW.map((d) => {
+    const pos = place(d.id, b);
+    const last = prev[d.id] || pos; prev[d.id] = pos;
+    const moving = Math.hypot(pos[0] - last[0], pos[1] - last[1]) > 0.0006;
+    const p = pose(d.id, b, moving);
+    // Walking: one step a count, the foot lifts on the way
+    if (moving) { const f = ((b % 1) + 1) % 1; const lift = 0.07 * Math.sin(Math.PI * f); if (Math.floor(b) % 2) p.liftL = lift; else p.liftR = lift; }
+    return { d, pos, p, scr: project(pos[0], pos[1]) };
+  }).sort((a, z) => a.pos[1] - z.pos[1]);
+  // Reflections on the floor first
+  for (const o of list) {
+    dancer(o.scr.x, o.scr.y, o.scr.h, o.p, o.d.color, 0.1, true);
+  }
+  // Floor shadows, then the dancers, back to front
+  for (const o of list) {
+    g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(o.scr.x, o.scr.y + 2, o.scr.h * 0.2, o.scr.h * 0.035, 0, 0, Math.PI * 2); g.fill();
+  }
+  const heads = {};
+  for (const o of list) heads[o.d.id] = { ...dancer(o.scr.x, o.scr.y, o.scr.h, o.p, o.d.color), o };
+  // Names above heads
+  for (const o of list) {
+    const hd = heads[o.d.id];
+    const label = o.d.name;
+    g.font = `700 ${o.d.me ? 13 : 12}px ${FONT}`;
+    const w = g.measureText(label).width + 14;
+    rr(hd.headX - w / 2, hd.headY - 20, w, 20, 10);
+    g.fillStyle = o.d.me ? 'rgba(139,140,255,0.92)' : 'rgba(10,11,15,0.6)'; g.fill();
+    text(label, hd.headX, hd.headY - 6, o.d.me ? 13 : 12, 700, '#fff', 'center');
+  }
+  drawHud(b);
+  const fade = Math.min(clamp(t / 0.6), clamp((END - t) / 0.6));
+  if (fade < 1) { g.fillStyle = `rgba(0,0,0,${1 - fade})`; g.fillRect(0, 0, W, H); }
+}
+
+async function fonts() {
+  await Promise.all([600, 700, 800, 900].map(async (w) => {
+    try { document.fonts.add(await new FontFace('CardInter', `url(/fonts/inter-latin-${w === 700 ? 800 : w}-normal.woff2)`, { weight: String(w) }).load()); } catch {}
+  }));
+}
+window.still = async (t) => { await fonts(); for (let x = Math.max(0, t - 0.5); x < t; x += 1 / FPS) frame(x); frame(t); return true; };
+window.render = async () => {
+  await fonts();
+  const mb = await import('/app/vendor/mediabunny-card-1.61.3.js');
+  const out = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
+  const src = new mb.CanvasSource(c, { codec: 'avc', bitrate: 5_000_000, keyFrameInterval: 1 });
+  out.addVideoTrack(src, { frameRate: FPS });
+  await out.start();
+  const n = Math.ceil(END * FPS);
+  for (let i = 0; i < n; i++) { frame(i / FPS); await src.add(i / FPS, 1 / FPS); }
+  src.close(); await out.finalize();
+  const blob = new Blob([out.target.buffer], { type: 'video/mp4' });
+  return await new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(blob); });
+};
+window.meta = { END, T0, BEAT };
+window.ready = true;
+</script>
+</body>
+</html>
