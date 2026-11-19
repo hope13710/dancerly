@@ -76,6 +76,9 @@ const MOMENT = 1.4; // the arm hit the note is about
 const LOOP = [1.0, 2.0];
 const NEXT_TAKE = [3.6, 7.2];
 const DURATION = 7.3;
+// The clip stands in for 1:12–1:19 of a 2:57 song, so the timeline reads like a real practice video.
+const OFFSET = 72;
+const LENGTH = 177;
 const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function useTake(n) {
   $$('[data-hero-takes] span').forEach((s, i) => s.classList.toggle('on', i === n));
@@ -103,11 +106,12 @@ if (video) {
     if (step === 0 && t >= MOMENT) { video.pause(); video.currentTime = MOMENT; }
     if (step === 2 && t >= LOOP[1]) video.currentTime = LOOP[0];
     if (step === 3 && t >= NEXT_TAKE[1]) video.currentTime = NEXT_TAKE[0];
-    const share = Math.min(1, video.currentTime / DURATION);
+    const at = OFFSET + Math.min(video.currentTime, DURATION);
+    const share = at / LENGTH;
     fill.style.transform = `scaleX(${share})`;
     head.style.left = `${share * 100}%`;
-    now.textContent = clock(video.currentTime);
-    badge.textContent = `${clock(video.currentTime)}.${Math.floor((video.currentTime % 1) * 10)}`;
+    now.textContent = clock(at);
+    badge.textContent = `${clock(at)}.${Math.floor((at % 1) * 10)}`;
   };
   // The timeline only redraws while the video plays (it pauses off screen), and once after any jump.
   let frame = 0;
