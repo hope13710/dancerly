@@ -75,9 +75,10 @@ export async function renderProjectRequests(projectId) {
       return `<a class="row request-row" href="${base}/${r.id}" data-link>
         <span class="row-main">
           <span class="row-title">${esc(r.title)}</span>
-          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : r.audience ? esc(r.audience) : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${r.repeat_weekly ? ' · weekly' : ''}${mine ? ` · You: ${STATUS[mine.state][0].toLowerCase()}` : ''}</span>
+          <span class="row-meta"><span class="due ${dueClass(r)}">${esc(dueLabel(r.due_at))}</span> · ${r.everyone ? 'Everyone' : r.audience ? esc(r.audience) : `${subs.length} ${subs.length === 1 ? 'person' : 'people'}`}${r.repeat_weekly ? ' · weekly' : ''}</span>
+          ${mine && show === 'active' ? `<span class="you-state narrow">You ${pill(mine.state)}</span>` : ''}
         </span>
-        <span class="row-side"><span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">${ic('right', 'solo')}</span></span>
+        <span class="row-side">${mine && show === 'active' ? `<span class="you-state wide">You ${pill(mine.state)}</span>` : ''}<span class="meter" title="${done} of ${subs.length} submitted"><i style="width:${subs.length ? (done / subs.length) * 100 : 0}%"></i></span><small class="count-fig">${done}/${subs.length}</small><span class="chev">${ic('right', 'solo')}</span></span>
       </a>`;
     }).join('')}</div>`
       : empty('assignment', show === 'active' ? 'No open assignments' : 'No closed assignments', show === 'active' ? 'Ask people to send a video by a date — “Everyone send a run-through of the chorus by Friday 6pm.” You’ll see who has submitted at a glance.' : 'Assignments you close show up here.', show === 'active' ? `<button class="btn primary" data-new-request>+ New assignment</button>${samplePeek('requests')}` : '')}
@@ -230,11 +231,21 @@ export async function renderRequest(projectId, requestId) {
   // ⋯ on an assignment: a menu, so closing it is its own choice and not a side button of the edit form.
   $('[data-manage]')?.addEventListener('click', async (e) => {
     const choice = await actionSheet({ title: r.title, anchor: e.currentTarget, actions: [
-      { value: 'edit', icon: 'pen', label: 'Edit title and due date' },
+      { value: 'edit', icon: 'pen', label: 'Edit assignment' },
       r.status === 'active'
         ? { value: 'close', icon: 'check', label: 'Close assignment', hint: 'Submissions stay in Videos' }
-        : { value: 'reopen', icon: 'loop', label: 'Reopen assignment' }
+        : { value: 'reopen', icon: 'loop', label: 'Reopen assignment' },
+      // Deleting is offered once it's closed, to keep it out of the way.
+      ...(r.status === 'closed' ? [{ value: 'delete', icon: 'trash', label: 'Delete assignment', danger: true }] : [])
     ] });
+    if (choice === 'delete') {
+      const ok = await dialog({ title: 'Delete this assignment?', body: 'Submitted videos and their notes stay in the project.', confirm: 'Delete', danger: true });
+      if (!ok) return;
+      const { error } = await sb.from('requests').delete().eq('id', r.id);
+      if (error) return toast(friendlyError(error), 'error');
+      toast('Assignment deleted.');
+      return navigate(`/app/p/${projectId}/requests?show=closed`, { replace: true });
+    }
     if (choice === 'close') {
       if (r.repeat_weekly) await sb.from('requests').update({ repeat_weekly: false }).eq('id', r.id);
       return setStatus('closed');
@@ -242,16 +253,27 @@ export async function renderRequest(projectId, requestId) {
     if (choice === 'reopen') return setStatus('active');
     if (choice !== 'edit') return;
     const local = r.due_at ? new Date(new Date(r.due_at).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
+    const { data: vids } = await notChoreo(sb.from('videos').select(schema.requestTake ? 'id, title, takes(id, number)' : 'id, title')).eq('project_id', projectId).order('created_at', { ascending: false });
+    const refs = refChoices(vids);
+    const current = r.reference_video_id ? (r.reference_take_id ? `${r.reference_video_id}:${r.reference_take_id}` : r.reference_video_id) : '';
+    // A reference that's gone from the list (deleted since) stays as it was unless it's changed.
+    if (current && !refs.some((o) => o.value === current)) refs.push({ value: current, label: reference ? `${reference.title}${refTake ? ` · Take ${refTake.number}` : ''}` : 'Current reference' });
     const values = await dialog({
       title: 'Edit assignment',
       fields: [
-        { name: 'title', label: 'Title', value: r.title, required: true },
-        { name: 'due', label: 'Due', type: 'datetime-local', value: local, hint: 'Leave empty for no due date' }
+        { name: 'title', label: 'What do you need?', value: r.title, required: true },
+        { name: 'brief', label: 'Brief', type: 'textarea', rows: 3, max: 4000, value: r.brief || '', placeholder: 'Film from the front, full out, with the track. Watch the 5-6 arms.' },
+        { name: 'due', label: 'Due', type: 'datetime-local', value: local, hint: 'Leave empty for no due date' },
+        ...(refs.length ? [{ name: 'reference', label: 'Reference video', type: 'select', value: current, options: [{ value: '', label: 'None' }, ...refs] }] : [])
       ],
       confirm: 'Save'
     });
     if (!values) return;
-    const { error } = await sb.from('requests').update({ title: values.title, due_at: values.due ? new Date(values.due).toISOString() : null }).eq('id', r.id);
+    const [refVideo, refTakeId] = (values.reference || '').split(':');
+    const { error } = await sb.from('requests').update({
+      title: values.title, brief: values.brief || null, due_at: values.due ? new Date(values.due).toISOString() : null,
+      ...(refs.length ? { reference_video_id: refVideo || null, ...(schema.requestTake ? { reference_take_id: refTakeId || null } : {}) } : {})
+    }).eq('id', r.id);
     if (error) return toast(friendlyError(error), 'error');
     renderRequest(projectId, requestId);
   });
@@ -262,20 +284,14 @@ export async function renderRequest(projectId, requestId) {
     toast(status === 'closed' ? 'Assignment closed. Submissions stay in Videos.' : 'Assignment reopened.');
     renderRequest(projectId, requestId);
   }
-  // Deleting is offered once a request is closed, to keep it out of the way.
-  if (canManage && r.status === 'closed') {
-    const del = document.createElement('button');
-    del.className = 'btn ghost danger small';
-    del.textContent = 'Delete assignment';
-    del.addEventListener('click', async () => {
-      const ok = await dialog({ title: 'Delete this assignment?', body: 'Submitted videos and their notes stay in the project.', confirm: 'Delete', danger: true });
-      if (!ok) return;
-      const { error } = await sb.from('requests').delete().eq('id', r.id);
-      if (error) return toast(friendlyError(error), 'error');
-      navigate(`/app/p/${projectId}/requests?show=closed`, { replace: true });
-    });
-    view.querySelector('.page').append(del);
-  }
+}
+
+// Videos to point at, for the edit form: a video with several takes lists each one under it.
+function refChoices(videos) {
+  return (videos || []).flatMap((v) => {
+    const ts = [...(v.takes || [])].sort((a, b) => a.number - b.number);
+    return ts.length < 2 ? [{ value: v.id, label: v.title }] : [{ value: v.id, label: `${v.title} · Latest take` }, ...ts.map((t) => ({ value: `${v.id}:${t.id}`, label: `${v.title} · Take ${t.number}` }))];
+  });
 }
 
 // Requests waiting on you across every project (Home, Review queue).

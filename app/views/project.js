@@ -508,7 +508,7 @@ function nameFromFile(fileName) {
 export async function createVideo(projectId, { request = null, name = null } = {}) {
   if (request) {
     const { data: mine } = await sb.from('videos').select('id, title, takes(count)').eq('request_id', request.id).eq('created_by', ctx.state.session.user.id).limit(1).maybeSingle();
-    if (mine) return resubmit(projectId, mine);
+    if (mine) return resubmit(projectId, mine, request);
   }
   // The name is filled in for you and follows the file you pick (below), until you type your own.
   const autoName = runThrough(new Date());
@@ -565,6 +565,10 @@ export async function createVideo(projectId, { request = null, name = null } = {
   if (error) return toast(friendlyError(error), 'error');
   try {
     await withUploadBar(values.title, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
+    if (request) {
+      toast(`Submitted for “${request.title}”.`);
+      return ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
+    }
     toast('Uploaded. Pause on a moment and add your first note.');
     ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
     inviteAfterFirstVideo(projectId);
@@ -584,7 +588,7 @@ export async function createVideo(projectId, { request = null, name = null } = {
 }
 
 // Already submitted to this request: the new file becomes the next take of that video.
-async function resubmit(projectId, video) {
+async function resubmit(projectId, video, request) {
   const next = (video.takes[0]?.count ?? 0) + 1;
   const values = await dialog({
     title: `Upload Take ${next}`,
@@ -597,7 +601,7 @@ async function resubmit(projectId, video) {
   if (problem) return toast(problem, 'error');
   try {
     const added = await withUploadBar(`${video.title} · Take ${next}`, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
-    toast(`Take ${added.number} is up.`);
+    toast(`Take ${added.number} submitted for “${request.title}”.`);
     ctx.navigate(`/app/p/${projectId}/v/${video.id}?take=${added.number}`);
   } catch (err) {
     if (wasCanceled(err)) return toast('Upload canceled.');

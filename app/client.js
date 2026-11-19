@@ -269,7 +269,7 @@ export function dialog({ title, body = '', fields = [], confirm = 'Save', cancel
         : f.type === 'pick'
         ? `<div class="field"><span>${esc(f.label)}</span><div class="pick-chips" role="group" aria-label="${esc(f.label)}">${f.options.map((o) => `<label class="pick-chip"><input type="checkbox" name="${f.name}" value="${esc(o.value)}" ${(f.values || []).includes(o.value) ? 'checked' : ''} />${o.html || ''}<span>${esc(o.label)}</span></label>`).join('')}</div>${f.hint || f.action ? `<small class="field-hint">${f.hint ? esc(f.hint) : ''}${f.action ? ` <button type="button" class="link-btn" data-field-action="${f.name}">${esc(f.action.label)}</button>` : ''}</small>` : ''}</div>`
         : `<label class="field"><span>${esc(f.label)}</span>${f.type === 'select'
-        ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
+        ? `<select name="${f.name}" ${f.required ? 'required' : ''}>${f.options.map((o) => `<option value="${esc(o.value)}" ${String(o.value) === String(f.value ?? '') ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`
         : f.type === 'file'
         ? `<input name="${f.name}" type="file" accept="${f.accept || ''}" ${f.required ? 'required' : ''} />`
         : f.type === 'textarea'

@@ -2564,6 +2564,28 @@ a.row:hover {
 .table.compact td:last-child {
   padding-right: var(--space-20);
 }
+/* Assignments list: where you stand, ahead of the team's progress. */
+.you-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-right: var(--space-12);
+  font-size: var(--font-size-13);
+  color: var(--muted);
+}
+.you-state.narrow {
+  display: none;
+}
+@media (max-width: 600px) {
+  .you-state.wide {
+    display: none;
+  }
+  .you-state.narrow {
+    display: inline-flex;
+    margin: var(--space-4) 0 0;
+    font-size: var(--font-size-12);
+  }
+}
 .meter {
   display: inline-block;
   width: 64px;
