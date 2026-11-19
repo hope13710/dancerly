@@ -1644,6 +1644,10 @@ body.is-uploading .toast {
 .side-open {
   display: none;
 }
+/* Same gap to the logo as in the sidebar, so the two read as one spot. */
+.topbar .side-open + .brand {
+  margin-left: calc(var(--space-8) - var(--space-16));
+}
 .sidebar {
   position: sticky;
   top: 0;
@@ -1660,9 +1664,9 @@ body.is-uploading .toast {
 .side-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-8);
   height: 34px;
-  padding: 0 var(--space-4) 0 var(--space-8);
+  padding: 0 var(--space-4);
   margin-bottom: var(--space-12);
 }
 .side-new {
