@@ -5,7 +5,7 @@ import { samplePeek } from '../onboarding.js';
 import { noteTime, tabs, empty, pageHead, namesFor, noSample } from './shared.js';
 import { ic } from '../icons.js';
 
-const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title)), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
+const BASE_SELECT = 'id, kind, created_at, read_at, actor_id, project_id, take_id, note_id, recap_id, recaps(content), request_id, requests(title, due_at), projects(title), takes(number, video_id, videos(title, request_id, requests!videos_request_id_fkey(title))), notes(body, t_start, t_end, video_id, take_id, takes(number), videos(title))';
 // Requests to join (migration 040) carry the requester's name: owners can't read a non-member's profile.
 // @mentions on a page (migration 075) carry the page and the line they're on.
 const select = () => `${BASE_SELECT}${schema.joinRequests ? ', join_request_id, join_requests(requester_name, status)' : ''}${schema.pageMentions ? ', page_id, detail, project_pages(title)' : ''}`;
@@ -34,6 +34,8 @@ function describe(item, names) {
   if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
   if (item.kind === 'request_reminder') return `${who} reminded you: <b>${esc(item.requests?.title || '')}</b>`;
+  const forRequest = item.kind === 'new_take' && item.takes?.videos?.request_id && item.takes.videos.requests?.title;
+  if (forRequest) return `${who} submitted ${takeNo === 1 ? 'a video' : `Take ${takeNo}`} for <b>${esc(forRequest)}</b>`;
   if (item.kind === 'new_take') return `${who} uploaded ${takeNo === 1 ? 'a new video' : `Take ${takeNo} of`} <b>${esc(video)}</b>`;
   if (item.kind === 'private_note') return `${ic('lock')}${who} left you a private note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
   if (item.kind === 'reply') return `${who} replied to a note on <b>${esc(video)}</b>${takeNo ? ` · Take ${takeNo}` : ''}`;
