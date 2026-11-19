@@ -529,7 +529,8 @@ export async function createVideo(projectId, { request = null, name = null } = {
           input.value = suggested;
           input.dataset.suggested = suggested;
         } },
-      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, select: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : name || autoName }
+      { name: 'title', label: 'Name', placeholder: 'Full run-through', required: true, select: true, value: request ? `${request.title} — ${ctx.state.profile.display_name}` : name || autoName },
+      ...(request ? noteField(request) : [])
     ],
     confirm: 'Upload'
   });
@@ -564,7 +565,7 @@ export async function createVideo(projectId, { request = null, name = null } = {
   const { data: video, error } = await sb.from('videos').insert({ project_id: projectId, title: values.title, ...(request ? { request_id: request.id } : {}) }).select('id').single();
   if (error) return toast(friendlyError(error), 'error');
   try {
-    await withUploadBar(values.title, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
+    await withUploadBar(values.title, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal, message: values.message }));
     if (request) {
       toast(`Submitted for “${request.title}”.`);
       return ctx.navigate(`/app/p/${projectId}/v/${video.id}`);
@@ -587,20 +588,28 @@ export async function createVideo(projectId, { request = null, name = null } = {
   }
 }
 
+// A line for the person who asked, sent with the video ("Marked the jump, knee's still sore"). Optional.
+function noteField(request, retake = false) {
+  if (!schema.assignLoop) return [];
+  const who = (request.author_name || '').split(' ')[0];
+  return [{ name: 'message', label: who ? `Note for ${who}` : 'Note', type: 'textarea', rows: 2, max: 500,
+    placeholder: retake ? 'Fixed the arms. Still working on the turn.' : 'Marked the jump, my knee’s still sore.', hint: 'Optional. Shown with your video.' }];
+}
+
 // Already submitted to this request: the new file becomes the next take of that video.
 async function resubmit(projectId, video, request) {
   const next = (video.takes[0]?.count ?? 0) + 1;
   const values = await dialog({
     title: `Upload Take ${next}`,
     body: `You already submitted <b>${esc(video.title)}</b>. This becomes Take ${next}, and notes that aren’t fixed yet come along.`,
-    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT }],
+    fields: [{ name: 'file', label: 'Video', type: 'file', accept: 'video/mp4,video/quicktime,video/webm', required: true, hint: FILE_HINT }, ...noteField(request, true)],
     confirm: `Upload Take ${next}`
   });
   if (!values) return;
   const problem = checkTakeFile(values.file);
   if (problem) return toast(problem, 'error');
   try {
-    const added = await withUploadBar(`${video.title} · Take ${next}`, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal }));
+    const added = await withUploadBar(`${video.title} · Take ${next}`, (stage, signal) => uploadTake({ projectId, videoId: video.id, file: values.file, onStage: stage, signal, message: values.message }));
     toast(`Take ${added.number} submitted for “${request.title}”.`);
     ctx.navigate(`/app/p/${projectId}/v/${video.id}?take=${added.number}`);
   } catch (err) {

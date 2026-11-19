@@ -26,7 +26,7 @@ const QUIET_TO = 7;
 // Notification kind -> settings group, and each group's default.
 const GROUP: Record<string, string> = {
   mention: "mention", page_mention: "mention", private_note: "private_note", reply: "reply",
-  request_new: "request", request_reminder: "request", request_due: "request",
+  request_new: "request", request_reminder: "request", request_due: "request", request_all_in: "request",
   note_on_your_video: "note_on_your_video", new_take: "new_take", note_resolved: "note_resolved",
   joined: "joined", recap_shared: "recap_shared",
   join_request: "join_request", join_approved: "join_request",
@@ -144,7 +144,7 @@ function describe(n: any, c: Ctx, zone: string) {
     case "reply": return { subject: `${who} replied on “${vtitle}”`, line: `<b>${esc(who)}</b> replied to a note on <b>${esc(vtitle)}</b> at ${at}`, href: noteHref, cta: "See the reply", text: showText ? note.body : null };
     case "note_on_your_video": return { subject: `${who} left a note on “${vtitle}”`, line: `<b>${esc(who)}</b> left a note on <b>${esc(vtitle)}</b> at ${at}`, href: noteHref, cta: `Open at ${at}`, text: showText ? note.body : null };
     // A take that answers an assignment says so: "Ari submitted Take 2 for Chorus run-through".
-    case "new_take": if (video?.requests?.title) { const what = take?.number === 1 ? "a video" : `Take ${take?.number ?? ""}`; return { subject: `${who} submitted ${what} for “${video.requests.title}”`, line: `<b>${esc(who)}</b> submitted ${what} for <b>${esc(video.requests.title)}</b>`, href: `${SITE}/app/p/${n.project_id}/v/${video.id}?take=${take?.number ?? ""}&${ref}`, cta: "Watch it", text: null }; }
+    case "new_take": if (video?.requests?.title) { const what = take?.number === 1 ? "a video" : `Take ${take?.number ?? ""}`; return { subject: `${who} submitted ${what} for “${video.requests.title}”`, line: `<b>${esc(who)}</b> submitted ${what} for <b>${esc(video.requests.title)}</b>`, href: `${SITE}/app/p/${n.project_id}/v/${video.id}?take=${take?.number ?? ""}&${ref}`, cta: "Watch it", text: take?.message ?? null }; }
       return { subject: `${who} uploaded Take ${take?.number ?? ""} of “${vtitle}”`, line: `<b>${esc(who)}</b> uploaded Take ${take?.number ?? ""} of <b>${esc(vtitle)}</b>`, href: video ? `${SITE}/app/p/${n.project_id}/v/${video.id}?take=${take?.number ?? ""}&${ref}` : `${SITE}/app?${ref}`, cta: "Watch it", text: null };
     case "note_resolved": return { subject: `${who} fixed your note on “${vtitle}”`, line: `✓ <b>${esc(who)}</b> marked your note on <b>${esc(vtitle)}</b> at ${at} as fixed`, href: noteHref, cta: "See it", text: showText ? note.body : null };
     case "joined": return { subject: `${who} joined ${project?.title ?? "your project"}`, line: `<b>${esc(who)}</b> joined <b>${esc(project?.title ?? "your project")}</b>`, href: `${SITE}/app/p/${n.project_id}/people?${ref}`, cta: "Say hi", text: null };
@@ -158,6 +158,8 @@ function describe(n: any, c: Ctx, zone: string) {
       return { subject: `${who} shared a recap`, line: `<b>${esc(who)}</b> shared a recap: ${esc(r?.headline ?? "")}`, href: `${SITE}/app/recaps/${n.recap_id}?${ref}`, cta: "Read the recap", text: null }; }
     case "request_new": return { subject: `${who} gave you an assignment: ${req?.title ?? "a video"}${req?.due_at ? ` · due ${dueLabel(req.due_at, zone)}` : ""}`, line: `<b>${esc(who)}</b> gave you an assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
     case "request_reminder": return { subject: `Reminder: ${req?.title ?? "your assignment"}`, line: `<b>${esc(who)}</b> sent a reminder about your assignment: <b>${esc(req?.title ?? "")}</b>${req?.due_at ? ` · due ${esc(dueLabel(req.due_at, zone))}` : ""}`, href: reqHref, cta: "Submit your video", text: null };
+    // Everyone it was for has submitted (migration 084): time for the person who asked to review.
+    case "request_all_in": return { subject: `Everyone submitted “${req?.title ?? "your assignment"}”`, line: `Everyone submitted <b>${esc(req?.title ?? "")}</b>. Time to review.`, href: reqHref, cta: "Review submissions", text: null };
     case "request_due": return { subject: `Due tomorrow: ${req?.title ?? "your assignment"}`, line: `Your assignment <b>${esc(req?.title ?? "")}</b> is due ${esc(dueLabel(req?.due_at, zone))}. You haven’t submitted yet.`, href: reqHref, cta: "Submit your video", text: null };
     default: return { subject: "New activity on dancerly", line: "New activity on dancerly", href: `${SITE}/app/inbox?${ref}`, cta: "Open dancerly", text: null };
   }
@@ -168,7 +170,7 @@ async function loadContext(rows: any[]): Promise<Ctx> {
   const map = (data: any[] | null) => new Map((data ?? []).map((x) => [x.id, x]));
   const { data: notes } = ids("note_id").length ? await admin.from("notes").select("id, body, t_start, take_id, video_id, private_to").in("id", ids("note_id")) : { data: [] };
   const takeIds = [...new Set([...ids("take_id"), ...(notes ?? []).map((n: any) => n.take_id)])];
-  const { data: takes } = takeIds.length ? await admin.from("takes").select("id, number, video_id, deleted_at").in("id", takeIds) : { data: [] };
+  const { data: takes } = takeIds.length ? await admin.from("takes").select("id, number, video_id, deleted_at, message").in("id", takeIds) : { data: [] };
   const videoIds = [...new Set([...(takes ?? []).map((t: any) => t.video_id), ...(notes ?? []).map((n: any) => n.video_id)])];
   const [{ data: videos }, { data: projects }, { data: requests }, { data: recaps }, { data: people }] = await Promise.all([
     videoIds.length ? admin.from("videos").select("id, title, deleted_at, request_id, requests!videos_request_id_fkey(title)").in("id", videoIds) : { data: [] },

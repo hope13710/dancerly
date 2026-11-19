@@ -211,11 +211,11 @@ function tusUpload(blob, { path, type, key }, onStage, signal) {
 }
 
 // Prepare (or reuse the prepared copy), upload (or resume), then record the take.
-export async function uploadTake({ projectId, videoId, file, onStage = () => {}, signal = null }) {
+export async function uploadTake({ projectId, videoId, file, onStage = () => {}, signal = null, message = null }) {
   const facts = { type: (file && typeOf(file)) || 'unknown', mb: Math.round((file?.size || 0) / 1048576), online: navigator.onLine };
   let step = 'check';
   try {
-    return await sendTake({ projectId, videoId, file, onStage, signal, facts, at: (s) => { step = s; } });
+    return await sendTake({ projectId, videoId, file, onStage, signal, facts, message, at: (s) => { step = s; } });
   } catch (error) {
     if (error?.name === 'AbortError') throw error; // the person stopped it: nothing to report
     const level = error.fileProblem || step === 'check' ? 'info' : error.resumable ? 'warning' : 'error';
@@ -236,7 +236,7 @@ async function storageFull(projectId) {
   return err;
 }
 
-async function sendTake({ projectId, videoId, file, onStage, signal, facts, at }) {
+async function sendTake({ projectId, videoId, file, onStage, signal, facts, message, at }) {
   const problem = checkTakeFile(file);
   if (problem) throw new Error(problem);
   // Full storage stops the upload on the server anyway; saying so before compressing saves the wait.
@@ -271,7 +271,7 @@ async function sendTake({ projectId, videoId, file, onStage, signal, facts, at }
   if (signal?.aborted) throw canceled();
   at('save');
   onStage('save', null);
-  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200) }).select(`id, number, project_id, video_id${schema.videoKind ? ', kind' : ''}`).single();
+  const { data, error } = await sb.from('takes').insert({ video_id: videoId, storage_path: record.path, file_name: file.name.slice(0, 200), ...(message && schema.assignLoop ? { message: message.slice(0, 500) } : {}) }).select(`id, number, project_id, video_id${schema.videoKind ? ', kind' : ''}`).single();
   if (error) {
     await sb.storage.from(TAKE_BUCKET).remove([record.path]);
     clearRecord(key);

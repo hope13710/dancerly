@@ -1,6 +1,6 @@
 // Requests: "everyone send a run-through of the chorus by Friday 6pm".
 // A submission is a video linked to the request; re-uploading adds a take to it.
-import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo, Unavailable } from '../client.js';
+import { sb, $, $$, esc, timeAgo, toast, friendlyError, dialog, actionSheet, loadMembers, avatar, enterConfirms, schema, notChoreo, Unavailable, cols } from '../client.js';
 import { ctx } from '../ctx.js';
 import { samplePeek } from '../onboarding.js';
 import { loadProject, projectHead, createVideo, copyInvite } from './project.js';
@@ -47,8 +47,8 @@ export function submissionsFor(request, members, videos) {
 
 async function loadRequests(projectId) {
   const [{ data: requests, error }, { data: videos, error: vErr }] = await Promise.all([
-    sb.from('requests').select('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, reference_take_id, audience, repeat_weekly, request_assignees(user_id)'.replace(schema.requestTake ? '' : ' reference_take_id,', '')).eq('project_id', projectId).order('created_at', { ascending: false }),
-    sb.from('videos').select('id, title, created_by, request_id, takes(id, number, created_at), notes(status, author_id)').eq('project_id', projectId).not('request_id', 'is', null)
+    sb.from('requests').select(cols('id, project_id, title, brief, due_at, everyone, status, created_by, created_at, closed_at, last_reminded_at, reference_video_id, reference_take_id, reference_choreo, reference_section_id, audience, repeat_weekly, request_assignees(user_id)')).eq('project_id', projectId).order('created_at', { ascending: false }),
+    sb.from('videos').select(cols('id, title, created_by, request_id, takes(id, number, created_at, message), notes(status, author_id)')).eq('project_id', projectId).not('request_id', 'is', null)
   ]);
   if (error || vErr) throw error || vErr;
   return { requests, videos };
@@ -88,9 +88,10 @@ export async function renderProjectRequests(projectId) {
 
 // ---------- New / edit ----------
 export async function newRequest(projectId) {
-  const [members, groups, { data: videos }] = await Promise.all([
+  const [members, groups, practice, { data: videos }] = await Promise.all([
     loadMembers(projectId),
     loadGroups(projectId),
+    practiceRefs(projectId),
     notChoreo(sb.from('videos').select(schema.requestTake ? 'id, title, takes(id, number)' : 'id, title')).eq('project_id', projectId).order('created_at', { ascending: false })
   ]);
   const me = ctx.state.session.user.id;
@@ -122,7 +123,7 @@ export async function newRequest(projectId) {
     ${groups.length ? `<div class="pick-people" data-pick-groups hidden>${groups.map((g) => `<label><input type="checkbox" name="group" value="${g.id}" />${esc(g.name)} <small class="muted">${g.project_group_members.length}</small></label>`).join('')}</div>` : ''}
     <div class="pick-people" data-pick hidden>${members.filter((m) => m.user_id !== me).map((m) => `<label><input type="checkbox" name="person" value="${m.user_id}" />${avatar(m.name, m.user_id, 'xs')}${esc(m.name)}</label>`).join('') || '<p class="muted">Nobody else has joined yet. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>'}</div>
     ${members.length < 5 && !ctx.state.projects.find((p) => p.id === projectId)?.is_sample ? '<p class="fine left request-invite">Not everyone has joined yet? People who join later with the invite link get “Everyone” assignments too. <button type="button" class="link-btn" data-invite-copy>Copy invite link</button></p>' : ''}
-    ${videos?.length ? `<label class="field"><span>Reference video <small>optional</small></span><select name="reference"><option value="">None</option>${refOptions}</select></label>` : ''}
+    ${videos?.length || practice.length ? `<label class="field"><span>Reference <small>optional</small></span><select name="reference"><option value="">None</option>${practice.length ? `<optgroup label="Practice">${practice.map((o) => `<option value="${o.value}">${esc(o.label)}</option>`).join('')}</optgroup>` : ''}${practice.length && refOptions ? `<optgroup label="Videos">${refOptions.replace(/<\/?optgroup[^>]*>/g, '')}</optgroup>` : refOptions}</select></label>` : ''}
     <div class="dialog-actions"><button value="cancel" formnovalidate class="btn ghost">Cancel</button><button value="ok" class="btn primary">Assign</button></div>
   </form>`;
   document.body.append(el);
@@ -157,14 +158,15 @@ export async function newRequest(projectId) {
   if (values.who === 'groups' && !values.groups.length) return toast('Pick at least one group.', 'error');
   if (values.weekly && !values.date) return toast('A weekly assignment needs a due date.', 'error');
   const due = values.date ? new Date(`${values.date}T${values.time}`).toISOString() : null;
+  const ref = refFields(values.reference);
   const { data: rid, error } = await sb.rpc('create_request_v2', {
     p_project: projectId, p_title: values.title, p_brief: values.brief, p_due: due,
     p_assignees: values.who === 'some' ? values.people : [], p_groups: values.who === 'groups' ? values.groups : [],
-    p_reference: values.reference?.split(':')[0] || null, p_repeat_weekly: values.weekly
+    p_reference: ref.reference_video_id || null, p_repeat_weekly: values.weekly
   });
   if (error) return toast(friendlyError(error), 'error');
-  const refTake = values.reference?.split(':')[1];
-  if (refTake && schema.requestTake) await sb.from('requests').update({ reference_take_id: refTake }).eq('id', rid);
+  // A take or a practice reference is set right after; the function only knows about videos.
+  if (ref.reference_take_id || ref.reference_choreo || ref.reference_section_id) await sb.from('requests').update(ref).eq('id', rid);
   toast('Assignment sent.');
   ctx.navigate(`/app/p/${projectId}/requests/${rid}`);
 }
@@ -191,6 +193,9 @@ export async function renderRequest(projectId, requestId) {
     sb.from('notes').select('id', { count: 'exact', head: true }).eq('take_id', r.reference_take_id).neq('status', 'resolved').then((x) => x.count || 0)
   ]) : [null, 0];
   const refHref = reference ? `/app/p/${projectId}/v/${reference.id}${refTake ? `?take=${refTake.number}` : ''}` : '';
+  // A practice reference: the choreo video, or one section of it, opened in Practice (migration 084).
+  const section = schema.assignLoop && r.reference_section_id ? (await sb.from('count_sheet_rows').select('id, section, counts').eq('id', r.reference_section_id).maybeSingle()).data : null;
+  const practiceRef = Boolean(section || (schema.assignLoop && r.reference_choreo));
   view.innerHTML = `<section class="page narrow-wide">
     <header class="page-head"><div>
       <p class="eyebrow">Assignment${r.status === 'closed' ? ' · Closed' : ''}</p>
@@ -202,8 +207,9 @@ export async function renderRequest(projectId, requestId) {
       ${canManage ? `<button class="btn ghost icon" data-manage aria-label="Assignment options" title="Assignment options">${ic('more', 'solo')}</button>` : ''}
     </div></header>
     ${ready ? '<div class="banner ok"><span>Everyone submitted and every note is fixed.</span><button class="btn small" data-close>Close assignment</button></div>' : ''}
-    ${r.brief || reference ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
+    ${r.brief || reference || practiceRef ? `<section class="panel"><div class="panel-head"><div><h2>Brief</h2></div></div>
       ${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ''}
+      ${practiceRef ? `<p class="brief-ref">Practice: <a class="link" href="/app/p/${projectId}/practice${section ? `?section=${section.id}` : ''}" data-link>${ic('loop')}<span>${section ? esc(sectionLabel(section)) : 'Choreo video'}</span></a></p>` : ''}
       ${reference ? `<p class="brief-ref">Reference: <a class="link" href="${refHref}" data-link>${ic('play')}<span>${esc(reference.title)}${refTake ? ` · ${`Take ${refTake.number}`}` : ''}</span></a></p>` : ''}
       ${refTake && refOpen ? `<p class="brief-ref muted">${`${refOpen} open ${refOpen === 1 ? 'note' : 'notes'} on this take`} · <a class="link" href="${refHref}" data-link>View</a></p>` : ''}
     </section>` : ''}
@@ -214,13 +220,13 @@ export async function renderRequest(projectId, requestId) {
       <div class="list flush">${subs.map((s) => `<${s.video ? `a href="/app/p/${projectId}/v/${s.video.id}" data-link` : 'div'} class="row">
         ${avatar(s.member.name, s.member.user_id, 'sm')}
         <span class="row-main"><span class="row-title">${esc(s.member.name)}${s.member.user_id === me ? ' <span class="tag">You</span>' : ''}</span>
-          <span class="row-meta">${s.video ? `${esc(s.video.title)} · ${s.latest ? `Take ${s.latest.number} · ${timeAgo(s.latest.created_at)}` : 'no take yet'}` : 'Nothing yet'}</span></span>
+          <span class="row-meta">${s.video ? `${esc(s.video.title)} · ${s.latest ? `Take ${s.latest.number} · ${timeAgo(s.latest.created_at)}` : 'no take yet'}` : 'Nothing yet'}</span>${s.latest?.message ? `<span class="row-quote">“${esc(s.latest.message)}”</span>` : ''}</span>
         <span class="row-side">${pill(s.state)}${s.video ? `<span class="chev">${ic('right', 'solo')}</span>` : ''}</span>
       </${s.video ? 'a' : 'div'}>`).join('') || '<p class="panel-empty">Nobody is assigned.</p>'}</div>
     </section>
   </section>`;
 
-  $('[data-submit]')?.addEventListener('click', () => createVideo(projectId, { request: r }));
+  $('[data-submit]')?.addEventListener('click', () => createVideo(projectId, { request: { ...r, author_name: author } }));
   $('[data-close]')?.addEventListener('click', () => setStatus('closed'));
   $('[data-remind]')?.addEventListener('click', async () => {
     const { data: sent, error } = await sb.rpc('remind_request', { p_request: r.id });
@@ -232,6 +238,7 @@ export async function renderRequest(projectId, requestId) {
   $('[data-manage]')?.addEventListener('click', async (e) => {
     const choice = await actionSheet({ title: r.title, anchor: e.currentTarget, actions: [
       { value: 'edit', icon: 'pen', label: 'Edit assignment' },
+      ...(schema.assignLoop ? [{ value: 'who', icon: 'people', label: 'Change who it’s for' }] : []),
       r.status === 'active'
         ? { value: 'close', icon: 'check', label: 'Close assignment', hint: 'Submissions stay in Videos' }
         : { value: 'reopen', icon: 'loop', label: 'Reopen assignment' },
@@ -251,11 +258,32 @@ export async function renderRequest(projectId, requestId) {
       return setStatus('closed');
     }
     if (choice === 'reopen') return setStatus('active');
+    if (choice === 'who') {
+      const others = p.members.filter((m) => m.user_id !== r.created_by);
+      const now = (r.request_assignees || []).map((a) => a.user_id);
+      const picked = await dialog({
+        title: 'Who it’s for',
+        fields: [
+          { name: 'everyone', type: 'check', label: 'Everyone', value: r.everyone, hint: 'Everyone on the project, including people who join later' },
+          { name: 'people', type: 'pick', label: 'Or only these people', values: r.everyone ? [] : now, options: others.map((m) => ({ value: m.user_id, label: m.name, html: avatar(m.name, m.user_id, 'xs') })), hint: 'Used when Everyone is off. People you add get it in their Inbox.' }
+        ],
+        confirm: 'Save'
+      });
+      if (!picked) return;
+      if (!picked.everyone && !picked.people.length) return toast('Pick at least one person, or choose Everyone.', 'error');
+      const { data: added, error } = await sb.rpc('set_request_assignees', { p_request: r.id, p_everyone: picked.everyone, p_people: picked.everyone ? [] : picked.people });
+      if (error) return toast(friendlyError(error), 'error');
+      toast(added ? `Saved. ${added === 1 ? '1 person' : `${added} people`} added.` : 'Saved.');
+      return renderRequest(projectId, requestId);
+    }
     if (choice !== 'edit') return;
     const local = r.due_at ? new Date(new Date(r.due_at).getTime() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16) : '';
-    const { data: vids } = await notChoreo(sb.from('videos').select(schema.requestTake ? 'id, title, takes(id, number)' : 'id, title')).eq('project_id', projectId).order('created_at', { ascending: false });
-    const refs = refChoices(vids);
-    const current = r.reference_video_id ? (r.reference_take_id ? `${r.reference_video_id}:${r.reference_take_id}` : r.reference_video_id) : '';
+    const [{ data: vids }, practice] = await Promise.all([
+      notChoreo(sb.from('videos').select(schema.requestTake ? 'id, title, takes(id, number)' : 'id, title')).eq('project_id', projectId).order('created_at', { ascending: false }),
+      practiceRefs(projectId)
+    ]);
+    const refs = [...practice.map((o) => ({ ...o, label: `Practice · ${o.label}` })), ...refChoices(vids)];
+    const current = section ? `section:${section.id}` : practiceRef ? 'choreo' : r.reference_video_id ? (r.reference_take_id ? `${r.reference_video_id}:${r.reference_take_id}` : r.reference_video_id) : '';
     // A reference that's gone from the list (deleted since) stays as it was unless it's changed.
     if (current && !refs.some((o) => o.value === current)) refs.push({ value: current, label: reference ? `${reference.title}${refTake ? ` · Take ${refTake.number}` : ''}` : 'Current reference' });
     const values = await dialog({
@@ -264,15 +292,14 @@ export async function renderRequest(projectId, requestId) {
         { name: 'title', label: 'What do you need?', value: r.title, required: true },
         { name: 'brief', label: 'Brief', type: 'textarea', rows: 3, max: 4000, value: r.brief || '', placeholder: 'Film from the front, full out, with the track. Watch the 5-6 arms.' },
         { name: 'due', label: 'Due', type: 'datetime-local', value: local, hint: 'Leave empty for no due date' },
-        ...(refs.length ? [{ name: 'reference', label: 'Reference video', type: 'select', value: current, options: [{ value: '', label: 'None' }, ...refs] }] : [])
+        ...(refs.length ? [{ name: 'reference', label: 'Reference', type: 'select', value: current, options: [{ value: '', label: 'None' }, ...refs] }] : [])
       ],
       confirm: 'Save'
     });
     if (!values) return;
-    const [refVideo, refTakeId] = (values.reference || '').split(':');
     const { error } = await sb.from('requests').update({
       title: values.title, brief: values.brief || null, due_at: values.due ? new Date(values.due).toISOString() : null,
-      ...(refs.length ? { reference_video_id: refVideo || null, ...(schema.requestTake ? { reference_take_id: refTakeId || null } : {}) } : {})
+      ...(refs.length ? refFields(values.reference) : {})
     }).eq('id', r.id);
     if (error) return toast(friendlyError(error), 'error');
     renderRequest(projectId, requestId);
@@ -284,6 +311,33 @@ export async function renderRequest(projectId, requestId) {
     toast(status === 'closed' ? 'Assignment closed. Submissions stay in Videos.' : 'Assignment reopened.');
     renderRequest(projectId, requestId);
   }
+}
+
+// What a reference choice means for the row: a video (or one of its takes), the choreo video, or a practice section.
+function refFields(value) {
+  const v = value || '';
+  const out = { reference_video_id: null };
+  if (schema.requestTake) out.reference_take_id = null;
+  if (schema.assignLoop) Object.assign(out, { reference_choreo: v === 'choreo', reference_section_id: v.startsWith('section:') ? v.slice(8) : null });
+  if (v && v !== 'choreo' && !v.startsWith('section:')) {
+    const [video, take] = v.split(':');
+    out.reference_video_id = video;
+    if (schema.requestTake) out.reference_take_id = take || null;
+  }
+  return out;
+}
+
+const sectionLabel = (s) => (s.counts ? `${s.section} · ${s.counts}` : s.section);
+
+// The choreo video and its sections, to practice before filming (migration 084). Empty without a choreo video.
+async function practiceRefs(projectId) {
+  if (!schema.assignLoop || !schema.choreo) return [];
+  const [{ data: project }, { data: rows }] = await Promise.all([
+    sb.from('projects').select('choreo_video_id, choreo_youtube, choreo_title').eq('id', projectId).maybeSingle(),
+    sb.from('count_sheet_rows').select('id, section, counts, position').eq('project_id', projectId).order('position')
+  ]);
+  if (!project?.choreo_video_id && !project?.choreo_youtube) return [];
+  return [{ value: 'choreo', label: 'Choreo video' }, ...(rows || []).filter((s) => s.section).map((s) => ({ value: `section:${s.id}`, label: sectionLabel(s) }))];
 }
 
 // Videos to point at, for the edit form: a video with several takes lists each one under it.

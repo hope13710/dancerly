@@ -33,6 +33,7 @@ function describe(item, names) {
   if (item.kind === 'recap_shared') return `${who} shared a recap in <b>${project}</b>`;
   if (item.kind === 'request_new') return `${who} gave you an assignment: <b>${esc(item.requests?.title || '')}</b>`;
   if (item.kind === 'request_due') return `Due in 24 hours: <b>${esc(item.requests?.title || '')}</b> — not submitted yet`;
+  if (item.kind === 'request_all_in') return `Everyone submitted <b>${esc(item.requests?.title || '')}</b>. Time to review.`;
   if (item.kind === 'request_reminder') return `${who} reminded you: <b>${esc(item.requests?.title || '')}</b>`;
   const forRequest = item.kind === 'new_take' && item.takes?.videos?.request_id && item.takes.videos.requests?.title;
   if (forRequest) return `${who} submitted ${takeNo === 1 ? 'a video' : `Take ${takeNo}`} for <b>${esc(forRequest)}</b>`;
