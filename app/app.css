@@ -2576,6 +2576,19 @@ a.row:hover {
 .you-state.narrow {
   display: none;
 }
+/* The note a submitter sent with their video. */
+.row-quote {
+  font-size: var(--font-size-13);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.take-message {
+  margin: var(--space-6) 0 0;
+  font-size: var(--font-size-14);
+  color: var(--ink);
+}
 @media (max-width: 600px) {
   .you-state.wide {
     display: none;
