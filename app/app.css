@@ -1954,6 +1954,26 @@ body.is-uploading .toast {
   body.signed-in.side-hidden .side-open {
     display: inline-grid;
   }
+  /* Peeking: the tucked-away sidebar slides out over the page while the pointer is on it. */
+  body.signed-in.side-hidden.side-peek .sidebar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 248px;
+    z-index: var(--z-menu);
+    box-shadow: var(--shadow-2);
+    animation: side-peek-in var(--duration-base) var(--ease);
+  }
+}
+@keyframes side-peek-in {
+  from { transform: translateX(-100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.side-peek .sidebar {
+    animation: none;
+  }
 }
 @media (max-width: 900px) {
   .sidebar {
