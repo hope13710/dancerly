@@ -469,9 +469,47 @@ if (/Mac|iPhone|iPad/.test(navigator.platform)) $$('[data-kbd]').forEach((k) => 
 // Wide screens can tuck the sidebar away; remembered per browser.
 try { document.body.classList.toggle('side-hidden', localStorage.getItem('looproom:side') === 'hidden'); } catch {}
 $$('[data-side-toggle]').forEach((b) => b.addEventListener('click', () => {
-  const hidden = document.body.classList.toggle('side-hidden');
+  // While it's peeking, the button in the sidebar keeps it open instead of hiding it.
+  const hidden = document.body.classList.contains('side-peek') ? false : !document.body.classList.contains('side-hidden');
+  document.body.classList.toggle('side-hidden', hidden);
+  setPeek(false);
   try { localStorage.setItem('looproom:side', hidden ? 'hidden' : 'shown'); } catch {}
 }));
+// When it's tucked away, pointing at the open button (or the left edge) slides it out over the page
+// until the pointer leaves it. Mouse only; a click still keeps it open.
+const sideBar = $('[data-sidebar]');
+const sideInner = $('.side-top [data-side-toggle]');
+let peekTimer = 0;
+function setPeek(on) {
+  clearTimeout(peekTimer);
+  if (on === document.body.classList.contains('side-peek')) return;
+  document.body.classList.toggle('side-peek', on);
+  const label = on ? 'Keep sidebar open' : 'Hide sidebar';
+  sideInner.setAttribute('aria-label', label);
+  sideInner.title = label;
+}
+function canPeek(event) {
+  return event.pointerType === 'mouse' && document.body.classList.contains('side-hidden')
+    && document.body.classList.contains('signed-in') && matchMedia('(min-width: 901px)').matches;
+}
+function peekSoon(event, delay) {
+  if (!canPeek(event)) return;
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => setPeek(true), delay);
+}
+function unpeekSoon() {
+  clearTimeout(peekTimer);
+  if (document.body.classList.contains('side-peek')) peekTimer = setTimeout(() => setPeek(false), 300);
+}
+$('.topbar .side-open').addEventListener('pointerenter', (event) => peekSoon(event, 60));
+$('.topbar .side-open').addEventListener('pointerleave', unpeekSoon);
+sideBar.addEventListener('pointerenter', () => { if (document.body.classList.contains('side-peek')) clearTimeout(peekTimer); });
+sideBar.addEventListener('pointerleave', unpeekSoon);
+document.addEventListener('pointermove', (event) => {
+  if (event.clientX <= 6 && !document.body.classList.contains('side-peek')) peekSoon(event, 120);
+}, { passive: true });
+sideBar.addEventListener('click', (event) => { if (event.target.closest('a[href]')) setPeek(false); });
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setPeek(false); });
 $('[data-account-toggle]').addEventListener('click', () => $('[data-account-menu]').toggleAttribute('hidden'));
 document.addEventListener('click', (event) => { if (!event.target.closest('[data-account]')) $('[data-account-menu]').hidden = true; });
 $('[data-signout]').addEventListener('click', signOut);
