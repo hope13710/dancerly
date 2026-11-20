@@ -587,7 +587,7 @@ function renderLogin() {
     $('[data-reveal]').addEventListener('click', (event) => togglePassword(form.password, event.currentTarget));
     $('[data-forgot]')?.addEventListener('click', () => renderForgot(form.email.value.trim()));
     $('[data-google]')?.addEventListener('click', async () => {
-      const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${next}` } });
+      const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${next}`, queryParams: { prompt: 'select_account' } } });
       if (error) showError(friendlyError(error));
     });
     form.addEventListener('submit', async (event) => {
@@ -877,7 +877,7 @@ async function renderJoin(code) {
   </div></section>`;
   $('[data-accept]')?.addEventListener('click', join);
   $('[data-join-google]')?.addEventListener('click', async () => {
-    const { error: gErr } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${back}` } });
+    const { error: gErr } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}${back}`, queryParams: { prompt: 'select_account' } } });
     if (gErr) toast(friendlyError(gErr), 'error');
   });
 }
