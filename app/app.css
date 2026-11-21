@@ -6630,10 +6630,16 @@ button.row {
   .pv-player img {
     aspect-ratio: 16 / 7;
   }
-  .pv-note,
+  /* The note stays: it's what the video and first-fix previews are about. Tabs and the empty row don't fit. */
   .pv-proj .pv-tabs,
   .pv-proj .pv-vrow {
     display: none;
+  }
+  .pv-note > span:nth-child(3) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .activate-main {
     padding: var(--space-20) var(--space-20) var(--space-16);
