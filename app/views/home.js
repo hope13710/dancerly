@@ -20,17 +20,19 @@ function stepPreview(kind, project, goal, days) {
   const sketch = '<svg class="pv-sketch" viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><ellipse class="pv-sk" cx="142" cy="102" rx="24" ry="20" /><path class="pv-sk pv-sk-2" d="M114 96 C100 88 86 86 70 88 M70 88 L82 80 M70 88 L81 96" /></svg>';
   // The real sketch toolbar: pen, arrow, circle · four colors · undo, clear · Done.
   const sketchBar = `<div class="pv-skbar" aria-hidden="true"><span class="pv-skg"><b>${ic('pen', 'solo')}</b><b>${ic('arrow', 'solo')}</b><b class="on">${ic('circle', 'solo')}</b></span><span class="pv-skg"><i class="on" style="--c:#ffd60a"></i><i style="--c:#ff453a"></i><i style="--c:#64d2ff"></i><i style="--c:#ffffff"></i></span><span class="pv-skg"><b>${ic('undo', 'solo')}</b><b>${ic('x', 'solo')}</b></span><em>Done</em></div>`;
-  const player = (withNote) => `<div class="pv-player"><div class="pv-frame"><img src="/samples/hero-preview.jpg" alt="" />${sketch}</div><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note"><span class="pv-av">JL</span><span class="pv-t">0:01</span><span>${note}</span><span class="pv-sktag">${ic('pen', 'solo')}</span></div>` : ''}</div>`;
+  const chip = `<span class="pv-t">${ic('at')}00:01<em class="pv-cnt">1·3</em><em class="pv-chsk">${ic('pen', 'solo')}</em></span>`;
+  const player = (withNote, fixed = false) => `<div class="pv-player"><div class="pv-frame"><img src="/samples/hero-preview.jpg" alt="" />${sketch}</div><div class="pv-tl"><span class="pv-bar"></span><span class="pv-prog"></span><i class="pop" style="left:19%"></i><i style="left:68%"></i><i style="left:89%"></i></div>${withNote ? `<div class="pv-note${fixed ? ' pv-fixed' : ''}"><span class="pv-av">JL</span>${chip}<span>${note}</span>${fixed ? `<span class="pv-ok">${ic('check', 'solo')}</span>` : ''}</div>` : ''}${fixed ? `<div class="pv-landed">${ic('check')}Fixed in Take 2 · Jordan’s note landed</div>` : ''}</div>`;
   const title = esc(project?.title || ('Spring Showcase'));
   const html = {
     project: `<div class="pv-proj"><div class="pv-k">Project</div><h4><span class="pv-mk">${esc(initials(project?.title || 'Spring Showcase'))}</span>${title}</h4>
-      <span class="pv-goal">${ic('flag')}${goal ? `${esc(goal.title)} · ${days <= 0 ? 'D-DAY' : `D-${days}`}` : `Spring Showcase · D-12`}</span>
-      <div class="pv-tabs"><span>Overview</span><span class="on">Videos</span><span>Assignments</span></div>
+      <span class="pv-goal">${ic('flag')}${goal ? `${esc(goal.title)} · ${days <= 0 ? 'D-DAY' : `D-${days}`}` : `City Dance Cup · D-12`}</span>
+      <div class="pv-tabs"><span class="on">Videos</span><span>Notes</span><span>Assignments</span><span>People</span><span>Overview</span></div>
       <div class="pv-vrow"><span class="pv-ph">${ic('plus', 'solo')}</span>Your team’s videos land here</div></div>${cap('One place for one show')}`,
     video: `${player(true)}${cap('Feedback lands on the exact moment')}`,
-    note: `<div class="pv-compose"><div class="pv-frame pv-frame-draw"><img src="/samples/hero-preview.jpg" alt="" />${sketch}${sketchBar}</div><div class="pv-crow"><span class="pv-t">${ic('at')}0:01.4</span>At this moment</div><div class="pv-box">${note} <b>@Maya</b></div><div class="pv-pin"><em class="pv-skchip">${ic('pen')}Sketch</em><span>Pin note</span></div></div>${cap('Pause, sketch, type. Done')}`,
+    fixed: `${player(true, true)}${cap('See what got better')}`,
+    note: `<div class="pv-compose"><div class="pv-frame pv-frame-draw"><img src="/samples/hero-preview.jpg" alt="" />${sketch}${sketchBar}</div><div class="pv-crow"><span class="pv-seg"><b>${ic('at')}At 00:01.4</b><i>${ic('range')}Range</i></span></div><div class="pv-box">${note} <b>@Maya</b></div><div class="pv-pin"><em class="pv-vis">Everyone</em><em class="pv-skchip">${ic('pen')}Draw</em><span>Add note</span></div></div>${cap('Pause, sketch, type. Done')}`,
     invite: `<div class="pv-invite"><div class="pv-avs"><span class="a">MC</span><span class="b">JL</span><span class="c">HK</span><span class="d">+4</span></div>
-      <div class="pv-joined">Jordan joined</div><div class="pv-copy"><span>dancerly.app/join/7f3k…</span><b>Copy</b></div></div>${cap('One link brings the team in')}`
+      <div class="pv-joined">Jordan joined</div><div class="pv-copy"><span>dancerly.app/app/join/7f3k…</span><b>Copy</b></div></div>${cap('One link brings the team in')}`
   }[kind] || '';
   return `<div class="pv-wrap">${ex}${html}</div>`;
 }
@@ -157,7 +159,7 @@ export async function renderHome() {
       'Trade notes with your team': (roster || []).length
         ? ['Trade notes with your team', 'Pause on a moment in a teammate’s take and say what you see, or @mention someone on yours to ask for their eye.', 'Open the latest video', 'note']
         : ['Trade notes with your team', 'Feedback starts when someone else watches. Send the invite link to your team chat.', 'Invite people', 'invite'],
-      'See a note get fixed': ['See a note get fixed', 'After practice, mark what got better as fixed, on a new take or right on the same one. Whoever wrote the note hears that it landed.', 'Open the latest video', 'video']
+      'See a note get fixed': ['See a note get fixed', 'After practice, mark what got better as fixed, on a new take or right on the same one. Whoever wrote the note hears that it landed.', 'Open the latest video', 'fixed']
     };
     const SHORT = { 'Create a project': 'Project', 'Upload a practice video': 'Upload video', 'Invite people': 'Invite people', 'Trade notes with your team': 'Trade notes', 'See a note get fixed': 'First fix' };
     const next = steps.find(([, ok, action]) => !ok && action);
@@ -169,7 +171,7 @@ export async function renderHome() {
     const goal = project ? await projectGoal({ ...project, target_event_id: (await sb.from('projects').select(cols('target_event_id')).eq('id', project.id).maybeSingle()).data?.target_event_id }) : null;
     const days = goal ? daysUntil(goal.starts_at) : null;
     // On a computer, the video is usually still on the phone: offer to continue there.
-    const handoff = kind === 'video' && project && !matchMedia('(pointer: coarse)').matches;
+    const handoff = (kind === 'video' || kind === 'fixed') && project && !matchMedia('(pointer: coarse)').matches;
     const html = `
       <section class="panel activate">
         <div class="activate-main">
